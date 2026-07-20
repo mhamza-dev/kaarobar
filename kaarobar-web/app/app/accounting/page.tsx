@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
+import DataTable from "@/components/ui/DataTable";
 import { Alert, EmptyState, Field, PageHeader, TabBar, fieldClass } from "@/components/app/ui";
 
 type Tab = "coa" | "journals" | "tb" | "pl" | "bs" | "gl" | "ar" | "ap";
@@ -68,6 +69,13 @@ export default function AccountingPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [jeModal, setJeModal] = useState(false);
+  const [accountModal, setAccountModal] = useState(false);
+  const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
+  const [accountForm, setAccountForm] = useState({
+    code: "",
+    name: "",
+    type: "expense",
+  });
   const [busy, setBusy] = useState(false);
 
   const [jeDesc, setJeDesc] = useState("");
@@ -212,6 +220,32 @@ export default function AccountingPage() {
     }
   }
 
+  function openEditAccount(a: Account) {
+    setEditingAccountId(a.id);
+    setAccountForm({ code: a.code, name: a.name, type: a.type });
+    setAccountModal(true);
+  }
+
+  async function saveAccount(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingAccountId) return;
+    setBusy(true);
+    try {
+      await api(`/accounts/${editingAccountId}`, {
+        method: "PATCH",
+        body: JSON.stringify(accountForm),
+      });
+      setMessage("Account updated");
+      setAccountModal(false);
+      setEditingAccountId(null);
+      await loadCore();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Account update failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const tabs: { id: Tab; label: string }[] = [
     { id: "tb", label: "Trial balance" },
     { id: "pl", label: "P&L" },
@@ -278,26 +312,56 @@ export default function AccountingPage() {
       ) : null}
 
       {tab === "coa" ? (
-        <div className="overflow-hidden rounded-xl border border-border bg-card">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-brand-subtle">
-              <tr>
-                <th className="px-4 py-3">Code</th>
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Type</th>
-              </tr>
-            </thead>
-            <tbody>
-              {accounts.map((a) => (
-                <tr key={a.id} className="border-t border-border text-heading">
-                  <td className="px-4 py-2">{a.code}</td>
-                  <td className="px-4 py-2">{a.name}</td>
-                  <td className="px-4 py-2">{a.type}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          maxHeight="28rem"
+          searchable
+          searchPlaceholder="Search accounts…"
+          getSearchText={(a) => `${a.code} ${a.name} ${a.type}`}
+          onRowClick={openEditAccount}
+          columns={[
+            {
+              id: "code",
+              header: "Code",
+              cell: (a) => <span className="font-medium tabular-nums">{a.code}</span>,
+            },
+            {
+              id: "name",
+              header: "Name",
+              cell: (a) => <span className="font-medium">{a.name}</span>,
+            },
+            {
+              id: "type",
+              header: "Type",
+              cell: (a) => (
+                <span className="inline-flex rounded-md bg-bg-tertiary px-2 py-0.5 text-xs font-semibold capitalize">
+                  {a.type}
+                </span>
+              ),
+            },
+            {
+              id: "actions",
+              header: "",
+              align: "right",
+              width: 88,
+              cell: (a) => (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openEditAccount(a);
+                  }}
+                >
+                  Edit
+                </Button>
+              ),
+            },
+          ]}
+          data={accounts}
+          rowKey={(a) => a.id}
+          emptyTitle="No accounts"
+          emptyBody="Accounts are seeded when you create a business."
+        />
       ) : null}
 
       {tab === "journals" ? (
@@ -310,7 +374,7 @@ export default function AccountingPage() {
           ) : null}
           <div className="space-y-3">
             {journals.map((j) => (
-              <div key={j.id} className="rounded-xl border border-border bg-card p-4 text-sm">
+              <div key={j.id} className="rounded-md border border-border bg-card p-4 text-sm">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="text-heading">
                     <strong>{j.date}</strong> · {j.description}{" "}
@@ -405,19 +469,77 @@ export default function AccountingPage() {
       ) : null}
 
       <Modal
+        isOpen={accountModal}
+        onClose={() => {
+          setAccountModal(false);
+          setEditingAccountId(null);
+        }}
+        title="Edit account"
+        description="Update chart of accounts name, code, or type."
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setAccountModal(false);
+                setEditingAccountId(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" form="account-modal-form" loading={busy}>
+              Save changes
+            </Button>
+          </div>
+        }
+      >
+        <form id="account-modal-form" onSubmit={saveAccount} className="space-y-4">
+          <Field label="Code">
+            <input
+              className={fieldClass}
+              value={accountForm.code}
+              onChange={(e) => setAccountForm({ ...accountForm, code: e.target.value })}
+              required
+            />
+          </Field>
+          <Field label="Name">
+            <input
+              className={fieldClass}
+              value={accountForm.name}
+              onChange={(e) => setAccountForm({ ...accountForm, name: e.target.value })}
+              required
+            />
+          </Field>
+          <Field label="Type">
+            <select
+              className={fieldClass}
+              value={accountForm.type}
+              onChange={(e) => setAccountForm({ ...accountForm, type: e.target.value })}
+            >
+              {["asset", "liability", "equity", "revenue", "expense"].map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </form>
+      </Modal>
+
+      <Modal
         isOpen={jeModal}
         onClose={() => setJeModal(false)}
         title="Post journal"
         description="Enter a balanced two-line manual journal entry."
         footer={
-          <>
+          <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setJeModal(false)}>
               Cancel
             </Button>
             <Button type="submit" form="je-modal-form" loading={busy}>
               Post journal
             </Button>
-          </>
+          </div>
         }
       >
         <form id="je-modal-form" onSubmit={createJournal} className="space-y-4">
@@ -484,38 +606,26 @@ function StatementTable({
   headers: string[];
   rows: (string | undefined)[][];
 }) {
+  const data = rows.map((cells, i) => ({ id: String(i), cells }));
+
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card">
-      <table className="w-full text-left text-sm">
-        <thead className="bg-brand-subtle">
-          <tr>
-            {headers.map((h) => (
-              <th key={h} className="px-4 py-3">
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.length === 0 ? (
-            <tr>
-              <td className="px-4 py-3 text-body" colSpan={headers.length}>
-                No rows
-              </td>
-            </tr>
-          ) : (
-            rows.map((row, i) => (
-              <tr key={i} className="border-t border-border text-heading">
-                {row.map((cell, j) => (
-                  <td key={j} className="px-4 py-2">
-                    {cell}
-                  </td>
-                ))}
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
+    <DataTable
+      maxHeight="28rem"
+      searchable
+      searchPlaceholder="Search rows…"
+      getSearchText={(row) => (row.cells ?? []).join(" ")}
+      columns={headers.map((h, i) => ({
+        id: `c${i}`,
+        header: h,
+        cell: (row: { cells: (string | undefined)[] }) => (
+          <span className={i > 0 ? "tabular-nums" : undefined}>
+            {row.cells[i] ?? "—"}
+          </span>
+        ),
+      }))}
+      data={data}
+      rowKey={(row) => row.id}
+      emptyTitle="No rows"
+    />
   );
 }

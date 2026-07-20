@@ -9,10 +9,11 @@ import {
   View,
 } from "react-native";
 import { api, colors, setSession } from "../lib/api";
+import { setLocale, t, type Locale } from "../lib/i18n";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("owner@kaarobar.local");
-  const [password, setPassword] = useState("password123");
+  const [password, setPassword] = useState("Password@123");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -22,7 +23,13 @@ export default function LoginScreen() {
     try {
       const result = await api<{
         access_token: string;
-        user: { id: string; email: string; name: string };
+        user: {
+          id: string;
+          email: string;
+          name: string;
+          phone?: string | null;
+          locale?: Locale;
+        };
       }>(
         "/auth/login",
         {
@@ -32,9 +39,12 @@ export default function LoginScreen() {
         null
       );
       await setSession({ access_token: result.access_token, user: result.user });
+      if (result.user.locale === "ur" || result.user.locale === "en") {
+        await setLocale(result.user.locale);
+      }
       router.replace("/dashboard");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      setError(err instanceof Error ? err.message : t("common.error"));
     } finally {
       setBusy(false);
     }
@@ -42,12 +52,12 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Sign in</Text>
-      <Text style={styles.hint}>Open your dashboard and staff tools.</Text>
+      <Text style={styles.title}>{t("auth.signInTitle")}</Text>
+      <Text style={styles.hint}>{t("auth.signInSub")}</Text>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <Text style={styles.label}>Email</Text>
+      <Text style={styles.label}>{t("auth.email")}</Text>
       <TextInput
         autoCapitalize="none"
         keyboardType="email-address"
@@ -58,7 +68,7 @@ export default function LoginScreen() {
         placeholderTextColor={colors.muted}
       />
 
-      <Text style={styles.label}>Password</Text>
+      <Text style={styles.label}>{t("auth.password")}</Text>
       <TextInput
         secureTextEntry
         value={password}
@@ -72,15 +82,15 @@ export default function LoginScreen() {
         {busy ? (
           <ActivityIndicator color={colors.white} />
         ) : (
-          <Text style={styles.primaryText}>Sign in</Text>
+          <Text style={styles.primaryText}>{t("common.signIn")}</Text>
         )}
       </Pressable>
 
       <Link href="/signup" style={styles.link}>
-        Need an account? Create one
+        {t("auth.needAccount")}
       </Link>
       <Link href="/landing" style={styles.linkMuted}>
-        Back to landing
+        {t("common.back")}
       </Link>
     </View>
   );

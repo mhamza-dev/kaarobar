@@ -60,6 +60,12 @@ defmodule Kaarobar.Accounts do
     |> Repo.update()
   end
 
+  def update_profile(%User{} = user, attrs) do
+    user
+    |> User.profile_changeset(attrs)
+    |> Repo.update()
+  end
+
   def mfa_enabled?(%User{} = user), do: User.mfa_enabled?(user)
 
   def begin_mfa_setup(%User{} = user) do

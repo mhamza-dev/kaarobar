@@ -11,7 +11,7 @@ export default function AboutHero() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,#2563eb10,transparent_65%)]" />
 
       <div className="relative mx-auto max-w-6xl px-6 text-center">
-        <div className="inline-flex items-center gap-2 rounded-full bg-brand-soft px-4 py-2 text-sm font-semibold text-brand">
+        <div className="inline-flex items-center gap-2 rounded-md bg-brand-soft px-4 py-2 text-sm font-semibold text-brand">
           <Sparkles size={16} />
           About Kaarobar
         </div>
@@ -43,7 +43,7 @@ export default function AboutHero() {
               body: "Cashiers keep going offline. You still approve the exceptions that matter.",
             },
           ].map((item) => (
-            <div key={item.title} className="rounded-2xl border border-border bg-card p-5">
+            <div key={item.title} className="rounded-md border border-border bg-card p-5">
               <h3 className="font-semibold text-heading">{item.title}</h3>
               <p className="mt-2 text-sm leading-6 text-body">{item.body}</p>
             </div>

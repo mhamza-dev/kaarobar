@@ -27,7 +27,7 @@ export function PageHeader({
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <span className="inline-flex rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold tracking-wide text-brand">
+        <span className="inline-flex rounded-md bg-brand-soft px-3 py-1 text-xs font-semibold tracking-wide text-brand">
           {eyebrow}
         </span>
         <h1 className="mt-3 text-3xl font-bold tracking-tight text-heading">{title}</h1>
@@ -61,13 +61,13 @@ export function TabBar<T extends string>({
   onChange: (id: T) => void;
 }) {
   return (
-    <div className="inline-flex flex-wrap gap-1 rounded-2xl bg-bg-tertiary p-1.5">
+    <div className="inline-flex flex-wrap gap-1 rounded-md bg-bg-tertiary p-1.5">
       {tabs.map((t) => (
         <button
           key={t.id}
           type="button"
           onClick={() => onChange(t.id)}
-          className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+          className={`rounded-md px-4 py-2 text-sm font-semibold transition ${
             value === t.id
               ? "bg-card text-heading shadow-sm"
               : "text-body hover:text-heading"
@@ -89,7 +89,7 @@ export function SurfaceCard({
 }) {
   return (
     <div
-      className={`overflow-hidden rounded-2xl border border-border bg-card shadow-sm ${className}`}
+      className={`overflow-hidden rounded-md border border-border bg-card shadow-sm ${className}`}
     >
       {children}
     </div>
@@ -127,7 +127,7 @@ export function KpiCard({
         </div>
         {icon ? (
           <span
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${tones}`}
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-md ${tones}`}
           >
             {icon}
           </span>
@@ -153,7 +153,7 @@ export function StatusBadge({
 
   return (
     <span
-      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${styles}`}
+      className={`inline-flex rounded-md px-2.5 py-0.5 text-xs font-semibold ${styles}`}
     >
       {children}
     </span>
@@ -176,7 +176,7 @@ export function Field({
 }
 
 export const fieldClass =
-  "w-full rounded-xl border border-border bg-bg-secondary px-3 py-2.5 text-sm text-heading outline-none transition placeholder:text-muted focus:border-brand focus:ring-2 focus:ring-brand-soft";
+  "w-full rounded-md border border-border bg-bg-secondary px-3 py-2.5 text-sm text-heading outline-none transition placeholder:text-muted focus:border-brand focus:ring-2 focus:ring-brand-soft";
 
 export function Alert({
   tone = "info",
@@ -192,7 +192,7 @@ export function Alert({
   }[tone];
 
   return (
-    <p className={`rounded-xl border px-3 py-2 text-sm ${styles}`}>{children}</p>
+    <p className={`rounded-md border px-3 py-2 text-sm ${styles}`}>{children}</p>
   );
 }
 
@@ -204,3 +204,4 @@ export function EmptyState({ title, body }: { title: string; body?: string }) {
     </div>
   );
 }
+

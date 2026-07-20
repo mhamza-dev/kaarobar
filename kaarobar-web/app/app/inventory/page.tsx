@@ -4,9 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { api, getSession } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
+import DataTable from "@/components/ui/DataTable";
 import {
   Alert,
-  EmptyState,
   Field,
   PageHeader,
   SurfaceCard,
@@ -17,7 +17,33 @@ import {
 type Tab = "stock" | "products" | "suppliers" | "pos" | "transfers" | "adjust";
 type ModalKind = "product" | "supplier" | "po" | null;
 
-type Product = { id: string; sku: string; name: string; price?: string };
+const emptyProductForm = {
+  sku: "",
+  name: "",
+  price: "",
+  barcode: "",
+  brand: "",
+  unit: "pcs",
+  product_kind: "goods",
+  duration_minutes: "",
+  category: "",
+  category_id: "",
+};
+
+type Product = {
+  id: string;
+  sku: string;
+  name: string;
+  price?: string;
+  barcode?: string;
+  brand?: string;
+  unit?: string;
+  product_kind?: string;
+  duration_minutes?: number;
+  image_url?: string;
+  category?: string;
+  category_id?: string;
+};
 type StockRow = {
   product_id: string;
   sku?: string;
@@ -42,6 +68,7 @@ type Transfer = {
 export default function InventoryPage() {
   const [tab, setTab] = useState<Tab>("stock");
   const [modal, setModal] = useState<ModalKind>(null);
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [stock, setStock] = useState<StockRow[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -51,7 +78,9 @@ export default function InventoryPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const [productForm, setProductForm] = useState({ sku: "", name: "", price: "" });
+  const [productForm, setProductForm] = useState(emptyProductForm);
+  const [productImage, setProductImage] = useState<File | null>(null);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [supplierName, setSupplierName] = useState("");
   const [poForm, setPoForm] = useState({
     supplier_id: "",
@@ -78,18 +107,22 @@ export default function InventoryPage() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const [p, s, sup, poList, tr] = await Promise.all([
+      const [p, s, sup, poList, tr, cats] = await Promise.all([
         api<{ data: Product[] }>("/products"),
         api<{ data: StockRow[] }>("/inventory").catch(() => ({ data: [] })),
         api<{ data: Supplier[] }>("/suppliers").catch(() => ({ data: [] })),
         api<{ data: PO[] }>("/inventory/purchase-orders").catch(() => ({ data: [] })),
         api<{ data: Transfer[] }>("/inventory/transfers").catch(() => ({ data: [] })),
+        api<{ data: { id: string; name: string }[] }>("/categories").catch(() => ({
+          data: [],
+        })),
       ]);
       setProducts(p.data || []);
       setStock(s.data || []);
       setSuppliers(sup.data || []);
       setPos(poList.data || []);
       setTransfers(tr.data || []);
+      setCategories(cats.data || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load");
     }
@@ -99,22 +132,61 @@ export default function InventoryPage() {
     load();
   }, [load]);
 
-  async function createProduct(e: React.FormEvent) {
+  function openNewProduct() {
+    setEditingProductId(null);
+    setProductForm(emptyProductForm);
+    setProductImage(null);
+    setModal("product");
+  }
+
+  function openEditProduct(p: Product) {
+    setEditingProductId(p.id);
+    setProductForm({
+      sku: p.sku || "",
+      name: p.name || "",
+      price: p.price || "",
+      barcode: p.barcode || "",
+      brand: p.brand || "",
+      unit: p.unit || "pcs",
+      product_kind: p.product_kind || "goods",
+      duration_minutes: p.duration_minutes != null ? String(p.duration_minutes) : "",
+      category: p.category || "",
+      category_id: p.category_id || "",
+    });
+    setProductImage(null);
+    setModal("product");
+  }
+
+  function closeProductModal() {
+    setModal(null);
+    setEditingProductId(null);
+    setProductForm(emptyProductForm);
+    setProductImage(null);
+  }
+
+  async function saveProduct(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError(null);
     try {
-      await api("/products", {
-        method: "POST",
-        body: JSON.stringify(productForm),
+      const fd = new FormData();
+      Object.entries(productForm).forEach(([k, v]) => {
+        if (v) fd.append(k, v);
       });
-      setProductForm({ sku: "", name: "", price: "" });
-      setModal(null);
-      setMessage("Product created");
+      if (productImage) fd.append("image", productImage);
+
+      if (editingProductId) {
+        await api(`/products/${editingProductId}`, { method: "PATCH", body: fd });
+        setMessage("Product updated");
+      } else {
+        await api("/products", { method: "POST", body: fd });
+        setMessage("Product created");
+      }
+      closeProductModal();
       setTab("products");
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Create failed");
+      setError(err instanceof Error ? err.message : "Save failed");
     } finally {
       setBusy(false);
     }
@@ -259,7 +331,7 @@ export default function InventoryPage() {
 
   const headerAction =
     tab === "products"
-      ? { label: "New product", onClick: () => setModal("product") }
+      ? { label: "New product", onClick: openNewProduct }
       : tab === "suppliers"
         ? { label: "Add supplier", onClick: () => setModal("supplier") }
         : tab === "pos"
@@ -281,74 +353,165 @@ export default function InventoryPage() {
       {message ? <Alert tone="success">{message}</Alert> : null}
 
       {tab === "stock" ? (
-        <SurfaceCard>
-          <table className="w-full text-left text-sm">
-            <thead className="bg-brand-subtle">
-              <tr>
-                <th className="px-4 py-3 font-semibold text-heading">SKU</th>
-                <th className="px-4 py-3 font-semibold text-heading">Name</th>
-                <th className="px-4 py-3 font-semibold text-heading">On hand</th>
-                <th className="px-4 py-3 font-semibold text-heading">Avg cost</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stock.length === 0 ? (
-                <tr>
-                  <td colSpan={4}>
-                    <EmptyState title="No stock rows" body="Add products and receive a GRN." />
-                  </td>
-                </tr>
-              ) : (
-                stock.map((row) => (
-                  <tr key={row.product_id} className="border-t border-border text-heading">
-                    <td className="px-4 py-3">{row.sku}</td>
-                    <td className="px-4 py-3">{row.name}</td>
-                    <td className="px-4 py-3">{row.quantity_on_hand}</td>
-                    <td className="px-4 py-3">{row.avg_cost}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </SurfaceCard>
+        <DataTable
+          maxHeight="28rem"
+          searchable
+          searchPlaceholder="Search SKU or name…"
+          getSearchText={(row) => `${row.sku ?? ""} ${row.name ?? ""}`}
+          columns={[
+            {
+              id: "sku",
+              header: "SKU",
+              cell: (row) => (
+                <span className="font-medium tabular-nums text-heading">{row.sku}</span>
+              ),
+            },
+            {
+              id: "name",
+              header: "Name",
+              cell: (row) => row.name,
+            },
+            {
+              id: "qty",
+              header: "On hand",
+              align: "right",
+              cell: (row) => (
+                <span className="tabular-nums font-semibold text-heading">
+                  {row.quantity_on_hand}
+                </span>
+              ),
+            },
+            {
+              id: "cost",
+              header: "Avg cost",
+              align: "right",
+              cell: (row) => (
+                <span className="tabular-nums text-body">{row.avg_cost}</span>
+              ),
+            },
+          ]}
+          data={stock}
+          rowKey={(row) => row.product_id}
+          emptyTitle="No stock rows"
+          emptyBody="Add products and receive a GRN."
+        />
       ) : null}
 
       {tab === "products" ? (
-        <SurfaceCard>
-          <table className="w-full text-left text-sm">
-            <thead className="bg-brand-subtle">
-              <tr>
-                <th className="px-4 py-3 font-semibold">SKU</th>
-                <th className="px-4 py-3 font-semibold">Name</th>
-                <th className="px-4 py-3 font-semibold">Price</th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.map((p) => (
-                <tr key={p.id} className="border-t border-border text-heading">
-                  <td className="px-4 py-3">{p.sku}</td>
-                  <td className="px-4 py-3">{p.name}</td>
-                  <td className="px-4 py-3">{p.price ?? "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </SurfaceCard>
+        <DataTable
+          maxHeight="28rem"
+          searchable
+          searchPlaceholder="Search products by name, SKU, barcode…"
+          getSearchText={(p) =>
+            `${p.sku} ${p.name} ${p.barcode ?? ""} ${p.brand ?? ""} ${p.product_kind ?? ""}`
+          }
+          onRowClick={openEditProduct}
+          columns={[
+            {
+              id: "thumb",
+              header: "",
+              width: 56,
+              cell: (p) =>
+                p.image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={p.image_url}
+                    alt=""
+                    className="h-9 w-9 rounded-md object-cover ring-1 ring-border"
+                  />
+                ) : (
+                  <span className="flex h-9 w-9 items-center justify-center rounded-md bg-brand-soft text-[10px] font-bold text-brand">
+                    {p.name.slice(0, 2).toUpperCase()}
+                  </span>
+                ),
+            },
+            {
+              id: "sku",
+              header: "SKU / Barcode",
+              cell: (p) => (
+                <div>
+                  <div className="font-medium text-heading">{p.sku}</div>
+                  <div className="text-xs tabular-nums text-muted">
+                    {p.barcode || "—"}
+                  </div>
+                </div>
+              ),
+            },
+            {
+              id: "name",
+              header: "Name",
+              cell: (p) => <span className="font-medium">{p.name}</span>,
+            },
+            {
+              id: "kind",
+              header: "Kind",
+              cell: (p) => (
+                <span className="inline-flex rounded-md bg-bg-tertiary px-2 py-0.5 text-xs font-semibold capitalize text-body">
+                  {p.product_kind || "goods"}
+                </span>
+              ),
+            },
+            {
+              id: "unit",
+              header: "Unit",
+              cell: (p) => (
+                <span className="text-body">{p.unit || "pcs"}</span>
+              ),
+            },
+            {
+              id: "price",
+              header: "Price",
+              align: "right",
+              cell: (p) => (
+                <span className="tabular-nums font-semibold text-heading">
+                  {p.price ?? "—"}
+                </span>
+              ),
+            },
+            {
+              id: "actions",
+              header: "",
+              align: "right",
+              width: 88,
+              cell: (p) => (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openEditProduct(p);
+                  }}
+                >
+                  Edit
+                </Button>
+              ),
+            },
+          ]}
+          data={products}
+          rowKey={(p) => p.id}
+          emptyTitle="No products"
+          emptyBody="Create a product to start stocking inventory."
+        />
       ) : null}
 
       {tab === "suppliers" ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {suppliers.map((s) => (
-            <SurfaceCard key={s.id} className="p-4">
-              <p className="font-semibold text-heading">{s.name}</p>
-            </SurfaceCard>
-          ))}
-          {suppliers.length === 0 ? (
-            <SurfaceCard>
-              <EmptyState title="No suppliers" body="Add a supplier to raise purchase orders." />
-            </SurfaceCard>
-          ) : null}
-        </div>
+        <DataTable
+          maxHeight="28rem"
+          searchable
+          searchPlaceholder="Search suppliers…"
+          getSearchText={(s) => s.name}
+          columns={[
+            {
+              id: "name",
+              header: "Supplier",
+              cell: (s) => <span className="font-medium text-heading">{s.name}</span>,
+            },
+          ]}
+          data={suppliers}
+          rowKey={(s) => s.id}
+          emptyTitle="No suppliers"
+          emptyBody="Add a supplier to raise purchase orders."
+        />
       ) : null}
 
       {tab === "pos" ? (
@@ -391,28 +554,46 @@ export default function InventoryPage() {
             </form>
           </SurfaceCard>
 
-          <SurfaceCard>
-            <table className="w-full text-left text-sm">
-              <thead className="bg-brand-subtle">
-                <tr>
-                  <th className="px-4 py-3">Supplier</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Lines</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pos.map((p) => (
-                  <tr key={p.id} className="border-t border-border text-heading">
-                    <td className="px-4 py-3">
-                      {p.supplier_name || p.supplier_id.slice(0, 8)}
-                    </td>
-                    <td className="px-4 py-3">{p.status}</td>
-                    <td className="px-4 py-3">{p.items?.length || 0}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </SurfaceCard>
+          <DataTable
+            maxHeight="20rem"
+            searchable
+            searchPlaceholder="Search POs…"
+            getSearchText={(p) =>
+              `${p.supplier_name ?? ""} ${p.supplier_id} ${p.status}`
+            }
+            columns={[
+              {
+                id: "supplier",
+                header: "Supplier",
+                cell: (p) => (
+                  <span className="font-medium">
+                    {p.supplier_name || p.supplier_id.slice(0, 8)}
+                  </span>
+                ),
+              },
+              {
+                id: "status",
+                header: "Status",
+                cell: (p) => (
+                  <span className="inline-flex rounded-md bg-bg-tertiary px-2 py-0.5 text-xs font-semibold capitalize text-body">
+                    {p.status}
+                  </span>
+                ),
+              },
+              {
+                id: "lines",
+                header: "Lines",
+                align: "right",
+                cell: (p) => (
+                  <span className="tabular-nums">{p.items?.length || 0}</span>
+                ),
+              },
+            ]}
+            data={pos}
+            rowKey={(p) => p.id}
+            emptyTitle="No purchase orders"
+            emptyBody="Create a PO to start receiving stock."
+          />
         </div>
       ) : null}
 
@@ -520,29 +701,44 @@ export default function InventoryPage() {
 
       <Modal
         isOpen={modal === "product"}
-        onClose={() => setModal(null)}
-        title="New product"
-        description="Add a SKU to the business catalog. Branch price is set on create when provided."
+        onClose={closeProductModal}
+        title={editingProductId ? "Edit product" : "New product"}
+        description={
+          editingProductId
+            ? "Update catalog details and branch price for the active branch."
+            : "Works for retail, restaurant, salon, pharmacy, and general shops. Add barcode and photo for faster POS."
+        }
+        size="lg"
         footer={
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setModal(null)}>
+            <Button variant="outline" onClick={closeProductModal}>
               Cancel
             </Button>
             <Button type="submit" form="product-modal-form" loading={busy}>
-              Create product
+              {editingProductId ? "Save changes" : "Create product"}
             </Button>
           </div>
         }
       >
-        <form id="product-modal-form" onSubmit={createProduct} className="space-y-4">
-          <Field label="SKU">
-            <input
-              className={fieldClass}
-              value={productForm.sku}
-              onChange={(e) => setProductForm({ ...productForm, sku: e.target.value })}
-              required
-            />
-          </Field>
+        <form id="product-modal-form" onSubmit={saveProduct} className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="SKU">
+              <input
+                className={fieldClass}
+                value={productForm.sku}
+                onChange={(e) => setProductForm({ ...productForm, sku: e.target.value })}
+                required
+              />
+            </Field>
+            <Field label="Barcode">
+              <input
+                className={fieldClass}
+                value={productForm.barcode}
+                onChange={(e) => setProductForm({ ...productForm, barcode: e.target.value })}
+                placeholder="Scan or type"
+              />
+            </Field>
+          </div>
           <Field label="Name">
             <input
               className={fieldClass}
@@ -551,12 +747,90 @@ export default function InventoryPage() {
               required
             />
           </Field>
-          <Field label="Branch price">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Field label="Kind">
+              <select
+                className={fieldClass}
+                value={productForm.product_kind}
+                onChange={(e) =>
+                  setProductForm({ ...productForm, product_kind: e.target.value })
+                }
+              >
+                <option value="goods">Goods</option>
+                <option value="service">Service</option>
+                <option value="combo">Combo</option>
+              </select>
+            </Field>
+            <Field label="Unit">
+              <select
+                className={fieldClass}
+                value={productForm.unit}
+                onChange={(e) => setProductForm({ ...productForm, unit: e.target.value })}
+              >
+                {["pcs", "kg", "g", "ml", "l", "box", "pack", "hour", "session"].map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Branch price">
+              <input
+                className={fieldClass}
+                value={productForm.price}
+                onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
+                required
+              />
+            </Field>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Brand">
+              <input
+                className={fieldClass}
+                value={productForm.brand}
+                onChange={(e) => setProductForm({ ...productForm, brand: e.target.value })}
+              />
+            </Field>
+            <Field label="Category">
+              <select
+                className={fieldClass}
+                value={productForm.category_id}
+                onChange={(e) => {
+                  const cat = categories.find((c) => c.id === e.target.value);
+                  setProductForm({
+                    ...productForm,
+                    category_id: e.target.value,
+                    category: cat?.name || "",
+                  });
+                }}
+              >
+                <option value="">Select…</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
+          {productForm.product_kind === "service" ? (
+            <Field label="Duration (minutes)">
+              <input
+                className={fieldClass}
+                value={productForm.duration_minutes}
+                onChange={(e) =>
+                  setProductForm({ ...productForm, duration_minutes: e.target.value })
+                }
+                placeholder="e.g. 45"
+              />
+            </Field>
+          ) : null}
+          <Field label="Product image">
             <input
+              type="file"
+              accept="image/*"
               className={fieldClass}
-              value={productForm.price}
-              onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
-              required
+              onChange={(e) => setProductImage(e.target.files?.[0] || null)}
             />
           </Field>
         </form>
@@ -647,7 +921,7 @@ export default function InventoryPage() {
             <Button variant="outline" onClick={() => setModal(null)}>
               Cancel
             </Button>
-            <Button type="submit" onClick={createPO} loading={busy}>
+            <Button type="submit" loading={busy}>
               Create PO
             </Button>
           </div>

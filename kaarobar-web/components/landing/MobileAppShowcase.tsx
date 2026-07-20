@@ -48,7 +48,7 @@ export default function MobileAppShowcase() {
     <section id="mobile" className="bg-bg-secondary py-28">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto max-w-3xl text-center">
-          <span className="rounded-full bg-brand-soft px-4 py-2 text-sm font-semibold text-brand">
+          <span className="rounded-md bg-brand-soft px-4 py-2 text-sm font-semibold text-brand">
             Mobile app
           </span>
           <h2 className="mt-6 text-4xl font-bold tracking-tight text-heading md:text-5xl">
@@ -68,7 +68,7 @@ export default function MobileAppShowcase() {
               const Icon = feature.icon;
               return (
                 <div key={feature.title} className="flex gap-4">
-                  <div className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-brand">
+                  <div className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-brand-soft text-brand">
                     <Icon size={22} />
                   </div>
                   <div>
@@ -98,7 +98,7 @@ export default function MobileAppShowcase() {
                 {notifications.map((note) => (
                   <li
                     key={note}
-                    className="flex gap-2 rounded-xl border border-border bg-card px-3 py-3 text-sm text-body"
+                    className="flex gap-2 rounded-md border border-border bg-card px-3 py-3 text-sm text-body"
                   >
                     <CheckCircle2 className="mt-0.5 shrink-0 text-success" size={16} />
                     {note}

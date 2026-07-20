@@ -53,7 +53,7 @@ export default function Modules() {
     <section id="modules" className="bg-bg-primary py-28">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto max-w-3xl text-center">
-          <span className="rounded-full bg-brand-soft px-4 py-2 text-sm font-semibold text-brand">
+          <span className="rounded-md bg-brand-soft px-4 py-2 text-sm font-semibold text-brand">
             What you get
           </span>
           <h2 className="mt-6 text-4xl font-bold text-heading md:text-5xl">
@@ -72,9 +72,9 @@ export default function Modules() {
               <article
                 key={mod.id}
                 id={mod.id}
-                className="rounded-2xl border border-border bg-card p-8"
+                className="rounded-md border border-border bg-card p-8"
               >
-                <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-soft text-brand">
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-md bg-brand-soft text-brand">
                   <Icon size={24} />
                 </div>
                 <h3 className="mt-5 text-xl font-semibold text-heading">{mod.title}</h3>

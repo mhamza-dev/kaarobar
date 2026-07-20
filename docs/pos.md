@@ -23,24 +23,38 @@ Status against KRB-SRS-001 Must items (POS-FR + INV stock core):
 | INV-FR-006 | Done | Adjustments with reason allowlist + audit |
 | INV-FR-009 | Done | Supplier list/create |
 
-## API surface (additions)
+## Product catalog (multi-industry)
 
-**POS** (`:pos` roles)
+Products support retail, restaurant, salon, pharmacy, supermarket, wholesale, and general shops:
 
-- `GET /sales`, `GET /sales/:id`, `POST /sales`
-- `GET /tills/current`, `POST /tills/open`, `POST /tills/:id/close`
-- `POST /returns`, `POST /returns/:id/approve` (`:pos_approve`)
+| Field | Notes |
+|-------|--------|
+| `barcode` | Unique per business; `GET /products/by-barcode/:code` |
+| `product_kind` | `goods` \| `service` \| `combo` |
+| `unit` | pcs/kg/ml/hour/session/… |
+| `duration_minutes` | Salon/services |
+| `variants` / `modifier_groups` | Size options & add-ons |
+| `batches` | Pharmacy FEFO lots |
+| `images` | Local `/uploads` or S3-compatible (R2/MinIO) |
 
-**Inventory** (`:inventory` roles)
+### Media storage
 
-- `GET /inventory`, `POST /inventory/prices`
-- `POST /inventory/adjust`, transfers, PO, GRN
-- `GET|POST /suppliers`
+| Env | Default |
+|-----|---------|
+| `STORAGE_BACKEND` | `local` (dev) / `s3` when `S3_BUCKET` set in prod |
+| `PUBLIC_BASE_URL` | Base URL for local upload links |
+| `S3_BUCKET` | Bucket name |
+| `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | Credentials |
+| `S3_ENDPOINT` | e.g. Cloudflare R2 endpoint |
+| `S3_PUBLIC_URL` | CDN/public base for object URLs |
+| `S3_REGION` | e.g. `auto` for R2 |
 
-## Web
+Local files land in `priv/static/uploads` and are served at `/uploads/...`.
 
-`/app/pos` — qty ± / remove, till open/close, split pay, shows invoice number.
+### Key APIs
 
-## Tests
-
-`mix test test/kaarobar/pos_test.exs`
+- `GET|POST /products`, `PATCH /products/:id`, `GET /products/by-barcode/:code`
+- `POST /products/:id/images`, `DELETE /products/:id/images/:image_id`
+- `GET|POST /categories`, `GET|POST /modifier-groups`
+- `POST /products/:id/variants`, `GET|POST /products/:id/batches`
+- Sales lines accept `variant_id`, `modifier_ids[]`, `notes`

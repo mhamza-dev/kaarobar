@@ -69,9 +69,9 @@ export default function TrustedBy() {
             return (
               <div
                 key={industry.title}
-                className="group rounded-2xl border border-border bg-card p-8 transition-all duration-300 hover:-translate-y-2 hover:border-brand/30 hover:shadow-xl"
+                className="group rounded-md border border-border bg-card p-8 transition-all duration-300 hover:-translate-y-2 hover:border-brand/30 hover:shadow-xl"
               >
-                <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-soft text-brand transition-all duration-300 group-hover:scale-110 group-hover:bg-brand group-hover:text-white">
+                <div className="inline-flex h-14 w-14 items-center justify-center rounded-md bg-brand-soft text-brand transition-all duration-300 group-hover:scale-110 group-hover:bg-brand group-hover:text-white">
                   <Icon size={28} />
                 </div>
 

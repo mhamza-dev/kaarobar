@@ -34,7 +34,7 @@ export default function Footer() {
         <div className="grid gap-14 lg:grid-cols-12">
           <div className="lg:col-span-5">
             <Link href={routes.home} className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand text-2xl font-bold">
+              <div className="flex h-14 w-14 items-center justify-center rounded-md bg-brand text-2xl font-bold">
                 K
               </div>
 
@@ -86,7 +86,7 @@ export default function Footer() {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={item.label}
-                    className="flex h-11 w-11 items-center justify-center rounded-xl bg-sidebar-hover transition-all duration-300 hover:-translate-y-1 hover:bg-brand"
+                    className="flex h-11 w-11 items-center justify-center rounded-md bg-sidebar-hover transition-all duration-300 hover:-translate-y-1 hover:bg-brand"
                   >
                     <Icon size={18} />
                   </a>

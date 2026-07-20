@@ -56,6 +56,7 @@ defmodule KaarobarWeb.Router do
     pipe_through [:api, :authenticated]
 
     get "/auth/me", AuthController, :me
+    patch "/auth/me", AuthController, :update_me
     post "/auth/mfa/setup", AuthController, :mfa_setup
     post "/auth/mfa/confirm", AuthController, :mfa_confirm
 
@@ -88,6 +89,21 @@ defmodule KaarobarWeb.Router do
 
     get "/products", ProductController, :index
     post "/products", ProductController, :create
+    get "/products/by-barcode/:code", ProductController, :by_barcode
+    get "/products/:id", ProductController, :show
+    patch "/products/:id", ProductController, :update
+    post "/products/:id/variants", ProductController, :create_variant
+    post "/products/:id/images", ProductController, :upload_image
+    delete "/products/:id/images/:image_id", ProductController, :delete_image
+    get "/products/:id/batches", ProductController, :list_batches
+    post "/products/:id/batches", ProductController, :create_batch
+
+    get "/categories", CategoryController, :index
+    post "/categories", CategoryController, :create
+    get "/modifier-groups", ModifierGroupController, :index
+    post "/modifier-groups", ModifierGroupController, :create
+    post "/products/:product_id/modifier-groups", ModifierGroupController, :attach
+
     get "/sales", SaleController, :index
     get "/sales/:id", SaleController, :show
     post "/sales", SaleController, :create

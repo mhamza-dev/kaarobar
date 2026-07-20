@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -10,19 +10,12 @@ import {
   ShoppingCart,
   TrendingUp,
 } from "lucide-react";
-import { api, getSession, setSession } from "@/lib/api/client";
+import { api } from "@/lib/api/client";
 import { routes } from "@/lib/navigation";
 import Button from "@/components/ui/Button";
-import {
-  Alert,
-  KpiCard,
-  PageHeader,
-  SurfaceCard,
-  fieldClass,
-} from "@/components/app/ui";
+import { Alert, KpiCard, PageHeader, SurfaceCard } from "@/components/app/ui";
+import { useT } from "@/lib/i18n";
 
-type Business = { id: string; name: string };
-type Branch = { id: string; name: string; business_id: string };
 type Dashboard = {
   sales_today: string;
   cash_position: string;
@@ -33,66 +26,23 @@ type Dashboard = {
 };
 
 export default function AppDashboardPage() {
+  const t = useT();
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
-  const [businesses, setBusinesses] = useState<Business[]>([]);
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [businessId, setBusinessId] = useState("");
-  const [branchId, setBranchId] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const biz = await api<{ data: Business[] }>("/businesses");
-        setBusinesses(biz.data || []);
-        const session = getSession();
-        const firstBiz = session?.business_id || biz.data?.[0]?.id;
-        if (firstBiz) {
-          setBusinessId(firstBiz);
-          if (session) setSession({ ...session, business_id: firstBiz });
-          const br = await api<{ data: Branch[] }>(
-            `/businesses/${firstBiz}/branches`,
-            {},
-            session ? { ...session, business_id: firstBiz } : undefined
-          );
-          setBranches(br.data || []);
-          const firstBranch = session?.branch_id || br.data?.[0]?.id;
-          if (firstBranch && session) {
-            setBranchId(firstBranch);
-            setSession({ ...session, business_id: firstBiz, branch_id: firstBranch });
-          }
-        }
-        const dash = await api<{ data: Dashboard }>("/reports/dashboard");
-        setDashboard(dash.data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load dashboard");
-      }
+  const load = useCallback(async () => {
+    setError(null);
+    try {
+      const dash = await api<{ data: Dashboard }>("/reports/dashboard");
+      setDashboard(dash.data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load dashboard");
     }
-    load();
   }, []);
 
-  async function switchBusiness(id: string) {
-    const session = getSession();
-    if (!session) return;
-    setBusinessId(id);
-    const next = { ...session, business_id: id, branch_id: undefined };
-    setSession(next);
-    const br = await api<{ data: Branch[] }>(`/businesses/${id}/branches`, {}, next);
-    setBranches(br.data || []);
-    if (br.data?.[0]) {
-      setBranchId(br.data[0].id);
-      setSession({ ...next, branch_id: br.data[0].id });
-    }
-    const dash = await api<{ data: Dashboard }>("/reports/dashboard");
-    setDashboard(dash.data);
-  }
-
-  function switchBranch(id: string) {
-    const session = getSession();
-    if (!session) return;
-    setBranchId(id);
-    setSession({ ...session, branch_id: id });
-  }
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const links = [
     {
@@ -125,11 +75,11 @@ export default function AppDashboardPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Overview"
-        title="Dashboard"
-        description="Sales, cash, stock alerts, and approvals across your businesses."
+        eyebrow={t("nav.overview")}
+        title={t("pages.dashboardTitle")}
+        description={t("pages.dashboardDesc")}
         action={{
-          label: "Open POS",
+          label: t("pages.openPos"),
           onClick: () => {
             window.location.href = routes.pos;
           },
@@ -137,39 +87,6 @@ export default function AppDashboardPage() {
       />
 
       {error ? <Alert tone="error">{error}</Alert> : null}
-
-      <SurfaceCard className="p-4 sm:p-5">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="space-y-1.5">
-            <span className="text-sm font-medium text-heading">Business</span>
-            <select
-              className={fieldClass}
-              value={businessId}
-              onChange={(e) => switchBusiness(e.target.value)}
-            >
-              {businesses.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="space-y-1.5">
-            <span className="text-sm font-medium text-heading">Branch</span>
-            <select
-              className={fieldClass}
-              value={branchId}
-              onChange={(e) => switchBranch(e.target.value)}
-            >
-              {branches.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      </SurfaceCard>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
@@ -217,14 +134,14 @@ export default function AppDashboardPage() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`group flex items-center gap-4 rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:shadow-md ${
+                  className={`group flex items-center gap-4 rounded-md border p-4 transition hover:-translate-y-0.5 hover:shadow-md ${
                     "primary" in item && item.primary
                       ? "border-brand/20 bg-brand text-white shadow-brand"
                       : "border-border bg-card-muted hover:border-brand/30"
                   }`}
                 >
                   <span
-                    className={`flex h-11 w-11 items-center justify-center rounded-2xl ${
+                    className={`flex h-11 w-11 items-center justify-center rounded-md ${
                       "primary" in item && item.primary
                         ? "bg-white/15 text-white"
                         : "bg-brand-soft text-brand"
@@ -258,25 +175,21 @@ export default function AppDashboardPage() {
           <div>
             <h2 className="text-lg font-bold text-heading">Footprint</h2>
             <p className="mt-2 text-sm leading-relaxed text-body">
-              Your workspace spans every shop you manage from one login.
+              Switch business or branch anytime from the top bar — every page follows that context.
             </p>
           </div>
           <div className="mt-6 space-y-3">
-            <div className="flex items-center justify-between rounded-2xl bg-bg-tertiary px-4 py-3">
+            <div className="flex items-center justify-between rounded-md bg-bg-tertiary px-4 py-3">
               <span className="text-sm text-body">Businesses</span>
-              <strong className="text-lg text-heading">
-                {dashboard?.businesses ?? businesses.length}
-              </strong>
+              <strong className="text-lg text-heading">{dashboard?.businesses ?? "—"}</strong>
             </div>
-            <div className="flex items-center justify-between rounded-2xl bg-bg-tertiary px-4 py-3">
+            <div className="flex items-center justify-between rounded-md bg-bg-tertiary px-4 py-3">
               <span className="text-sm text-body">Branches</span>
-              <strong className="text-lg text-heading">
-                {dashboard?.branches ?? branches.length}
-              </strong>
+              <strong className="text-lg text-heading">{dashboard?.branches ?? "—"}</strong>
             </div>
             <Link href={routes.settings} className="block">
               <Button variant="outline" className="w-full">
-                Manage settings
+                {t("pages.manageSettings")}
               </Button>
             </Link>
           </div>

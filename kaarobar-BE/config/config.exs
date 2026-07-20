@@ -54,6 +54,11 @@ config :kaarobar, Oban,
   plugins: [Oban.Plugins.Pruner],
   queues: [default: 10, accounting: 5, notifications: 5, integrations: 5]
 
+config :kaarobar,
+  storage_adapter: Kaarobar.Storage.Local,
+  public_base_url: "http://localhost:4000",
+  upload_dir: nil
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"

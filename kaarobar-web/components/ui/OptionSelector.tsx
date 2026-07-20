@@ -58,7 +58,7 @@ const OptionSelector = <T extends string>({
               disabled={option.disabled}
               onClick={() => onChange(option.value)}
               className={`
-                group relative overflow-hidden rounded-2xl border p-4 text-left
+                group relative overflow-hidden rounded-md border p-4 text-left
                 transition-all duration-200 ease-out
                 focus-visible:outline-none focus-visible:ring-2
                 focus-visible:ring-brand focus-visible:ring-offset-2
@@ -87,7 +87,7 @@ const OptionSelector = <T extends string>({
                   <div
                     className={`
                       flex h-11 w-11 shrink-0 items-center justify-center
-                      rounded-xl transition-all duration-200
+                      rounded-md transition-all duration-200
 
                       ${
                         selected
@@ -123,7 +123,7 @@ const OptionSelector = <T extends string>({
               <div
                 className={`
                   absolute right-3 top-3 flex h-6 w-6 items-center justify-center
-                  rounded-full border transition-all duration-200
+                  rounded-md border transition-all duration-200
 
                   ${
                     selected

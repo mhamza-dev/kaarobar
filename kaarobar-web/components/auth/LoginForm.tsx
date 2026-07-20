@@ -12,6 +12,7 @@ import OptionSelector from "@/components/ui/OptionSelector";
 import { authMethodOptions } from "@/components/auth/auth-method-options";
 import { loginSchema } from "@/lib/validations/auth";
 import { api, setSession } from "@/lib/api/client";
+import { useI18n, type Locale } from "@/lib/i18n";
 
 interface LoginFormValues {
   loginMethod: "email" | "phone";
@@ -23,6 +24,7 @@ interface LoginFormValues {
 
 const LoginForm = (): React.ReactElement => {
   const router = useRouter();
+  const { t, setLocale } = useI18n();
   const [formError, setFormError] = useState<string | null>(null);
 
   const initialValues: LoginFormValues = {
@@ -42,7 +44,13 @@ const LoginForm = (): React.ReactElement => {
       }
       const result = await api<{
         access_token: string;
-        user: { id: string; email: string; name: string };
+        user: {
+          id: string;
+          email: string;
+          name: string;
+          phone?: string | null;
+          locale?: Locale;
+        };
       }>("/auth/login", {
         method: "POST",
         body: JSON.stringify({ email: values.email, password: values.password }),
@@ -52,6 +60,9 @@ const LoginForm = (): React.ReactElement => {
         access_token: result.access_token,
         user: result.user,
       });
+      if (result.user.locale === "ur" || result.user.locale === "en") {
+        setLocale(result.user.locale);
+      }
       router.push("/app");
     } catch (error) {
       setFormError(error instanceof Error ? error.message : "Login failed");

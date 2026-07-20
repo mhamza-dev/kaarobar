@@ -17,7 +17,7 @@ export default function CTA() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,#ffffff20,transparent_70%)]" />
 
       <div className="relative mx-auto max-w-5xl px-6 text-center">
-        <span className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold backdrop-blur">
+        <span className="rounded-md bg-white/10 px-4 py-2 text-sm font-semibold backdrop-blur">
           Ready when you are
         </span>
 

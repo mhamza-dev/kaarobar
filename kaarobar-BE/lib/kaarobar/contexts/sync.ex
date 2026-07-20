@@ -39,9 +39,13 @@ defmodule Kaarobar.Sync do
         id: p.id,
         sku: p.sku,
         name: p.name,
+        barcode: p.barcode,
+        product_kind: Map.get(p, :product_kind) || "goods",
+        unit: Map.get(p, :unit) || "pcs",
         tax_rate: to_string(p.tax_rate || 0),
         price: price && to_string(price.price),
-        quantity_on_hand: inv && to_string(inv.quantity_on_hand || 0)
+        quantity_on_hand: inv && to_string(inv.quantity_on_hand || 0),
+        image_url: Kaarobar.Catalog.primary_image_url(Repo.preload(p, :images))
       }
     end)
   end

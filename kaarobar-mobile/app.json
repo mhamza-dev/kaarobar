@@ -7,6 +7,20 @@
     "scheme": "kaarobar",
     "userInterfaceStyle": "light",
     "platforms": ["ios", "android"],
-    "plugins": ["expo-router"]
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Kaarobar to scan product barcodes."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Kaarobar to attach product photos."
+        }
+      ]
+    ]
   }
 }

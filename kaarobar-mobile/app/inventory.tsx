@@ -11,6 +11,8 @@ import {
 } from "react-native";
 import { api, colors, getSession, type Session } from "../lib/api";
 import { FormModal } from "../components/FormModal";
+import { BarcodeScannerModal } from "../components/BarcodeScannerModal";
+import * as ImagePicker from "expo-image-picker";
 
 type Tab = "stock" | "products" | "suppliers" | "pos" | "transfers" | "adjust";
 type ModalKind = "product" | "supplier" | null;
@@ -49,8 +51,22 @@ export default function InventoryScreen() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const [productForm, setProductForm] = useState({ sku: "", name: "", price: "" });
+  const [productForm, setProductForm] = useState({
+    sku: "",
+    name: "",
+    price: "",
+    barcode: "",
+    unit: "pcs",
+    product_kind: "goods",
+  });
+  const [productImage, setProductImage] = useState<{
+    uri: string;
+    name: string;
+    type: string;
+  } | null>(null);
+  const [scanOpen, setScanOpen] = useState(false);
   const [supplierName, setSupplierName] = useState("");
+
   const [poForm, setPoForm] = useState({
     supplier_id: "",
     product_id: "",
@@ -111,17 +127,48 @@ export default function InventoryScreen() {
 
   async function createProduct() {
     try {
-      await api("/products", {
-        method: "POST",
-        body: JSON.stringify(productForm),
+      const fd = new FormData();
+      Object.entries(productForm).forEach(([k, v]) => {
+        if (v) fd.append(k, v);
       });
-      setProductForm({ sku: "", name: "", price: "" });
+      if (productImage) {
+        fd.append("image", {
+          uri: productImage.uri,
+          name: productImage.name,
+          type: productImage.type,
+        } as unknown as Blob);
+      }
+      await api("/products", { method: "POST", body: fd });
+      setProductForm({
+        sku: "",
+        name: "",
+        price: "",
+        barcode: "",
+        unit: "pcs",
+        product_kind: "goods",
+      });
+      setProductImage(null);
       setModal(null);
       setMessage("Product created");
       setTab("products");
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Create failed");
+    }
+  }
+
+  async function pickImage() {
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+    });
+    if (!res.canceled && res.assets[0]) {
+      const asset = res.assets[0];
+      setProductImage({
+        uri: asset.uri,
+        name: asset.fileName || "product.jpg",
+        type: asset.mimeType || "image/jpeg",
+      });
     }
   }
 
@@ -526,7 +573,7 @@ export default function InventoryScreen() {
       <FormModal
         visible={modal === "product"}
         title="New product"
-        subtitle="SKU and name are required. Price is optional."
+        subtitle="Scan a barcode, add a photo, then save."
         onClose={() => setModal(null)}
         onSubmit={createProduct}
         submitLabel="Create product"
@@ -538,6 +585,18 @@ export default function InventoryScreen() {
           onChangeText={(v) => setProductForm({ ...productForm, sku: v })}
           placeholderTextColor={colors.muted}
         />
+        <View style={styles.row}>
+          <TextInput
+            style={[styles.input, { flex: 1, marginBottom: 0 }]}
+            placeholder="Barcode"
+            value={productForm.barcode}
+            onChangeText={(v) => setProductForm({ ...productForm, barcode: v })}
+            placeholderTextColor={colors.muted}
+          />
+          <Pressable style={styles.btn} onPress={() => setScanOpen(true)}>
+            <Text style={styles.btnText}>Scan</Text>
+          </Pressable>
+        </View>
         <TextInput
           style={styles.input}
           placeholder="Name"
@@ -553,6 +612,11 @@ export default function InventoryScreen() {
           keyboardType="decimal-pad"
           placeholderTextColor={colors.muted}
         />
+        <Pressable style={styles.chip} onPress={pickImage}>
+          <Text style={styles.chipText}>
+            {productImage ? "Photo selected ✓" : "Add product photo"}
+          </Text>
+        </Pressable>
       </FormModal>
 
       <FormModal
@@ -571,6 +635,13 @@ export default function InventoryScreen() {
           placeholderTextColor={colors.muted}
         />
       </FormModal>
+
+      <BarcodeScannerModal
+        visible={scanOpen}
+        onClose={() => setScanOpen(false)}
+        onScan={(code) => setProductForm((prev) => ({ ...prev, barcode: code }))}
+        title="Scan product barcode"
+      />
     </>
   );
 }

@@ -58,8 +58,13 @@
           <button type="button" data-nav="pos" class="nav-btn">POS</button>
           <button type="button" data-nav="returns" class="nav-btn">Returns</button>
           <button type="button" data-nav="inventory" class="nav-btn">Inventory</button>
+          <button type="button" data-nav="profile" class="nav-btn">Profile</button>
         </nav>
         <div class="topbar-actions">
+          <select id="locale-select" class="select" title="Language">
+            <option value="en">English</option>
+            <option value="ur">اردو</option>
+          </select>
           <select id="business-select" class="select" title="Business"></select>
           <select id="branch-select" class="select" title="Branch"></select>
           <span id="user-name" class="status"></span>
@@ -174,6 +179,40 @@
         <div id="inv-transfers" class="inv-panel hidden"></div>
         <div id="inv-adjust" class="inv-panel hidden"></div>
       </main>
+
+      <!-- Profile -->
+      <main id="profile-view" class="panel hidden">
+        <p class="eyebrow">Account</p>
+        <h1>Your profile</h1>
+        <p class="lead">Update your name, phone, language, and password.</p>
+        <form id="profile-form" class="form-grid" style="max-width: 28rem">
+          <label>
+            <span>Display name</span>
+            <input id="profile-name" type="text" required />
+          </label>
+          <label>
+            <span>Email</span>
+            <input id="profile-email" type="email" disabled />
+          </label>
+          <label>
+            <span>Phone number</span>
+            <input id="profile-phone" type="tel" />
+          </label>
+          <label>
+            <span>Preferred language</span>
+            <select id="profile-locale">
+              <option value="en">English</option>
+              <option value="ur">اردو</option>
+            </select>
+          </label>
+          <label>
+            <span>New password</span>
+            <input id="profile-password" type="password" autocomplete="new-password" />
+          </label>
+          <p id="profile-msg" class="sub"></p>
+          <button type="submit" class="btn btn-primary">Save profile</button>
+        </form>
+      </main>
     </div>
 
     <!-- Shared modal -->
@@ -192,6 +231,7 @@
       </div>
     </div>
 
+    <script src="i18n.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

@@ -14,7 +14,7 @@ export default function SolutionsHub() {
 
       <div className="relative mx-auto max-w-6xl px-6">
         <div className="mx-auto max-w-3xl text-center">
-          <span className="rounded-full bg-brand-soft px-4 py-2 text-sm font-semibold text-brand">
+          <span className="rounded-md bg-brand-soft px-4 py-2 text-sm font-semibold text-brand">
             Solutions
           </span>
           <h1 className="mt-8 text-5xl font-bold leading-tight text-heading md:text-6xl">
@@ -31,7 +31,7 @@ export default function SolutionsHub() {
             <NextLink
               key={solution.slug}
               href={solutionHref(solution.slug)}
-              className="group rounded-2xl border border-border bg-card p-8 shadow-sm transition hover:-translate-y-1 hover:border-brand/30 hover:shadow-lg"
+              className="group rounded-md border border-border bg-card p-8 shadow-sm transition hover:-translate-y-1 hover:border-brand/30 hover:shadow-lg"
             >
               <p className="text-sm font-semibold text-brand">{solution.badge}</p>
               <h2 className="mt-3 text-2xl font-bold text-heading">

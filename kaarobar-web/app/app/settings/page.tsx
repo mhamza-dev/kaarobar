@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
+import { Alert, PageHeader, SurfaceCard } from "@/components/app/ui";
 
 type Usage = {
   subscription: {
@@ -61,16 +62,17 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-heading">Settings</h1>
-        <p className="text-body">Plan limits, billing, and FBR reporting flags.</p>
-      </div>
+      <PageHeader
+        eyebrow="Workspace"
+        title="Settings"
+        description="Plan limits, billing, and FBR reporting flags. Switch business or branch from the top bar."
+      />
 
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
-      {message ? <p className="text-sm text-body">{message}</p> : null}
+      {error ? <Alert tone="error">{error}</Alert> : null}
+      {message ? <Alert tone="success">{message}</Alert> : null}
 
       {sub ? (
-        <div className="rounded-xl border border-border bg-card p-5">
+        <SurfaceCard className="p-5">
           <h2 className="font-semibold text-heading">Subscription</h2>
           <p className="mt-1 text-body">
             Plan <strong className="text-heading">{sub.plan}</strong> · {sub.status}
@@ -83,7 +85,7 @@ export default function SettingsPage() {
                 ["Users", usage!.usage.users, usage!.limits.max_users],
               ] as const
             ).map(([label, used, max]) => (
-              <div key={label} className="rounded-lg border border-border p-3">
+              <div key={label} className="rounded-md border border-border bg-card-muted p-3">
                 <p className="text-sm text-body">{label}</p>
                 <p className="text-lg font-semibold text-heading">
                   {used} / {max}
@@ -96,7 +98,7 @@ export default function SettingsPage() {
               href={usage.checkout_url}
               target="_blank"
               rel="noreferrer"
-              className="mt-4 inline-block rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground"
+              className="mt-4 inline-block rounded-md bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground"
             >
               Manage billing
             </a>
@@ -105,13 +107,14 @@ export default function SettingsPage() {
               Checkout URL not configured (`LEMONSQUEEZY_CHECKOUT_URL`).
             </p>
           )}
-        </div>
+        </SurfaceCard>
       ) : null}
 
-      <div className="rounded-xl border border-border bg-card p-5">
+      <SurfaceCard className="p-5">
         <h2 className="font-semibold text-heading">FBR Tier-1</h2>
         <p className="mt-1 text-sm text-body">
-          When enabled, completed sales enqueue an async FBR report and store invoice + QR payload on the receipt.
+          When enabled, completed sales enqueue an async FBR report and store invoice + QR payload on
+          the receipt.
         </p>
         <ul className="mt-4 space-y-2">
           {businesses.map((b) => (
@@ -119,14 +122,14 @@ export default function SettingsPage() {
               key={b.id}
               className="flex flex-wrap items-center justify-between gap-2 border-t border-border py-3 first:border-t-0"
             >
-              <span className="text-heading">{b.name}</span>
+              <span className="font-medium text-heading">{b.name}</span>
               <button
                 type="button"
                 onClick={() => toggleFbr(b)}
-                className={`rounded-lg px-3 py-1.5 text-sm ${
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
                   b.fbr_tier1
                     ? "bg-brand text-brand-foreground"
-                    : "border border-border text-heading"
+                    : "border border-border text-heading hover:bg-bg-hover"
                 }`}
               >
                 {b.fbr_tier1 ? "Enabled" : "Disabled"}
@@ -134,7 +137,7 @@ export default function SettingsPage() {
             </li>
           ))}
         </ul>
-      </div>
+      </SurfaceCard>
     </div>
   );
 }

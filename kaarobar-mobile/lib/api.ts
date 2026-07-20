@@ -24,7 +24,13 @@ export const API_URL =
 
 export type Session = {
   access_token: string;
-  user: { id: string; email: string; name: string };
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    phone?: string | null;
+    locale?: "en" | "ur";
+  };
   business_id?: string;
   branch_id?: string;
 };
@@ -76,7 +82,11 @@ export async function api<T>(
 ): Promise<T> {
   const current = session === undefined ? await getSession() : session;
   const headers = new Headers(init.headers);
-  headers.set("Content-Type", "application/json");
+  const isFormData =
+    typeof FormData !== "undefined" && init.body instanceof FormData;
+  if (!isFormData && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
   if (current?.access_token) {
     headers.set("Authorization", `Bearer ${current.access_token}`);
   }

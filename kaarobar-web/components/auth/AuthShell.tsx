@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -8,6 +10,8 @@ import {
 } from "lucide-react";
 
 import { routes } from "@/lib/navigation";
+import LanguageSwitcher from "@/components/app/LanguageSwitcher";
+import { useT } from "@/lib/i18n";
 
 const highlights = [
   {
@@ -42,6 +46,8 @@ export default function AuthShell({
   badge,
   footer,
 }: AuthShellProps) {
+  const t = useT();
+
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
       <aside className="relative hidden overflow-hidden bg-sidebar text-sidebar-foreground lg:flex lg:flex-col lg:justify-between lg:p-12">
@@ -49,16 +55,16 @@ export default function AuthShell({
         <div className="relative">
           <Link href={routes.home} className="inline-flex items-center gap-2 text-sm text-sidebar-muted hover:text-white">
             <ArrowLeft size={16} />
-            Back to home
+            {t("common.back")}
           </Link>
           <div className="mt-10">
-            <p className="text-2xl font-bold text-white">Kaarobar</p>
+            <p className="text-2xl font-bold text-white">{t("common.appName")}</p>
             <p className="mt-1 text-xs text-sidebar-muted">
-              POS · Accounting · Payroll
+              {t("common.pointOfSale")}
             </p>
           </div>
-          <div className="mt-10 rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
-            <div className="inline-flex items-center gap-2 rounded-full bg-brand/30 px-3 py-1 text-xs font-semibold text-brand-muted">
+          <div className="mt-10 rounded-md border border-white/10 bg-white/5 p-5 backdrop-blur">
+            <div className="inline-flex items-center gap-2 rounded-md bg-brand/30 px-3 py-1 text-xs font-semibold text-brand-muted">
               <ShieldCheck size={14} />
               Built for Pakistan · Multi-branch
             </div>
@@ -77,7 +83,7 @@ export default function AuthShell({
             const Icon = item.icon;
             return (
               <li key={item.title} className="flex gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-brand-muted">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-white/10 text-brand-muted">
                   <Icon size={18} />
                 </div>
                 <div>
@@ -92,10 +98,11 @@ export default function AuthShell({
 
       <main className="flex flex-col justify-center bg-bg-primary px-6 py-12 sm:px-10">
         <div className="mx-auto w-full max-w-md">
-          <div className="mb-8 lg:hidden">
-            <Link href={routes.home} className="text-sm font-semibold text-brand">
-              ← Kaarobar
+          <div className="mb-6 flex items-center justify-between gap-3">
+            <Link href={routes.home} className="text-sm font-semibold text-brand lg:hidden">
+              ← {t("common.appName")}
             </Link>
+            <LanguageSwitcher compact className="ms-auto" />
           </div>
           <p className="text-sm font-semibold text-brand">{badge}</p>
           <h1 className="mt-2 text-3xl font-bold text-heading">{title}</h1>

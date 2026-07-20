@@ -99,6 +99,37 @@ defmodule KaarobarWeb.V1.AuthController do
     })
   end
 
+  def update_me(conn, params) do
+    user = Guardian.Plug.current_resource(conn)
+
+    attrs =
+      %{}
+      |> maybe_put(params, "name")
+      |> maybe_put(params, "phone")
+      |> maybe_put(params, "locale")
+      |> maybe_put(params, "password")
+
+    case Accounts.update_profile(user, attrs) do
+      {:ok, updated} ->
+        _ =
+          Audit.log(%{
+            owner_id: updated.id,
+            user_id: updated.id,
+            action: "user.profile_update",
+            entity_type: "user",
+            entity_id: updated.id,
+            metadata: %{locale: updated.locale}
+          })
+
+        json(conn, %{user: serialize_user(updated)})
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> json(%{error: "validation_failed", details: translate_errors(changeset)})
+    end
+  end
+
   def mfa_setup(conn, _params) do
     user = Guardian.Plug.current_resource(conn)
 
@@ -157,9 +188,19 @@ defmodule KaarobarWeb.V1.AuthController do
       id: user.id,
       email: user.email,
       name: user.name,
+      phone: user.phone,
+      locale: user.locale || "en",
       mfa_required: user.mfa_required,
       mfa_enabled: Accounts.mfa_enabled?(user)
     }
+  end
+
+  defp maybe_put(map, params, key) do
+    case Map.fetch(params, key) do
+      {:ok, value} when value in [nil, ""] and key == "password" -> map
+      {:ok, value} -> Map.put(map, key, value)
+      :error -> map
+    end
   end
 
   defp serialize_membership(m) do

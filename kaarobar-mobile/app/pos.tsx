@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { api, colors, getSession, type Session } from "../lib/api";
 import { uuid } from "../lib/uuid";
+import { BarcodeScannerModal } from "../components/BarcodeScannerModal";
 
 type Product = {
   id: string;
@@ -18,6 +19,8 @@ type Product = {
   name: string;
   price?: string;
   tax_rate?: string;
+  barcode?: string;
+  image_url?: string;
 };
 
 type CartLine = { product: Product; quantity: number; unit_price: number };
@@ -50,6 +53,7 @@ export default function PosScreen() {
   const [payWallet, setPayWallet] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
 
   const loadTill = useCallback(async () => {
     try {
@@ -82,9 +86,24 @@ export default function PosScreen() {
     const q = query.trim().toLowerCase();
     if (!q) return products;
     return products.filter(
-      (p) => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q)
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.sku.toLowerCase().includes(q) ||
+        (p.barcode || "").toLowerCase().includes(q)
     );
   }, [products, query]);
+
+  async function lookupBarcode(code: string) {
+    try {
+      const res = await api<{ data: Product }>(
+        `/products/by-barcode/${encodeURIComponent(code)}`
+      );
+      addProduct(res.data);
+      setMessage(`Added ${res.data.name}`);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Barcode not found");
+    }
+  }
 
   const subtotal = cart.reduce((s, l) => s + l.quantity * l.unit_price, 0);
   const tax = cart.reduce((s, l) => {
@@ -222,10 +241,15 @@ export default function PosScreen() {
   }
 
   return (
+    <>
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
       <Text style={styles.eyebrow}>Cashier</Text>
       <Text style={styles.title}>Point of sale</Text>
       {message ? <Text style={styles.message}>{message}</Text> : null}
+
+      <Pressable style={styles.scanBtn} onPress={() => setScanOpen(true)}>
+        <Text style={styles.btnText}>Scan barcode</Text>
+      </Pressable>
 
       <View style={styles.card}>
         <Text style={styles.section}>Till</Text>
@@ -368,6 +392,13 @@ export default function PosScreen() {
         </Pressable>
       </View>
     </ScrollView>
+    <BarcodeScannerModal
+      visible={scanOpen}
+      onClose={() => setScanOpen(false)}
+      onScan={lookupBarcode}
+      title="Scan to cart"
+    />
+    </>
   );
 }
 
@@ -388,6 +419,13 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 26, fontWeight: "800", color: colors.heading, marginBottom: 8, marginTop: 4 },
   message: { color: colors.body, marginBottom: 8 },
+  scanBtn: {
+    backgroundColor: colors.brand,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+    marginBottom: 12,
+  },
   count: { color: colors.muted, fontSize: 13, marginBottom: 10, fontWeight: "600" },
   card: {
     backgroundColor: colors.card,

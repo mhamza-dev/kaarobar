@@ -16,6 +16,7 @@ import {
   setSession,
   type Session,
 } from "../lib/api";
+import { loadLocale, setLocale, t } from "../lib/i18n";
 
 type Dashboard = {
   sales_today: string;
@@ -69,16 +70,20 @@ export default function DashboardScreen() {
 
   useEffect(() => {
     (async () => {
+      await loadLocale();
       const s = await getSession();
       if (!s) {
         router.replace("/landing");
         return;
       }
+      if (s.user.locale === "ur" || s.user.locale === "en") {
+        await setLocale(s.user.locale);
+      }
       setLocal(s);
       try {
         await hydrate(s);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load");
+        setError(err instanceof Error ? err.message : t("common.error"));
       }
     })();
   }, []);
@@ -133,27 +138,28 @@ export default function DashboardScreen() {
   }
 
   const links = [
-    { href: "/pos", title: "POS", subtitle: "Checkout & tills" },
-    { href: "/returns", title: "Returns", subtitle: "Refunds & approvals" },
-    { href: "/inventory", title: "Inventory", subtitle: "Stock & procurement" },
-    { href: "/ess", title: "Staff tools", subtitle: "Attendance & leave" },
+    { href: "/pos", title: t("nav.pos"), subtitle: t("pages.posTitle") },
+    { href: "/returns", title: t("nav.returns"), subtitle: t("pages.returnsTitle") },
+    { href: "/inventory", title: t("nav.inventory"), subtitle: t("pages.inventoryTitle") },
+    { href: "/ess", title: t("nav.ess"), subtitle: t("nav.ess") },
+    { href: "/profile", title: t("nav.profile"), subtitle: t("profile.description") },
   ] as const;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-      <Text style={styles.eyebrow}>Branch workspace</Text>
+      <Text style={styles.eyebrow}>{t("nav.overview")}</Text>
       <View style={styles.brandRow}>
         <View style={styles.brandMark}>
           <Text style={styles.brandMarkText}>K</Text>
         </View>
-        <Text style={styles.hello}>Kaarobar</Text>
+        <Text style={styles.hello}>{t("common.appName")}</Text>
       </View>
       <Text style={styles.hint}>
-        Welcome, {session.user.name}. Sales, cash, stock, and approvals across your shops.
+        {session.user.name} · {t("pages.dashboardDesc")}
       </Text>
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <Text style={styles.section}>Business</Text>
+      <Text style={styles.section}>{t("tenant.business")}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View style={styles.chips}>
           {businesses.map((b) => (
@@ -178,7 +184,7 @@ export default function DashboardScreen() {
         </View>
       </ScrollView>
 
-      <Text style={styles.section}>Branch</Text>
+      <Text style={styles.section}>{t("tenant.branch")}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View style={styles.chips}>
           {branches.map((b) => (
@@ -202,10 +208,10 @@ export default function DashboardScreen() {
 
       <View style={styles.grid}>
         {[
-          { label: "Sales today", value: dash?.sales_today ?? "—" },
-          { label: "Cash position", value: dash?.cash_position ?? "—" },
-          { label: "Low stock", value: String(dash?.low_stock_count ?? "—") },
-          { label: "Approvals", value: String(dash?.pending_approvals ?? "—") },
+          { label: t("desktop.salesToday"), value: dash?.sales_today ?? "—" },
+          { label: t("desktop.cashPosition"), value: dash?.cash_position ?? "—" },
+          { label: t("desktop.lowStock"), value: String(dash?.low_stock_count ?? "—") },
+          { label: t("desktop.approvals"), value: String(dash?.pending_approvals ?? "—") },
         ].map((card) => (
           <View key={card.label} style={styles.card}>
             <Text style={styles.cardLabel}>{card.label}</Text>
@@ -230,7 +236,7 @@ export default function DashboardScreen() {
           router.replace("/landing");
         }}
       >
-        <Text style={styles.logoutText}>Sign out</Text>
+        <Text style={styles.logoutText}>{t("common.signOut")}</Text>
       </Pressable>
     </ScrollView>
   );

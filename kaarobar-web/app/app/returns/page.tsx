@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, getSession } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
+import DataTable from "@/components/ui/DataTable";
 import {
   Alert,
   PageHeader,
@@ -214,7 +215,7 @@ export default function ReturnsPage() {
             </ul>
             <div className="flex flex-wrap gap-3">
               <select
-                className="rounded-lg border border-border px-3 py-2"
+                className="rounded-md border border-border px-3 py-2"
                 value={refundMethod}
                 onChange={(e) =>
                   setRefundMethod(e.target.value as "cash" | "card" | "wallet")
@@ -225,7 +226,7 @@ export default function ReturnsPage() {
                 <option value="wallet">Wallet refund</option>
               </select>
               <input
-                className="min-w-48 flex-1 rounded-lg border border-border px-3 py-2"
+                className="min-w-48 flex-1 rounded-md border border-border px-3 py-2"
                 placeholder="Reason"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
@@ -233,7 +234,7 @@ export default function ReturnsPage() {
               <button
                 type="submit"
                 disabled={busy}
-                className="rounded-lg bg-brand px-4 py-2 font-medium text-brand-foreground disabled:opacity-50"
+                className="rounded-md bg-brand px-4 py-2 font-medium text-brand-foreground disabled:opacity-50"
               >
                 Submit return
               </button>
@@ -280,71 +281,99 @@ export default function ReturnsPage() {
       </SurfaceCard>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <SurfaceCard className="p-5">
-          <h2 className="font-semibold text-heading">Recent returns</h2>
-          <div className="mt-3 overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="text-body">
-                  <th className="py-2">Status</th>
-                  <th className="py-2">Amount</th>
-                  <th className="py-2">Method</th>
-                  <th className="py-2">Sale</th>
-                </tr>
-              </thead>
-              <tbody>
-                {returns.slice(0, 20).map((r) => (
-                  <tr key={r.id} className="border-t border-border text-heading">
-                    <td className="py-2">
-                      <StatusBadge
-                        tone={
-                          r.status === "approved"
-                            ? "success"
-                            : r.status === "rejected"
-                              ? "danger"
-                              : "warning"
-                        }
-                      >
-                        {r.status}
-                      </StatusBadge>
-                    </td>
-                    <td className="py-2">{r.refund_amount}</td>
-                    <td className="py-2">{r.refund_method}</td>
-                    <td className="py-2 font-mono text-xs">{r.sale_id.slice(0, 8)}…</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </SurfaceCard>
+        <DataTable
+          maxHeight="22rem"
+          searchable
+          searchPlaceholder="Search returns…"
+          getSearchText={(r) =>
+            `${r.status} ${r.refund_amount} ${r.refund_method} ${r.sale_id} ${r.reason ?? ""}`
+          }
+          columns={[
+            {
+              id: "status",
+              header: "Status",
+              cell: (r) => (
+                <StatusBadge
+                  tone={
+                    r.status === "approved"
+                      ? "success"
+                      : r.status === "rejected"
+                        ? "danger"
+                        : "warning"
+                  }
+                >
+                  {r.status}
+                </StatusBadge>
+              ),
+            },
+            {
+              id: "amount",
+              header: "Amount",
+              align: "right",
+              cell: (r) => (
+                <span className="tabular-nums font-medium">{r.refund_amount}</span>
+              ),
+            },
+            { id: "method", header: "Method", cell: (r) => r.refund_method },
+            {
+              id: "sale",
+              header: "Sale",
+              cell: (r) => (
+                <span className="font-mono text-xs">{r.sale_id.slice(0, 8)}…</span>
+              ),
+            },
+          ]}
+          data={returns}
+          rowKey={(r) => r.id}
+          emptyTitle="No returns yet"
+          toolbar={<span className="text-sm font-semibold text-heading">Recent returns</span>}
+        />
 
-        <SurfaceCard className="p-5">
-          <h2 className="font-semibold text-heading">Till history</h2>
-          <div className="mt-3 overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="text-body">
-                  <th className="py-2">Status</th>
-                  <th className="py-2">Opening</th>
-                  <th className="py-2">Expected</th>
-                  <th className="py-2">Closing</th>
-                  <th className="py-2">Over/short</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tills.map((t) => (
-                  <tr key={t.id} className="border-t border-border text-heading">
-                    <td className="py-2">{t.status}</td>
-                    <td className="py-2">{t.opening_cash}</td>
-                    <td className="py-2">{t.expected_cash ?? "—"}</td>
-                    <td className="py-2">{t.closing_cash ?? "—"}</td>
-                    <td className="py-2">{t.over_short ?? "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </SurfaceCard>
+        <DataTable
+          maxHeight="22rem"
+          searchable
+          searchPlaceholder="Search tills…"
+          getSearchText={(t) =>
+            `${t.status} ${t.opening_cash} ${t.expected_cash ?? ""} ${t.closing_cash ?? ""}`
+          }
+          columns={[
+            { id: "status", header: "Status", cell: (t) => t.status },
+            {
+              id: "opening",
+              header: "Opening",
+              align: "right",
+              cell: (t) => <span className="tabular-nums">{t.opening_cash}</span>,
+            },
+            {
+              id: "expected",
+              header: "Expected",
+              align: "right",
+              cell: (t) => (
+                <span className="tabular-nums">{t.expected_cash ?? "—"}</span>
+              ),
+            },
+            {
+              id: "closing",
+              header: "Closing",
+              align: "right",
+              cell: (t) => (
+                <span className="tabular-nums">{t.closing_cash ?? "—"}</span>
+              ),
+            },
+            {
+              id: "over",
+              header: "Over/short",
+              align: "right",
+              cell: (t) => (
+                <span className="tabular-nums">{t.over_short ?? "—"}</span>
+              ),
+            },
+          ]}
+          data={tills}
+          rowKey={(t) => t.id}
+          emptyTitle="No till sessions"
+          toolbar={<span className="text-sm font-semibold text-heading">Till history</span>}
+        />
       </div>
     </div>
   );

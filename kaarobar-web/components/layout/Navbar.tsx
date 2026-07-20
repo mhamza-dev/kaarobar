@@ -21,7 +21,7 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 border-b border-border/50 glass">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
         <NextLink href={routes.home} className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-gradient text-lg font-bold text-white shadow-brand">
+          <div className="flex h-11 w-11 items-center justify-center rounded-md bg-brand-gradient text-lg font-bold text-white shadow-brand">
             K
           </div>
 
@@ -59,7 +59,7 @@ export default function Navbar() {
           type="button"
           aria-label={mobileOpen ? "Close menu" : "Open menu"}
           onClick={() => setMobileOpen((open) => !open)}
-          className="rounded-lg p-2 lg:hidden"
+          className="rounded-md p-2 lg:hidden"
         >
           {mobileOpen ? (
             <X className="h-6 w-6 text-heading" />
@@ -80,7 +80,7 @@ export default function Navbar() {
                 key={item.title}
                 href={item.href}
                 onClick={closeMobile}
-                className="block rounded-lg px-3 py-2.5 text-body transition hover:bg-bg-hover hover:text-brand"
+                className="block rounded-md px-3 py-2.5 text-body transition hover:bg-bg-hover hover:text-brand"
               >
                 {item.title}
               </NextLink>
@@ -94,7 +94,7 @@ export default function Navbar() {
                 key={item.title}
                 href={item.href}
                 onClick={closeMobile}
-                className="block rounded-lg px-3 py-2.5 text-body transition hover:bg-bg-hover hover:text-brand"
+                className="block rounded-md px-3 py-2.5 text-body transition hover:bg-bg-hover hover:text-brand"
               >
                 {item.title}
               </NextLink>

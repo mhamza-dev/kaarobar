@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
+import DataTable from "@/components/ui/DataTable";
+import { Alert, Field, PageHeader, fieldClass } from "@/components/app/ui";
 
 type DayRow = { date: string; total: string; count: number };
 type LowStock = {
@@ -51,12 +53,13 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-heading">Reports</h1>
-        <p className="text-body">Owner and branch operations. Financial statements are under Accounting.</p>
-      </div>
+      <PageHeader
+        eyebrow="Insights"
+        title="Reports"
+        description="Owner and branch operations. Financial statements are under Accounting."
+      />
 
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {error ? <Alert tone="error">{error}</Alert> : null}
 
       {branch ? (
         <div className="grid gap-3 sm:grid-cols-4">
@@ -66,7 +69,7 @@ export default function ReportsPage() {
             ["Low stock", String(branch.low_stock_count)],
             ["Pending returns", String(branch.pending_returns)],
           ].map(([label, value]) => (
-            <div key={label} className="rounded-xl border border-border bg-card p-4">
+            <div key={label} className="rounded-md border border-border bg-card p-4">
               <p className="text-sm text-body">{label}</p>
               <p className="mt-1 text-xl font-semibold text-heading">{value}</p>
             </div>
@@ -75,86 +78,78 @@ export default function ReportsPage() {
       ) : null}
 
       <div className="flex flex-wrap gap-3">
-        <label className="text-sm text-heading">
-          From{" "}
+        <Field label="From">
           <input
             type="date"
             value={from}
             onChange={(e) => setFrom(e.target.value)}
-            className="ml-1 rounded border border-border px-2 py-1"
+            className={fieldClass}
           />
-        </label>
-        <label className="text-sm text-heading">
-          To{" "}
+        </Field>
+        <Field label="To">
           <input
             type="date"
             value={to}
             onChange={(e) => setTo(e.target.value)}
-            className="ml-1 rounded border border-border px-2 py-1"
+            className={fieldClass}
           />
-        </label>
+        </Field>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-border bg-card">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-brand-subtle">
-            <tr>
-              <th className="px-4 py-3">Date</th>
-              <th className="px-4 py-3">Sales</th>
-              <th className="px-4 py-3">Tickets</th>
-            </tr>
-          </thead>
-          <tbody>
-            {days.length === 0 ? (
-              <tr>
-                <td className="px-4 py-3 text-body" colSpan={3}>
-                  No sales in range
-                </td>
-              </tr>
-            ) : (
-              days.map((d) => (
-                <tr key={d.date} className="border-t border-border text-heading">
-                  <td className="px-4 py-2">{d.date}</td>
-                  <td className="px-4 py-2">{d.total}</td>
-                  <td className="px-4 py-2">{d.count}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        maxHeight="22rem"
+        searchable
+        searchPlaceholder="Search by date…"
+        getSearchText={(d) => `${d.date} ${d.total} ${d.count}`}
+        columns={[
+          { id: "date", header: "Date", cell: (d) => d.date },
+          {
+            id: "sales",
+            header: "Sales",
+            align: "right",
+            cell: (d) => <span className="tabular-nums font-medium">{d.total}</span>,
+          },
+          {
+            id: "tickets",
+            header: "Tickets",
+            align: "right",
+            cell: (d) => <span className="tabular-nums">{d.count}</span>,
+          },
+        ]}
+        data={days}
+        rowKey={(d) => d.date}
+        emptyTitle="No sales in range"
+        toolbar={<span className="text-sm font-semibold text-heading">Sales by day</span>}
+      />
 
-      <div>
-        <h2 className="mb-2 font-semibold text-heading">Low stock</h2>
-        <div className="overflow-hidden rounded-xl border border-border bg-card">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-brand-subtle">
-              <tr>
-                <th className="px-4 py-3">SKU</th>
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">On hand</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lowStock.length === 0 ? (
-                <tr>
-                  <td className="px-4 py-3 text-body" colSpan={3}>
-                    Nothing below threshold
-                  </td>
-                </tr>
-              ) : (
-                lowStock.map((r) => (
-                  <tr key={r.product_id} className="border-t border-border text-heading">
-                    <td className="px-4 py-2">{r.sku}</td>
-                    <td className="px-4 py-2">{r.name}</td>
-                    <td className="px-4 py-2">{r.quantity_on_hand}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <DataTable
+        maxHeight="22rem"
+        searchable
+        searchPlaceholder="Search low stock…"
+        getSearchText={(r) => `${r.sku} ${r.name} ${r.quantity_on_hand}`}
+        columns={[
+          {
+            id: "sku",
+            header: "SKU",
+            cell: (r) => <span className="font-medium tabular-nums">{r.sku}</span>,
+          },
+          { id: "name", header: "Name", cell: (r) => r.name },
+          {
+            id: "qty",
+            header: "On hand",
+            align: "right",
+            cell: (r) => (
+              <span className="tabular-nums font-semibold text-warning">
+                {r.quantity_on_hand}
+              </span>
+            ),
+          },
+        ]}
+        data={lowStock}
+        rowKey={(r) => r.product_id}
+        emptyTitle="Nothing below threshold"
+        toolbar={<span className="text-sm font-semibold text-heading">Low stock</span>}
+      />
     </div>
   );
 }

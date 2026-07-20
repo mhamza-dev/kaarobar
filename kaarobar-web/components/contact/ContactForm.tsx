@@ -44,7 +44,7 @@ export default function ContactForm() {
         {/* Left */}
 
         <div className="lg:col-span-2">
-          <span className="rounded-full bg-brand-soft px-4 py-2 text-sm font-semibold text-brand">
+          <span className="rounded-md bg-brand-soft px-4 py-2 text-sm font-semibold text-brand">
             Write to us
           </span>
 
@@ -60,7 +60,7 @@ export default function ContactForm() {
 
         {/* Right */}
 
-        <div className="rounded-3xl border border-border bg-card p-8 shadow-lg lg:col-span-3">
+        <div className="rounded-md border border-border bg-card p-8 shadow-lg lg:col-span-3">
           <CustomForm<ContactFormValues>
             initialValues={initialValues}
             onSubmit={handleSubmit}

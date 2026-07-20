@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api, getSession } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
+import DataTable from "@/components/ui/DataTable";
 import {
   Alert,
   EmptyState,
@@ -16,6 +17,15 @@ import {
 
 type Tab = "employees" | "attendance" | "leave" | "payroll";
 type ModalKind = "employee" | "invite" | "payroll" | null;
+
+const emptyEmpForm = {
+  employee_code: "",
+  name: "",
+  position: "Cashier",
+  basic_salary: "30000",
+  transport: "3000",
+  status: "active",
+};
 
 type Employee = {
   id: string;
@@ -67,6 +77,7 @@ type PayrollRun = {
 export default function HrPage() {
   const [tab, setTab] = useState<Tab>("employees");
   const [modal, setModal] = useState<ModalKind>(null);
+  const [editingEmployeeId, setEditingEmployeeId] = useState<string | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [leave, setLeave] = useState<Leave[]>([]);
@@ -75,13 +86,7 @@ export default function HrPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const [empForm, setEmpForm] = useState({
-    employee_code: "",
-    name: "",
-    position: "Cashier",
-    basic_salary: "30000",
-    transport: "3000",
-  });
+  const [empForm, setEmpForm] = useState(emptyEmpForm);
   const [inviteForm, setInviteForm] = useState({
     email: "",
     roles: "cashier",
@@ -116,34 +121,64 @@ export default function HrPage() {
     load();
   }, [load]);
 
-  async function createEmployee(ev: React.FormEvent) {
+  function openNewEmployee() {
+    setEditingEmployeeId(null);
+    setEmpForm(emptyEmpForm);
+    setModal("employee");
+  }
+
+  function openEditEmployee(e: Employee) {
+    setEditingEmployeeId(e.id);
+    setEmpForm({
+      employee_code: e.employee_code || "",
+      name: e.name || "",
+      position: e.position || "Cashier",
+      basic_salary: e.basic_salary || "",
+      transport: "3000",
+      status: e.status || "active",
+    });
+    setModal("employee");
+  }
+
+  function closeEmployeeModal() {
+    setModal(null);
+    setEditingEmployeeId(null);
+    setEmpForm(emptyEmpForm);
+  }
+
+  async function saveEmployee(ev: React.FormEvent) {
     ev.preventDefault();
     setBusy(true);
     try {
-      await api("/employees", {
-        method: "POST",
-        body: JSON.stringify({
-          employee_code: empForm.employee_code,
-          name: empForm.name,
-          position: empForm.position,
-          join_date: new Date().toISOString().slice(0, 10),
-          basic_salary: empForm.basic_salary,
-          allowances: { transport: empForm.transport },
-          status: "active",
-        }),
-      });
-      setMessage("Employee created");
-      setEmpForm({
-        employee_code: "",
-        name: "",
-        position: "Cashier",
-        basic_salary: "30000",
-        transport: "3000",
-      });
-      setModal(null);
+      const payload = {
+        employee_code: empForm.employee_code,
+        name: empForm.name,
+        position: empForm.position,
+        basic_salary: empForm.basic_salary,
+        allowances: { transport: empForm.transport },
+        status: empForm.status,
+      };
+
+      if (editingEmployeeId) {
+        await api(`/employees/${editingEmployeeId}`, {
+          method: "PATCH",
+          body: JSON.stringify(payload),
+        });
+        setMessage("Employee updated");
+      } else {
+        await api("/employees", {
+          method: "POST",
+          body: JSON.stringify({
+            ...payload,
+            join_date: new Date().toISOString().slice(0, 10),
+          }),
+        });
+        setMessage("Employee created");
+      }
+      closeEmployeeModal();
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Create failed");
+      setError(err instanceof Error ? err.message : "Save failed");
     } finally {
       setBusy(false);
     }
@@ -238,7 +273,7 @@ export default function HrPage() {
         description="Employees, attendance, leave approvals, and payroll that posts into the ledger."
         action={
           tab === "employees"
-            ? { label: "Add employee", onClick: () => setModal("employee") }
+            ? { label: "Add employee", onClick: openNewEmployee }
             : tab === "payroll"
               ? { label: "Draft payroll", onClick: () => setModal("payroll") }
               : undefined
@@ -256,83 +291,107 @@ export default function HrPage() {
       {message ? <Alert tone="success">{message}</Alert> : null}
 
       {tab === "employees" ? (
-        <SurfaceCard>
-          <table className="w-full text-left text-sm">
-            <thead className="bg-brand-subtle">
-              <tr>
-                <th className="px-4 py-3 font-semibold">Code</th>
-                <th className="px-4 py-3 font-semibold">Name</th>
-                <th className="px-4 py-3 font-semibold">Position</th>
-                <th className="px-4 py-3 font-semibold">Basic</th>
-                <th className="px-4 py-3 font-semibold">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {employees.length === 0 ? (
-                <tr>
-                  <td colSpan={5}>
-                    <EmptyState
-                      title="No employees yet"
-                      body="Add an employee record or invite an existing Kaarobar user."
-                    />
-                  </td>
-                </tr>
-              ) : (
-                employees.map((e) => (
-                  <tr key={e.id} className="border-t border-border text-heading">
-                    <td className="px-4 py-3">{e.employee_code}</td>
-                    <td className="px-4 py-3">{e.name}</td>
-                    <td className="px-4 py-3">{e.position || "—"}</td>
-                    <td className="px-4 py-3">{e.basic_salary}</td>
-                    <td className="px-4 py-3">{e.status}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </SurfaceCard>
+        <DataTable
+          maxHeight="28rem"
+          searchable
+          searchPlaceholder="Search employees…"
+          getSearchText={(e) =>
+            `${e.employee_code} ${e.name} ${e.position ?? ""} ${e.status}`
+          }
+          onRowClick={openEditEmployee}
+          columns={[
+            {
+              id: "code",
+              header: "Code",
+              cell: (e) => (
+                <span className="font-medium tabular-nums">{e.employee_code}</span>
+              ),
+            },
+            {
+              id: "name",
+              header: "Name",
+              cell: (e) => <span className="font-medium">{e.name}</span>,
+            },
+            {
+              id: "position",
+              header: "Position",
+              cell: (e) => e.position || "—",
+            },
+            {
+              id: "basic",
+              header: "Basic",
+              align: "right",
+              cell: (e) => <span className="tabular-nums">{e.basic_salary}</span>,
+            },
+            {
+              id: "status",
+              header: "Status",
+              cell: (e) => (
+                <span className="inline-flex rounded-md bg-bg-tertiary px-2 py-0.5 text-xs font-semibold capitalize">
+                  {e.status}
+                </span>
+              ),
+            },
+            {
+              id: "actions",
+              header: "",
+              align: "right",
+              width: 88,
+              cell: (e) => (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(ev) => {
+                    ev.stopPropagation();
+                    openEditEmployee(e);
+                  }}
+                >
+                  Edit
+                </Button>
+              ),
+            },
+          ]}
+          data={employees}
+          rowKey={(e) => e.id}
+          emptyTitle="No employees yet"
+          emptyBody="Add an employee record or invite an existing Kaarobar user."
+        />
       ) : null}
 
       {tab === "attendance" ? (
-        <SurfaceCard>
-          <table className="w-full text-left text-sm">
-            <thead className="bg-brand-subtle">
-              <tr>
-                <th className="px-4 py-3">Date</th>
-                <th className="px-4 py-3">Employee</th>
-                <th className="px-4 py-3">In</th>
-                <th className="px-4 py-3">Out</th>
-                <th className="px-4 py-3">Source</th>
-              </tr>
-            </thead>
-            <tbody>
-              {attendance.length === 0 ? (
-                <tr>
-                  <td colSpan={5}>
-                    <EmptyState
-                      title="No attendance yet"
-                      body="Staff clock in from the mobile ESS."
-                    />
-                  </td>
-                </tr>
-              ) : (
-                attendance.map((a) => (
-                  <tr key={a.id} className="border-t border-border text-heading">
-                    <td className="px-4 py-3">{a.date}</td>
-                    <td className="px-4 py-3">{a.employee_name || "—"}</td>
-                    <td className="px-4 py-3">
-                      {a.clock_in ? new Date(a.clock_in).toLocaleTimeString() : "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      {a.clock_out ? new Date(a.clock_out).toLocaleTimeString() : "—"}
-                    </td>
-                    <td className="px-4 py-3">{a.source}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </SurfaceCard>
+        <DataTable
+          maxHeight="28rem"
+          searchable
+          searchPlaceholder="Search attendance…"
+          getSearchText={(a) =>
+            `${a.date} ${a.employee_name ?? ""} ${a.source}`
+          }
+          columns={[
+            { id: "date", header: "Date", cell: (a) => a.date },
+            {
+              id: "employee",
+              header: "Employee",
+              cell: (a) => a.employee_name || "—",
+            },
+            {
+              id: "in",
+              header: "In",
+              cell: (a) =>
+                a.clock_in ? new Date(a.clock_in).toLocaleTimeString() : "—",
+            },
+            {
+              id: "out",
+              header: "Out",
+              cell: (a) =>
+                a.clock_out ? new Date(a.clock_out).toLocaleTimeString() : "—",
+            },
+            { id: "source", header: "Source", cell: (a) => a.source },
+          ]}
+          data={attendance}
+          rowKey={(a) => a.id}
+          emptyTitle="No attendance yet"
+          emptyBody="Staff clock in from the mobile ESS."
+        />
       ) : null}
 
       {tab === "leave" ? (
@@ -454,21 +513,25 @@ export default function HrPage() {
 
       <Modal
         isOpen={modal === "employee"}
-        onClose={() => setModal(null)}
-        title="Add employee"
-        description="Create a payroll record for someone at the active branch."
+        onClose={closeEmployeeModal}
+        title={editingEmployeeId ? "Edit employee" : "Add employee"}
+        description={
+          editingEmployeeId
+            ? "Update payroll details and employment status."
+            : "Create a payroll record for someone at the active branch."
+        }
         footer={
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setModal(null)}>
+            <Button variant="outline" onClick={closeEmployeeModal}>
               Cancel
             </Button>
             <Button type="submit" form="employee-modal-form" loading={busy}>
-              Save employee
+              {editingEmployeeId ? "Save changes" : "Save employee"}
             </Button>
           </div>
         }
       >
-        <form id="employee-modal-form" onSubmit={createEmployee} className="space-y-4">
+        <form id="employee-modal-form" onSubmit={saveEmployee} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Employee code">
               <input
@@ -511,6 +574,19 @@ export default function HrPage() {
                 onChange={(e) => setEmpForm({ ...empForm, transport: e.target.value })}
               />
             </Field>
+            {editingEmployeeId ? (
+              <Field label="Status">
+                <select
+                  className={fieldClass}
+                  value={empForm.status}
+                  onChange={(e) => setEmpForm({ ...empForm, status: e.target.value })}
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="terminated">Terminated</option>
+                </select>
+              </Field>
+            ) : null}
           </div>
         </form>
       </Modal>

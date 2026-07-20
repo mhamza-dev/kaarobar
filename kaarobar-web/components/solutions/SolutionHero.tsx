@@ -23,7 +23,7 @@ export default function SolutionHero({ solution }: SolutionHeroProps) {
           <span className="text-muted"> / {solution.label}</span>
         </p>
 
-        <span className="mt-6 inline-flex rounded-full bg-brand-soft px-4 py-2 text-sm font-semibold text-brand">
+        <span className="mt-6 inline-flex rounded-md bg-brand-soft px-4 py-2 text-sm font-semibold text-brand">
           {solution.badge}
         </span>
 

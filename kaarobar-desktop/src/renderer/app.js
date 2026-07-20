@@ -94,9 +94,36 @@ function showApp() {
   $("app-shell").classList.remove("hidden");
 }
 
+function t(key, vars) {
+  return window.KaarobarI18n ? window.KaarobarI18n.t(key, vars) : key;
+}
+
+function applyChromeI18n() {
+  if (!window.KaarobarI18n) return;
+  const map = {
+    '[data-nav="dashboard"]': "nav.dashboard",
+    '[data-nav="pos"]': "nav.pos",
+    '[data-nav="returns"]': "nav.returns",
+    '[data-nav="inventory"]': "nav.inventory",
+    '[data-nav="profile"]': "nav.profile",
+  };
+  Object.entries(map).forEach(([sel, key]) => {
+    document.querySelectorAll(sel).forEach((el) => {
+      el.textContent = t(key);
+    });
+  });
+  if ($("logout")) $("logout").textContent = t("common.signOut");
+  if ($("status") && !$("status").textContent.includes("sync")) {
+    $("status").textContent = t("common.online");
+  }
+  if ($("locale-select")) $("locale-select").value = window.KaarobarI18n.getLocale();
+  if ($("auth-title")) setAuthMode(mode);
+}
+
 function navigate(view) {
-  ["dashboard", "pos", "returns", "inventory"].forEach((v) => {
-    $(`${v}-view`).classList.toggle("hidden", v !== view);
+  ["dashboard", "pos", "returns", "inventory", "profile"].forEach((v) => {
+    const el = $(`${v}-view`);
+    if (el) el.classList.toggle("hidden", v !== view);
   });
   document.querySelectorAll(".nav-btn").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.nav === view);
@@ -105,19 +132,20 @@ function navigate(view) {
   if (view === "returns") loadReturns();
   if (view === "inventory") loadInventory();
   if (view === "dashboard") loadDashboardStats();
+  if (view === "profile") loadProfile();
 }
 
 function setAuthMode(next) {
   mode = next;
-  $("auth-title").textContent = mode === "login" ? "Sign in" : "Create account";
+  $("auth-title").textContent =
+    mode === "login" ? t("auth.signInTitle") : t("auth.signUpTitle");
   $("auth-sub").textContent =
-    mode === "login"
-      ? "Dashboard and till for your branch."
-      : "Create an owner account and your first business.";
+    mode === "login" ? t("auth.signInSub") : t("auth.signUpSub");
   $("signup-fields").classList.toggle("hidden", mode === "login");
-  $("auth-submit").textContent = mode === "login" ? "Sign in" : "Create account";
+  $("auth-submit").textContent =
+    mode === "login" ? t("common.signIn") : t("common.signUp");
   $("auth-toggle").textContent =
-    mode === "login" ? "Need an account? Create one" : "Already have an account? Sign in";
+    mode === "login" ? t("auth.needAccount") : t("auth.haveAccount");
 }
 
 function renderTenantSelects() {
@@ -229,7 +257,10 @@ function renderCart() {
   const q = ($("search")?.value || "").trim().toLowerCase();
   const list = q
     ? products.filter(
-        (p) => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q)
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.sku.toLowerCase().includes(q) ||
+          (p.barcode || "").toLowerCase().includes(q)
       )
     : products;
   renderProducts(list);
@@ -478,12 +509,12 @@ async function loadInventory() {
         <button type="button" class="btn btn-primary" id="open-product-modal">New product</button>
       </div>
       <table class="table">
-        <thead><tr><th>SKU</th><th>Name</th><th>Price</th></tr></thead>
+        <thead><tr><th>SKU</th><th>Barcode</th><th>Name</th><th>Kind</th><th>Price</th></tr></thead>
         <tbody>
           ${invProducts
             .map(
               (p) =>
-                `<tr><td>${p.sku}</td><td>${p.name}</td><td>${p.price ?? "—"}</td></tr>`
+                `<tr><td>${p.sku}</td><td>${p.barcode || "—"}</td><td>${p.name}</td><td>${p.product_kind || "goods"}</td><td>${p.price ?? "—"}</td></tr>`
             )
             .join("")}
         </tbody>
@@ -491,12 +522,29 @@ async function loadInventory() {
     $("open-product-modal").onclick = () => {
       openModal({
         title: "New product",
-        subtitle: "SKU and name are required. Price is optional.",
+        subtitle: "Barcode enables scan-to-cart. Image optional (use web/mobile for photos).",
+        wide: true,
         bodyHtml: `
           <form id="product-form" class="form-stack">
             <label>SKU<input name="sku" required /></label>
+            <label>Barcode<input name="barcode" placeholder="Scan or type" /></label>
             <label>Name<input name="name" required /></label>
+            <label>Kind
+              <select name="product_kind">
+                <option value="goods">Goods</option>
+                <option value="service">Service</option>
+                <option value="combo">Combo</option>
+              </select>
+            </label>
+            <label>Unit
+              <select name="unit">
+                ${["pcs", "kg", "g", "ml", "l", "box", "pack", "hour", "session"]
+                  .map((u) => `<option value="${u}">${u}</option>`)
+                  .join("")}
+              </select>
+            </label>
             <label>Price<input name="price" placeholder="0.00" /></label>
+            <label>Duration (min, services)<input name="duration_minutes" placeholder="45" /></label>
             <div class="modal-actions">
               <button type="button" class="btn btn-ghost" data-close-modal>Cancel</button>
               <button class="btn btn-primary" type="submit">Create product</button>
@@ -511,7 +559,11 @@ async function loadInventory() {
             method: "POST",
             body: JSON.stringify({
               sku: fd.get("sku"),
+              barcode: fd.get("barcode") || undefined,
               name: fd.get("name"),
+              product_kind: fd.get("product_kind"),
+              unit: fd.get("unit"),
+              duration_minutes: fd.get("duration_minutes") || undefined,
               price: fd.get("price") || undefined,
             }),
           });
@@ -841,6 +893,49 @@ document.querySelectorAll("[data-nav]").forEach((btn) => {
   btn.addEventListener("click", () => navigate(btn.dataset.nav));
 });
 
+if ($("locale-select")) {
+  $("locale-select").addEventListener("change", (e) => {
+    window.KaarobarI18n?.setLocale(e.target.value);
+    applyChromeI18n();
+  });
+}
+
+if ($("profile-form")) {
+  $("profile-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    $("profile-msg").textContent = "";
+    try {
+      const body = {
+        name: $("profile-name").value.trim(),
+        phone: $("profile-phone").value.trim(),
+        locale: $("profile-locale").value,
+      };
+      const pw = $("profile-password").value.trim();
+      if (pw) body.password = pw;
+      const res = await api("/auth/me", {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      });
+      if (session) {
+        setSession({
+          ...session,
+          user: {
+            ...session.user,
+            ...res.user,
+          },
+        });
+      }
+      window.KaarobarI18n?.setLocale(res.user.locale === "ur" ? "ur" : "en");
+      applyChromeI18n();
+      $("profile-password").value = "";
+      $("profile-msg").textContent = t("profile.saved");
+      if ($("user-name")) $("user-name").textContent = res.user.name;
+    } catch (err) {
+      $("profile-msg").textContent = err.message;
+    }
+  });
+}
+
 $("business-select").addEventListener("change", async (e) => {
   const business_id = e.target.value;
   const next = { ...session, business_id, branch_id: undefined };
@@ -892,9 +987,39 @@ $("search").addEventListener("input", (e) => {
   const q = e.target.value.trim().toLowerCase();
   renderProducts(
     products.filter(
-      (p) => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q)
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.sku.toLowerCase().includes(q) ||
+        (p.barcode || "").toLowerCase().includes(q)
     )
   );
+});
+
+$("search").addEventListener("keydown", async (e) => {
+  if (e.key !== "Enter") return;
+  const code = e.target.value.trim();
+  if (!code) return;
+  e.preventDefault();
+  try {
+    const res = await api(`/products/by-barcode/${encodeURIComponent(code)}`);
+    const p = res.data;
+    const existing = cart.find((l) => l.id === p.id);
+    if (existing) existing.qty += 1;
+    else
+      cart.push({
+        id: p.id,
+        name: p.name,
+        sku: p.sku,
+        price: Number(p.price || 0),
+        tax_rate: Number(p.tax_rate || 0.18),
+        qty: 1,
+      });
+    $("search").value = "";
+    renderCart();
+    $("pos-message").textContent = `Added ${p.name}`;
+  } catch (err) {
+    $("pos-message").textContent = err.message || "Barcode not found";
+  }
 });
 
 $("pay").addEventListener("click", async () => {
@@ -990,7 +1115,26 @@ document.addEventListener("click", async (e) => {
   }
 });
 
+async function loadProfile() {
+  try {
+    const res = await api("/auth/me");
+    const u = res.user || {};
+    $("profile-name").value = u.name || "";
+    $("profile-email").value = u.email || "";
+    $("profile-phone").value = u.phone || "";
+    $("profile-locale").value = u.locale === "ur" ? "ur" : "en";
+    $("profile-password").value = "";
+    $("profile-msg").textContent = "";
+  } catch (err) {
+    $("profile-msg").textContent = err.message;
+  }
+}
+
 async function boot() {
+  if (window.KaarobarI18n) {
+    await window.KaarobarI18n.loadCatalogs();
+    applyChromeI18n();
+  }
   setAuthMode("login");
   if (window.kaarobarPos) {
     const status = await window.kaarobarPos.getStatus();
@@ -1001,6 +1145,10 @@ async function boot() {
   }
 
   session = getSession();
+  if (session?.user?.locale === "ur" || session?.user?.locale === "en") {
+    window.KaarobarI18n?.setLocale(session.user.locale);
+    applyChromeI18n();
+  }
   if (session?.access_token) {
     try {
       await hydrateTenant(session);

@@ -26,7 +26,7 @@ export default function ComparisonTable() {
     <section id="comparison" className="bg-bg-secondary py-28">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto max-w-3xl text-center">
-          <span className="rounded-full bg-brand-soft px-4 py-2 text-sm font-semibold text-brand">
+          <span className="rounded-md bg-brand-soft px-4 py-2 text-sm font-semibold text-brand">
             Why Kaarobar
           </span>
           <h2 className="mt-6 text-4xl font-bold text-heading md:text-5xl">
@@ -39,7 +39,7 @@ export default function ComparisonTable() {
           </p>
         </div>
 
-        <div className="mt-14 overflow-hidden rounded-3xl border border-border bg-card">
+        <div className="mt-14 overflow-hidden rounded-md border border-border bg-card">
           <div className="grid grid-cols-[1.5fr_1fr_1fr] border-b border-border bg-bg-tertiary px-6 py-4 text-sm font-semibold text-heading">
             <div>Capability</div>
             <div className="text-center text-brand">Kaarobar</div>

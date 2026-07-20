@@ -115,3 +115,23 @@ if config_env() == :prod do
   #
   # See https://hexdocs.pm/swoosh/Swoosh.html#module-installation for details.
 end
+
+# Storage — local by default; S3-compatible when STORAGE_BACKEND=s3
+storage_backend = System.get_env("STORAGE_BACKEND") || if(config_env() == :prod, do: "s3", else: "local")
+
+if storage_backend == "s3" and System.get_env("S3_BUCKET") do
+  config :kaarobar,
+    storage_adapter: Kaarobar.Storage.S3,
+    s3_bucket: System.get_env("S3_BUCKET"),
+    s3_public_url: System.get_env("S3_PUBLIC_URL"),
+    s3_endpoint: System.get_env("S3_ENDPOINT"),
+    s3_region: System.get_env("S3_REGION") || "auto",
+    s3_access_key_id: System.get_env("S3_ACCESS_KEY_ID"),
+    s3_secret_access_key: System.get_env("S3_SECRET_ACCESS_KEY")
+else
+  config :kaarobar,
+    storage_adapter: Kaarobar.Storage.Local,
+    public_base_url:
+      System.get_env("PUBLIC_BASE_URL") ||
+        "http://localhost:#{System.get_env("PORT") || "4000"}"
+end

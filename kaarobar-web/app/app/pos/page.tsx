@@ -20,12 +20,34 @@ type Product = {
   name: string;
   tax_rate?: string;
   price?: string;
+  barcode?: string;
+  image_url?: string;
+  product_kind?: string;
+  duration_minutes?: number | null;
+  variants?: {
+    id: string;
+    name: string;
+    barcode?: string;
+    price_override?: string;
+  }[];
+  modifier_groups?: {
+    id: string;
+    name: string;
+    required?: boolean;
+    min_select?: number;
+    max_select?: number;
+    modifiers: { id: string; name: string; price_delta: string }[];
+  }[];
 };
 
 type CartLine = {
   product: Product;
   quantity: number;
   unit_price: number;
+  variant_id?: string;
+  variant_name?: string;
+  modifier_ids?: string[];
+  modifier_labels?: string[];
 };
 
 type Till = {
@@ -68,6 +90,9 @@ export default function PosPage() {
   const [payWallet, setPayWallet] = useState("");
   const [payFocus, setPayFocus] = useState<PayMethod>("cash");
   const [lastInvoice, setLastInvoice] = useState<string | null>(null);
+  const [pendingProduct, setPendingProduct] = useState<Product | null>(null);
+  const [pickedVariant, setPickedVariant] = useState("");
+  const [pickedModifiers, setPickedModifiers] = useState<string[]>([]);
 
   const loadTill = useCallback(async () => {
     try {
@@ -89,9 +114,112 @@ export default function PosPage() {
     const q = query.trim().toLowerCase();
     if (!q) return products;
     return products.filter(
-      (p) => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q)
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.sku.toLowerCase().includes(q) ||
+        (p.barcode || "").toLowerCase().includes(q)
     );
   }, [products, query]);
+
+  function cartLineKey(line: CartLine) {
+    return [
+      line.product.id,
+      line.variant_id || "",
+      ...(line.modifier_ids || []).slice().sort(),
+    ].join(":");
+  }
+
+  function resolveUnitPrice(product: Product, variantId?: string, modifierIds: string[] = []) {
+    let base = Number(product.price || 0);
+    const variant = product.variants?.find((v) => v.id === variantId);
+    if (variant?.price_override) base = Number(variant.price_override);
+    const groups = product.modifier_groups || [];
+    const deltas = groups
+      .flatMap((g) => g.modifiers)
+      .filter((m) => modifierIds.includes(m.id))
+      .reduce((s, m) => s + Number(m.price_delta || 0), 0);
+    return base + deltas;
+  }
+
+  function commitToCart(
+    product: Product,
+    variantId?: string,
+    modifierIds: string[] = []
+  ) {
+    const variant = product.variants?.find((v) => v.id === variantId);
+    const labels = (product.modifier_groups || [])
+      .flatMap((g) => g.modifiers)
+      .filter((m) => modifierIds.includes(m.id))
+      .map((m) => m.name);
+    const unit_price = resolveUnitPrice(product, variantId, modifierIds);
+    const draft: CartLine = {
+      product,
+      quantity: 1,
+      unit_price,
+      variant_id: variantId,
+      variant_name: variant?.name,
+      modifier_ids: modifierIds,
+      modifier_labels: labels,
+    };
+    setCart((prev) => {
+      const key = cartLineKey(draft);
+      const existing = prev.find((l) => cartLineKey(l) === key);
+      if (existing) {
+        return prev.map((l) =>
+          cartLineKey(l) === key ? { ...l, quantity: l.quantity + 1 } : l
+        );
+      }
+      return [...prev, draft];
+    });
+  }
+
+  function addProduct(product: Product) {
+    const needsVariant = (product.variants || []).length > 0;
+    const needsMods = (product.modifier_groups || []).some(
+      (g) => g.required || (g.min_select || 0) > 0
+    );
+    if (needsVariant || needsMods) {
+      setPendingProduct(product);
+      setPickedVariant(product.variants?.[0]?.id || "");
+      setPickedModifiers([]);
+      return;
+    }
+    commitToCart(product);
+  }
+
+  async function lookupBarcode(code: string) {
+    const trimmed = code.trim();
+    if (!trimmed) return;
+    try {
+      const res = await api<{ data: Product & { matched_variant_id?: string } }>(
+        `/products/by-barcode/${encodeURIComponent(trimmed)}`
+      );
+      const product = res.data;
+      if (product.matched_variant_id) {
+        commitToCart(product, product.matched_variant_id);
+      } else {
+        addProduct(product);
+      }
+      setQuery("");
+      setMessage(`Added ${product.name}`);
+    } catch {
+      // fall through to text filter
+    }
+  }
+
+  function setQty(productKey: string, quantity: number) {
+    if (quantity <= 0) {
+      setCart((prev) => prev.filter((l) => cartLineKey(l) !== productKey));
+      return;
+    }
+    setCart((prev) =>
+      prev.map((l) => (cartLineKey(l) === productKey ? { ...l, quantity } : l))
+    );
+  }
+
+  function removeLine(productKey: string) {
+    setCart((prev) => prev.filter((l) => cartLineKey(l) !== productKey));
+  }
 
   const subtotal = cart.reduce((s, l) => s + l.quantity * l.unit_price, 0);
   const tax = cart.reduce((s, l) => {
@@ -106,35 +234,6 @@ export default function PosPage() {
     setPayWallet("");
     setPayFocus("cash");
   }, [total]);
-
-  function addProduct(product: Product) {
-    setCart((prev) => {
-      const existing = prev.find((l) => l.product.id === product.id);
-      if (existing) {
-        return prev.map((l) =>
-          l.product.id === product.id ? { ...l, quantity: l.quantity + 1 } : l
-        );
-      }
-      return [
-        ...prev,
-        { product, quantity: 1, unit_price: Number(product.price || 0) },
-      ];
-    });
-  }
-
-  function setQty(productId: string, quantity: number) {
-    if (quantity <= 0) {
-      setCart((prev) => prev.filter((l) => l.product.id !== productId));
-      return;
-    }
-    setCart((prev) =>
-      prev.map((l) => (l.product.id === productId ? { ...l, quantity } : l))
-    );
-  }
-
-  function removeLine(productId: string) {
-    setCart((prev) => prev.filter((l) => l.product.id !== productId));
-  }
 
   function setPayMethod(method: PayMethod) {
     setPayFocus(method);
@@ -240,6 +339,8 @@ export default function PosPage() {
           items: cart.map((l) => ({
             product_id: l.product.id,
             quantity: l.quantity,
+            variant_id: l.variant_id,
+            modifier_ids: l.modifier_ids || [],
           })),
           payments,
         }),
@@ -280,6 +381,12 @@ export default function PosPage() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                lookupBarcode(query);
+              }
+            }}
             placeholder="Scan barcode or search SKU / name"
             className={`${fieldClass} pl-10`}
           />
@@ -297,14 +404,19 @@ export default function PosPage() {
                 key={p.id}
                 type="button"
                 onClick={() => addProduct(p)}
-                className={`group rounded-2xl border bg-card p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-md ${
+                className={`group rounded-md border bg-card p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-md ${
                   inCart
                     ? "border-brand bg-brand-light ring-2 ring-brand/20"
                     : "border-border"
                 }`}
               >
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-soft text-sm font-bold text-brand">
-                  {productInitials(p.name)}
+                <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-md bg-brand-soft text-sm font-bold text-brand">
+                  {p.image_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={p.image_url} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    productInitials(p.name)
+                  )}
                 </div>
                 <div className="mt-3 font-semibold text-heading group-hover:text-brand">
                   {p.name}
@@ -334,7 +446,7 @@ export default function PosPage() {
             </span>
           </div>
 
-          <div className="mt-4 rounded-2xl bg-bg-tertiary p-3">
+          <div className="mt-4 rounded-md bg-bg-tertiary p-3">
             {till ? (
               <div className="flex flex-wrap items-end gap-2">
                 <input
@@ -370,28 +482,42 @@ export default function PosPage() {
 
         <div className="flex-1 space-y-3 overflow-auto px-5 py-4">
           {cart.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border px-4 py-10 text-center">
+            <div className="rounded-md border border-dashed border-border px-4 py-10 text-center">
               <p className="font-semibold text-heading">Cart is empty</p>
               <p className="mt-1 text-sm text-body">Tap a product to start the sale.</p>
             </div>
           ) : (
-            cart.map((l) => (
+            cart.map((l) => {
+              const key = cartLineKey(l);
+              return (
               <div
-                key={l.product.id}
-                className="rounded-2xl border border-border bg-bg-secondary p-3"
+                key={key}
+                className="rounded-md border border-border bg-bg-secondary p-3"
               >
                 <div className="flex gap-3">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-xs font-bold text-brand">
-                    {productInitials(l.product.name)}
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md bg-brand-soft text-xs font-bold text-brand">
+                    {l.product.image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={l.product.image_url} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      productInitials(l.product.name)
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <p className="truncate font-semibold text-heading">
                           {l.product.name}
+                          {l.variant_name ? ` · ${l.variant_name}` : ""}
                         </p>
+                        {l.modifier_labels?.length ? (
+                          <p className="text-xs text-muted">{l.modifier_labels.join(", ")}</p>
+                        ) : null}
                         <p className="text-xs text-muted">
                           Rs {money(l.unit_price)} each
+                          {l.product.duration_minutes
+                            ? ` · ${l.product.duration_minutes} min`
+                            : ""}
                         </p>
                       </div>
                       <strong className="text-sm text-heading">
@@ -401,8 +527,8 @@ export default function PosPage() {
                     <div className="mt-3 flex items-center gap-2">
                       <button
                         type="button"
-                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card hover:border-brand"
-                        onClick={() => setQty(l.product.id, l.quantity - 1)}
+                        className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card hover:border-brand"
+                        onClick={() => setQty(key, l.quantity - 1)}
                       >
                         <Minus className="h-3.5 w-3.5" />
                       </button>
@@ -411,15 +537,15 @@ export default function PosPage() {
                       </span>
                       <button
                         type="button"
-                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card hover:border-brand"
-                        onClick={() => setQty(l.product.id, l.quantity + 1)}
+                        className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card hover:border-brand"
+                        onClick={() => setQty(key, l.quantity + 1)}
                       >
                         <Plus className="h-3.5 w-3.5" />
                       </button>
                       <button
                         type="button"
-                        className="ml-auto rounded-lg p-2 text-muted hover:bg-danger-soft hover:text-danger"
-                        onClick={() => removeLine(l.product.id)}
+                        className="ml-auto rounded-md p-2 text-muted hover:bg-danger-soft hover:text-danger"
+                        onClick={() => removeLine(key)}
                         aria-label="Remove"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -428,7 +554,7 @@ export default function PosPage() {
                   </div>
                 </div>
               </div>
-            ))
+            );})
           )}
         </div>
 
@@ -460,7 +586,7 @@ export default function PosPage() {
                 key={method}
                 type="button"
                 onClick={() => setPayMethod(method)}
-                className={`rounded-2xl border px-2 py-3 text-center transition ${
+                className={`rounded-md border px-2 py-3 text-center transition ${
                   payFocus === method
                     ? "border-brand bg-brand-light text-brand"
                     : "border-border bg-card text-body hover:border-brand/40"
@@ -475,7 +601,7 @@ export default function PosPage() {
                     setter(e.target.value);
                   }}
                   onClick={(e) => e.stopPropagation()}
-                  className="mt-2 w-full rounded-lg border border-border bg-white px-1.5 py-1 text-center text-xs text-heading outline-none focus:border-brand"
+                  className="mt-2 w-full rounded-md border border-border bg-white px-1.5 py-1 text-center text-xs text-heading outline-none focus:border-brand"
                   inputMode="decimal"
                 />
               </button>
@@ -500,6 +626,84 @@ export default function PosPage() {
           ) : null}
         </div>
       </aside>
+
+      {pendingProduct ? (
+        <div className="fixed inset-0 z-[80] flex items-end justify-center bg-overlay p-4 sm:items-center">
+          <div className="w-full max-w-md rounded-md border border-border bg-card p-5 shadow-xl">
+            <h3 className="text-lg font-bold text-heading">{pendingProduct.name}</h3>
+            <p className="mt-1 text-sm text-body">Choose options before adding to cart.</p>
+            {(pendingProduct.variants || []).length > 0 ? (
+              <div className="mt-4 space-y-2">
+                <p className="text-xs font-bold uppercase tracking-wide text-muted">Variant</p>
+                <div className="flex flex-wrap gap-2">
+                  {pendingProduct.variants!.map((v) => (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => setPickedVariant(v.id)}
+                      className={`rounded-md px-3 py-1.5 text-sm font-semibold ${
+                        pickedVariant === v.id
+                          ? "bg-brand text-white"
+                          : "bg-bg-tertiary text-heading"
+                      }`}
+                    >
+                      {v.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {(pendingProduct.modifier_groups || []).map((g) => (
+              <div key={g.id} className="mt-4 space-y-2">
+                <p className="text-xs font-bold uppercase tracking-wide text-muted">
+                  {g.name}
+                  {g.required ? " *" : ""}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {g.modifiers.map((m) => {
+                    const on = pickedModifiers.includes(m.id);
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() =>
+                          setPickedModifiers((prev) =>
+                            on ? prev.filter((id) => id !== m.id) : [...prev, m.id]
+                          )
+                        }
+                        className={`rounded-md px-3 py-1.5 text-sm font-semibold ${
+                          on ? "bg-brand text-white" : "bg-bg-tertiary text-heading"
+                        }`}
+                      >
+                        {m.name}
+                        {Number(m.price_delta) > 0 ? ` +${m.price_delta}` : ""}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+            <div className="mt-5 flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setPendingProduct(null)}>
+                Cancel
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={() => {
+                  commitToCart(
+                    pendingProduct,
+                    pickedVariant || undefined,
+                    pickedModifiers
+                  );
+                  setPendingProduct(null);
+                }}
+              >
+                Add to cart
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

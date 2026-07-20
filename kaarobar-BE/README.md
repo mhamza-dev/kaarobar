@@ -12,6 +12,7 @@ Elixir/Phoenix modular monolith implementing Kaarobar SRS **KRB-SRS-001** applic
 | `Kaarobar.Tenancy` | TEN-FR businesses/branches/memberships; seeds Pakistan COA on business create (ACC-FR-001) |
 | `Kaarobar.Pos` | POS-FR sales, returns, tills; `client_txn_id` idempotency (OFF-FR-003) |
 | `Kaarobar.Inventory` | INV-FR products, stock, PO, GRN, transfers, adjustments |
+| `Kaarobar.Catalog` | Multi-industry catalog: barcodes, images, variants, modifiers, batches |
 | `Kaarobar.Accounting` | ACC-FR journals, TB/P&L/BS, auto-post from sales/payroll, reversals |
 | `Kaarobar.Hr` | HR-FR employees, attendance, leave, payroll approval → ledger |
 | `Kaarobar.Reporting` | RPT-FR owner dashboard aggregates |
@@ -37,6 +38,22 @@ mix phx.server          # http://localhost:4000
 
 Demo seed: `owner@kaarobar.local` / `Password@123` (also `owner2@`–`owner4@`; staff `manager@` / `cashier@` / … and `*2@`–`*4@`)
 Fresh data: `mix ecto.reset`
+
+## Uploads / S3
+
+Dev serves files from `priv/static/uploads` at `/uploads/...`.
+
+For production (Cloudflare R2 / MinIO / AWS):
+
+```bash
+export STORAGE_BACKEND=s3
+export S3_BUCKET=kaarobar-media
+export S3_ACCESS_KEY_ID=...
+export S3_SECRET_ACCESS_KEY=...
+export S3_ENDPOINT=https://<account>.r2.cloudflarestorage.com
+export S3_PUBLIC_URL=https://media.example.com
+export S3_REGION=auto
+```
 
 ## Tests
 

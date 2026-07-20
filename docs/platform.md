@@ -19,7 +19,7 @@ Status against KRB-SRS-001 Must items for reporting, billing, FBR, notifications
 | OFF-FR-004 | Done | `GET /sync/inventory?since=` delta |
 | OFF-FR-006 | Done | FBR still async after online/sync sale |
 
-Deferred: real FBR production adapter, SMS/WhatsApp, full LemonSqueezy portal, Urdu i18n.
+Deferred: real FBR production adapter, SMS/WhatsApp, full LemonSqueezy portal.
 
 ## API surface
 

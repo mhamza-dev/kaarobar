@@ -152,7 +152,7 @@ Module docs: [Tenancy](docs/tenancy.md) · [POS](docs/pos.md) · [Returns / till
 - POS checkout &lt; 2s p95 online (PERF-NFR-001)
 - Tenant scoping on every data access + CI (SEC-NFR-001)
 - Posted journals immutable; corrections via reversing entries (ACC-FR-010)
-- English + Urdu planned (USE-NFR-002)
+- English + Urdu UI (`en` / `ur`, RTL for Urdu) on web, mobile, and desktop — profile language preference via `PATCH /api/v1/auth/me`
 - Desktop POS usable offline ≥ 24h with cached data (REL-NFR-002 / OFF-FR)
 
 ## Documentation

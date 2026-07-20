@@ -2,9 +2,7 @@
 
 import React from "react";
 
-interface ButtonProps {
-  type?: "button" | "submit" | "reset";
-
+type ButtonProps = {
   variant?:
     | "primary"
     | "secondary"
@@ -21,7 +19,6 @@ interface ButtonProps {
 
   children: React.ReactNode;
 
-  disabled?: boolean;
   loading?: boolean;
   fullWidth?: boolean;
   rounded?: boolean;
@@ -30,9 +27,7 @@ interface ButtonProps {
   endIcon?: React.ReactNode;
 
   className?: string;
-
-  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
-}
+} & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "children">;
 
 const Button = ({
   type = "button",
@@ -47,6 +42,7 @@ const Button = ({
   endIcon,
   className = "",
   onClick,
+  ...rest
 }: ButtonProps): React.ReactElement => {
   const baseClass = `
     inline-flex
@@ -174,6 +170,7 @@ const Button = ({
         ${fullWidth && variant !== "link" ? "w-full" : ""}
         ${className}
       `}
+      {...rest}
     >
       {loading ? (
         <>

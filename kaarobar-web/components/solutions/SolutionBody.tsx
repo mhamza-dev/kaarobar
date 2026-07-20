@@ -23,7 +23,7 @@ export default function SolutionBody({ solution }: SolutionBodyProps) {
           {solution.highlights.map((item) => (
             <article
               key={item.title}
-              className="rounded-2xl border border-border bg-card p-8"
+              className="rounded-md border border-border bg-card p-8"
             >
               <h3 className="text-xl font-semibold text-heading">{item.title}</h3>
               <p className="mt-3 leading-7 text-body">{item.body}</p>
@@ -31,7 +31,7 @@ export default function SolutionBody({ solution }: SolutionBodyProps) {
           ))}
         </div>
 
-        <div className="mt-16 rounded-3xl border border-border bg-card p-8 md:p-10">
+        <div className="mt-16 rounded-md border border-border bg-card p-8 md:p-10">
           <h3 className="text-2xl font-bold text-heading">You’ll be able to</h3>
           <ul className="mt-6 space-y-4">
             {solution.outcomes.map((outcome) => (

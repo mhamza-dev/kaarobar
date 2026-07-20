@@ -1,7 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Search, X } from "lucide-react";
 import { api } from "@/lib/api/client";
+import { Alert, PageHeader, SurfaceCard, fieldClass } from "@/components/app/ui";
+import Button from "@/components/ui/Button";
 
 type Note = {
   id: string;
@@ -16,6 +19,7 @@ type Note = {
 export default function NotificationsPage() {
   const [items, setItems] = useState<Note[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -31,6 +35,16 @@ export default function NotificationsPage() {
     load();
   }, [load]);
 
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter((n) =>
+      `${n.title ?? ""} ${n.type} ${n.body ?? ""} ${n.status}`
+        .toLowerCase()
+        .includes(q)
+    );
+  }, [items, query]);
+
   async function markRead(id: string) {
     await api(`/notifications/${id}/read`, { method: "POST", body: "{}" });
     await load();
@@ -38,38 +52,62 @@ export default function NotificationsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-heading">Notifications</h1>
-        <p className="text-body">Leave, payroll, and billing alerts.</p>
-      </div>
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      <PageHeader
+        eyebrow="Inbox"
+        title="Notifications"
+        description="Leave, payroll, and billing alerts."
+      />
+      {error ? <Alert tone="error">{error}</Alert> : null}
+
+      <label className="relative block max-w-md">
+        <span className="sr-only">Search</span>
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search notifications…"
+          className={`${fieldClass} pl-9 pr-9`}
+        />
+        {query ? (
+          <button
+            type="button"
+            aria-label="Clear search"
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted hover:bg-bg-hover"
+            onClick={() => setQuery("")}
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        ) : null}
+      </label>
+
       <div className="space-y-2">
-        {items.length === 0 ? (
-          <p className="text-body">No notifications yet.</p>
+        {filtered.length === 0 ? (
+          <SurfaceCard>
+            <p className="px-6 py-10 text-center text-sm text-body">
+              {query.trim() ? "No matching notifications." : "No notifications yet."}
+            </p>
+          </SurfaceCard>
         ) : (
-          items.map((n) => (
-            <div
+          filtered.map((n) => (
+            <SurfaceCard
               key={n.id}
-              className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-border bg-card p-4"
+              className="flex flex-wrap items-start justify-between gap-3 p-4"
             >
               <div>
                 <p className="font-semibold text-heading">{n.title || n.type}</p>
                 <p className="text-sm text-body">{n.body || n.status}</p>
-                <p className="mt-1 text-xs text-body">
+                <p className="mt-1 text-xs text-muted">
                   {new Date(n.inserted_at).toLocaleString()}
                   {n.read_at ? " · read" : ""}
                 </p>
               </div>
               {!n.read_at ? (
-                <button
-                  type="button"
-                  onClick={() => markRead(n.id)}
-                  className="rounded border border-border px-3 py-1 text-sm"
-                >
+                <Button size="sm" variant="outline" onClick={() => markRead(n.id)}>
                   Mark read
-                </button>
+                </Button>
               ) : null}
-            </div>
+            </SurfaceCard>
           ))
         )}
       </div>

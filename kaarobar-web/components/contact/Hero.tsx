@@ -11,7 +11,7 @@ export default function Hero() {
       <div className="relative mx-auto max-w-7xl px-6">
         <div className="grid items-center gap-20 lg:grid-cols-2">
           <div>
-            <span className="rounded-full bg-brand-soft px-4 py-2 text-sm font-semibold text-brand">
+            <span className="rounded-md bg-brand-soft px-4 py-2 text-sm font-semibold text-brand">
               Contact
             </span>
 
@@ -42,8 +42,8 @@ export default function Hero() {
           </div>
 
           <div className="space-y-6">
-            <div className="rounded-3xl border border-border bg-card p-8 shadow-lg">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-soft text-brand">
+            <div className="rounded-md border border-border bg-card p-8 shadow-lg">
+              <div className="flex h-16 w-16 items-center justify-center rounded-md bg-brand-soft text-brand">
                 <Headphones size={30} />
               </div>
 
@@ -57,8 +57,8 @@ export default function Hero() {
               </p>
             </div>
 
-            <div className="rounded-3xl border border-border bg-card p-8 shadow-lg">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-soft text-brand">
+            <div className="rounded-md border border-border bg-card p-8 shadow-lg">
+              <div className="flex h-16 w-16 items-center justify-center rounded-md bg-brand-soft text-brand">
                 <MessageCircle size={30} />
               </div>
 

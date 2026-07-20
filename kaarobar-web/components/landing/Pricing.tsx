@@ -70,7 +70,7 @@ export default function Pricing() {
     <section id="pricing" className="bg-bg-primary py-28">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto max-w-3xl text-center">
-          <span className="rounded-full bg-brand-soft px-4 py-2 text-sm font-semibold text-brand">
+          <span className="rounded-md bg-brand-soft px-4 py-2 text-sm font-semibold text-brand">
             Pricing
           </span>
           <h2 className="mt-6 text-4xl font-bold text-heading md:text-5xl">
@@ -86,7 +86,7 @@ export default function Pricing() {
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`flex h-full flex-col rounded-3xl border p-8 ${
+              className={`flex h-full flex-col rounded-md border p-8 ${
                 plan.featured
                   ? "border-brand bg-brand text-white shadow-xl"
                   : "border-border bg-card text-heading"

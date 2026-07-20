@@ -42,7 +42,7 @@ export default function Newsletter() {
         <div className="overflow-hidden rounded-4xl border border-border bg-card shadow-xl">
           <div className="grid items-center gap-12 p-10 lg:grid-cols-2 lg:p-16">
             <div>
-              <span className="rounded-full bg-brand-soft px-4 py-2 text-sm font-semibold text-brand">
+              <span className="rounded-md bg-brand-soft px-4 py-2 text-sm font-semibold text-brand">
                 Newsletter
               </span>
 
@@ -63,7 +63,7 @@ export default function Newsletter() {
               </div>
             </div>
 
-            <div className="rounded-3xl border border-border bg-bg-primary p-8">
+            <div className="rounded-md border border-border bg-bg-primary p-8">
               <h3 className="text-2xl font-bold text-heading">
                 Get email updates
               </h3>

@@ -18,30 +18,36 @@ IO.puts("\n=== Kaarobar demo seed (multi-owner) ===\n")
 # —— Catalogs ————————————————————————————————————————————————————
 
 base_catalog = [
-  %{sku: "TEA-001", name: "Green Tea 250g", category: "grocery", price: "450", qty: "80"},
-  %{sku: "RCE-010", name: "Basmati Rice 5kg", category: "grocery", price: "1850", qty: "40"},
-  %{sku: "OIL-003", name: "Cooking Oil 1L", category: "grocery", price: "620", qty: "55"},
-  %{sku: "MLK-002", name: "Full Cream Milk 1L", category: "dairy", price: "280", qty: "60"},
-  %{sku: "BISC-12", name: "Cream Biscuits Pack", category: "snacks", price: "150", qty: "100"},
-  %{sku: "SOAP-01", name: "Bath Soap 3pc", category: "personal-care", price: "220", qty: "70"},
-  %{sku: "SHMP-02", name: "Shampoo 200ml", category: "personal-care", price: "480", qty: "35"},
-  %{sku: "WTR-01", name: "Mineral Water 1.5L", category: "beverages", price: "90", qty: "120"},
-  %{sku: "CHF-01", name: "Chai Masala 100g", category: "grocery", price: "180", qty: "50"},
-  %{sku: "NDL-02", name: "Instant Noodles 5pk", category: "snacks", price: "320", qty: "75"}
+  %{sku: "TEA-001", barcode: "8901001100011", name: "Green Tea 250g", category: "grocery", price: "450", qty: "80"},
+  %{sku: "RCE-010", barcode: "8901001100028", name: "Basmati Rice 5kg", category: "grocery", price: "1850", qty: "40"},
+  %{sku: "OIL-003", barcode: "8901001100035", name: "Cooking Oil 1L", category: "grocery", price: "620", qty: "55"},
+  %{sku: "MLK-002", barcode: "8901001100042", name: "Full Cream Milk 1L", category: "dairy", price: "280", qty: "60"},
+  %{sku: "BISC-12", barcode: "8901001100059", name: "Cream Biscuits Pack", category: "snacks", price: "150", qty: "100"},
+  %{sku: "SOAP-01", barcode: "8901001100066", name: "Bath Soap 3pc", category: "personal-care", price: "220", qty: "70"},
+  %{sku: "SHMP-02", barcode: "8901001100073", name: "Shampoo 200ml", category: "personal-care", price: "480", qty: "35"},
+  %{sku: "WTR-01", barcode: "8901001100080", name: "Mineral Water 1.5L", category: "beverages", price: "90", qty: "120"},
+  %{sku: "CHF-01", barcode: "8901001100097", name: "Chai Masala 100g", category: "grocery", price: "180", qty: "50"},
+  %{sku: "NDL-02", barcode: "8901001100103", name: "Instant Noodles 5pk", category: "snacks", price: "320", qty: "75"}
 ]
 
 industry_extras = %{
   "pharmacy" => [
-    %{sku: "MED-01", name: "Paracetamol 500mg", category: "pharmacy", price: "60", qty: "200"},
-    %{sku: "MED-02", name: "ORS Sachet Pack", category: "pharmacy", price: "120", qty: "150"}
+    %{sku: "MED-01", barcode: "8902001100018", name: "Paracetamol 500mg", category: "OTC", price: "60", qty: "200", product_kind: "goods"},
+    %{sku: "MED-02", barcode: "8902001100025", name: "ORS Sachet Pack", category: "OTC", price: "120", qty: "150", product_kind: "goods"}
   ],
   "restaurant" => [
-    %{sku: "FOOD-01", name: "Chicken Karahi (portion)", category: "food", price: "850", qty: "40"},
-    %{sku: "FOOD-02", name: "Biryani Plate", category: "food", price: "450", qty: "60"}
+    %{sku: "FOOD-01", barcode: "8903001100015", name: "Chicken Karahi (portion)", category: "Food", price: "850", qty: "40", product_kind: "goods"},
+    %{sku: "FOOD-02", barcode: "8903001100022", name: "Biryani Plate", category: "Food", price: "450", qty: "60", product_kind: "goods"},
+    %{sku: "FOOD-03", barcode: "8903001100039", name: "Fresh Lime", category: "Beverages", price: "180", qty: "80", product_kind: "goods"}
+  ],
+  "salon" => [
+    %{sku: "SVC-CUT", barcode: "8904001100012", name: "Haircut", category: "Hair", price: "800", qty: "0", product_kind: "service", duration_minutes: 30, track_inventory: false},
+    %{sku: "SVC-COLOR", barcode: "8904001100029", name: "Hair Color", category: "Hair", price: "3500", qty: "0", product_kind: "service", duration_minutes: 90, track_inventory: false},
+    %{sku: "SVC-NAIL", barcode: "8904001100036", name: "Manicure", category: "Nails", price: "1200", qty: "0", product_kind: "service", duration_minutes: 45, track_inventory: false}
   ],
   "wholesale" => [
-    %{sku: "CTN-01", name: "Carton Tape Roll", category: "supplies", price: "95", qty: "300"},
-    %{sku: "CTN-02", name: "Packing Boxes (10)", category: "supplies", price: "780", qty: "90"}
+    %{sku: "CTN-01", barcode: "8905001100019", name: "Carton Tape Roll", category: "Bulk", price: "95", qty: "300"},
+    %{sku: "CTN-02", barcode: "8905001100026", name: "Packing Boxes (10)", category: "Cases", price: "780", qty: "90"}
   ]
 }
 
@@ -123,7 +129,10 @@ business_pool = [
   {"Valley Dairy Mart", "retail", false},
   {"Quetta Dry Fruits Co", "wholesale", false},
   {"Liberty Cafe", "restaurant", false},
-  {"Aabpara Medicos", "pharmacy", false}
+  {"Glow Studio Salon", "salon", false},
+  {"Style Lab Beauty", "salon", true},
+  {"Aabpara Medicos", "pharmacy", false},
+  {"Neighborhood General", "general", false}
 ]
 
 # Each owner: 1–6 businesses
@@ -245,9 +254,46 @@ seed_products = fn owner, business, branches, catalog ->
               sku: p.sku,
               name: p.name,
               category: p.category,
+              barcode: Map.get(p, :barcode),
+              product_kind: Map.get(p, :product_kind, "goods"),
+              track_inventory: Map.get(p, :track_inventory, true),
+              duration_minutes: Map.get(p, :duration_minutes),
+              unit: Map.get(p, :unit, "pcs"),
               tax_rate: "0.18",
               is_active: true
             })
+
+          # Seed pharmacy batch for MED items
+          if business.industry == "pharmacy" and String.starts_with?(p.sku, "MED") do
+            Enum.each(branches, fn branch ->
+              _ =
+                Kaarobar.Catalog.create_batch(prod, branch.id, %{
+                  lot_number: "LOT-#{p.sku}-A",
+                  expires_on: Date.add(Date.utc_today(), 365),
+                  quantity_on_hand: p.qty,
+                  cost: Decimal.div(Decimal.new(p.price), Decimal.new("2")) |> Decimal.round(2)
+                })
+            end)
+          end
+
+          # Restaurant size variants + sample modifier group once
+          if business.industry == "restaurant" and p.sku == "FOOD-02" do
+            _ =
+              Kaarobar.Catalog.create_variant(prod, %{
+                name: "Half",
+                sku: "FOOD-02-H",
+                barcode: "8903001100022H",
+                price_override: "280"
+              })
+
+            _ =
+              Kaarobar.Catalog.create_variant(prod, %{
+                name: "Full",
+                sku: "FOOD-02-F",
+                barcode: "8903001100022F",
+                price_override: "450"
+              })
+          end
 
           prod
 
@@ -269,18 +315,22 @@ seed_products = fn owner, business, branches, catalog ->
 
       case Inventory.get_inventory(branch.id, product.id, owner.id, business.id) do
         nil ->
-          qty = Decimal.add(Decimal.new(p.qty), Decimal.new(10 + rem(bidx * 11, 40)))
+          if Map.get(p, :track_inventory, true) == false or Map.get(p, :product_kind) == "service" do
+            :ok
+          else
+            qty = Decimal.add(Decimal.new(p.qty), Decimal.new(10 + rem(bidx * 11, 40)))
 
-          %InventoryRecord{}
-          |> InventoryRecord.changeset(%{
-            branch_id: branch.id,
-            product_id: product.id,
-            owner_id: owner.id,
-            business_id: business.id,
-            quantity_on_hand: qty,
-            avg_cost: price |> Decimal.div(Decimal.new("1.25")) |> Decimal.round(2)
-          })
-          |> Repo.insert!()
+            %InventoryRecord{}
+            |> InventoryRecord.changeset(%{
+              branch_id: branch.id,
+              product_id: product.id,
+              owner_id: owner.id,
+              business_id: business.id,
+              quantity_on_hand: qty,
+              avg_cost: price |> Decimal.div(Decimal.new("1.25")) |> Decimal.round(2)
+            })
+            |> Repo.insert!()
+          end
 
         _ ->
           :ok

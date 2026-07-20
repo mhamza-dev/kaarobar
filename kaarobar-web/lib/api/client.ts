@@ -6,6 +6,8 @@ export type StoredSession = {
     id: string;
     email: string;
     name: string;
+    phone?: string | null;
+    locale?: "en" | "ur";
   };
   business_id?: string;
   branch_id?: string;
@@ -26,10 +28,16 @@ export function getSession(): StoredSession | null {
 
 export function setSession(session: StoredSession) {
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("kaarobar:session", { detail: session }));
+  }
 }
 
 export function clearSession() {
   localStorage.removeItem(SESSION_KEY);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("kaarobar:session", { detail: null }));
+  }
 }
 
 export async function api<T>(
@@ -39,7 +47,11 @@ export async function api<T>(
 ): Promise<T> {
   const current = session === undefined ? getSession() : session;
   const headers = new Headers(init.headers);
-  headers.set("Content-Type", "application/json");
+  const isFormData =
+    typeof FormData !== "undefined" && init.body instanceof FormData;
+  if (!isFormData && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
   if (current?.access_token) {
     headers.set("Authorization", `Bearer ${current.access_token}`);
   }
@@ -48,9 +60,17 @@ export async function api<T>(
 
   const res = await fetch(`${API_URL}${path}`, { ...init, headers });
   const text = await res.text();
-  const body = text ? JSON.parse(text) : null;
+  let body: unknown = null;
+  if (text) {
+    try {
+      body = JSON.parse(text);
+    } catch {
+      body = { message: text };
+    }
+  }
   if (!res.ok) {
-    throw new Error(body?.error || body?.message || `Request failed (${res.status})`);
+    const err = body as { error?: string; message?: string } | null;
+    throw new Error(err?.error || err?.message || `Request failed (${res.status})`);
   }
   return body as T;
 }

@@ -12,6 +12,8 @@ defmodule Kaarobar.Pos do
     InvoiceSequence,
     Product,
     ProductBranchPrice,
+    ProductVariant,
+    Modifier,
     Sale,
     SaleItem,
     SalePayment,
@@ -19,6 +21,7 @@ defmodule Kaarobar.Pos do
     SaleReturnItem,
     Till
   }
+  alias Kaarobar.Catalog
   alias Ecto.Multi
 
   @payment_methods ~w(cash card wallet)
@@ -157,31 +160,48 @@ defmodule Kaarobar.Pos do
 
   defp build_line(raw, branch_id, business_id, owner_id) do
     product_id = raw[:product_id] || raw["product_id"]
+    variant_id = raw[:variant_id] || raw["variant_id"] || raw[:product_variant_id] || raw["product_variant_id"]
+    modifier_ids = List.wrap(raw[:modifier_ids] || raw["modifier_ids"] || [])
+    notes = raw[:notes] || raw["notes"]
     qty = to_dec(raw[:quantity] || raw["quantity"])
     line_discount = to_dec(raw[:discount] || raw["discount"] || 0)
 
     with %Product{} = product <-
            Repo.get_by(Product, id: product_id, business_id: business_id, owner_id: owner_id),
          true <- product.is_active || {:error, :product_inactive},
-         unit_price <- branch_price(product, branch_id, raw),
+         {:ok, variant} <- fetch_variant(variant_id, product, business_id, owner_id),
+         {:ok, modifiers} <- fetch_modifiers(modifier_ids, business_id, owner_id),
+         unit_price <- line_unit_price(product, branch_id, variant, modifiers, raw),
          true <- Decimal.compare(qty, 0) == :gt || {:error, :invalid_quantity} do
       taxable = max_dec(Decimal.sub(Decimal.mult(qty, unit_price), line_discount), 0)
       tax_rate = product.tax_rate || Decimal.new("0.18")
       tax = Decimal.mult(taxable, tax_rate) |> Decimal.round(2)
       line_total = Decimal.add(taxable, tax) |> Decimal.round(2)
 
+      display_name =
+        if variant, do: "#{product.name} (#{variant.name})", else: product.name
+
       {:ok,
        %{
          product_id: product.id,
-         sku: product.sku,
-         name: product.name,
+         product_variant_id: variant && variant.id,
+         sku: (variant && variant.sku) || product.sku,
+         name: display_name,
          quantity: qty,
          unit_price: unit_price,
          discount: line_discount,
          tax_rate: tax_rate,
          line_total: line_total,
          taxable: taxable,
-         tax: tax
+         tax: tax,
+         track_inventory: product.track_inventory != false,
+         modifiers: %{
+           "items" =>
+             Enum.map(modifiers, fn m ->
+               %{"id" => m.id, "name" => m.name, "price_delta" => to_string(m.price_delta)}
+             end)
+         },
+         notes: notes
        }}
     else
       nil -> {:error, {:product_not_found, product_id}}
@@ -190,13 +210,66 @@ defmodule Kaarobar.Pos do
     end
   end
 
+  defp fetch_variant(nil, _product, _, _), do: {:ok, nil}
+  defp fetch_variant("", _product, _, _), do: {:ok, nil}
+
+  defp fetch_variant(variant_id, product, business_id, owner_id) do
+    case Repo.get_by(ProductVariant,
+           id: variant_id,
+           product_id: product.id,
+           business_id: business_id,
+           owner_id: owner_id
+         ) do
+      nil -> {:error, :variant_not_found}
+      %ProductVariant{is_active: false} -> {:error, :variant_inactive}
+      variant -> {:ok, variant}
+    end
+  end
+
+  defp fetch_modifiers([], _, _), do: {:ok, []}
+
+  defp fetch_modifiers(ids, business_id, owner_id) do
+    ids = Enum.map(ids, &to_string/1)
+
+    mods =
+      from(m in Modifier,
+        join: g in assoc(m, :modifier_group),
+        where: m.id in ^ids and g.business_id == ^business_id and g.owner_id == ^owner_id and m.is_active == true,
+        select: m
+      )
+      |> Repo.all()
+
+    if length(mods) == length(Enum.uniq(ids)) do
+      {:ok, mods}
+    else
+      {:error, :modifier_not_found}
+    end
+  end
+
+  defp line_unit_price(product, branch_id, variant, modifiers, raw) do
+    base =
+      cond do
+        variant && variant.price_override ->
+          variant.price_override
+
+        true ->
+          branch_price(product, branch_id, raw)
+      end
+
+    delta =
+      Enum.reduce(modifiers, Decimal.new(0), fn m, acc ->
+        Decimal.add(acc, m.price_delta || Decimal.new(0))
+      end)
+
+    Decimal.add(base, delta)
+  end
+
   defp branch_price(product, branch_id, raw) do
     case Repo.get_by(ProductBranchPrice, product_id: product.id, branch_id: branch_id) do
       %{price: price} ->
         price
 
       nil ->
-        # Fall back to client price only if no branch price configured
         to_dec(raw[:unit_price] || raw["unit_price"] || 0)
     end
   end
@@ -286,19 +359,38 @@ defmodule Kaarobar.Pos do
 
   defp decrement_stock!(branch_id, items) do
     Enum.reduce_while(items, {:ok, :decremented}, fn item, acc ->
-      {count, _} =
-        from(i in InventoryRecord,
-          where:
-            i.branch_id == ^branch_id and i.product_id == ^item.product_id and
-              i.quantity_on_hand >= ^item.quantity,
-          update: [set: [quantity_on_hand: fragment("quantity_on_hand - ?", ^item.quantity)]]
-        )
-        |> Repo.update_all([])
-
-      if count == 1 do
+      if Map.get(item, :track_inventory) == false do
         {:cont, acc}
       else
-        {:halt, {:error, {:insufficient_stock, item.product_id}}}
+        result =
+          if Catalog.has_batches?(item.product_id, branch_id) do
+            with {:ok, _} <- Catalog.decrement_batches_fefo(item.product_id, branch_id, item.quantity) do
+              # Keep inventory_records in sync when batches are used
+              from(i in InventoryRecord,
+                where: i.branch_id == ^branch_id and i.product_id == ^item.product_id,
+                update: [set: [quantity_on_hand: fragment("quantity_on_hand - ?", ^item.quantity)]]
+              )
+              |> Repo.update_all([])
+
+              {:ok, :decremented}
+            end
+          else
+            {count, _} =
+              from(i in InventoryRecord,
+                where:
+                  i.branch_id == ^branch_id and i.product_id == ^item.product_id and
+                    i.quantity_on_hand >= ^item.quantity,
+                update: [set: [quantity_on_hand: fragment("quantity_on_hand - ?", ^item.quantity)]]
+              )
+              |> Repo.update_all([])
+
+            if count == 1, do: {:ok, :decremented}, else: {:error, {:insufficient_stock, item.product_id}}
+          end
+
+        case result do
+          {:ok, _} -> {:cont, acc}
+          {:error, reason} -> {:halt, {:error, reason}}
+        end
       end
     end)
   end
@@ -310,13 +402,16 @@ defmodule Kaarobar.Pos do
         |> SaleItem.changeset(%{
           sale_id: sale_id,
           product_id: item.product_id,
+          product_variant_id: Map.get(item, :product_variant_id),
           sku: item.sku,
           name: item.name,
           quantity: item.quantity,
           unit_price: item.unit_price,
           discount: item.discount,
           tax_rate: item.tax_rate,
-          line_total: item.line_total
+          line_total: item.line_total,
+          modifiers: Map.get(item, :modifiers) || %{},
+          notes: Map.get(item, :notes)
         })
         |> Repo.insert()
       end)

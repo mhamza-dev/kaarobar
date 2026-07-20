@@ -56,7 +56,7 @@ export default function FAQ() {
     <section id="faq" className="bg-bg-secondary py-28">
       <div className="mx-auto max-w-4xl px-6">
         <div className="text-center">
-          <span className="rounded-full bg-brand-soft px-4 py-2 text-sm font-semibold text-brand">
+          <span className="rounded-md bg-brand-soft px-4 py-2 text-sm font-semibold text-brand">
             FAQ
           </span>
           <h2 className="mt-6 text-4xl font-bold text-heading md:text-5xl">
@@ -70,7 +70,7 @@ export default function FAQ() {
             return (
               <div
                 key={faq.question}
-                className="overflow-hidden rounded-2xl border border-border bg-card"
+                className="overflow-hidden rounded-md border border-border bg-card"
               >
                 <button
                   type="button"

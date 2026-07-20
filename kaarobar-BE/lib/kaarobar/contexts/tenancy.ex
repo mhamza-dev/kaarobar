@@ -21,6 +21,10 @@ defmodule Kaarobar.Tenancy do
       Accounting.seed_pakistan_coa(business.id, owner_id)
       {:ok, :seeded}
     end)
+    |> Ecto.Multi.run(:seed_categories, fn _repo, %{business: business} ->
+      Kaarobar.Catalog.seed_default_categories(business.id, owner_id, business.industry)
+      {:ok, :seeded}
+    end)
     |> Ecto.Multi.insert(:membership, fn %{business: business} ->
       %Membership{}
       |> Membership.changeset(%{

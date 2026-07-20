@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useId } from "react";
+import React, { useEffect, useId, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 export interface ModalProps {
@@ -29,10 +30,16 @@ const Modal = ({
   showCloseButton = true,
 }: ModalProps): React.ReactElement | null => {
   const titleId = useId();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
 
+    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -42,12 +49,12 @@ const Modal = ({
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.body.style.overflow = "";
+      document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen, closeOnEscape, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const sizes = {
     sm: "max-w-sm",
@@ -56,8 +63,8 @@ const Modal = ({
     xl: "max-w-4xl",
   };
 
-  return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <button
         type="button"
         aria-label="Close dialog"
@@ -70,7 +77,7 @@ const Modal = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className={`relative flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xl animate-rise ${sizes[size]}`}
+        className={`relative flex max-h-[90vh] w-full flex-col overflow-hidden rounded-md border border-border bg-card shadow-xl animate-rise ${sizes[size]}`}
       >
         {(title || description || showCloseButton) && (
           <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">
@@ -89,7 +96,7 @@ const Modal = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="flex h-10 w-10 items-center justify-center rounded-lg text-body transition hover:bg-bg-primary hover:text-heading"
+                className="flex h-10 w-10 items-center justify-center rounded-md text-body transition hover:bg-bg-primary hover:text-heading"
                 aria-label="Close"
               >
                 <X size={18} />
@@ -106,7 +113,8 @@ const Modal = ({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

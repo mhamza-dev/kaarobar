@@ -2,28 +2,26 @@ defmodule Kaarobar.Inventory do
   import Ecto.Query
   alias Kaarobar.Repo
   alias Kaarobar.Schemas.{
-    Product, ProductBranchPrice, InventoryRecord,
+    ProductBranchPrice, InventoryRecord,
     PurchaseOrder, PurchaseOrderItem, GoodsReceipt, GoodsReceiptItem,
     StockTransfer, StockTransferItem, StockAdjustment
   }
   alias Ecto.Multi
 
   def create_product(business_id, owner_id, attrs) do
-    %Product{}
-    |> Product.changeset(Map.merge(attrs, %{business_id: business_id, owner_id: owner_id}))
-    |> Repo.insert()
+    Kaarobar.Catalog.create_product(business_id, owner_id, attrs)
   end
 
   def list_products(business_id, owner_id) do
-    Product
-    |> where([p], p.business_id == ^business_id and p.owner_id == ^owner_id)
-    |> Repo.all()
+    Kaarobar.Catalog.list_products(business_id, owner_id)
   end
 
   def get_product(product_id, business_id, owner_id) do
-    Product
-    |> where([p], p.id == ^product_id and p.business_id == ^business_id and p.owner_id == ^owner_id)
-    |> Repo.one()
+    Kaarobar.Catalog.get_product(product_id, business_id, owner_id)
+  end
+
+  def update_product(product, attrs) do
+    Kaarobar.Catalog.update_product(product, attrs)
   end
 
   def set_branch_price(product_id, branch_id, owner_id, business_id, price) do

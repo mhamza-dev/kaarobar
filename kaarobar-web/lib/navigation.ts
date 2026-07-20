@@ -61,6 +61,7 @@ export const routes = {
   hr: "/app/hr",
   reports: "/app/reports",
   settings: "/app/settings",
+  profile: "/app/profile",
   notifications: "/app/notifications",
   contact: "/contact",
   about: "/about",
@@ -73,21 +74,22 @@ export const routes = {
 } as const;
 
 export const appNav = [
-  { title: "Dashboard", href: "/app", group: "Overview", icon: "layout" },
-  { title: "POS", href: "/app/pos", group: "Cashier", icon: "pos" },
-  { title: "Returns", href: "/app/returns", group: "Cashier", icon: "returns" },
-  { title: "Inventory", href: "/app/inventory", group: "Catalog", icon: "inventory" },
-  { title: "Accounting", href: "/app/accounting", group: "Back office", icon: "accounting" },
-  { title: "HR", href: "/app/hr", group: "Back office", icon: "hr" },
-  { title: "Reports", href: "/app/reports", group: "Back office", icon: "reports" },
-  { title: "Notifications", href: "/app/notifications", group: "System", icon: "bell" },
-  { title: "Settings", href: "/app/settings", group: "System", icon: "settings" },
+  { titleKey: "nav.dashboard", href: "/app", groupKey: "nav.overview", icon: "layout" },
+  { titleKey: "nav.pos", href: "/app/pos", groupKey: "nav.cashier", icon: "pos" },
+  { titleKey: "nav.returns", href: "/app/returns", groupKey: "nav.cashier", icon: "returns" },
+  { titleKey: "nav.inventory", href: "/app/inventory", groupKey: "nav.catalog", icon: "inventory" },
+  { titleKey: "nav.accounting", href: "/app/accounting", groupKey: "nav.backOffice", icon: "accounting" },
+  { titleKey: "nav.hr", href: "/app/hr", groupKey: "nav.backOffice", icon: "hr" },
+  { titleKey: "nav.reports", href: "/app/reports", groupKey: "nav.backOffice", icon: "reports" },
+  { titleKey: "nav.notifications", href: "/app/notifications", groupKey: "nav.system", icon: "bell" },
+  { titleKey: "nav.profile", href: "/app/profile", groupKey: "nav.system", icon: "profile" },
+  { titleKey: "nav.settings", href: "/app/settings", groupKey: "nav.system", icon: "settings" },
 ] as const;
 
 export const appNavGroups = [
-  "Overview",
-  "Cashier",
-  "Catalog",
-  "Back office",
-  "System",
+  "nav.overview",
+  "nav.cashier",
+  "nav.catalog",
+  "nav.backOffice",
+  "nav.system",
 ] as const;
