@@ -41,15 +41,16 @@ export default function Footer() {
               <div>
                 <h2 className="text-2xl font-bold">Kaarobar</h2>
                 <p className="text-sm text-slate-400">
-                  AI Business Operating System
+                  POS · Accounting · Workforce
                 </p>
               </div>
             </Link>
 
             <p className="mt-8 max-w-lg leading-8 text-slate-400">
-              Kaarobar helps businesses manage sales, inventory, accounting, HR,
-              payroll, CRM, analytics and AI-powered insights from one modern
-              platform.
+              Kaarobar is a multi-business, multi-branch POS, double-entry
+              accounting, and HR/payroll platform for owners who need
+              branch-level autonomy with central oversight—built Pakistan-first
+              with FBR Tier-1 integration hooks.
             </p>
 
             <div className="mt-8 space-y-4">

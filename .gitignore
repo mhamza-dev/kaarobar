@@ -45,9 +45,5 @@ kaarobar-mobile/node_modules/
 kaarobar-mobile/.expo/
 kaarobar-mobile/dist/
 
-# Packages
-packages/*/node_modules/
-packages/*/dist/
-
 # Logs
 *.log

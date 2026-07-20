@@ -28,11 +28,11 @@ export const productLinks = [
 ] as const;
 
 export const solutionLinks = [
-  { label: "Retail", href: "/#solutions" },
-  { label: "Wholesale", href: "/#solutions" },
-  { label: "Restaurants", href: "/#solutions" },
-  { label: "Manufacturing", href: "/#solutions" },
-  { label: "Pharmacy", href: "/#solutions" },
+  { label: "Multi-business retail", href: "/#solutions" },
+  { label: "Multi-branch POS", href: "/#modules" },
+  { label: "Accounting & tax", href: "/#modules" },
+  { label: "HR & payroll", href: "/#modules" },
+  { label: "FBR Tier-1 ready", href: "/#faq" },
 ] as const;
 
 export const companyLinks = [

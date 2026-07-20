@@ -27,7 +27,7 @@ export default function Navbar() {
 
           <div>
             <h1 className="text-xl font-bold text-heading">Kaarobar</h1>
-            <p className="text-xs text-body">AI Business Operating System</p>
+            <p className="text-xs text-body">POS · Accounting · Workforce</p>
           </div>
         </NextLink>
 
