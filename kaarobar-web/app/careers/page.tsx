@@ -9,15 +9,15 @@ export default function CareersPage() {
           Careers
         </p>
         <h1 className="mt-3 text-4xl font-bold text-heading md:text-5xl">
-          Build the future with Kaarobar
+          Want to help build Kaarobar?
         </h1>
         <p className="mt-5 text-lg leading-8 text-body">
-          We&apos;re growing our team. Reach out if you want to help shape the
-          next generation of business software.
+          We’re a small team growing carefully. If you care about retail software
+          that treats books and branches seriously, say hello.
         </p>
         <div className="mt-10 flex justify-center gap-4">
           <Link href={routes.contact} size="lg">
-            Contact Us
+            Get in touch
           </Link>
           <Link href={routes.about} variant="outline" size="lg">
             About Kaarobar

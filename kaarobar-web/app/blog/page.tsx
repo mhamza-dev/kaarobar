@@ -8,11 +8,11 @@ export default function BlogPage() {
           Blog
         </p>
         <h1 className="mt-3 text-4xl font-bold text-heading md:text-5xl">
-          Insights for modern businesses
+          Notes from the Kaarobar team
         </h1>
         <p className="mt-4 text-lg text-body">
-          Articles and product updates are coming soon. Subscribe below to stay
-          informed.
+          We’re still writing the first posts. Leave your email if you want to
+          know when they’re up.
         </p>
       </div>
       <Newsletter />

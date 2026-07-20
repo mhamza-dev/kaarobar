@@ -38,7 +38,8 @@ defmodule Kaarobar.MixProject do
       {:bandit, "~> 1.5"},
       {:argon2_elixir, "~> 4.0"},
       {:guardian, "~> 2.3"},
-      {:oban, "== 2.22.1"}
+      {:oban, "== 2.22.1"},
+      {:nimble_totp, "~> 1.0"}
     ]
   end
 

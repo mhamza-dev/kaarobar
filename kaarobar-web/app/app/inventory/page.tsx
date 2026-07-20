@@ -42,7 +42,7 @@ export default function InventoryPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Inventory</h1>
-        <p className="text-[#4A5A52]">Product catalog and branch stock.</p>
+        <p className="text-[#4A5A52]">Your product list and stock at each branch.</p>
       </div>
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
       <form

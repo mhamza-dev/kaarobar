@@ -16,31 +16,31 @@ import { routes } from "@/lib/navigation";
 const features = [
   {
     title: "Owner dashboard",
-    description: "Consolidated sales, cash position, and stock alerts across businesses.",
+    description: "Sales, cash, and stock alerts across every business—on your phone.",
     icon: BarChart3,
   },
   {
     title: "Approvals on the go",
-    description: "Refund and payroll approval requests when you are not at the branch.",
+    description: "Sign off refunds or payroll when you’re not at the branch.",
     icon: Bell,
   },
   {
-    title: "Employee self-service",
-    description: "Clock in/out, leave requests, and payslip history—three primary actions.",
+    title: "For your staff",
+    description: "Clock in, ask for leave, and check payslips without chasing HR.",
     icon: Clock3,
   },
   {
     title: "Low-stock alerts",
-    description: "See reorder signals from every branch without opening the till.",
+    description: "See what needs reordering without opening every till.",
     icon: Package,
   },
 ];
 
 const notifications = [
-  "Branch Shahkot: refund above threshold awaiting approval",
-  "Green Tea 250g low stock at Outlet 2",
-  "Payroll run March pending owner approval",
-  "Payslip available for Ahmad (ESS)",
+  "Shahkot branch: refund above limit needs your OK",
+  "Green Tea 250g running low at Outlet 2",
+  "March payroll waiting for your approval",
+  "Payslip ready for Ahmad",
 ];
 
 export default function MobileAppShowcase() {
@@ -57,8 +57,8 @@ export default function MobileAppShowcase() {
             Self-service for staff.
           </h2>
           <p className="mt-6 text-lg leading-8 text-body">
-            React Native for Android and iOS—owners and managers get dashboards
-            and approvals; employees get attendance, leave, and payslips.
+            On Android and iOS: owners and managers check numbers and approve
+            things; staff clock in, request leave, and see payslips.
           </p>
         </div>
 
@@ -79,7 +79,7 @@ export default function MobileAppShowcase() {
               );
             })}
             <Link href={routes.signup} size="lg" endIcon={<ArrowRight size={18} />}>
-              Get started on web first
+              Start on the web
             </Link>
           </div>
 

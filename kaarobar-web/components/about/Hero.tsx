@@ -17,31 +17,30 @@ export default function AboutHero() {
         </div>
 
         <h1 className="mt-8 text-5xl font-bold leading-tight text-heading md:text-7xl">
-          Reduce owner hustle.
+          Less hustle for the owner.
           <br />
-          Keep the books honest.
+          Honest books for the business.
         </h1>
 
         <p className="mx-auto mt-8 max-w-3xl text-lg leading-8 text-body">
-          Kaarobar exists for Pakistan-first multi-business owners who cannot be
-          at every branch. We combine offline-tolerant POS, double-entry
-          accounting, and workforce payroll so financial statements stay
-          audit-ready without re-keying into a separate ledger.
+          Kaarobar is for Pakistan owners who can’t sit in every shop. We connect
+          an offline-friendly till, real double-entry accounting, and payroll so
+          you don’t retype numbers into a separate ledger at the end of the day.
         </p>
 
         <div className="mx-auto mt-12 grid max-w-4xl gap-6 text-left md:grid-cols-3">
           {[
             {
-              title: "G1 — Trustworthy overview",
-              body: "One consolidated view of sales, cash, stock, and staff across every business you own.",
+              title: "See everything",
+              body: "Sales, cash, stock, and staff across every business you own—in one place.",
             },
             {
-              title: "G2 — Real accounting",
-              body: "Every POS, purchase, and payroll run posts balanced journals automatically.",
+              title: "Real accounting",
+              body: "POS, purchases, and payroll post balanced journals automatically.",
             },
             {
-              title: "G3 — Branch autonomy",
-              body: "Cashiers operate offline; owners retain approval on exceptions and payroll.",
+              title: "Branches that work alone",
+              body: "Cashiers keep going offline. You still approve the exceptions that matter.",
             },
           ].map((item) => (
             <div key={item.title} className="rounded-2xl border border-border bg-card p-5">
@@ -53,7 +52,7 @@ export default function AboutHero() {
 
         <div className="mt-10">
           <Link href={routes.signup} size="lg" endIcon={<ArrowRight size={18} />}>
-            Start Free Trial
+            Start free trial
           </Link>
         </div>
       </div>

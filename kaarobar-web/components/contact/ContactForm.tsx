@@ -45,18 +45,16 @@ export default function ContactForm() {
 
         <div className="lg:col-span-2">
           <span className="rounded-full bg-brand-soft px-4 py-2 text-sm font-semibold text-brand">
-            Send Message
+            Write to us
           </span>
 
           <h2 className="mt-6 text-5xl font-bold text-heading">
-            Let&apos;s Start
-            <br />a Conversation
+            Send a message
           </h2>
 
           <p className="mt-6 leading-8 text-body">
-            Complete the form and our team will contact you shortly. Whether you
-            need support, a demo or have a partnership inquiry, we&apos;re here to
-            help.
+            Fill this in and we’ll get back to you. Demos, setup questions,
+            pricing—whatever you need.
           </p>
         </div>
 
@@ -118,7 +116,7 @@ export default function ContactForm() {
                   name="message"
                   label="Message"
                   rows={6}
-                  placeholder="Tell us about your project..."
+                  placeholder="What’s going on? How can we help?"
                 />
 
                 <Button

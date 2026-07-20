@@ -22,7 +22,7 @@ export default function AccountingPage() {
       <div>
         <h1 className="text-2xl font-bold">Accounting</h1>
         <p className="text-[#4A5A52]">
-          Chart of accounts, journals, and financial statements.
+          Chart of accounts, journals, and statements like trial balance and P&L.
         </p>
       </div>
       {error ? <p className="text-sm text-amber-800">{error}</p> : null}

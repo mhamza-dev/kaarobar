@@ -148,6 +148,16 @@ defmodule Kaarobar.Inventory do
 
       {:ok, :updated}
     end)
+    |> Multi.run(:enqueue_journal, fn _repo, %{gr: gr} ->
+      %{
+        gr_id: gr.id,
+        business_id: business_id,
+        owner_id: owner_id,
+        posted_by_id: received_by_id
+      }
+      |> Kaarobar.Workers.PostPurchaseJournalWorker.new()
+      |> Oban.insert()
+    end)
     |> Repo.transaction()
     |> case do
       {:ok, %{gr: gr}} -> {:ok, gr}
@@ -156,44 +166,94 @@ defmodule Kaarobar.Inventory do
   end
 
   def create_stock_adjustment(branch_id, product_id, owner_id, business_id, adjusted_by_id, attrs) do
-    Multi.new()
-    |> Multi.insert(:adjustment, fn _ ->
-      %StockAdjustment{}
-      |> StockAdjustment.changeset(Map.merge(attrs, %{
-        branch_id: branch_id,
-        product_id: product_id,
-        owner_id: owner_id,
-        business_id: business_id,
-        adjusted_by_id: adjusted_by_id
-      }))
-    end)
-    |> Multi.run(:update_inventory, fn _repo, %{adjustment: adj} ->
-      case get_inventory(branch_id, product_id, owner_id, business_id) do
-        nil ->
-          %InventoryRecord{}
-          |> InventoryRecord.changeset(%{
+    reason = attrs[:reason_code] || attrs["reason_code"] || "adjustment"
+    allowed = ~w(adjustment damage theft count_correction expired sample)
+
+    if reason not in allowed do
+      {:error, :invalid_reason_code}
+    else
+      Multi.new()
+      |> Multi.insert(:adjustment, fn _ ->
+        %StockAdjustment{}
+        |> StockAdjustment.changeset(
+          Map.merge(normalize_map(attrs), %{
             branch_id: branch_id,
             product_id: product_id,
             owner_id: owner_id,
             business_id: business_id,
-            quantity_on_hand: adj.quantity_delta,
-            avg_cost: 0
+            adjusted_by_id: adjusted_by_id,
+            reason_code: reason
           })
-          |> Repo.insert()
+        )
+      end)
+      |> Multi.run(:update_inventory, fn _repo, %{adjustment: adj} ->
+        case get_inventory(branch_id, product_id, owner_id, business_id) do
+          nil ->
+            if Decimal.compare(adj.quantity_delta, 0) == :lt do
+              {:error, :insufficient_stock}
+            else
+              %InventoryRecord{}
+              |> InventoryRecord.changeset(%{
+                branch_id: branch_id,
+                product_id: product_id,
+                owner_id: owner_id,
+                business_id: business_id,
+                quantity_on_hand: adj.quantity_delta,
+                avg_cost: 0
+              })
+              |> Repo.insert()
+            end
 
-        existing ->
-          new_qty = Decimal.add(existing.quantity_on_hand, adj.quantity_delta)
+          existing ->
+            new_qty = Decimal.add(existing.quantity_on_hand, adj.quantity_delta)
 
-          existing
-          |> InventoryRecord.changeset(%{quantity_on_hand: new_qty})
-          |> Repo.update()
+            if Decimal.compare(new_qty, 0) == :lt do
+              {:error, :insufficient_stock}
+            else
+              existing
+              |> InventoryRecord.changeset(%{quantity_on_hand: new_qty})
+              |> Repo.update()
+            end
+        end
+      end)
+      |> Multi.run(:audit, fn _repo, %{adjustment: adj} ->
+        Kaarobar.Audit.log(%{
+          owner_id: owner_id,
+          user_id: adjusted_by_id,
+          action: "inventory.adjust",
+          entity_type: "stock_adjustment",
+          entity_id: adj.id,
+          metadata: %{
+            product_id: product_id,
+            branch_id: branch_id,
+            quantity_delta: to_string(adj.quantity_delta),
+            reason_code: reason
+          }
+        })
+      end)
+      |> Repo.transaction()
+      |> case do
+        {:ok, %{adjustment: adj}} -> {:ok, adj}
+        {:error, _op, reason, _} -> {:error, reason}
       end
-    end)
-    |> Repo.transaction()
-    |> case do
-      {:ok, %{adjustment: adj}} -> {:ok, adj}
-      {:error, _op, reason, _changes} -> {:error, reason}
     end
+  end
+
+  defp normalize_map(attrs) when is_map(attrs) do
+    Map.new(attrs, fn
+      {k, v} when is_binary(k) ->
+        key =
+          try do
+            String.to_existing_atom(k)
+          rescue
+            ArgumentError -> String.to_atom(k)
+          end
+
+        {key, v}
+
+      {k, v} ->
+        {k, v}
+    end)
   end
 
   def list_inventory_for_branch(branch_id, owner_id, business_id) do
@@ -262,62 +322,102 @@ defmodule Kaarobar.Inventory do
     end
   end
 
-  def confirm_transfer(transfer_id) do
-    transfer = Repo.get(StockTransfer, transfer_id) |> Repo.preload(:items)
+  def confirm_transfer(transfer_id, owner_id) do
+    transfer =
+      Repo.get_by(StockTransfer, id: transfer_id, owner_id: owner_id)
+      |> then(&(&1 && Repo.preload(&1, :items)))
 
-    if is_nil(transfer) do
-      {:error, :not_found}
-    else
-      Multi.new()
-      |> Multi.update(:transfer, StockTransfer.changeset(transfer, %{status: "completed"}))
-      |> Multi.run(:move_stock, fn _repo, _ ->
-        Enum.each(transfer.items, fn item ->
-          from_inv =
-            Repo.get_by(InventoryRecord,
-              branch_id: transfer.from_branch_id,
-              product_id: item.product_id
-            )
+    cond do
+      is_nil(transfer) ->
+        {:error, :not_found}
 
-          if from_inv do
-            from_inv
-            |> InventoryRecord.changeset(%{
-              quantity_on_hand: Decimal.sub(from_inv.quantity_on_hand, item.quantity)
-            })
-            |> Repo.update()
-          end
+      transfer.status != "pending" ->
+        {:error, :invalid_status}
 
-          case Repo.get_by(InventoryRecord,
-                 branch_id: transfer.to_branch_id,
-                 product_id: item.product_id
-               ) do
-            nil ->
-              %InventoryRecord{}
-              |> InventoryRecord.changeset(%{
-                branch_id: transfer.to_branch_id,
+      true ->
+        Multi.new()
+        |> Multi.run(:check_stock, fn _repo, _ ->
+          Enum.reduce_while(transfer.items, {:ok, :ok}, fn item, acc ->
+            from_inv =
+              Repo.get_by(InventoryRecord,
+                branch_id: transfer.from_branch_id,
                 product_id: item.product_id,
-                owner_id: transfer.owner_id,
-                business_id: transfer.business_id,
-                quantity_on_hand: item.quantity,
-                avg_cost: (from_inv && from_inv.avg_cost) || Decimal.new(0)
-              })
-              |> Repo.insert()
+                owner_id: owner_id
+              )
 
-            to_inv ->
-              to_inv
-              |> InventoryRecord.changeset(%{
-                quantity_on_hand: Decimal.add(to_inv.quantity_on_hand, item.quantity)
-              })
-              |> Repo.update()
-          end
+            cond do
+              is_nil(from_inv) ->
+                {:halt, {:error, {:insufficient_stock, item.product_id}}}
+
+              Decimal.compare(from_inv.quantity_on_hand, item.quantity) == :lt ->
+                {:halt, {:error, {:insufficient_stock, item.product_id}}}
+
+              true ->
+                {:cont, acc}
+            end
+          end)
         end)
+        |> Multi.update(:transfer, StockTransfer.changeset(transfer, %{status: "completed"}))
+        |> Multi.run(:move_stock, fn _repo, _ ->
+          Enum.reduce_while(transfer.items, {:ok, :moved}, fn item, acc ->
+            from_inv =
+              Repo.get_by!(InventoryRecord,
+                branch_id: transfer.from_branch_id,
+                product_id: item.product_id
+              )
 
-        {:ok, :moved}
-      end)
-      |> Repo.transaction()
-      |> case do
-        {:ok, %{transfer: t}} -> {:ok, t}
-        {:error, _op, reason, _} -> {:error, reason}
-      end
+            {count, _} =
+              from(i in InventoryRecord,
+                where:
+                  i.id == ^from_inv.id and i.quantity_on_hand >= ^item.quantity,
+                update: [
+                  set: [quantity_on_hand: fragment("quantity_on_hand - ?", ^item.quantity)]
+                ]
+              )
+              |> Repo.update_all([])
+
+            if count != 1 do
+              {:halt, {:error, {:insufficient_stock, item.product_id}}}
+            else
+              case Repo.get_by(InventoryRecord,
+                     branch_id: transfer.to_branch_id,
+                     product_id: item.product_id
+                   ) do
+                nil ->
+                  %InventoryRecord{}
+                  |> InventoryRecord.changeset(%{
+                    branch_id: transfer.to_branch_id,
+                    product_id: item.product_id,
+                    owner_id: transfer.owner_id,
+                    business_id: transfer.business_id,
+                    quantity_on_hand: item.quantity,
+                    avg_cost: from_inv.avg_cost || Decimal.new(0)
+                  })
+                  |> Repo.insert()
+                  |> case do
+                    {:ok, _} -> {:cont, acc}
+                    {:error, cs} -> {:halt, {:error, cs}}
+                  end
+
+                to_inv ->
+                  to_inv
+                  |> InventoryRecord.changeset(%{
+                    quantity_on_hand: Decimal.add(to_inv.quantity_on_hand, item.quantity)
+                  })
+                  |> Repo.update()
+                  |> case do
+                    {:ok, _} -> {:cont, acc}
+                    {:error, cs} -> {:halt, {:error, cs}}
+                  end
+              end
+            end
+          end)
+        end)
+        |> Repo.transaction()
+        |> case do
+          {:ok, %{transfer: t}} -> {:ok, t}
+          {:error, _op, reason, _} -> {:error, reason}
+        end
     end
   end
 end

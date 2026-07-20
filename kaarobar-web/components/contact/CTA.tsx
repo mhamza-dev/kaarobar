@@ -12,24 +12,23 @@ export default function CTA() {
 
       <div className="relative mx-auto max-w-5xl px-6 text-center">
         <span className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white backdrop-blur">
-          Ready to Grow?
+          Prefer to talk it through?
         </span>
 
         <h2 className="mt-8 text-5xl font-bold leading-tight text-white md:text-6xl">
-          Let&apos;s Build Your
+          Tell us how you run
           <br />
-          Business Together
+          your shops
         </h2>
 
         <p className="mx-auto mt-8 max-w-3xl text-lg leading-8 text-blue-100">
-          Whether you&apos;re a startup, retailer, manufacturer or enterprise,
-          Kaarobar helps simplify operations, automate workflows and accelerate
-          growth.
+          Whether you’re opening a second branch or already juggling several
+          businesses, we’re happy to walk through Kaarobar with you.
         </p>
 
         <div className="mt-12 flex flex-wrap justify-center gap-5">
           <Link href={routes.signup} size="lg" variant="inverted">
-            Start Free Trial
+            Start free trial
           </Link>
 
           <Link
@@ -39,7 +38,7 @@ export default function CTA() {
             className="border-white text-white hover:bg-white hover:text-brand"
             endIcon={<ArrowRight size={18} />}
           >
-            View Pricing
+            See pricing
           </Link>
         </div>
       </div>

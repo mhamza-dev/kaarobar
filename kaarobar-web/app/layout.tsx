@@ -16,9 +16,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Kaarobar — POS, Accounting & Workforce for Multi-Business Owners",
+  title: "Kaarobar — POS, Accounting & Payroll for Multi-Business Owners",
   description:
-    "Unified point of sale, double-entry accounting, and HR/payroll for owners who run multiple businesses and branches—with Pakistan tax and FBR Tier-1 support.",
+    "Run the till, keep proper books, and manage staff across every business and branch you own—with Pakistan tax and FBR Tier-1 when you need it.",
 };
 
 export default function RootLayout({

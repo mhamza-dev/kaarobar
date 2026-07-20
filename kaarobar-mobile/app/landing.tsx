@@ -5,15 +5,15 @@ import { colors } from "../lib/api";
 export default function LandingScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.eyebrow}>Multi-business · Multi-branch</Text>
+      <Text style={styles.eyebrow}>More than one shop? This is for you.</Text>
       <Text style={styles.brand}>Kaarobar</Text>
       <Text style={styles.subtitle}>
-        POS, double-entry accounting, and workforce tools for owners who run
-        more than one business—and more than one branch.
+        Run the till, keep proper books, and manage staff across every business
+        and branch you own.
       </Text>
 
       <View style={styles.pills}>
-        {["Branch POS", "Real ledger", "HR & payroll", "FBR-ready"].map((label) => (
+        {["Branch POS", "Real books", "HR & payroll", "FBR ready"].map((label) => (
           <View key={label} style={styles.pill}>
             <Text style={styles.pillText}>{label}</Text>
           </View>

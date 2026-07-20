@@ -32,6 +32,26 @@ defmodule Kaarobar.Billing do
     end
   end
 
+  def set_plan(owner_id, plan) do
+    limits = Map.get(@default_limits, plan, @default_limits["trial"])
+
+    case get_subscription(owner_id) do
+      nil ->
+        ensure_subscription(owner_id, plan)
+
+      sub ->
+        sub
+        |> Subscription.changeset(%{
+          plan: plan,
+          status: "active",
+          max_businesses: limits.max_businesses,
+          max_branches: limits.max_branches,
+          max_users: limits.max_users
+        })
+        |> Repo.update()
+    end
+  end
+
   def get_subscription(owner_id), do: Repo.get_by(Subscription, owner_id: owner_id)
 
   def within_limits?(owner_id, kind) do

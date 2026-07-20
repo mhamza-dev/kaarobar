@@ -11,7 +11,7 @@ export default function LoginPage() {
       <AuthShell
         badge="Welcome back"
         title="Sign in to Kaarobar"
-        subtitle="Open your owner dashboard across businesses and branches."
+        subtitle="Open the dashboard for every business and branch you own."
         footer={
           <>
             Don&apos;t have an account?{" "}

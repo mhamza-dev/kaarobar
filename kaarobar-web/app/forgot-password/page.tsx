@@ -8,7 +8,7 @@ export default function ForgotPasswordPage() {
     <AuthShell
       badge="Account recovery"
       title="Reset password"
-      subtitle="Enter your email and we'll send reset instructions when the mailer is configured."
+      subtitle="Enter your email and we’ll send reset instructions."
       footer={
         <>
           Remembered it?{" "}

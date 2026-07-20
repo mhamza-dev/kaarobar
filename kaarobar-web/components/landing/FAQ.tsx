@@ -10,42 +10,42 @@ const faqs = [
   {
     question: "What is Kaarobar?",
     answer:
-      "Kaarobar is a cloud POS, Accounting, and HR platform for owners who operate multiple businesses, each with multiple branches. Sales, stock, and payroll post into a proper double-entry ledger automatically.",
+      "Kaarobar is software for owners who run more than one business—and often more than one branch in each. You get a till, stock, proper double-entry books, and HR/payroll in one place. Sales and payroll post into the ledger so you’re not retyping numbers at night.",
   },
   {
-    question: "How does multi-business / multi-branch work?",
+    question: "How do multiple businesses and branches work?",
     answer:
-      "Your owner account can hold many businesses. Each business has its own chart of accounts and branches. Staff are assigned roles scoped to specific branches or business-wide access.",
+      "Your owner login can hold many businesses. Each business has its own books and branches. You give staff access to the shops they work in—or wider access if they manage the whole company.",
   },
   {
     question: "Does the POS work offline?",
     answer:
-      "Yes. The Electron desktop POS caches the branch catalog and stock snapshot, queues sales with client-generated transaction IDs, and syncs idempotently when connectivity returns—designed for hours-to-a-day outages.",
+      "Yes. The desktop till keeps a local copy of the catalog and stock, takes sales while you’re offline, and sends them up when the connection returns—without creating duplicates. It’s built for outages that last hours, not just a few seconds.",
   },
   {
-    question: "Is accounting real double-entry or just a cash log?",
+    question: "Is the accounting real double-entry?",
     answer:
-      "Real double-entry. Completed sales, returns, GRNs, and approved payroll runs generate balanced journal entries. Posted entries are immutable; corrections use reversing entries.",
+      "Yes. Sales, returns, goods receipts, and approved payroll create balanced journals. Once something is posted, you don’t silently edit it—you reverse it properly so the history stays clean.",
   },
   {
-    question: "Do you support Pakistan FBR Tier-1 POS integration?",
+    question: "Do you support Pakistan FBR Tier-1?",
     answer:
-      "Yes. Businesses flagged as Tier-1 can report sales asynchronously to FBR and embed the returned invoice number and QR on receipts without blocking checkout.",
+      "Yes. If a business needs Tier-1 reporting, we send sales to FBR in the background and put the invoice number and QR on the receipt when they come back. The cashier doesn’t wait on FBR to finish the sale.",
   },
   {
     question: "What hardware does the POS support?",
     answer:
-      "ESC/POS thermal printers (USB/LAN), USB-HID barcode scanners, and cash drawers triggered via the printer—plus a browser POS mode for lighter hardware.",
+      "Common thermal printers (USB or network), USB barcode scanners, and cash drawers that open through the printer. There’s also a lighter browser till if you don’t need the full desktop setup.",
   },
   {
-    question: "Who can use the mobile app?",
+    question: "Who is the mobile app for?",
     answer:
-      "Owners and managers for dashboards and approvals, and employees for self-service: clock-in/out, leave requests, and payslips.",
+      "Owners and managers use it for dashboards and approvals. Staff use it to clock in, request leave, and view payslips.",
   },
   {
-    question: "What is out of scope for Release 1.0?",
+    question: "What isn’t included yet?",
     answer:
-      "Customer-facing e-commerce, full manufacturing BOM planning, biometric attendance hardware, multi-currency consolidation, and advanced predictive BI are deferred beyond v1.",
+      "We’re not building customer-facing online shops, full factory BOM planning, biometric clocks, multi-currency group consolidation, or fancy forecasting in the first release. Those can come later without rebuilding the core.",
   },
 ];
 
@@ -60,7 +60,7 @@ export default function FAQ() {
             FAQ
           </span>
           <h2 className="mt-6 text-4xl font-bold text-heading md:text-5xl">
-            Answers aligned to how Kaarobar is built
+            Questions we hear a lot
           </h2>
         </div>
 
@@ -95,7 +95,7 @@ export default function FAQ() {
 
         <div className="mt-12 text-center">
           <Link href={routes.contact} variant="outline" endIcon={<ArrowRight size={16} />}>
-            Still have questions? Contact us
+            Still stuck? Talk to us
           </Link>
         </div>
       </div>

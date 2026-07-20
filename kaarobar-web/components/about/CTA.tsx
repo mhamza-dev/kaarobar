@@ -6,9 +6,9 @@ import Link from "@/components/ui/Link";
 import { routes } from "@/lib/navigation";
 
 const points = [
-  "No Credit Card Required",
-  "Free Setup & Migration",
-  "24/7 Customer Support",
+  "No card needed to start the trial",
+  "We’ll help you get set up",
+  "Real people on support",
 ];
 
 export default function CTA() {
@@ -18,18 +18,18 @@ export default function CTA() {
 
       <div className="relative mx-auto max-w-5xl px-6 text-center">
         <span className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold backdrop-blur">
-          Ready to Get Started?
+          Ready when you are
         </span>
 
-        <h2 className="mt-8 text-5xl font-bold leading-tight md:text-6xl">
-          Transform the Way
+        <h2 className="mt-8 text-5xl font-bold leading-tight text-white md:text-6xl">
+          Put every shop
           <br />
-          You Run Your Business
+          under one roof
         </h2>
 
         <p className="mx-auto mt-8 max-w-3xl text-lg leading-8 text-white/80">
-          Join businesses using Kaarobar to manage POS, inventory, accounting,
-          HR, payroll and AI-powered insights from one modern platform.
+          Join owners who use Kaarobar for the till, the books, and the team—
+          without juggling five different tools.
         </p>
 
         <div className="mt-12 flex flex-col justify-center gap-4 sm:flex-row">
@@ -39,7 +39,7 @@ export default function CTA() {
             variant="inverted"
             endIcon={<ArrowRight size={18} />}
           >
-            Start Free Trial
+            Start free trial
           </Link>
 
           <Link
@@ -48,7 +48,7 @@ export default function CTA() {
             variant="outline"
             className="border-white text-white hover:bg-white hover:text-brand"
           >
-            Contact Sales
+            Talk to us
           </Link>
         </div>
 

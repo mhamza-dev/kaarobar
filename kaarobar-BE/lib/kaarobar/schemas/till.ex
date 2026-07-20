@@ -11,6 +11,7 @@ defmodule Kaarobar.Schemas.Till do
     field :opening_cash, :decimal
     field :closing_cash, :decimal
     field :expected_cash, :decimal
+    field :over_short, :decimal
     field :status, :string, default: "open"
 
     belongs_to :branch, Kaarobar.Schemas.Branch
@@ -23,7 +24,19 @@ defmodule Kaarobar.Schemas.Till do
 
   def changeset(till, attrs) do
     till
-    |> cast(attrs, [:opened_at, :closed_at, :opening_cash, :closing_cash, :expected_cash, :status, :branch_id, :owner_id, :business_id, :cashier_id])
+    |> cast(attrs, [
+      :opened_at,
+      :closed_at,
+      :opening_cash,
+      :closing_cash,
+      :expected_cash,
+      :over_short,
+      :status,
+      :branch_id,
+      :owner_id,
+      :business_id,
+      :cashier_id
+    ])
     |> validate_required([:opened_at, :branch_id, :owner_id, :business_id, :cashier_id])
     |> foreign_key_constraint(:branch_id)
     |> foreign_key_constraint(:cashier_id)

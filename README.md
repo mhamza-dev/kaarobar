@@ -1,41 +1,42 @@
 # Kaarobar
 
-**Document reference:** KRB-SRS-001 (ISO/IEC/IEEE 29148:2018)  
-**Product:** Unified POS, Accounting & Workforce Management Platform for multi-business, multi-branch owners
+POS, accounting, and payroll for owners who run more than one business—and often more than one branch in each.
 
-Kaarobar is a greenfield multi-tenant SaaS for owners who run more than one business—and each business may have more than one physical branch. The owner → business → branch hierarchy is foundational, not a bolt-on.
+Internal planning reference: **KRB-SRS-001** (ISO/IEC/IEEE 29148:2018). Stack choices in this repo differ from the original draft where noted (PostgreSQL + Elixir/Phoenix instead of MongoDB + NestJS).
 
-## Product pillars (SRS §1.4.1)
+Kaarobar is multi-tenant SaaS. Owner → business → branch isn’t an afterthought—it’s how the product is structured.
 
-1. **Point of Sale** — Fast, offline-tolerant sales, returns, and inventory at the branch
-2. **Accounting** — Double-entry bookkeeping under the POS (not a cash log)
-3. **HR & Payroll** — Attendance, leave, and payroll that posts into the ledger
+## What it covers
 
-## Goals (SRS §1.4.2)
+1. **Point of Sale** — Fast sales, returns, and stock at the branch, including offline desktop tills
+2. **Accounting** — Real double-entry books under the POS (not a cash notebook)
+3. **HR & Payroll** — Attendance, leave, and payroll that posts into the same ledger
+
+## Goals
 
 | ID | Goal |
 |----|------|
-| G1 | Reduce owner hustle — consolidated view of sales, cash, stock, and staff |
-| G2 | Real accounting — every sale, purchase, and payroll posts balanced journals |
-| G3 | Branch autonomy with central oversight (including offline POS) |
-| G4 | Pakistan regulatory readiness (FBR Tier-1 hooks + configurable tax engine) |
-| G5 | Low operating cost at early scale (shared DB, modular monolith) |
+| G1 | Less hustle for the owner — one view of sales, cash, stock, and staff |
+| G2 | Real accounting — sales, purchases, and payroll post balanced journals |
+| G3 | Branches that can work alone, with the owner still in control (including offline POS) |
+| G4 | Pakistan-ready (FBR Tier-1 + configurable tax) |
+| G5 | Keep early operating cost low (shared DB, modular monolith) |
 
-## In scope — Release 1.0 / MVP (SRS §1.4.3)
+## In scope for the first release
 
-- Owner / Business / Branch management (multi-business, multi-branch)
-- RBAC: Owner, Branch Manager, Cashier, Inventory Manager, Accountant, HR Manager, Employee
+- Owner / Business / Branch management
+- Roles: Owner, Branch Manager, Cashier, Inventory Manager, Accountant, HR Manager, Employee
 - POS: sales, discounts, returns, tills/shifts, receipts (web + offline desktop)
-- Inventory: catalog, branch stock, transfers, PO, GRN
-- Accounting: COA, journals (auto + manual), GL, TB, P&L, Balance Sheet, AR/AP
-- Pakistan sales tax template + FBR Tier-1 integration hooks
-- HR: employees, attendance (POS/mobile), leave, payroll → ledger
-- Owner consolidated dashboards and reports
-- Platform subscription billing (LemonSqueezy) for the owner’s Kaarobar plan
+- Inventory: catalog, branch stock, transfers, purchase orders, goods receipts
+- Accounting: chart of accounts, journals (auto + manual), GL, trial balance, P&L, balance sheet, AR/AP
+- Pakistan sales tax defaults + FBR Tier-1 reporting
+- HR: employees, attendance (POS/mobile), leave, payroll into the ledger
+- Owner dashboards and reports
+- Platform subscription billing (LemonSqueezy)
 
-## Out of scope — Release 1.0 (SRS §1.4.4)
+## Not in the first release
 
-E-commerce storefront, full manufacturing/BOM, biometric attendance hardware, multi-currency consolidation, non-Pakistan payroll e-filing automation, loyalty/CRM marketing automation.
+Customer-facing online shop, full manufacturing/BOM, biometric clocks, multi-currency group consolidation, non-Pakistan payroll e-filing automation, loyalty/CRM marketing tools.
 
 ## Actors (SRS §2.2)
 
@@ -46,7 +47,7 @@ Business Owner · Branch Manager · Cashier · Inventory Manager · Accountant �
 ```
 POS/
 ├── kaarobar-web/       # Next.js — marketing + authenticated dashboard / browser POS
-├── kaarobar-mobile/    # Expo RN — owner/manager oversight + employee self-service
+├── kaarobar-mobile/    # Expo RN — owner/manager app + staff clock-in / leave / payslips
 ├── kaarobar-desktop/   # Electron — offline-capable branch POS terminal
 ├── kaarobar-BE/        # Elixir/Phoenix API + PostgreSQL (modular monolith)
 ├── docs/               # ADRs and architecture notes
@@ -82,7 +83,7 @@ Shared cluster, tenant-isolated by ID. Every tenant-scoped table carries `owner_
 
 ### Offline POS (SRS §10)
 
-Desktop POS caches catalog/stock, queues transactions with `client_txn_id`, syncs idempotently; stock changes apply as deltas (never absolute overwrites).
+Desktop POS keeps a local catalog and stock, queues sales with a `client_txn_id`, and syncs without creating duplicates. Stock updates apply as deltas (never absolute overwrites).
 
 ## Backend modules (SRS §3.3 / §5)
 

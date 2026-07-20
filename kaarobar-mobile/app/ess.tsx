@@ -12,12 +12,12 @@ export default function EssScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Employee Self-Service</Text>
-      <Text style={styles.hint}>Clock in/out, leave requests, and payslips.</Text>
+      <Text style={styles.title}>For staff</Text>
+      <Text style={styles.hint}>Clock in, request leave, and check payslips.</Text>
       {[
-        { title: "Clock In / Out", body: "Capture attendance from your phone." },
-        { title: "Request Leave", body: "Submit leave for manager approval." },
-        { title: "Payslips", body: "View history once payroll is posted." },
+        { title: "Clock In / Out", body: "Mark attendance from your phone." },
+        { title: "Request Leave", body: "Send leave for your manager to approve." },
+        { title: "Payslips", body: "See past payslips after payroll is done." },
       ].map((card) => (
         <Pressable key={card.title} style={styles.card}>
           <Text style={styles.cardTitle}>{card.title}</Text>

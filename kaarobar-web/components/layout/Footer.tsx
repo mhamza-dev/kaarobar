@@ -39,18 +39,17 @@ export default function Footer() {
               </div>
 
               <div>
-                <h2 className="text-2xl font-bold">Kaarobar</h2>
+                <h2 className="text-2xl font-bold text-white">Kaarobar</h2>
                 <p className="text-sm text-slate-400">
-                  POS · Accounting · Workforce
+                  POS · Accounting · Payroll
                 </p>
               </div>
             </Link>
 
             <p className="mt-8 max-w-lg leading-8 text-slate-400">
-              Kaarobar is a multi-business, multi-branch POS, double-entry
-              accounting, and HR/payroll platform for owners who need
-              branch-level autonomy with central oversight—built Pakistan-first
-              with FBR Tier-1 integration hooks.
+              Kaarobar helps owners run POS, books, and payroll across more than
+              one business and branch—built for Pakistan, with FBR Tier-1 when
+              you need it.
             </p>
 
             <div className="mt-8 space-y-4">
@@ -97,7 +96,7 @@ export default function Footer() {
           </div>
 
           <div className="lg:col-span-2">
-            <h3 className="text-lg font-semibold">Product</h3>
+            <h3 className="text-lg font-semibold text-white">Product</h3>
             <ul className="mt-6 space-y-4">
               {productLinks.map((item) => (
                 <li key={item.label}>
@@ -117,7 +116,7 @@ export default function Footer() {
           </div>
 
           <div className="lg:col-span-2">
-            <h3 className="text-lg font-semibold">Solutions</h3>
+            <h3 className="text-lg font-semibold text-white">Solutions</h3>
             <ul className="mt-6 space-y-4">
               {solutionLinks.map((item) => (
                 <li key={item.label}>
@@ -137,7 +136,7 @@ export default function Footer() {
           </div>
 
           <div className="lg:col-span-3">
-            <h3 className="text-lg font-semibold">Company</h3>
+            <h3 className="text-lg font-semibold text-white">Company</h3>
             <ul className="mt-6 space-y-4">
               {companyLinks.map((item) => (
                 <li key={item.label}>

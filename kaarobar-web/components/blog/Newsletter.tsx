@@ -47,15 +47,14 @@ export default function Newsletter() {
               </span>
 
               <h2 className="mt-6 text-4xl font-bold leading-tight text-heading">
-                Stay Updated with
+                Occasional notes
                 <br />
-                Kaarobar Insights
+                from the team
               </h2>
 
               <p className="mt-6 text-lg leading-8 text-body">
-                Receive the latest articles on AI, POS, Accounting, HR,
-                Inventory Management, Automation, and Business Growth directly
-                in your inbox.
+                Product updates, how we think about multi-branch retail, and
+                practical tips for owners—no fluff lists, no spam.
               </p>
 
               <div className="mt-8 flex items-center gap-3 text-body">
@@ -66,11 +65,11 @@ export default function Newsletter() {
 
             <div className="rounded-3xl border border-border bg-bg-primary p-8">
               <h3 className="text-2xl font-bold text-heading">
-                Join Our Newsletter
+                Get email updates
               </h3>
 
               <p className="mt-2 text-body">
-                Get exclusive tips, product updates and business resources.
+                New posts and product changes—only when there’s something worth saying.
               </p>
 
               <CustomForm

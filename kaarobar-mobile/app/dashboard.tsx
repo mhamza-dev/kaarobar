@@ -64,7 +64,7 @@ export default function DashboardScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.hello}>Welcome, {session.user.name}</Text>
-      <Text style={styles.hint}>Owner dashboard across your businesses.</Text>
+      <Text style={styles.hint}>Sales, cash, stock, and approvals across your shops.</Text>
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       <View style={styles.grid}>
@@ -83,7 +83,7 @@ export default function DashboardScreen() {
 
       <Link href="/ess" asChild>
         <Pressable style={styles.secondary}>
-          <Text style={styles.secondaryText}>Employee self-service</Text>
+          <Text style={styles.secondaryText}>Staff tools</Text>
         </Pressable>
       </Link>
 

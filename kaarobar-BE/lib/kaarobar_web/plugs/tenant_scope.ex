@@ -1,8 +1,6 @@
 defmodule KaarobarWeb.Plugs.TenantScope do
   @moduledoc """
-  Optional business/branch scoping from headers.
-  Business list / dashboard do not require x-business-id.
-  Module routes that need a business should check assigns themselves.
+  Resolves x-business-id / x-branch-id and enforces TEN-FR-004 access.
   """
   import Plug.Conn
 
@@ -12,42 +10,64 @@ defmodule KaarobarWeb.Plugs.TenantScope do
 
   def call(conn, _opts) do
     user = Guardian.Plug.current_resource(conn)
-    business_id = get_req_header(conn, "x-business-id") |> List.first()
-    branch_id = get_req_header(conn, "x-branch-id") |> List.first()
+    business_id = header(conn, "x-business-id")
+    branch_id = header(conn, "x-branch-id")
 
     cond do
       is_nil(user) ->
         conn
 
-      is_nil(business_id) or business_id == "" ->
-        conn
-        |> assign(:current_user, user)
-        |> assign(:current_business_id, nil)
-        |> assign(:current_branch_id, nil)
-        |> assign(:current_owner_id, user.id)
-        |> assign(:business_id, nil)
-        |> assign(:branch_id, nil)
-        |> assign(:owner_id, user.id)
+      is_nil(business_id) ->
+        assign_tenant(conn, user, nil, nil, user.id)
 
-      Tenancy.user_can_access_business?(user, business_id) ->
-        owner_id = Tenancy.owner_id_for_business(business_id) || user.id
+      not Tenancy.user_can_access_business?(user, business_id) ->
+        forbid(conn, "forbidden_business")
 
-        conn
-        |> assign(:current_user, user)
-        |> assign(:current_business_id, business_id)
-        |> assign(:current_branch_id, branch_id)
-        |> assign(:current_owner_id, owner_id)
-        |> assign(:business_id, business_id)
-        |> assign(:branch_id, branch_id)
-        |> assign(:owner_id, owner_id)
+      not Tenancy.business_active?(business_id) ->
+        forbid(conn, "business_inactive")
+
+      is_binary(branch_id) and branch_id != "" and
+          not Tenancy.user_can_access_branch?(user, business_id, branch_id) ->
+        forbid(conn, "forbidden_branch")
+
+      is_binary(branch_id) and branch_id != "" and not Tenancy.branch_active?(branch_id) ->
+        forbid(conn, "branch_inactive")
 
       true ->
-        body = Jason.encode!(%{error: "forbidden_business"})
-
-        conn
-        |> put_resp_content_type("application/json")
-        |> send_resp(403, body)
-        |> halt()
+        owner_id = Tenancy.owner_id_for_business(business_id) || user.id
+        assign_tenant(conn, user, business_id, blank_to_nil(branch_id), owner_id)
     end
   end
+
+  defp assign_tenant(conn, user, business_id, branch_id, owner_id) do
+    conn
+    |> assign(:current_user, user)
+    |> assign(:current_business_id, business_id)
+    |> assign(:current_branch_id, branch_id)
+    |> assign(:current_owner_id, owner_id)
+    |> assign(:business_id, business_id)
+    |> assign(:branch_id, branch_id)
+    |> assign(:owner_id, owner_id)
+  end
+
+  defp forbid(conn, reason) do
+    body = Jason.encode!(%{error: reason})
+
+    conn
+    |> put_resp_content_type("application/json")
+    |> send_resp(403, body)
+    |> halt()
+  end
+
+  defp header(conn, name) do
+    case get_req_header(conn, name) |> List.first() do
+      nil -> nil
+      "" -> nil
+      value -> value
+    end
+  end
+
+  defp blank_to_nil(nil), do: nil
+  defp blank_to_nil(""), do: nil
+  defp blank_to_nil(value), do: value
 end

@@ -41,7 +41,13 @@ config :phoenix, :json_library, Jason
 
 config :kaarobar, Kaarobar.Guardian,
   issuer: "kaarobar",
-  secret_key: "dev-guardian-secret-change-in-production-kaarobar-2026"
+  secret_key: "dev-guardian-secret-change-in-production-kaarobar-2026",
+  ttl: {15, :minutes},
+  token_ttl: %{
+    "access" => {15, :minutes},
+    "refresh" => {14, :days},
+    "mfa" => {5, :minutes}
+  }
 
 config :kaarobar, Oban,
   repo: Kaarobar.Repo,

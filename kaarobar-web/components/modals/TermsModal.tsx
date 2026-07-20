@@ -1,7 +1,12 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
+
 import Modal from "@/components/modals/Modal";
+import LegalSections from "@/components/legal/LegalSections";
+import { termsSections } from "@/lib/legal/content";
+import { routes } from "@/lib/navigation";
 
 interface TermsModalProps {
   isOpen: boolean;
@@ -17,38 +22,16 @@ const TermsModal = ({
       isOpen={isOpen}
       size="xl"
       title="Terms & Conditions"
-      description="Please read these Terms & Conditions carefully before using Kaarobar."
+      description="Please read these before you create an account."
       onClose={onClose}
     >
-      <div className="space-y-6 text-sm leading-7 text-body">
-        <section>
-          <h3 className="mb-2 text-lg font-semibold text-heading">
-            1. Acceptance of Terms
-          </h3>
-          <p>
-            By creating an account or using Kaarobar, you agree to these Terms
-            &amp; Conditions. If you disagree, discontinue use of the platform.
-          </p>
-        </section>
-        <section>
-          <h3 className="mb-2 text-lg font-semibold text-heading">
-            2. Account Responsibilities
-          </h3>
-          <p>
-            You are responsible for safeguarding credentials and ensuring
-            information provided for your business is accurate.
-          </p>
-        </section>
-        <section>
-          <h3 className="mb-2 text-lg font-semibold text-heading">
-            3. Acceptable Use
-          </h3>
-          <p>
-            You agree not to misuse Kaarobar, attempt unauthorized access, or use
-            the platform for unlawful activities.
-          </p>
-        </section>
-      </div>
+      <LegalSections sections={termsSections} compact />
+      <p className="mt-6 text-sm text-muted">
+        Prefer the full page?{" "}
+        <Link href={routes.terms} className="font-medium text-brand hover:underline">
+          Open Terms & Conditions
+        </Link>
+      </p>
     </Modal>
   );
 };

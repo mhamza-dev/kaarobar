@@ -1,7 +1,12 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
+
 import Modal from "@/components/modals/Modal";
+import LegalSections from "@/components/legal/LegalSections";
+import { privacySections } from "@/lib/legal/content";
+import { routes } from "@/lib/navigation";
 
 interface PrivacyPolicyModalProps {
   isOpen: boolean;
@@ -17,36 +22,16 @@ const PrivacyPolicyModal = ({
       isOpen={isOpen}
       size="xl"
       title="Privacy Policy"
-      description="How Kaarobar collects, uses, and protects your information."
+      description="How we collect, use, and look after your information."
       onClose={onClose}
     >
-      <div className="space-y-6 text-sm leading-7 text-body">
-        <section>
-          <h3 className="mb-2 text-lg font-semibold text-heading">1. Overview</h3>
-          <p>
-            Kaarobar collects account and business information needed to provide
-            and improve our Business Operating System.
-          </p>
-        </section>
-        <section>
-          <h3 className="mb-2 text-lg font-semibold text-heading">
-            2. How We Use Information
-          </h3>
-          <p>
-            We use information to operate the platform, authenticate users,
-            provide support, and improve product quality.
-          </p>
-        </section>
-        <section>
-          <h3 className="mb-2 text-lg font-semibold text-heading">
-            3. Children&apos;s Privacy
-          </h3>
-          <p>
-            Kaarobar is intended for businesses and individuals who are at least
-            18 years old.
-          </p>
-        </section>
-      </div>
+      <LegalSections sections={privacySections} compact />
+      <p className="mt-6 text-sm text-muted">
+        Prefer the full page?{" "}
+        <Link href={routes.privacy} className="font-medium text-brand hover:underline">
+          Open Privacy Policy
+        </Link>
+      </p>
     </Modal>
   );
 };

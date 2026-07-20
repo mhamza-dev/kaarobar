@@ -52,8 +52,8 @@ function setAuthMode(next) {
   document.getElementById("auth-title").textContent = mode === "login" ? "Sign in" : "Create account";
   document.getElementById("auth-sub").textContent =
     mode === "login"
-      ? "Access dashboard and POS for your branch."
-      : "Create an owner account with your first business.";
+      ? "Dashboard and till for your branch."
+      : "Create an owner account and your first business.";
   document.getElementById("signup-fields").classList.toggle("hidden", mode === "login");
   document.getElementById("auth-submit").textContent = mode === "login" ? "Sign in" : "Create account";
   document.getElementById("auth-toggle").textContent =

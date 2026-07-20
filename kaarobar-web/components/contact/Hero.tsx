@@ -10,23 +10,20 @@ export default function Hero() {
 
       <div className="relative mx-auto max-w-7xl px-6">
         <div className="grid items-center gap-20 lg:grid-cols-2">
-          {/* Left */}
-
           <div>
             <span className="rounded-full bg-brand-soft px-4 py-2 text-sm font-semibold text-brand">
-              Contact Us
+              Contact
             </span>
 
             <h1 className="mt-8 text-5xl font-bold leading-tight text-heading md:text-7xl">
-              We&apos;d Love
+              Say hello.
               <br />
-              To Hear From You
+              We’ll reply.
             </h1>
 
             <p className="mt-8 max-w-2xl text-lg leading-8 text-body">
-              Whether you have a question, need technical support, want to
-              schedule a demo, or simply want to learn more about Kaarobar—we&apos;re
-              here to help.
+              Questions about setup, a demo, pricing, or something stuck in the
+              product—drop us a note. We read every message.
             </p>
 
             <div className="mt-12 flex flex-wrap gap-4">
@@ -35,16 +32,14 @@ export default function Hero() {
                 size="lg"
                 endIcon={<ArrowRight size={18} />}
               >
-                Send a Message
+                Send a message
               </Link>
 
               <Link href="/#pricing" size="lg" variant="outline">
-                View Pricing
+                See pricing
               </Link>
             </div>
           </div>
-
-          {/* Right */}
 
           <div className="space-y-6">
             <div className="rounded-3xl border border-border bg-card p-8 shadow-lg">
@@ -53,12 +48,12 @@ export default function Hero() {
               </div>
 
               <h3 className="mt-8 text-2xl font-bold text-heading">
-                Dedicated Support
+                Hands-on help
               </h3>
 
               <p className="mt-4 leading-8 text-body">
-                Our team is ready to assist with onboarding, technical questions
-                and product guidance.
+                We can walk you through onboarding, tax setup, or how branches
+                should be structured for your business.
               </p>
             </div>
 
@@ -68,11 +63,11 @@ export default function Hero() {
               </div>
 
               <h3 className="mt-8 text-2xl font-bold text-heading">
-                Quick Responses
+                Usually within a day
               </h3>
 
               <p className="mt-4 leading-8 text-body">
-                We aim to respond to all inquiries within one business day.
+                We aim to get back within one business day—often sooner.
               </p>
             </div>
           </div>

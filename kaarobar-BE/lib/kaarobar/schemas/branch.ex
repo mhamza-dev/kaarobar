@@ -12,6 +12,7 @@ defmodule Kaarobar.Schemas.Branch do
     field :is_active, :boolean, default: true
     field :refund_auto_approve_limit, :decimal
     field :discount_auto_approve_limit, :decimal
+    field :return_window_days, :integer, default: 14
 
     belongs_to :business, Kaarobar.Schemas.Business
     belongs_to :owner, Kaarobar.Schemas.User
@@ -21,7 +22,17 @@ defmodule Kaarobar.Schemas.Branch do
 
   def changeset(branch, attrs) do
     branch
-    |> cast(attrs, [:name, :address, :timezone, :is_active, :refund_auto_approve_limit, :discount_auto_approve_limit, :business_id, :owner_id])
+    |> cast(attrs, [
+      :name,
+      :address,
+      :timezone,
+      :is_active,
+      :refund_auto_approve_limit,
+      :discount_auto_approve_limit,
+      :return_window_days,
+      :business_id,
+      :owner_id
+    ])
     |> validate_required([:name, :business_id, :owner_id])
     |> foreign_key_constraint(:business_id)
     |> foreign_key_constraint(:owner_id)

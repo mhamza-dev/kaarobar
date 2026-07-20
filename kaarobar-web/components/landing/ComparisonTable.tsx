@@ -6,19 +6,19 @@ import { CheckCircle2, XCircle, ArrowRight } from "lucide-react";
 import { routes } from "@/lib/navigation";
 
 const comparisons = [
-  { feature: "Owner → Business → Branch hierarchy", kaarobar: true, others: false },
-  { feature: "Multi-business under one owner", kaarobar: true, others: false },
-  { feature: "Multi-branch operations", kaarobar: true, others: "Limited" },
-  { feature: "Offline-capable desktop POS", kaarobar: true, others: "Limited" },
-  { feature: "Idempotent offline sync", kaarobar: true, others: false },
-  { feature: "Double-entry auto-posting from POS", kaarobar: true, others: false },
-  { feature: "Immutable journals + reversals", kaarobar: true, others: false },
-  { feature: "Pakistan tax template + FBR Tier-1 hooks", kaarobar: true, others: false },
-  { feature: "Inventory, PO & GRN", kaarobar: true, others: "Partial" },
-  { feature: "HR, attendance & payroll → ledger", kaarobar: true, others: false },
-  { feature: "Role-based access (cashier → owner)", kaarobar: true, others: true },
-  { feature: "Owner consolidated dashboard", kaarobar: true, others: false },
-  { feature: "Web + mobile + desktop clients", kaarobar: true, others: "Partial" },
+  { feature: "One login for every business you own", kaarobar: true, others: false },
+  { feature: "Several businesses under one owner", kaarobar: true, others: false },
+  { feature: "Multiple branches per business", kaarobar: true, others: "Limited" },
+  { feature: "Desktop till that works offline", kaarobar: true, others: "Limited" },
+  { feature: "Offline sales sync without duplicates", kaarobar: true, others: false },
+  { feature: "Sales post straight into double-entry books", kaarobar: true, others: false },
+  { feature: "Posted journals stay locked (fix with reversals)", kaarobar: true, others: false },
+  { feature: "Pakistan tax defaults + FBR Tier-1", kaarobar: true, others: false },
+  { feature: "Stock, purchase orders & goods receipts", kaarobar: true, others: "Partial" },
+  { feature: "HR, attendance & payroll into the ledger", kaarobar: true, others: false },
+  { feature: "Roles from cashier up to owner", kaarobar: true, others: true },
+  { feature: "Owner dashboard across all shops", kaarobar: true, others: false },
+  { feature: "Web, mobile, and desktop", kaarobar: true, others: "Partial" },
 ];
 
 export default function ComparisonTable() {
@@ -33,8 +33,9 @@ export default function ComparisonTable() {
             Built for owners who are never in one place.
           </h2>
           <p className="mt-5 text-lg text-body">
-            Most POS products are single-shop first. Kaarobar starts from
-            multi-business, multi-branch ownership and proper books.
+            Most POS tools are built for one shop. Kaarobar starts from owners
+            who run several businesses, several branches, and need real books—
+            not a cash notebook.
           </p>
         </div>
 

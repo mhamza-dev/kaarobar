@@ -190,37 +190,94 @@ defmodule Kaarobar.Accounting do
   end
 
   def post_sale_journal(sale_id, business_id, owner_id, posted_by_id) do
-    sale = Repo.get(Kaarobar.Schemas.Sale, sale_id) |> Repo.preload(:items)
+    sale = Repo.get(Kaarobar.Schemas.Sale, sale_id) |> Repo.preload([:items, :payments])
 
     cash_account = get_account_by_code(business_id, "1000")
+    bank_account = get_account_by_code(business_id, "1010")
     revenue_account = get_account_by_code(business_id, "4000")
     sales_tax_account = get_account_by_code(business_id, "2100")
     cogs_account = get_account_by_code(business_id, "5000")
     inventory_account = get_account_by_code(business_id, "1200")
 
-    lines = [
-      %{account_id: cash_account.id, debit: sale.total_amount, credit: 0, memo: "Sale #{sale.invoice_number}"},
-      %{account_id: revenue_account.id, debit: 0, credit: sale.subtotal, memo: "Sale revenue"},
-      %{account_id: sales_tax_account.id, debit: 0, credit: sale.tax_amount, memo: "Sales tax"}
-    ]
+    tender_lines =
+      (sale.payments || [])
+      |> Enum.group_by(& &1.method)
+      |> Enum.map(fn {method, payments} ->
+        amount = Enum.reduce(payments, Decimal.new(0), &Decimal.add(&2, &1.amount))
+        account = if method == "cash", do: cash_account, else: bank_account
 
-    total_cost = Enum.reduce(sale.items, Decimal.new(0), fn item, acc ->
-      inventory_record = Repo.get_by(Kaarobar.Schemas.InventoryRecord,
-        branch_id: sale.branch_id,
-        product_id: item.product_id
-      )
-      cost = if inventory_record do
-        Decimal.mult(inventory_record.avg_cost, item.quantity)
+        %{
+          account_id: account.id,
+          debit: amount,
+          credit: 0,
+          memo: "Sale #{sale.invoice_number} (#{method})"
+        }
+      end)
+
+    tender_lines =
+      if tender_lines == [] do
+        [
+          %{
+            account_id: cash_account.id,
+            debit: sale.total_amount,
+            credit: 0,
+            memo: "Sale #{sale.invoice_number}"
+          }
+        ]
       else
-        Decimal.new(0)
+        tender_lines
       end
-      Decimal.add(acc, cost)
-    end)
 
-    lines = lines ++ [
-      %{account_id: cogs_account.id, debit: total_cost, credit: 0, memo: "COGS"},
-      %{account_id: inventory_account.id, debit: 0, credit: total_cost, memo: "Inventory reduction"}
-    ]
+    net_revenue =
+      Decimal.sub(sale.subtotal || Decimal.new(0), sale.discount_amount || Decimal.new(0))
+      |> Decimal.round(2)
+
+    lines =
+      tender_lines ++
+        [
+          %{account_id: revenue_account.id, debit: 0, credit: net_revenue, memo: "Sale revenue"},
+          %{
+            account_id: sales_tax_account.id,
+            debit: 0,
+            credit: sale.tax_amount || Decimal.new(0),
+            memo: "Sales tax"
+          }
+        ]
+
+    # COGS uses avg cost * qty captured at post time (stock already decremented)
+    total_cost =
+      Enum.reduce(sale.items, Decimal.new(0), fn item, acc ->
+        inventory_record =
+          Repo.get_by(Kaarobar.Schemas.InventoryRecord,
+            branch_id: sale.branch_id,
+            product_id: item.product_id
+          )
+
+        cost =
+          if inventory_record do
+            Decimal.mult(inventory_record.avg_cost || Decimal.new(0), item.quantity)
+          else
+            Decimal.new(0)
+          end
+
+        Decimal.add(acc, cost)
+      end)
+
+    lines =
+      if Decimal.compare(total_cost, 0) == :gt do
+        lines ++
+          [
+            %{account_id: cogs_account.id, debit: total_cost, credit: 0, memo: "COGS"},
+            %{
+              account_id: inventory_account.id,
+              debit: 0,
+              credit: total_cost,
+              memo: "Inventory reduction"
+            }
+          ]
+      else
+        lines
+      end
 
     create_manual_journal(business_id, owner_id, posted_by_id, %{
       date: Date.utc_today(),
@@ -229,6 +286,39 @@ defmodule Kaarobar.Accounting do
       source_id: sale_id,
       lines: lines
     })
+  end
+
+  def post_purchase_journal(gr_id, business_id, owner_id, posted_by_id) do
+    gr =
+      Repo.get(Kaarobar.Schemas.GoodsReceipt, gr_id)
+      |> Repo.preload([:items, :purchase_order])
+
+    inventory_account = get_account_by_code(business_id, "1200")
+    ap_account = get_account_by_code(business_id, "2000")
+
+    po = Repo.preload(gr.purchase_order, :items)
+
+    total =
+      Enum.reduce(gr.items, Decimal.new(0), fn gr_item, acc ->
+        po_item = Enum.find(po.items || [], &(&1.product_id == gr_item.product_id))
+        cost = if po_item, do: Decimal.mult(gr_item.quantity_received, po_item.unit_cost), else: Decimal.new(0)
+        Decimal.add(acc, cost)
+      end)
+
+    if Decimal.compare(total, 0) == :eq do
+      {:ok, :noop}
+    else
+      create_manual_journal(business_id, owner_id, posted_by_id, %{
+        date: Date.utc_today(),
+        description: "GRN #{gr.id}",
+        source_type: "grn",
+        source_id: gr_id,
+        lines: [
+          %{account_id: inventory_account.id, debit: total, credit: 0, memo: "Stock received"},
+          %{account_id: ap_account.id, debit: 0, credit: total, memo: "Accounts payable"}
+        ]
+      })
+    end
   end
 
   def post_payroll_journal(payroll_run_id, business_id, owner_id, posted_by_id) do

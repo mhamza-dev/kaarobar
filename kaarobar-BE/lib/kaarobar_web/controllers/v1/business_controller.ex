@@ -1,10 +1,17 @@
 defmodule KaarobarWeb.V1.BusinessController do
   use KaarobarWeb, :controller
-  alias Kaarobar.{Tenancy, Billing, Guardian}
 
-  def index(conn, _params) do
+  alias Kaarobar.{Tenancy, Billing}
+
+  def index(conn, params) do
     user = Guardian.Plug.current_resource(conn)
-    data = Enum.map(Tenancy.list_businesses_for_owner(user.id), &serialize/1)
+    active_only = params["include_inactive"] != "true"
+
+    data =
+      user.id
+      |> Tenancy.list_businesses_for_user(active_only: active_only)
+      |> Enum.map(&serialize/1)
+
     json(conn, %{data: data})
   end
 
@@ -27,9 +34,45 @@ defmodule KaarobarWeb.V1.BusinessController do
   def show(conn, %{"id" => id}) do
     user = Guardian.Plug.current_resource(conn)
 
-    case Tenancy.get_business(id, user.id) do
-      nil -> conn |> put_status(:not_found) |> json(%{error: "not_found"})
-      business -> json(conn, %{data: serialize(business)})
+    cond do
+      business = Tenancy.get_business(id, user.id) ->
+        json(conn, %{data: serialize(business)})
+
+      Tenancy.user_can_access_business?(user, id) ->
+        json(conn, %{data: serialize(Tenancy.get_business_by_id(id))})
+
+      true ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+    end
+  end
+
+  def update(conn, %{"id" => id} = params) do
+    user = Guardian.Plug.current_resource(conn)
+
+    case Tenancy.update_business(id, user, atomize(params)) do
+      {:ok, business} ->
+        json(conn, %{data: serialize(business)})
+
+      {:error, :not_found} ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      {:error, changeset} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(changeset.errors)})
+    end
+  end
+
+  def deactivate(conn, %{"id" => id}) do
+    user = Guardian.Plug.current_resource(conn)
+
+    case Tenancy.deactivate_business(id, user) do
+      {:ok, business} ->
+        json(conn, %{data: serialize(business)})
+
+      {:error, :not_found} ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
     end
   end
 

@@ -43,7 +43,7 @@ export default function LoginScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Sign in</Text>
-      <Text style={styles.hint}>Access your owner dashboard and ESS tools.</Text>
+      <Text style={styles.hint}>Open your dashboard and staff tools.</Text>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 

@@ -12,18 +12,18 @@ import { routes } from "@/lib/navigation";
 const highlights = [
   {
     icon: Boxes,
-    title: "Multi-business operations",
-    description: "Owner → business → branch hierarchy built in from day one.",
+    title: "Several businesses, one login",
+    description: "Owner, business, and branch are built in from the start—not bolted on later.",
   },
   {
     icon: BookOpenCheck,
     title: "Real double-entry books",
-    description: "Every sale and payroll run posts balanced journals automatically.",
+    description: "Sales and payroll post balanced journals for you.",
   },
   {
     icon: BarChart3,
-    title: "Owner oversight",
-    description: "Consolidated sales, cash, stock, and staff across locations.",
+    title: "See every shop",
+    description: "Sales, cash, stock, and staff across all your locations.",
   },
 ];
 
@@ -54,20 +54,20 @@ export default function AuthShell({
           <div className="mt-10">
             <p className="text-2xl font-bold text-white">Kaarobar</p>
             <p className="mt-1 text-xs text-sidebar-muted">
-              POS · Accounting · Workforce
+              POS · Accounting · Payroll
             </p>
           </div>
           <div className="mt-10 rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
             <div className="inline-flex items-center gap-2 rounded-full bg-brand/30 px-3 py-1 text-xs font-semibold text-brand-muted">
               <ShieldCheck size={14} />
-              Pakistan-ready · Multi-branch
+              Built for Pakistan · Multi-branch
             </div>
             <p className="mt-4 text-lg font-semibold text-white">
-              Unified platform for multi-business owners
+              Everything under one owner account
             </p>
             <p className="mt-2 text-sm leading-6 text-sidebar-muted">
-              Secure access to POS, inventory, double-entry accounting, and
-              HR/payroll — with branch autonomy and central oversight.
+              POS, stock, proper books, and payroll—with shops that can work on
+              their own while you still see the full picture.
             </p>
           </div>
         </div>

@@ -1,5 +1,5 @@
 export const landingNav = [
-  { title: "Solutions", href: "/#solutions" },
+  { title: "Solutions", href: "/solutions" },
   { title: "Modules", href: "/#modules" },
   { title: "Compare", href: "/#comparison" },
   { title: "Pricing", href: "/#pricing" },
@@ -20,7 +20,7 @@ export const navbarCompanyNav = [
 ] as const;
 
 export const productLinks = [
-  { label: "Solutions", href: "/#solutions" },
+  { label: "Solutions", href: "/solutions" },
   { label: "Modules", href: "/#modules" },
   { label: "Pricing", href: "/#pricing" },
   { label: "Mobile App", href: "/#mobile" },
@@ -28,11 +28,11 @@ export const productLinks = [
 ] as const;
 
 export const solutionLinks = [
-  { label: "Multi-business retail", href: "/#solutions" },
-  { label: "Multi-branch POS", href: "/#modules" },
-  { label: "Accounting & tax", href: "/#modules" },
-  { label: "HR & payroll", href: "/#modules" },
-  { label: "FBR Tier-1 ready", href: "/#faq" },
+  { label: "Multi-business retail", href: "/solutions/multi-business-retail" },
+  { label: "Multi-branch POS", href: "/solutions/multi-branch-pos" },
+  { label: "Accounting & tax", href: "/solutions/accounting-tax" },
+  { label: "HR & payroll", href: "/solutions/hr-payroll" },
+  { label: "FBR Tier-1 ready", href: "/solutions/fbr-tier-1" },
 ] as const;
 
 export const companyLinks = [
@@ -44,7 +44,7 @@ export const companyLinks = [
 
 export const legalLinks = [
   { label: "Privacy Policy", href: "/privacy-policy" },
-  { label: "Terms of Service", href: "/terms-of-service" },
+  { label: "Terms & Conditions", href: "/terms-of-service" },
   { label: "Cookie Policy", href: "/cookie-policy" },
 ] as const;
 
@@ -62,6 +62,7 @@ export const routes = {
   about: "/about",
   blog: "/blog",
   careers: "/careers",
+  solutions: "/solutions",
   privacy: "/privacy-policy",
   terms: "/terms-of-service",
   cookies: "/cookie-policy",

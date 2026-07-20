@@ -8,24 +8,24 @@ export default function HrPage() {
       <div>
         <h1 className="text-2xl font-bold">HR & Payroll</h1>
         <p className="text-[#4A5A52]">
-          Employees, attendance, leave, and payroll runs that post to the ledger.
+          People, attendance, leave, and payroll that posts into the books.
         </p>
       </div>
       <div className="grid gap-4 md:grid-cols-3">
         {[
           {
             title: "Employees",
-            body: "Master records and compensation structure.",
+            body: "Names, roles, pay structure, and which branch they work in.",
             href: "/app/hr#employees",
           },
           {
             title: "Attendance & Leave",
-            body: "Clock-in from POS/mobile and approval workflows.",
+            body: "Clock in from the till or phone, then approve leave requests.",
             href: "/app/hr#attendance",
           },
           {
             title: "Payroll",
-            body: "Draft → approve → post consolidated journal + payslips.",
+            body: "Draft the run, approve it, post to the ledger, and send payslips.",
             href: "/app/hr#payroll",
           },
         ].map((card) => (

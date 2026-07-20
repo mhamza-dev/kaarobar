@@ -50,7 +50,7 @@ export default function SignupScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Create account</Text>
-      <Text style={styles.hint}>Owner account with first business + COA.</Text>
+      <Text style={styles.hint}>Create your owner account and first business.</Text>
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       {[

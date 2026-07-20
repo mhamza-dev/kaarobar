@@ -28,7 +28,7 @@ export default function Hero() {
         <div className="flex-1 animate-rise">
           <div className="inline-flex items-center gap-2 rounded-full border border-brand/20 bg-brand-soft/80 px-4 py-2 text-sm font-medium text-brand backdrop-blur-sm">
             <Building2 className="h-4 w-4" />
-            Multi-business · Multi-branch · Pakistan-ready
+            Built for owners with more than one shop
           </div>
 
           <h1 className="mt-8 text-5xl font-extrabold leading-tight tracking-tight text-heading lg:text-7xl">
@@ -37,9 +37,10 @@ export default function Hero() {
           </h1>
 
           <p className="mt-8 max-w-xl text-lg leading-8 text-body">
-            Kaarobar is a unified POS, Accounting, and Workforce platform for
-            owners who run multiple businesses—each with multiple branches—
-            with real double-entry books and offline-tolerant branch POS.
+            Run the till, keep proper books, and manage staff from one place,
+            even when you own several businesses and each has its own branches.
+            Sales and payroll land in the ledger for you, and the desktop till
+            keeps selling if the internet drops.
           </p>
 
           <div className="mt-10 flex flex-wrap gap-4">
@@ -59,15 +60,15 @@ export default function Hero() {
           <div className="mt-14 grid grid-cols-2 gap-6 sm:grid-cols-3">
             <div>
               <h2 className="text-3xl font-bold text-heading">3</h2>
-              <p className="text-sm text-body">Pillars: POS, Books, HR</p>
+              <p className="text-sm text-body">POS, books, and payroll together</p>
             </div>
             <div>
               <h2 className="text-3xl font-bold text-heading">FBR</h2>
-              <p className="text-sm text-body">Tier-1 POS ready</p>
+              <p className="text-sm text-body">Ready for Tier-1 shops</p>
             </div>
             <div>
               <h2 className="text-3xl font-bold text-heading">24h</h2>
-              <p className="text-sm text-body">Offline POS tolerance</p>
+              <p className="text-sm text-body">Keeps selling offline</p>
             </div>
           </div>
         </div>
@@ -92,8 +93,8 @@ export default function Hero() {
               },
               {
                 icon: GitBranch,
-                title: "Owner oversight",
-                body: "Consolidated sales, cash, stock, and staff across businesses.",
+                title: "See every shop",
+                body: "See sales, cash, stock, and staff across every business you own.",
               },
             ].map((card) => {
               const Icon = card.icon;
@@ -113,7 +114,7 @@ export default function Hero() {
           </div>
           <p className="mt-4 flex items-center gap-2 text-sm text-muted">
             <WifiOff size={14} />
-            Desktop POS keeps selling during connectivity outages, then syncs safely.
+            If the line drops, the desktop till keeps going—then syncs when you’re back.
           </p>
         </div>
       </div>

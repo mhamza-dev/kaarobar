@@ -13,32 +13,32 @@ const industries = [
   {
     title: "Retail & trading",
     icon: Store,
-    description: "Multi-branch shops with shared catalogs and branch pricing.",
+    description: "Several shops, one catalog, prices that can differ by branch.",
   },
   {
     title: "Wholesale",
     icon: Warehouse,
-    description: "Purchase orders, GRNs, and supplier AP tracking.",
+    description: "Purchase orders, goods receipts, and supplier balances.",
   },
   {
     title: "Restaurants & cafes",
     icon: UtensilsCrossed,
-    description: "Fast tills with tax-ready receipts and shift reconciliation.",
+    description: "Fast tills, tax on receipts, and clean end-of-shift counts.",
   },
   {
     title: "Pharmacy",
     icon: Pill,
-    description: "Branch stock control with low-stock alerts.",
+    description: "Branch stock you can trust, with low-stock alerts.",
   },
   {
     title: "Supermarket",
     icon: ShoppingCart,
-    description: "High-volume barcode checkout and cash drawer support.",
+    description: "Barcode checkout at volume, with cash drawer support.",
   },
   {
     title: "Light manufacturing",
     icon: Factory,
-    description: "Stock in/out and transfers between locations (v1 scope).",
+    description: "Move stock in and out, and transfer between locations.",
   },
 ];
 
@@ -52,13 +52,13 @@ export default function TrustedBy() {
           </p>
 
           <h2 className="mt-4 text-4xl font-bold text-heading">
-            Designed opposite to single-shop POS tools.
+            Not another single-shop POS.
           </h2>
 
           <p className="mt-5 text-lg text-body">
-            Owner → Business → Branch is the foundation—not a bolt-on. Run a
-            retail shop, a services company, and a small unit under one login
-            with branch-level autonomy and central oversight.
+            Owner, business, and branch sit at the center—not bolted on later.
+            Run a retail shop, a services company, and a small unit under one
+            login. Each branch works on its own; you still see the whole picture.
           </p>
         </div>
 
