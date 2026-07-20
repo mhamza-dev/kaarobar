@@ -1,0 +1,206 @@
+"use client";
+
+import type { ReactNode } from "react";
+import Button from "@/components/ui/Button";
+
+type PageHeaderProps = {
+  eyebrow?: string;
+  title: string;
+  description?: string;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
+  secondaryAction?: {
+    label: string;
+    onClick: () => void;
+  };
+};
+
+export function PageHeader({
+  eyebrow = "Workspace",
+  title,
+  description,
+  action,
+  secondaryAction,
+}: PageHeaderProps) {
+  return (
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <span className="inline-flex rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold tracking-wide text-brand">
+          {eyebrow}
+        </span>
+        <h1 className="mt-3 text-3xl font-bold tracking-tight text-heading">{title}</h1>
+        {description ? (
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-body">{description}</p>
+        ) : null}
+      </div>
+      {(action || secondaryAction) && (
+        <div className="flex flex-wrap gap-2">
+          {secondaryAction ? (
+            <Button variant="outline" onClick={secondaryAction.onClick}>
+              {secondaryAction.label}
+            </Button>
+          ) : null}
+          {action ? (
+            <Button onClick={action.onClick}>{action.label}</Button>
+          ) : null}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function TabBar<T extends string>({
+  tabs,
+  value,
+  onChange,
+}: {
+  tabs: { id: T; label: string }[];
+  value: T;
+  onChange: (id: T) => void;
+}) {
+  return (
+    <div className="inline-flex flex-wrap gap-1 rounded-2xl bg-bg-tertiary p-1.5">
+      {tabs.map((t) => (
+        <button
+          key={t.id}
+          type="button"
+          onClick={() => onChange(t.id)}
+          className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+            value === t.id
+              ? "bg-card text-heading shadow-sm"
+              : "text-body hover:text-heading"
+          }`}
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function SurfaceCard({
+  children,
+  className = "",
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`overflow-hidden rounded-2xl border border-border bg-card shadow-sm ${className}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+export function KpiCard({
+  label,
+  value,
+  hint,
+  icon,
+  tone = "brand",
+}: {
+  label: string;
+  value: string | number;
+  hint?: string;
+  icon?: ReactNode;
+  tone?: "brand" | "success" | "warning" | "danger" | "accent";
+}) {
+  const tones = {
+    brand: "bg-brand-soft text-brand",
+    success: "bg-success-soft text-success",
+    warning: "bg-warning-soft text-warning",
+    danger: "bg-danger-soft text-danger",
+    accent: "bg-accent-soft text-accent",
+  }[tone];
+
+  return (
+    <SurfaceCard className="p-5 transition hover:-translate-y-0.5 hover:shadow-md">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-body">{label}</p>
+          <p className="mt-2 text-2xl font-bold tracking-tight text-heading">{value}</p>
+          {hint ? <p className="mt-2 text-xs font-medium text-muted">{hint}</p> : null}
+        </div>
+        {icon ? (
+          <span
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${tones}`}
+          >
+            {icon}
+          </span>
+        ) : null}
+      </div>
+    </SurfaceCard>
+  );
+}
+
+export function StatusBadge({
+  children,
+  tone = "info",
+}: {
+  children: ReactNode;
+  tone?: "info" | "success" | "warning" | "danger";
+}) {
+  const styles = {
+    info: "bg-brand-soft text-brand",
+    success: "bg-success-soft text-success",
+    warning: "bg-warning-soft text-warning",
+    danger: "bg-danger-soft text-danger",
+  }[tone];
+
+  return (
+    <span
+      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${styles}`}
+    >
+      {children}
+    </span>
+  );
+}
+
+export function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <label className="block space-y-1.5">
+      <span className="text-sm font-medium text-heading">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+export const fieldClass =
+  "w-full rounded-xl border border-border bg-bg-secondary px-3 py-2.5 text-sm text-heading outline-none transition placeholder:text-muted focus:border-brand focus:ring-2 focus:ring-brand-soft";
+
+export function Alert({
+  tone = "info",
+  children,
+}: {
+  tone?: "info" | "error" | "success";
+  children: ReactNode;
+}) {
+  const styles = {
+    info: "border-brand/20 bg-brand-light text-heading",
+    error: "border-danger/30 bg-danger-soft text-danger",
+    success: "border-success/30 bg-success-soft text-success",
+  }[tone];
+
+  return (
+    <p className={`rounded-xl border px-3 py-2 text-sm ${styles}`}>{children}</p>
+  );
+}
+
+export function EmptyState({ title, body }: { title: string; body?: string }) {
+  return (
+    <div className="px-6 py-12 text-center">
+      <p className="font-semibold text-heading">{title}</p>
+      {body ? <p className="mt-1 text-sm text-body">{body}</p> : null}
+    </div>
+  );
+}

@@ -59,6 +59,9 @@ export const routes = {
   inventory: "/app/inventory",
   accounting: "/app/accounting",
   hr: "/app/hr",
+  reports: "/app/reports",
+  settings: "/app/settings",
+  notifications: "/app/notifications",
   contact: "/contact",
   about: "/about",
   blog: "/blog",
@@ -70,10 +73,21 @@ export const routes = {
 } as const;
 
 export const appNav = [
-  { title: "Dashboard", href: "/app" },
-  { title: "POS", href: "/app/pos" },
-  { title: "Returns", href: "/app/returns" },
-  { title: "Inventory", href: "/app/inventory" },
-  { title: "Accounting", href: "/app/accounting" },
-  { title: "HR", href: "/app/hr" },
+  { title: "Dashboard", href: "/app", group: "Overview", icon: "layout" },
+  { title: "POS", href: "/app/pos", group: "Cashier", icon: "pos" },
+  { title: "Returns", href: "/app/returns", group: "Cashier", icon: "returns" },
+  { title: "Inventory", href: "/app/inventory", group: "Catalog", icon: "inventory" },
+  { title: "Accounting", href: "/app/accounting", group: "Back office", icon: "accounting" },
+  { title: "HR", href: "/app/hr", group: "Back office", icon: "hr" },
+  { title: "Reports", href: "/app/reports", group: "Back office", icon: "reports" },
+  { title: "Notifications", href: "/app/notifications", group: "System", icon: "bell" },
+  { title: "Settings", href: "/app/settings", group: "System", icon: "settings" },
+] as const;
+
+export const appNavGroups = [
+  "Overview",
+  "Cashier",
+  "Catalog",
+  "Back office",
+  "System",
 ] as const;

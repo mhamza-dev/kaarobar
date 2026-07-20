@@ -66,6 +66,8 @@ defmodule KaarobarWeb.V1.SaleController do
       branch_id: sale.branch_id,
       till_id: sale.till_id,
       fbr_invoice_no: sale.fbr_invoice_no,
+      fbr_qr_payload: sale.fbr_qr_payload,
+      fbr_reported_at: sale.fbr_reported_at,
       items:
         Enum.map(sale.items || [], fn i ->
           %{

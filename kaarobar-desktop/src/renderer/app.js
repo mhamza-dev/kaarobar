@@ -17,6 +17,39 @@ let returnQtys = {};
 
 const $ = (id) => document.getElementById(id);
 
+function closeModal() {
+  const root = $("modal-root");
+  if (!root) return;
+  root.classList.add("hidden");
+  root.setAttribute("aria-hidden", "true");
+  $("modal-body").innerHTML = "";
+  $("modal-error").classList.add("hidden");
+  $("modal-error").textContent = "";
+}
+
+function openModal({ title, subtitle = "", bodyHtml, wide = false }) {
+  $("modal-title").textContent = title;
+  $("modal-sub").textContent = subtitle;
+  $("modal-sub").classList.toggle("hidden", !subtitle);
+  $("modal-body").innerHTML = bodyHtml;
+  $("modal-error").classList.add("hidden");
+  $("modal-error").textContent = "";
+  $("modal-root").querySelector(".modal-sheet").classList.toggle("wide", wide);
+  $("modal-root").classList.remove("hidden");
+  $("modal-root").setAttribute("aria-hidden", "false");
+}
+
+function setModalError(msg) {
+  const el = $("modal-error");
+  if (!msg) {
+    el.classList.add("hidden");
+    el.textContent = "";
+    return;
+  }
+  el.textContent = msg;
+  el.classList.remove("hidden");
+}
+
 function money(n) {
   return Number(n || 0).toFixed(2);
 }
@@ -145,14 +178,22 @@ async function enterApp() {
 
 function renderProducts(list) {
   $("products").innerHTML = list
-    .map(
-      (p) => `
-      <button class="product" data-id="${p.id}" type="button">
-        <strong>${p.name}</strong><br/>
-        <span>${p.sku}</span><br/>
-        <span>Rs ${money(p.price)}</span>
-      </button>`
-    )
+    .map((p) => {
+      const initials = String(p.name || "")
+        .split(" ")
+        .map((w) => w[0] || "")
+        .join("")
+        .slice(0, 2)
+        .toUpperCase();
+      const inCart = cart.find((l) => l.id === p.id);
+      return `
+      <button class="product${inCart ? " selected" : ""}" data-id="${p.id}" type="button">
+        <span class="product-avatar">${initials || "P"}</span>
+        <strong>${p.name}</strong>
+        <span class="muted">${p.sku}</span>
+        <span class="product-price">Rs ${money(p.price)}${inCart ? ` · ×${inCart.qty}` : ""}</span>
+      </button>`;
+    })
     .join("");
 }
 
@@ -185,6 +226,13 @@ function renderCart() {
   $("pay-card").value = "";
   $("pay-wallet").value = "";
   $("pay").disabled = cart.length === 0;
+  const q = ($("search")?.value || "").trim().toLowerCase();
+  const list = q
+    ? products.filter(
+        (p) => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q)
+      )
+    : products;
+  renderProducts(list);
 }
 
 function renderTill() {
@@ -426,12 +474,9 @@ async function loadInventory() {
       </table>`;
 
     $("inv-products").innerHTML = `
-      <form id="product-form" class="form-grid">
-        <input name="sku" placeholder="SKU" required />
-        <input name="name" placeholder="Name" required />
-        <input name="price" placeholder="Price" required />
-        <button class="btn btn-primary" type="submit">Add product</button>
-      </form>
+      <div class="toolbar">
+        <button type="button" class="btn btn-primary" id="open-product-modal">New product</button>
+      </div>
       <table class="table">
         <thead><tr><th>SKU</th><th>Name</th><th>Price</th></tr></thead>
         <tbody>
@@ -443,64 +488,89 @@ async function loadInventory() {
             .join("")}
         </tbody>
       </table>`;
-    $("product-form").onsubmit = async (e) => {
-      e.preventDefault();
-      const fd = new FormData(e.target);
-      try {
-        await api("/products", {
-          method: "POST",
-          body: JSON.stringify({
-            sku: fd.get("sku"),
-            name: fd.get("name"),
-            price: fd.get("price"),
-          }),
-        });
-        $("inv-message").textContent = "Product created";
-        await loadInventory();
-      } catch (err) {
-        $("inv-message").textContent = err.message;
-      }
+    $("open-product-modal").onclick = () => {
+      openModal({
+        title: "New product",
+        subtitle: "SKU and name are required. Price is optional.",
+        bodyHtml: `
+          <form id="product-form" class="form-stack">
+            <label>SKU<input name="sku" required /></label>
+            <label>Name<input name="name" required /></label>
+            <label>Price<input name="price" placeholder="0.00" /></label>
+            <div class="modal-actions">
+              <button type="button" class="btn btn-ghost" data-close-modal>Cancel</button>
+              <button class="btn btn-primary" type="submit">Create product</button>
+            </div>
+          </form>`,
+      });
+      $("product-form").onsubmit = async (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        try {
+          await api("/products", {
+            method: "POST",
+            body: JSON.stringify({
+              sku: fd.get("sku"),
+              name: fd.get("name"),
+              price: fd.get("price") || undefined,
+            }),
+          });
+          closeModal();
+          $("inv-message").textContent = "Product created";
+          await loadInventory();
+          showInvTab("products");
+        } catch (err) {
+          setModalError(err.message);
+        }
+      };
     };
 
     $("inv-suppliers").innerHTML = `
-      <form id="supplier-form" class="row">
-        <input name="name" placeholder="Supplier name" required class="grow" />
-        <button class="btn btn-primary" type="submit">Add</button>
-      </form>
+      <div class="toolbar">
+        <button type="button" class="btn btn-primary" id="open-supplier-modal">Add supplier</button>
+      </div>
       <ul class="plain-list">
-        ${invSuppliers.map((s) => `<li>${s.name}</li>`).join("")}
+        ${
+          invSuppliers.map((s) => `<li>${s.name}</li>`).join("") ||
+          "<li class='muted'>No suppliers yet</li>"
+        }
       </ul>`;
-    $("supplier-form").onsubmit = async (e) => {
-      e.preventDefault();
-      const fd = new FormData(e.target);
-      try {
-        await api("/suppliers", {
-          method: "POST",
-          body: JSON.stringify({ name: fd.get("name") }),
-        });
-        $("inv-message").textContent = "Supplier added";
-        await loadInventory();
-      } catch (err) {
-        $("inv-message").textContent = err.message;
-      }
+    $("open-supplier-modal").onclick = () => {
+      openModal({
+        title: "Add supplier",
+        subtitle: "Suppliers appear when you raise purchase orders.",
+        bodyHtml: `
+          <form id="supplier-form" class="form-stack">
+            <label>Name<input name="name" required /></label>
+            <div class="modal-actions">
+              <button type="button" class="btn btn-ghost" data-close-modal>Cancel</button>
+              <button class="btn btn-primary" type="submit">Add supplier</button>
+            </div>
+          </form>`,
+      });
+      $("supplier-form").onsubmit = async (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        try {
+          await api("/suppliers", {
+            method: "POST",
+            body: JSON.stringify({ name: fd.get("name") }),
+          });
+          closeModal();
+          $("inv-message").textContent = "Supplier added";
+          await loadInventory();
+          showInvTab("suppliers");
+        } catch (err) {
+          setModalError(err.message);
+        }
+      };
     };
 
     $("inv-po").innerHTML = `
+      <div class="toolbar">
+        <button type="button" class="btn btn-primary" id="open-po-modal">New PO</button>
+      </div>
       <div class="two-col">
-        <form id="po-form" class="card form-stack">
-          <h3>New PO</h3>
-          <select name="supplier_id" required>
-            <option value="">Supplier</option>
-            ${invSuppliers.map((s) => `<option value="${s.id}">${s.name}</option>`).join("")}
-          </select>
-          <select name="product_id" required>
-            <option value="">Product</option>
-            ${invProducts.map((p) => `<option value="${p.id}">${p.name}</option>`).join("")}
-          </select>
-          <input name="quantity" value="10" placeholder="Qty" />
-          <input name="unit_cost" value="50" placeholder="Unit cost" />
-          <button class="btn btn-primary" type="submit">Create PO</button>
-        </form>
         <form id="grn-form" class="card form-stack">
           <h3>Receive GRN</h3>
           <select name="purchase_order_id" id="grn-po" required>
@@ -516,47 +586,80 @@ async function loadInventory() {
           <input name="quantity_received" id="grn-qty" placeholder="Qty received" required />
           <button class="btn btn-primary" type="submit">Receive</button>
         </form>
-      </div>
-      <table class="table">
-        <thead><tr><th>Supplier</th><th>Status</th><th>Lines</th></tr></thead>
-        <tbody>
-          ${invPos
-            .map(
-              (p) =>
-                `<tr><td>${p.supplier_name || p.supplier_id.slice(0, 8)}</td><td>${p.status}</td><td>${p.items?.length || 0}</td></tr>`
-            )
-            .join("")}
-        </tbody>
-      </table>`;
+        <div class="card">
+          <h3>Purchase orders</h3>
+          <table class="table">
+            <thead><tr><th>Supplier</th><th>Status</th><th>Lines</th></tr></thead>
+            <tbody>
+              ${invPos
+                .map(
+                  (p) =>
+                    `<tr><td>${p.supplier_name || p.supplier_id.slice(0, 8)}</td><td>${p.status}</td><td>${p.items?.length || 0}</td></tr>`
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+
+    $("open-po-modal").onclick = () => {
+      openModal({
+        title: "New purchase order",
+        subtitle: "Raise a PO against a supplier for this branch.",
+        wide: true,
+        bodyHtml: `
+          <form id="po-form" class="form-stack">
+            <label>Supplier
+              <select name="supplier_id" required>
+                <option value="">Select…</option>
+                ${invSuppliers.map((s) => `<option value="${s.id}">${s.name}</option>`).join("")}
+              </select>
+            </label>
+            <label>Product
+              <select name="product_id" required>
+                <option value="">Select…</option>
+                ${invProducts.map((p) => `<option value="${p.id}">${p.name}</option>`).join("")}
+              </select>
+            </label>
+            <label>Quantity<input name="quantity" value="10" /></label>
+            <label>Unit cost<input name="unit_cost" value="50" /></label>
+            <div class="modal-actions">
+              <button type="button" class="btn btn-ghost" data-close-modal>Cancel</button>
+              <button class="btn btn-primary" type="submit">Create PO</button>
+            </div>
+          </form>`,
+      });
+      $("po-form").onsubmit = async (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        try {
+          await api("/inventory/purchase-orders", {
+            method: "POST",
+            body: JSON.stringify({
+              branch_id: session.branch_id,
+              supplier_id: fd.get("supplier_id"),
+              items: [
+                {
+                  product_id: fd.get("product_id"),
+                  quantity: fd.get("quantity"),
+                  unit_cost: fd.get("unit_cost"),
+                },
+              ],
+            }),
+          });
+          closeModal();
+          $("inv-message").textContent = "PO created";
+          await loadInventory();
+          showInvTab("po");
+        } catch (err) {
+          setModalError(err.message);
+        }
+      };
+    };
 
     $("grn-po").onchange = (e) => {
       const opt = e.target.selectedOptions[0];
       $("grn-qty").value = opt?.dataset.qty || "";
-    };
-
-    $("po-form").onsubmit = async (e) => {
-      e.preventDefault();
-      const fd = new FormData(e.target);
-      try {
-        await api("/inventory/purchase-orders", {
-          method: "POST",
-          body: JSON.stringify({
-            branch_id: session.branch_id,
-            supplier_id: fd.get("supplier_id"),
-            items: [
-              {
-                product_id: fd.get("product_id"),
-                quantity: fd.get("quantity"),
-                unit_cost: fd.get("unit_cost"),
-              },
-            ],
-          }),
-        });
-        $("inv-message").textContent = "PO created";
-        await loadInventory();
-      } catch (err) {
-        $("inv-message").textContent = err.message;
-      }
     };
 
     $("grn-form").onsubmit = async (e) => {
@@ -579,6 +682,7 @@ async function loadInventory() {
         });
         $("inv-message").textContent = "GRN received";
         await loadInventory();
+        showInvTab("po");
       } catch (err) {
         $("inv-message").textContent = err.message;
       }
@@ -857,6 +961,18 @@ $("pending-returns").addEventListener("click", async (e) => {
 $("inv-tabs").addEventListener("click", (e) => {
   const tab = e.target.closest("[data-inv-tab]");
   if (tab) showInvTab(tab.dataset.invTab);
+});
+
+document.addEventListener("click", (e) => {
+  if (e.target.closest("[data-close-modal]")) {
+    closeModal();
+  }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !$("modal-root").classList.contains("hidden")) {
+    closeModal();
+  }
 });
 
 document.addEventListener("click", async (e) => {

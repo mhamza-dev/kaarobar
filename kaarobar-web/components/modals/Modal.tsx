@@ -57,19 +57,20 @@ const Modal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+      <button
+        type="button"
+        aria-label="Close dialog"
+        className="absolute inset-0 bg-overlay backdrop-blur-[2px]"
         onClick={() => {
           if (closeOnBackdrop) onClose();
         }}
       />
-
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className={`relative flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-border bg-bg-secondary shadow-xl ${sizes[size]}`}
+        className={`relative flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xl animate-rise ${sizes[size]}`}
       >
         {(title || description || showCloseButton) && (
           <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">

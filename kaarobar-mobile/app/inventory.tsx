@@ -10,8 +10,10 @@ import {
   View,
 } from "react-native";
 import { api, colors, getSession, type Session } from "../lib/api";
+import { FormModal } from "../components/FormModal";
 
 type Tab = "stock" | "products" | "suppliers" | "pos" | "transfers" | "adjust";
+type ModalKind = "product" | "supplier" | null;
 
 type Product = { id: string; sku: string; name: string; price?: string };
 type StockRow = {
@@ -38,6 +40,7 @@ type Transfer = {
 export default function InventoryScreen() {
   const [session, setLocal] = useState<Session | null>(null);
   const [tab, setTab] = useState<Tab>("stock");
+  const [modal, setModal] = useState<ModalKind>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [stock, setStock] = useState<StockRow[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -113,7 +116,9 @@ export default function InventoryScreen() {
         body: JSON.stringify(productForm),
       });
       setProductForm({ sku: "", name: "", price: "" });
+      setModal(null);
       setMessage("Product created");
+      setTab("products");
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Create failed");
@@ -127,7 +132,9 @@ export default function InventoryScreen() {
         body: JSON.stringify({ name: supplierName }),
       });
       setSupplierName("");
+      setModal(null);
       setMessage("Supplier added");
+      setTab("suppliers");
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Supplier failed");
@@ -245,8 +252,10 @@ export default function InventoryScreen() {
   ];
 
   return (
+    <>
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
       <Text style={styles.title}>Inventory</Text>
+      <Text style={styles.lead}>Stock, suppliers, and purchasing for this branch.</Text>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {message ? <Text style={styles.message}>{message}</Text> : null}
 
@@ -266,6 +275,17 @@ export default function InventoryScreen() {
         </View>
       </ScrollView>
 
+      {(tab === "products" || tab === "suppliers") && (
+        <Pressable
+          style={styles.btn}
+          onPress={() => setModal(tab === "products" ? "product" : "supplier")}
+        >
+          <Text style={styles.btnText}>
+            {tab === "products" ? "New product" : "Add supplier"}
+          </Text>
+        </Pressable>
+      )}
+
       {tab === "stock"
         ? stock.map((row) => (
             <View key={row.product_id} style={styles.card}>
@@ -281,31 +301,6 @@ export default function InventoryScreen() {
 
       {tab === "products" ? (
         <View style={styles.card}>
-          <TextInput
-            style={styles.input}
-            placeholder="SKU"
-            value={productForm.sku}
-            onChangeText={(v) => setProductForm({ ...productForm, sku: v })}
-            placeholderTextColor={colors.muted}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Name"
-            value={productForm.name}
-            onChangeText={(v) => setProductForm({ ...productForm, name: v })}
-            placeholderTextColor={colors.muted}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Price"
-            value={productForm.price}
-            onChangeText={(v) => setProductForm({ ...productForm, price: v })}
-            keyboardType="decimal-pad"
-            placeholderTextColor={colors.muted}
-          />
-          <Pressable style={styles.btn} onPress={createProduct}>
-            <Text style={styles.btnText}>Add product</Text>
-          </Pressable>
           {products.map((p) => (
             <Text key={p.id} style={styles.body}>
               {p.sku} · {p.name} · Rs {p.price ?? "—"}
@@ -316,16 +311,6 @@ export default function InventoryScreen() {
 
       {tab === "suppliers" ? (
         <View style={styles.card}>
-          <TextInput
-            style={styles.input}
-            placeholder="Supplier name"
-            value={supplierName}
-            onChangeText={setSupplierName}
-            placeholderTextColor={colors.muted}
-          />
-          <Pressable style={styles.btn} onPress={createSupplier}>
-            <Text style={styles.btnText}>Add supplier</Text>
-          </Pressable>
           {suppliers.map((s) => (
             <Text key={s.id} style={styles.body}>
               {s.name}
@@ -537,6 +522,56 @@ export default function InventoryScreen() {
         </View>
       ) : null}
     </ScrollView>
+
+      <FormModal
+        visible={modal === "product"}
+        title="New product"
+        subtitle="SKU and name are required. Price is optional."
+        onClose={() => setModal(null)}
+        onSubmit={createProduct}
+        submitLabel="Create product"
+      >
+        <TextInput
+          style={styles.input}
+          placeholder="SKU"
+          value={productForm.sku}
+          onChangeText={(v) => setProductForm({ ...productForm, sku: v })}
+          placeholderTextColor={colors.muted}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Name"
+          value={productForm.name}
+          onChangeText={(v) => setProductForm({ ...productForm, name: v })}
+          placeholderTextColor={colors.muted}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Price"
+          value={productForm.price}
+          onChangeText={(v) => setProductForm({ ...productForm, price: v })}
+          keyboardType="decimal-pad"
+          placeholderTextColor={colors.muted}
+        />
+      </FormModal>
+
+      <FormModal
+        visible={modal === "supplier"}
+        title="Add supplier"
+        subtitle="Suppliers appear when you raise purchase orders."
+        onClose={() => setModal(null)}
+        onSubmit={createSupplier}
+        submitLabel="Add supplier"
+      >
+        <TextInput
+          style={styles.input}
+          placeholder="Supplier name"
+          value={supplierName}
+          onChangeText={setSupplierName}
+          placeholderTextColor={colors.muted}
+        />
+      </FormModal>
+    </>
   );
 }
 
@@ -548,7 +583,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgPrimary,
   },
   container: { flex: 1, padding: 16, backgroundColor: colors.bgPrimary },
-  title: { fontSize: 22, fontWeight: "800", color: colors.heading, marginBottom: 8 },
+  title: { fontSize: 22, fontWeight: "800", color: colors.heading, marginBottom: 4 },
+  lead: { color: colors.body, marginBottom: 12, fontSize: 14 },
   error: { color: colors.danger, marginBottom: 8 },
   message: { color: colors.body, marginBottom: 8 },
   tabs: { flexDirection: "row", gap: 8 },

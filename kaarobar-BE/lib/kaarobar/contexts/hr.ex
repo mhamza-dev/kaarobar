@@ -331,6 +331,15 @@ defmodule Kaarobar.Hr do
             metadata: %{}
           })
 
+          Kaarobar.Notifications.enqueue_email(
+            approved.owner_id,
+            approved.owner_id,
+            "payroll.approved",
+            %{payroll_run_id: approved.id, period_start: approved.period_start, period_end: approved.period_end},
+            title: "Payroll approved",
+            body: "Payroll #{approved.period_start}–#{approved.period_end} was approved and is posting to the ledger."
+          )
+
           {:ok, get_payroll_run!(approved.id)}
 
         error ->

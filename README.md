@@ -140,9 +140,12 @@ cd kaarobar-mobile && npm install && npm start
 cd kaarobar-desktop && npm install && npm start
 ```
 
-Demo seed user: `owner@kaarobar.local` / `Password@123`
+Demo seed user: `owner@kaarobar.local` / `Password@123`  
+Additional owners: `owner2@` (growth), `owner3@` (starter), `owner4@` (trial) — same password.  
+Staff: `manager@` / `cashier@` / `accountant@` / `hr@` / `inventory@kaarobar.local` (and `*2@`, `*3@`, `*4@` per owner).  
+Fresh demo data: `cd kaarobar-BE && mix ecto.reset`
 
-Module docs: [Tenancy](docs/tenancy.md) · [POS](docs/pos.md) · [Returns / tills / procurement](docs/returns-tills-procurement.md) · [Accounting](docs/accounting.md) · [HR & payroll](docs/hr-payroll.md) — web, mobile, and desktop share `/api/v1`; accounting is on web + API; HR includes web + mobile ESS.
+Module docs: [Tenancy](docs/tenancy.md) · [POS](docs/pos.md) · [Returns / tills / procurement](docs/returns-tills-procurement.md) · [Accounting](docs/accounting.md) · [HR & payroll](docs/hr-payroll.md) · [Platform / reporting / integrations](docs/platform.md) — web, mobile, and desktop share `/api/v1`; accounting on web + API; HR includes web + mobile ESS; platform covers reports, billing, FBR, notifications, and offline sync.
 
 ## Non-functional highlights (SRS §9)
 
@@ -157,7 +160,7 @@ Module docs: [Tenancy](docs/tenancy.md) · [POS](docs/pos.md) · [Returns / till
 - [ADR 001 — PostgreSQL multi-tenancy](docs/adr/001-postgres-multi-tenancy.md)
 - [Architecture & module map](docs/architecture.md)
 - [Requirement ID index](docs/requirements-index.md)
-- [Tenancy](docs/tenancy.md) · [POS](docs/pos.md) · [Returns / tills / procurement](docs/returns-tills-procurement.md) · [Accounting](docs/accounting.md) · [HR & payroll](docs/hr-payroll.md)
+- [Tenancy](docs/tenancy.md) · [POS](docs/pos.md) · [Returns / tills / procurement](docs/returns-tills-procurement.md) · [Accounting](docs/accounting.md) · [HR & payroll](docs/hr-payroll.md) · [Platform](docs/platform.md)
 
 ## Compliance note
 

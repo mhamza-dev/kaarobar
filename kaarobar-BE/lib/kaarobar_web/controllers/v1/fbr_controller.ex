@@ -1,6 +1,7 @@
 defmodule KaarobarWeb.V1.FbrController do
   use KaarobarWeb, :controller
 
+  alias Kaarobar.Integrations.Fbr
   alias Kaarobar.Repo
   alias Kaarobar.Schemas.Sale
 
@@ -21,14 +22,11 @@ defmodule KaarobarWeb.V1.FbrController do
       nil ->
         conn |> put_status(:not_found) |> json(%{error: "not_found"})
 
-      sale ->
-        json(conn, %{
-          data: %{
-            sale_id: sale.id,
-            fbr_invoice_no: sale.fbr_invoice_no,
-            reported: not is_nil(sale.fbr_invoice_no)
-          }
-        })
+      _sale ->
+        case Fbr.get_status(sale_id) do
+          {:ok, data} -> json(conn, %{data: data})
+          {:error, :not_found} -> conn |> put_status(:not_found) |> json(%{error: "not_found"})
+        end
     end
   end
 end

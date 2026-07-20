@@ -35,6 +35,9 @@ defmodule KaarobarWeb.V1.MembershipController do
            {:ok, membership} <- Tenancy.create_membership(user, attrs) do
         conn |> put_status(:created) |> json(%{data: serialize(membership)})
       else
+        {:error, :plan_limit_reached} ->
+          conn |> put_status(:payment_required) |> json(%{error: "plan_limit_reached", limit: "users"})
+
         {:error, :not_found} ->
           conn |> put_status(:not_found) |> json(%{error: "user_not_found"})
 

@@ -10,9 +10,16 @@ defmodule Kaarobar.Workers.NotificationWorker do
         {:error, :notification_not_found}
 
       notification ->
-        Logger.info("Sending #{notification.channel} notification #{id}")
-        Kaarobar.Notifications.mark_sent(id)
-        :ok
+        case Kaarobar.Notifications.deliver(notification) do
+          {:ok, _} ->
+            Kaarobar.Notifications.mark_sent(id)
+            :ok
+
+          {:error, reason} ->
+            Logger.warning("Notification #{id} failed: #{inspect(reason)}")
+            Kaarobar.Notifications.mark_failed(id)
+            {:error, reason}
+        end
     end
   end
 end

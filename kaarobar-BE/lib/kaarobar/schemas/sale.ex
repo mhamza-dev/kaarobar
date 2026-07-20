@@ -14,6 +14,8 @@ defmodule Kaarobar.Schemas.Sale do
     field :discount_amount, :decimal
     field :total_amount, :decimal
     field :fbr_invoice_no, :string
+    field :fbr_qr_payload, :string
+    field :fbr_reported_at, :utc_datetime
     field :notes, :string
 
     belongs_to :branch, Kaarobar.Schemas.Branch
@@ -32,7 +34,7 @@ defmodule Kaarobar.Schemas.Sale do
 
   def changeset(sale, attrs) do
     sale
-    |> cast(attrs, [:invoice_number, :client_txn_id, :status, :subtotal, :tax_amount, :discount_amount, :total_amount, :fbr_invoice_no, :notes, :branch_id, :owner_id, :business_id, :cashier_id, :customer_id, :till_id])
+    |> cast(attrs, [:invoice_number, :client_txn_id, :status, :subtotal, :tax_amount, :discount_amount, :total_amount, :fbr_invoice_no, :fbr_qr_payload, :fbr_reported_at, :notes, :branch_id, :owner_id, :business_id, :cashier_id, :customer_id, :till_id])
     |> validate_required([:invoice_number, :client_txn_id, :subtotal, :total_amount, :branch_id, :owner_id, :business_id, :cashier_id])
     |> foreign_key_constraint(:branch_id)
     |> foreign_key_constraint(:cashier_id)

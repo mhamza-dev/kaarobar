@@ -1,7 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Banknote,
+  CreditCard,
+  Minus,
+  Plus,
+  Search,
+  Trash2,
+  Wallet,
+} from "lucide-react";
 import { api, getSession } from "@/lib/api/client";
+import Button from "@/components/ui/Button";
+import { Alert, StatusBadge, fieldClass } from "@/components/app/ui";
 
 type Product = {
   id: string;
@@ -34,6 +45,15 @@ function round2(n: number) {
   return Math.round(n * 100) / 100;
 }
 
+function productInitials(name: string) {
+  return name
+    .split(" ")
+    .map((p) => p[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
 export default function PosPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [query, setQuery] = useState("");
@@ -46,6 +66,7 @@ export default function PosPage() {
   const [payCash, setPayCash] = useState("");
   const [payCard, setPayCard] = useState("");
   const [payWallet, setPayWallet] = useState("");
+  const [payFocus, setPayFocus] = useState<PayMethod>("cash");
   const [lastInvoice, setLastInvoice] = useState<string | null>(null);
 
   const loadTill = useCallback(async () => {
@@ -83,6 +104,7 @@ export default function PosPage() {
     setPayCash(money(total));
     setPayCard("");
     setPayWallet("");
+    setPayFocus("cash");
   }, [total]);
 
   function addProduct(product: Product) {
@@ -112,6 +134,23 @@ export default function PosPage() {
 
   function removeLine(productId: string) {
     setCart((prev) => prev.filter((l) => l.product.id !== productId));
+  }
+
+  function setPayMethod(method: PayMethod) {
+    setPayFocus(method);
+    if (method === "cash") {
+      setPayCash(money(total));
+      setPayCard("");
+      setPayWallet("");
+    } else if (method === "card") {
+      setPayCash("");
+      setPayCard(money(total));
+      setPayWallet("");
+    } else {
+      setPayCash("");
+      setPayCard("");
+      setPayWallet(money(total));
+    }
   }
 
   function buildPayments() {
@@ -216,169 +255,250 @@ export default function PosPage() {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
-      <section className="rounded-xl border border-border bg-card p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h1 className="text-xl font-bold text-heading">POS</h1>
-          {lastInvoice ? (
-            <span className="text-sm text-body">Last invoice: {lastInvoice}</span>
-          ) : null}
+    <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col lg:flex-row">
+      {/* Catalog */}
+      <section className="flex min-w-0 flex-1 flex-col bg-bg-primary p-4 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand">
+              Cashier
+            </p>
+            <h1 className="mt-1 text-2xl font-bold text-heading">Point of sale</h1>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {lastInvoice ? (
+              <StatusBadge tone="success">Last · {lastInvoice}</StatusBadge>
+            ) : null}
+            <StatusBadge tone={till ? "success" : "warning"}>
+              {till ? `Till open · Rs ${till.opening_cash}` : "Till closed"}
+            </StatusBadge>
+          </div>
         </div>
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Scan barcode or search SKU / name"
-          className="mt-3 w-full rounded-lg border border-border px-3 py-2"
-        />
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {filtered.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => addProduct(p)}
-              className="rounded-lg border border-border bg-brand-subtle p-3 text-left hover:border-brand"
-            >
-              <div className="font-semibold text-heading">{p.name}</div>
-              <div className="text-xs text-body">{p.sku}</div>
-              <div className="mt-1 text-sm text-heading">Rs {p.price ?? "0.00"}</div>
-            </button>
-          ))}
+
+        <div className="relative mt-5">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Scan barcode or search SKU / name"
+            className={`${fieldClass} pl-10`}
+          />
+        </div>
+
+        <div className="mt-4 flex items-center justify-between text-sm">
+          <p className="font-medium text-body">{filtered.length} products</p>
+        </div>
+
+        <div className="mt-3 grid flex-1 grid-cols-2 content-start gap-3 overflow-auto pb-4 sm:grid-cols-3 xl:grid-cols-4">
+          {filtered.map((p) => {
+            const inCart = cart.find((l) => l.product.id === p.id);
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => addProduct(p)}
+                className={`group rounded-2xl border bg-card p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-md ${
+                  inCart
+                    ? "border-brand bg-brand-light ring-2 ring-brand/20"
+                    : "border-border"
+                }`}
+              >
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-soft text-sm font-bold text-brand">
+                  {productInitials(p.name)}
+                </div>
+                <div className="mt-3 font-semibold text-heading group-hover:text-brand">
+                  {p.name}
+                </div>
+                <div className="mt-0.5 text-xs text-muted">{p.sku}</div>
+                <div className="mt-3 flex items-end justify-between">
+                  <span className="text-base font-bold text-heading">
+                    Rs {p.price ?? "0.00"}
+                  </span>
+                  {inCart ? (
+                    <StatusBadge tone="info">×{inCart.quantity}</StatusBadge>
+                  ) : null}
+                </div>
+              </button>
+            );
+          })}
         </div>
       </section>
 
-      <aside className="space-y-4">
-        <section className="rounded-xl border border-border bg-card p-4">
-          <h2 className="font-semibold text-heading">Till</h2>
-          {till ? (
-            <div className="mt-2 space-y-2 text-sm text-heading">
-              <p>
-                Open · float Rs {till.opening_cash}
-              </p>
-              <div className="flex gap-2">
+      {/* Order panel */}
+      <aside className="flex w-full flex-col border-t border-border bg-card lg:w-[400px] lg:border-l lg:border-t-0 xl:w-[420px]">
+        <div className="border-b border-border px-5 py-4">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-lg font-bold text-heading">Order detail</h2>
+            <span className="text-xs font-medium text-muted">
+              {cart.length} line{cart.length === 1 ? "" : "s"}
+            </span>
+          </div>
+
+          <div className="mt-4 rounded-2xl bg-bg-tertiary p-3">
+            {till ? (
+              <div className="flex flex-wrap items-end gap-2">
                 <input
                   value={closingCash}
                   onChange={(e) => setClosingCash(e.target.value)}
                   placeholder="Closing cash"
-                  className="w-full rounded-lg border border-border px-3 py-2"
+                  className={`${fieldClass} flex-1`}
                 />
-                <button
-                  type="button"
+                <Button
+                  variant="outline"
+                  size="sm"
                   disabled={busy}
                   onClick={closeTill}
-                  className="shrink-0 rounded-lg border border-border px-3 py-2 font-medium hover:border-brand disabled:opacity-50"
                 >
-                  Close
-                </button>
+                  Close till
+                </Button>
               </div>
+            ) : (
+              <div className="flex flex-wrap items-end gap-2">
+                <input
+                  value={openingCash}
+                  onChange={(e) => setOpeningCash(e.target.value)}
+                  placeholder="Opening cash"
+                  className={`${fieldClass} flex-1`}
+                />
+                <Button size="sm" disabled={busy} onClick={openTill}>
+                  Open till
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex-1 space-y-3 overflow-auto px-5 py-4">
+          {cart.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border px-4 py-10 text-center">
+              <p className="font-semibold text-heading">Cart is empty</p>
+              <p className="mt-1 text-sm text-body">Tap a product to start the sale.</p>
             </div>
           ) : (
-            <div className="mt-2 flex gap-2">
-              <input
-                value={openingCash}
-                onChange={(e) => setOpeningCash(e.target.value)}
-                placeholder="Opening cash"
-                className="w-full rounded-lg border border-border px-3 py-2"
-              />
-              <button
-                type="button"
-                disabled={busy}
-                onClick={openTill}
-                className="shrink-0 rounded-lg bg-brand px-3 py-2 font-medium text-brand-foreground hover:bg-brand-hover disabled:opacity-50"
+            cart.map((l) => (
+              <div
+                key={l.product.id}
+                className="rounded-2xl border border-border bg-bg-secondary p-3"
               >
-                Open
-              </button>
-            </div>
+                <div className="flex gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-xs font-bold text-brand">
+                    {productInitials(l.product.name)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="truncate font-semibold text-heading">
+                          {l.product.name}
+                        </p>
+                        <p className="text-xs text-muted">
+                          Rs {money(l.unit_price)} each
+                        </p>
+                      </div>
+                      <strong className="text-sm text-heading">
+                        {money(l.quantity * l.unit_price)}
+                      </strong>
+                    </div>
+                    <div className="mt-3 flex items-center gap-2">
+                      <button
+                        type="button"
+                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card hover:border-brand"
+                        onClick={() => setQty(l.product.id, l.quantity - 1)}
+                      >
+                        <Minus className="h-3.5 w-3.5" />
+                      </button>
+                      <span className="w-8 text-center text-sm font-bold">
+                        {l.quantity}
+                      </span>
+                      <button
+                        type="button"
+                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card hover:border-brand"
+                        onClick={() => setQty(l.product.id, l.quantity + 1)}
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        className="ml-auto rounded-lg p-2 text-muted hover:bg-danger-soft hover:text-danger"
+                        onClick={() => removeLine(l.product.id)}
+                        aria-label="Remove"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))
           )}
-        </section>
+        </div>
 
-        <section className="rounded-xl border border-border bg-card p-4">
-          <h2 className="font-semibold text-heading">Cart</h2>
-          <ul className="mt-3 min-h-40 space-y-2 text-sm">
-            {cart.length === 0 ? (
-              <li className="text-body">Cart is empty</li>
-            ) : (
-              cart.map((l) => (
-                <li key={l.product.id} className="space-y-1 text-heading">
-                  <div className="flex justify-between gap-2">
-                    <span className="font-medium">{l.product.name}</span>
-                    <strong>{money(l.quantity * l.unit_price)}</strong>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      className="rounded border border-border px-2 py-0.5"
-                      onClick={() => setQty(l.product.id, l.quantity - 1)}
-                    >
-                      −
-                    </button>
-                    <span className="w-8 text-center">{l.quantity}</span>
-                    <button
-                      type="button"
-                      className="rounded border border-border px-2 py-0.5"
-                      onClick={() => setQty(l.product.id, l.quantity + 1)}
-                    >
-                      +
-                    </button>
-                    <button
-                      type="button"
-                      className="ml-auto text-xs text-body underline"
-                      onClick={() => removeLine(l.product.id)}
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </li>
-              ))
-            )}
-          </ul>
-          <div className="mt-4 space-y-1 text-sm text-heading">
-            <div className="flex justify-between">
+        <div className="border-t border-border px-5 py-4">
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between text-body">
               <span>Subtotal</span>
-              <strong>{money(subtotal)}</strong>
+              <strong className="text-heading">{money(subtotal)}</strong>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between text-body">
               <span>Tax</span>
-              <strong>{money(tax)}</strong>
+              <strong className="text-heading">{money(tax)}</strong>
             </div>
-            <div className="flex justify-between text-lg">
-              <span>Total</span>
-              <strong>{money(total)}</strong>
+            <div className="flex items-end justify-between pt-1">
+              <span className="text-base font-semibold text-heading">Total bill</span>
+              <strong className="text-2xl font-bold text-heading">Rs {money(total)}</strong>
             </div>
           </div>
 
-          <div className="mt-4 space-y-2">
-            <p className="text-xs font-medium uppercase tracking-wide text-body">
-              Split payment
-            </p>
+          <div className="mt-4 grid grid-cols-3 gap-2">
             {(
               [
-                ["Cash", payCash, setPayCash],
-                ["Card", payCard, setPayCard],
-                ["Wallet", payWallet, setPayWallet],
+                ["cash", "Cash", Banknote, payCash, setPayCash],
+                ["card", "Card", CreditCard, payCard, setPayCard],
+                ["wallet", "Wallet", Wallet, payWallet, setPayWallet],
               ] as const
-            ).map(([label, value, setter]) => (
-              <label key={label} className="flex items-center gap-2 text-sm text-heading">
-                <span className="w-14">{label}</span>
+            ).map(([method, label, Icon, value, setter]) => (
+              <button
+                key={method}
+                type="button"
+                onClick={() => setPayMethod(method)}
+                className={`rounded-2xl border px-2 py-3 text-center transition ${
+                  payFocus === method
+                    ? "border-brand bg-brand-light text-brand"
+                    : "border-border bg-card text-body hover:border-brand/40"
+                }`}
+              >
+                <Icon className="mx-auto h-4 w-4" />
+                <span className="mt-1 block text-xs font-semibold">{label}</span>
                 <input
                   value={value}
-                  onChange={(e) => setter(e.target.value)}
-                  className="w-full rounded-lg border border-border px-3 py-1.5"
+                  onChange={(e) => {
+                    setPayFocus(method);
+                    setter(e.target.value);
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="mt-2 w-full rounded-lg border border-border bg-white px-1.5 py-1 text-center text-xs text-heading outline-none focus:border-brand"
                   inputMode="decimal"
                 />
-              </label>
+              </button>
             ))}
           </div>
 
-          <button
-            type="button"
+          <Button
+            className="mt-4 w-full py-3.5 text-base"
             disabled={cart.length === 0 || busy}
+            loading={busy}
             onClick={checkout}
-            className="mt-4 w-full rounded-lg bg-brand px-4 py-3 font-semibold text-brand-foreground hover:bg-brand-hover disabled:opacity-50"
           >
-            {busy ? "Processing…" : "Charge"}
-          </button>
-          {message ? <p className="mt-3 text-sm text-body">{message}</p> : null}
-        </section>
+            {busy ? "Processing…" : "Place order →"}
+          </Button>
+
+          {message ? (
+            <div className="mt-3">
+              <Alert tone={message.startsWith("Sale") ? "success" : "info"}>
+                {message}
+              </Alert>
+            </div>
+          ) : null}
+        </div>
       </aside>
     </div>
   );

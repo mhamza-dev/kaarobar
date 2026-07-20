@@ -223,7 +223,8 @@ export default function PosScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-      <Text style={styles.title}>POS</Text>
+      <Text style={styles.eyebrow}>Cashier</Text>
+      <Text style={styles.title}>Point of sale</Text>
       {message ? <Text style={styles.message}>{message}</Text> : null}
 
       <View style={styles.card}>
@@ -233,7 +234,7 @@ export default function PosScreen() {
             <Text style={styles.body}>Open · float Rs {till.opening_cash}</Text>
             <View style={styles.row}>
               <TextInput
-                style={[styles.input, { flex: 1 }]}
+                style={[styles.input, { flex: 1, marginBottom: 0 }]}
                 value={closingCash}
                 onChangeText={setClosingCash}
                 placeholder="Closing cash"
@@ -248,7 +249,7 @@ export default function PosScreen() {
         ) : (
           <View style={styles.row}>
             <TextInput
-              style={[styles.input, { flex: 1 }]}
+              style={[styles.input, { flex: 1, marginBottom: 0 }]}
               value={openingCash}
               onChangeText={setOpeningCash}
               placeholder="Opening cash"
@@ -269,21 +270,44 @@ export default function PosScreen() {
         placeholder="Search SKU / name"
         placeholderTextColor={colors.muted}
       />
+      <Text style={styles.count}>{filtered.length} products</Text>
 
       <View style={styles.productGrid}>
-        {filtered.map((p) => (
-          <Pressable key={p.id} style={styles.product} onPress={() => addProduct(p)}>
-            <Text style={styles.productName}>{p.name}</Text>
-            <Text style={styles.body}>{p.sku}</Text>
-            <Text style={styles.productPrice}>Rs {p.price ?? "0.00"}</Text>
-          </Pressable>
-        ))}
+        {filtered.map((p) => {
+          const inCart = cart.find((l) => l.product.id === p.id);
+          return (
+            <Pressable
+              key={p.id}
+              style={[styles.product, inCart ? styles.productActive : null]}
+              onPress={() => addProduct(p)}
+            >
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>
+                  {p.name
+                    .split(" ")
+                    .map((w) => w[0])
+                    .join("")
+                    .slice(0, 2)
+                    .toUpperCase()}
+                </Text>
+              </View>
+              <Text style={styles.productName}>{p.name}</Text>
+              <Text style={styles.sku}>{p.sku}</Text>
+              <View style={styles.productFooter}>
+                <Text style={styles.productPrice}>Rs {p.price ?? "0.00"}</Text>
+                {inCart ? (
+                  <Text style={styles.qtyChip}>×{inCart.quantity}</Text>
+                ) : null}
+              </View>
+            </Pressable>
+          );
+        })}
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.section}>Cart</Text>
+        <Text style={styles.section}>Order detail</Text>
         {cart.length === 0 ? (
-          <Text style={styles.body}>Cart is empty</Text>
+          <Text style={styles.body}>Cart is empty — tap a product to start.</Text>
         ) : (
           cart.map((l) => (
             <View key={l.product.id} style={styles.cartLine}>
@@ -312,10 +336,10 @@ export default function PosScreen() {
         <View style={styles.totals}>
           <Text style={styles.body}>Subtotal {money(subtotal)}</Text>
           <Text style={styles.body}>Tax {money(tax)}</Text>
-          <Text style={styles.total}>Total {money(total)}</Text>
+          <Text style={styles.total}>Total Rs {money(total)}</Text>
         </View>
 
-        <Text style={styles.payLabel}>Split payment</Text>
+        <Text style={styles.payLabel}>Payment</Text>
         {(
           [
             ["Cash", payCash, setPayCash],
@@ -324,9 +348,9 @@ export default function PosScreen() {
           ] as const
         ).map(([label, value, setter]) => (
           <View key={label} style={styles.row}>
-            <Text style={[styles.body, { width: 56 }]}>{label}</Text>
+            <Text style={[styles.body, { width: 56, marginBottom: 0 }]}>{label}</Text>
             <TextInput
-              style={[styles.input, { flex: 1 }]}
+              style={[styles.input, { flex: 1, marginBottom: 0 }]}
               value={value}
               onChangeText={setter}
               keyboardType="decimal-pad"
@@ -336,11 +360,11 @@ export default function PosScreen() {
         ))}
 
         <Pressable
-          style={[styles.btn, cart.length === 0 || busy ? styles.btnDisabled : null]}
+          style={[styles.btn, styles.charge, cart.length === 0 || busy ? styles.btnDisabled : null]}
           onPress={checkout}
           disabled={cart.length === 0 || busy}
         >
-          <Text style={styles.btnText}>{busy ? "Processing…" : "Charge"}</Text>
+          <Text style={styles.btnText}>{busy ? "Processing…" : "Place order →"}</Text>
         </Pressable>
       </View>
     </ScrollView>
@@ -355,22 +379,34 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgPrimary,
   },
   container: { flex: 1, padding: 16, backgroundColor: colors.bgPrimary },
-  title: { fontSize: 22, fontWeight: "800", color: colors.heading, marginBottom: 8 },
+  eyebrow: {
+    color: colors.brand,
+    fontWeight: "700",
+    fontSize: 11,
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+  },
+  title: { fontSize: 26, fontWeight: "800", color: colors.heading, marginBottom: 8, marginTop: 4 },
   message: { color: colors.body, marginBottom: 8 },
+  count: { color: colors.muted, fontSize: 13, marginBottom: 10, fontWeight: "600" },
   card: {
     backgroundColor: colors.card,
     borderColor: colors.border,
     borderWidth: 1,
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 14,
     marginBottom: 12,
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
   },
-  section: { fontWeight: "700", color: colors.heading, marginBottom: 8 },
+  section: { fontWeight: "700", color: colors.heading, marginBottom: 8, fontSize: 16 },
   body: { color: colors.body, marginBottom: 6 },
   input: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
+    borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
     backgroundColor: colors.white,
@@ -380,47 +416,86 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
   btn: {
     backgroundColor: colors.brand,
-    borderRadius: 10,
+    borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     alignItems: "center",
   },
+  charge: { marginTop: 8, paddingVertical: 14 },
   btnDisabled: { opacity: 0.5 },
   btnText: { color: colors.white, fontWeight: "700" },
   btnSecondary: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
+    borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
+    backgroundColor: colors.white,
   },
   btnSecondaryText: { color: colors.heading, fontWeight: "600" },
-  productGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },
+  productGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 12 },
   product: {
     width: "47%",
-    backgroundColor: colors.brandSoft,
-    borderRadius: 12,
+    backgroundColor: colors.card,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
     padding: 12,
   },
+  productActive: {
+    borderColor: colors.brand,
+    backgroundColor: colors.brandLight || colors.brandSoft,
+  },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: colors.brandSoft,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  avatarText: { color: colors.brand, fontWeight: "800", fontSize: 13 },
   productName: { fontWeight: "700", color: colors.heading },
-  productPrice: { marginTop: 4, color: colors.heading, fontWeight: "600" },
-  cartLine: { marginBottom: 10 },
+  sku: { color: colors.muted, fontSize: 12, marginTop: 2 },
+  productFooter: {
+    marginTop: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  productPrice: { color: colors.heading, fontWeight: "700" },
+  qtyChip: {
+    backgroundColor: colors.brandSoft,
+    color: colors.brand,
+    overflow: "hidden",
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  cartLine: {
+    marginBottom: 10,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
   qtyBtn: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 8,
-    width: 32,
-    height: 32,
+    borderRadius: 10,
+    width: 34,
+    height: 34,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: colors.white,
   },
   qtyBtnText: { fontSize: 18, color: colors.heading },
   qty: { width: 28, textAlign: "center", color: colors.heading, fontWeight: "700" },
   lineTotal: { marginLeft: "auto", fontWeight: "700", color: colors.heading },
   totals: { marginTop: 8, marginBottom: 8 },
-  total: { fontSize: 18, fontWeight: "800", color: colors.heading },
+  total: { fontSize: 22, fontWeight: "800", color: colors.heading, marginTop: 4 },
   payLabel: {
     marginTop: 8,
     marginBottom: 6,

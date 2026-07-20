@@ -49,7 +49,10 @@
     <!-- App shell (dashboard / pos / returns / inventory) -->
     <div id="app-shell" class="hidden">
       <header class="topbar">
-        <div class="brand">Kaarobar</div>
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">K</span>
+          <span>Kaarobar</span>
+        </div>
         <nav class="nav">
           <button type="button" data-nav="dashboard" class="nav-btn active">Dashboard</button>
           <button type="button" data-nav="pos" class="nav-btn">POS</button>
@@ -67,6 +70,7 @@
 
       <!-- Dashboard -->
       <main id="dashboard-view" class="panel">
+        <p class="eyebrow">Branch workspace</p>
         <h1>Owner dashboard</h1>
         <p class="lead">A quick look before you open the till.</p>
         <div class="stat-grid">
@@ -83,29 +87,38 @@
       </main>
 
       <!-- POS -->
-      <main id="pos-view" class="panel hidden">
-        <div class="layout">
+      <main id="pos-view" class="panel pos-panel hidden">
+        <div class="layout pos-layout">
           <section class="catalog">
-            <h2>Products</h2>
-            <input id="search" type="search" placeholder="Scan barcode or search SKU…" />
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Cashier</p>
+                <h2>Point of sale</h2>
+              </div>
+              <span id="product-count" class="muted"></span>
+            </div>
+            <div class="search-wrap">
+              <input id="search" type="search" placeholder="Scan barcode or search SKU…" />
+            </div>
             <div id="products" class="grid"></div>
           </section>
           <aside class="cart">
-            <h2>Till</h2>
+            <div class="panel-head">
+              <h2>Order detail</h2>
+            </div>
             <div id="till-box" class="till-box"></div>
-            <h2>Cart</h2>
             <ul id="cart-items"></ul>
             <div class="totals">
               <div><span>Subtotal</span><strong id="subtotal">0.00</strong></div>
               <div><span>Tax</span><strong id="tax">0.00</strong></div>
-              <div class="grand"><span>Total</span><strong id="total">0.00</strong></div>
+              <div class="grand"><span>Total bill</span><strong id="total">0.00</strong></div>
             </div>
             <div class="pay-split">
               <label>Cash <input id="pay-cash" type="text" /></label>
               <label>Card <input id="pay-card" type="text" /></label>
               <label>Wallet <input id="pay-wallet" type="text" /></label>
             </div>
-            <button id="pay" class="pay" disabled>Charge</button>
+            <button id="pay" class="pay" disabled>Place order →</button>
             <p id="pos-message" class="sub"></p>
           </aside>
         </div>
@@ -144,6 +157,7 @@
       <!-- Inventory -->
       <main id="inventory-view" class="panel hidden">
         <h1>Inventory</h1>
+        <p class="lead">Stock, suppliers, and purchasing for this branch.</p>
         <p id="inv-message" class="sub"></p>
         <div class="tabs" id="inv-tabs">
           <button type="button" data-inv-tab="stock" class="tab active">On hand</button>
@@ -160,6 +174,22 @@
         <div id="inv-transfers" class="inv-panel hidden"></div>
         <div id="inv-adjust" class="inv-panel hidden"></div>
       </main>
+    </div>
+
+    <!-- Shared modal -->
+    <div id="modal-root" class="modal-root hidden" aria-hidden="true">
+      <div class="modal-backdrop" data-close-modal></div>
+      <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal-header">
+          <div>
+            <h2 id="modal-title">Dialog</h2>
+            <p id="modal-sub" class="sub"></p>
+          </div>
+          <button type="button" class="modal-close" data-close-modal>Close</button>
+        </div>
+        <div id="modal-body"></div>
+        <p id="modal-error" class="error hidden"></p>
+      </div>
     </div>
 
     <script src="app.js"></script>

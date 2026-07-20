@@ -2,8 +2,20 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api, getSession } from "@/lib/api/client";
+import Modal from "@/components/modals/Modal";
+import Button from "@/components/ui/Button";
+import {
+  Alert,
+  EmptyState,
+  Field,
+  PageHeader,
+  SurfaceCard,
+  TabBar,
+  fieldClass,
+} from "@/components/app/ui";
 
 type Tab = "stock" | "products" | "suppliers" | "pos" | "transfers" | "adjust";
+type ModalKind = "product" | "supplier" | "po" | null;
 
 type Product = { id: string; sku: string; name: string; price?: string };
 type StockRow = {
@@ -13,7 +25,7 @@ type StockRow = {
   quantity_on_hand: string;
   avg_cost: string;
 };
-type Supplier = { id: string; name: string; payment_terms?: string };
+type Supplier = { id: string; name: string };
 type PO = {
   id: string;
   status: string;
@@ -24,13 +36,12 @@ type PO = {
 type Transfer = {
   id: string;
   status: string;
-  from_branch_id: string;
-  to_branch_id: string;
   items: { product_id: string; quantity: string }[];
 };
 
 export default function InventoryPage() {
   const [tab, setTab] = useState<Tab>("stock");
+  const [modal, setModal] = useState<ModalKind>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [stock, setStock] = useState<StockRow[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -38,6 +49,7 @@ export default function InventoryPage() {
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const [productForm, setProductForm] = useState({ sku: "", name: "", price: "" });
   const [supplierName, setSupplierName] = useState("");
@@ -89,6 +101,7 @@ export default function InventoryPage() {
 
   async function createProduct(e: React.FormEvent) {
     e.preventDefault();
+    setBusy(true);
     setError(null);
     try {
       await api("/products", {
@@ -96,31 +109,41 @@ export default function InventoryPage() {
         body: JSON.stringify(productForm),
       });
       setProductForm({ sku: "", name: "", price: "" });
+      setModal(null);
       setMessage("Product created");
+      setTab("products");
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Create failed");
+    } finally {
+      setBusy(false);
     }
   }
 
   async function createSupplier(e: React.FormEvent) {
     e.preventDefault();
+    setBusy(true);
     try {
       await api("/suppliers", {
         method: "POST",
         body: JSON.stringify({ name: supplierName }),
       });
       setSupplierName("");
+      setModal(null);
       setMessage("Supplier added");
+      setTab("suppliers");
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Supplier failed");
+    } finally {
+      setBusy(false);
     }
   }
 
   async function createPO(e: React.FormEvent) {
     e.preventDefault();
     const session = getSession();
+    setBusy(true);
     try {
       await api("/inventory/purchase-orders", {
         method: "POST",
@@ -136,10 +159,14 @@ export default function InventoryPage() {
           ],
         }),
       });
+      setModal(null);
       setMessage("PO created");
+      setTab("pos");
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "PO failed");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -230,242 +257,141 @@ export default function InventoryPage() {
     { id: "adjust", label: "Adjust" },
   ];
 
+  const headerAction =
+    tab === "products"
+      ? { label: "New product", onClick: () => setModal("product") }
+      : tab === "suppliers"
+        ? { label: "Add supplier", onClick: () => setModal("supplier") }
+        : tab === "pos"
+          ? { label: "New PO", onClick: () => setModal("po") }
+          : undefined;
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-heading">Inventory</h1>
-        <p className="text-body">Stock, suppliers, purchase orders, receipts, and transfers.</p>
-      </div>
+      <PageHeader
+        eyebrow="Inventory"
+        title="Stock & procurement"
+        description="Catalog, on-hand quantities, suppliers, purchase orders, and transfers for the active branch."
+        action={headerAction}
+      />
 
-      <div className="flex flex-wrap gap-2">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setTab(t.id)}
-            className={`rounded-lg px-3 py-1.5 text-sm ${
-              tab === t.id
-                ? "bg-brand text-brand-foreground"
-                : "border border-border text-heading hover:border-brand"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <TabBar tabs={tabs} value={tab} onChange={setTab} />
 
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
-      {message ? <p className="text-sm text-body">{message}</p> : null}
+      {error ? <Alert tone="error">{error}</Alert> : null}
+      {message ? <Alert tone="success">{message}</Alert> : null}
 
       {tab === "stock" ? (
-        <div className="overflow-hidden rounded-xl border border-border bg-card">
+        <SurfaceCard>
           <table className="w-full text-left text-sm">
             <thead className="bg-brand-subtle">
               <tr>
-                <th className="px-4 py-3">SKU</th>
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">On hand</th>
-                <th className="px-4 py-3">Avg cost</th>
+                <th className="px-4 py-3 font-semibold text-heading">SKU</th>
+                <th className="px-4 py-3 font-semibold text-heading">Name</th>
+                <th className="px-4 py-3 font-semibold text-heading">On hand</th>
+                <th className="px-4 py-3 font-semibold text-heading">Avg cost</th>
               </tr>
             </thead>
             <tbody>
-              {stock.map((row) => (
-                <tr key={row.product_id} className="border-t border-border text-heading">
-                  <td className="px-4 py-3">{row.sku}</td>
-                  <td className="px-4 py-3">{row.name}</td>
-                  <td className="px-4 py-3">{row.quantity_on_hand}</td>
-                  <td className="px-4 py-3">{row.avg_cost}</td>
+              {stock.length === 0 ? (
+                <tr>
+                  <td colSpan={4}>
+                    <EmptyState title="No stock rows" body="Add products and receive a GRN." />
+                  </td>
+                </tr>
+              ) : (
+                stock.map((row) => (
+                  <tr key={row.product_id} className="border-t border-border text-heading">
+                    <td className="px-4 py-3">{row.sku}</td>
+                    <td className="px-4 py-3">{row.name}</td>
+                    <td className="px-4 py-3">{row.quantity_on_hand}</td>
+                    <td className="px-4 py-3">{row.avg_cost}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </SurfaceCard>
+      ) : null}
+
+      {tab === "products" ? (
+        <SurfaceCard>
+          <table className="w-full text-left text-sm">
+            <thead className="bg-brand-subtle">
+              <tr>
+                <th className="px-4 py-3 font-semibold">SKU</th>
+                <th className="px-4 py-3 font-semibold">Name</th>
+                <th className="px-4 py-3 font-semibold">Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.map((p) => (
+                <tr key={p.id} className="border-t border-border text-heading">
+                  <td className="px-4 py-3">{p.sku}</td>
+                  <td className="px-4 py-3">{p.name}</td>
+                  <td className="px-4 py-3">{p.price ?? "—"}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-      ) : null}
-
-      {tab === "products" ? (
-        <>
-          <form
-            onSubmit={createProduct}
-            className="grid gap-3 rounded-xl border border-border bg-card p-4 md:grid-cols-4"
-          >
-            <input
-              className="rounded-lg border border-border px-3 py-2"
-              placeholder="SKU"
-              value={productForm.sku}
-              onChange={(e) => setProductForm({ ...productForm, sku: e.target.value })}
-              required
-            />
-            <input
-              className="rounded-lg border border-border px-3 py-2"
-              placeholder="Name"
-              value={productForm.name}
-              onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
-              required
-            />
-            <input
-              className="rounded-lg border border-border px-3 py-2"
-              placeholder="Price"
-              value={productForm.price}
-              onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
-              required
-            />
-            <button
-              type="submit"
-              className="rounded-lg bg-brand px-4 py-2 font-semibold text-brand-foreground"
-            >
-              Add product
-            </button>
-          </form>
-          <div className="overflow-hidden rounded-xl border border-border bg-card">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-brand-subtle">
-                <tr>
-                  <th className="px-4 py-3">SKU</th>
-                  <th className="px-4 py-3">Name</th>
-                  <th className="px-4 py-3">Price</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.map((p) => (
-                  <tr key={p.id} className="border-t border-border text-heading">
-                    <td className="px-4 py-3">{p.sku}</td>
-                    <td className="px-4 py-3">{p.name}</td>
-                    <td className="px-4 py-3">{p.price ?? "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
+        </SurfaceCard>
       ) : null}
 
       {tab === "suppliers" ? (
-        <>
-          <form onSubmit={createSupplier} className="flex gap-2">
-            <input
-              className="flex-1 rounded-lg border border-border px-3 py-2"
-              placeholder="Supplier name"
-              value={supplierName}
-              onChange={(e) => setSupplierName(e.target.value)}
-              required
-            />
-            <button
-              type="submit"
-              className="rounded-lg bg-brand px-4 py-2 font-semibold text-brand-foreground"
-            >
-              Add
-            </button>
-          </form>
-          <ul className="space-y-2 text-sm text-heading">
-            {suppliers.map((s) => (
-              <li key={s.id} className="rounded-lg border border-border bg-card px-4 py-3">
-                {s.name}
-              </li>
-            ))}
-          </ul>
-        </>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {suppliers.map((s) => (
+            <SurfaceCard key={s.id} className="p-4">
+              <p className="font-semibold text-heading">{s.name}</p>
+            </SurfaceCard>
+          ))}
+          {suppliers.length === 0 ? (
+            <SurfaceCard>
+              <EmptyState title="No suppliers" body="Add a supplier to raise purchase orders." />
+            </SurfaceCard>
+          ) : null}
+        </div>
       ) : null}
 
       {tab === "pos" ? (
         <div className="grid gap-6 lg:grid-cols-2">
-          <form
-            onSubmit={createPO}
-            className="space-y-3 rounded-xl border border-border bg-card p-4"
-          >
-            <h2 className="font-semibold text-heading">New purchase order</h2>
-            <select
-              className="w-full rounded-lg border border-border px-3 py-2"
-              value={poForm.supplier_id}
-              onChange={(e) => setPoForm({ ...poForm, supplier_id: e.target.value })}
-              required
-            >
-              <option value="">Supplier</option>
-              {suppliers.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-            <select
-              className="w-full rounded-lg border border-border px-3 py-2"
-              value={poForm.product_id}
-              onChange={(e) => setPoForm({ ...poForm, product_id: e.target.value })}
-              required
-            >
-              <option value="">Product</option>
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-            <div className="flex gap-2">
-              <input
-                className="w-full rounded-lg border border-border px-3 py-2"
-                placeholder="Qty"
-                value={poForm.quantity}
-                onChange={(e) => setPoForm({ ...poForm, quantity: e.target.value })}
-              />
-              <input
-                className="w-full rounded-lg border border-border px-3 py-2"
-                placeholder="Unit cost"
-                value={poForm.unit_cost}
-                onChange={(e) => setPoForm({ ...poForm, unit_cost: e.target.value })}
-              />
-            </div>
-            <button
-              type="submit"
-              className="rounded-lg bg-brand px-4 py-2 font-semibold text-brand-foreground"
-            >
-              Create PO
-            </button>
-          </form>
-
-          <form
-            onSubmit={receiveGRN}
-            className="space-y-3 rounded-xl border border-border bg-card p-4"
-          >
+          <SurfaceCard className="p-5">
             <h2 className="font-semibold text-heading">Receive GRN</h2>
-            <select
-              className="w-full rounded-lg border border-border px-3 py-2"
-              value={grnForm.purchase_order_id}
-              onChange={(e) => {
-                const po = pos.find((p) => p.id === e.target.value);
-                setGrnForm({
-                  purchase_order_id: e.target.value,
-                  product_id: po?.items[0]?.product_id || "",
-                  quantity_received: po?.items[0]?.quantity || "",
-                });
-              }}
-              required
-            >
-              <option value="">Purchase order</option>
-              {pos
-                .filter((p) => p.status !== "received" && p.status !== "cancelled")
-                .map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.supplier_name || p.id.slice(0, 8)} · {p.status}
-                  </option>
-                ))}
-            </select>
-            <input
-              className="w-full rounded-lg border border-border px-3 py-2"
-              placeholder="Qty received"
-              value={grnForm.quantity_received}
-              onChange={(e) =>
-                setGrnForm({ ...grnForm, quantity_received: e.target.value })
-              }
-              required
-            />
-            <button
-              type="submit"
-              className="rounded-lg bg-brand px-4 py-2 font-semibold text-brand-foreground"
-            >
-              Receive
-            </button>
-          </form>
+            <form onSubmit={receiveGRN} className="mt-4 space-y-3">
+              <select
+                className={fieldClass}
+                value={grnForm.purchase_order_id}
+                onChange={(e) => {
+                  const po = pos.find((p) => p.id === e.target.value);
+                  setGrnForm({
+                    purchase_order_id: e.target.value,
+                    product_id: po?.items[0]?.product_id || "",
+                    quantity_received: po?.items[0]?.quantity || "",
+                  });
+                }}
+                required
+              >
+                <option value="">Purchase order</option>
+                {pos
+                  .filter((p) => p.status !== "received" && p.status !== "cancelled")
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.supplier_name || p.id.slice(0, 8)} · {p.status}
+                    </option>
+                  ))}
+              </select>
+              <input
+                className={fieldClass}
+                placeholder="Qty received"
+                value={grnForm.quantity_received}
+                onChange={(e) =>
+                  setGrnForm({ ...grnForm, quantity_received: e.target.value })
+                }
+                required
+              />
+              <Button type="submit">Receive</Button>
+            </form>
+          </SurfaceCard>
 
-          <div className="lg:col-span-2 overflow-hidden rounded-xl border border-border bg-card">
+          <SurfaceCard>
             <table className="w-full text-left text-sm">
               <thead className="bg-brand-subtle">
                 <tr>
@@ -477,38 +403,85 @@ export default function InventoryPage() {
               <tbody>
                 {pos.map((p) => (
                   <tr key={p.id} className="border-t border-border text-heading">
-                    <td className="px-4 py-3">{p.supplier_name || p.supplier_id.slice(0, 8)}</td>
+                    <td className="px-4 py-3">
+                      {p.supplier_name || p.supplier_id.slice(0, 8)}
+                    </td>
                     <td className="px-4 py-3">{p.status}</td>
                     <td className="px-4 py-3">{p.items?.length || 0}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
+          </SurfaceCard>
         </div>
       ) : null}
 
       {tab === "transfers" ? (
         <div className="space-y-4">
-          <form
-            onSubmit={createTransfer}
-            className="grid gap-3 rounded-xl border border-border bg-card p-4 md:grid-cols-4"
-          >
-            <input
-              className="rounded-lg border border-border px-3 py-2"
-              placeholder="To branch ID"
-              value={transferForm.to_branch_id}
-              onChange={(e) =>
-                setTransferForm({ ...transferForm, to_branch_id: e.target.value })
-              }
-              required
-            />
+          <SurfaceCard className="p-5">
+            <form onSubmit={createTransfer} className="grid gap-3 md:grid-cols-4">
+              <input
+                className={fieldClass}
+                placeholder="To branch ID"
+                value={transferForm.to_branch_id}
+                onChange={(e) =>
+                  setTransferForm({ ...transferForm, to_branch_id: e.target.value })
+                }
+                required
+              />
+              <select
+                className={fieldClass}
+                value={transferForm.product_id}
+                onChange={(e) =>
+                  setTransferForm({ ...transferForm, product_id: e.target.value })
+                }
+                required
+              >
+                <option value="">Product</option>
+                {products.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+              <input
+                className={fieldClass}
+                placeholder="Qty"
+                value={transferForm.quantity}
+                onChange={(e) =>
+                  setTransferForm({ ...transferForm, quantity: e.target.value })
+                }
+              />
+              <Button type="submit">Create transfer</Button>
+            </form>
+          </SurfaceCard>
+          <div className="space-y-2">
+            {transfers.map((t) => (
+              <SurfaceCard
+                key={t.id}
+                className="flex flex-wrap items-center justify-between gap-2 px-4 py-3"
+              >
+                <span className="text-sm text-heading">
+                  {t.status} · {t.items?.[0]?.quantity || "?"} units
+                </span>
+                {t.status === "pending" ? (
+                  <Button size="sm" onClick={() => confirmTransfer(t.id)}>
+                    Confirm
+                  </Button>
+                ) : null}
+              </SurfaceCard>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {tab === "adjust" ? (
+        <SurfaceCard className="max-w-xl p-5">
+          <form onSubmit={adjustStock} className="space-y-3">
             <select
-              className="rounded-lg border border-border px-3 py-2"
-              value={transferForm.product_id}
-              onChange={(e) =>
-                setTransferForm({ ...transferForm, product_id: e.target.value })
-              }
+              className={fieldClass}
+              value={adjustForm.product_id}
+              onChange={(e) => setAdjustForm({ ...adjustForm, product_id: e.target.value })}
               required
             >
               <option value="">Product</option>
@@ -519,92 +492,167 @@ export default function InventoryPage() {
               ))}
             </select>
             <input
-              className="rounded-lg border border-border px-3 py-2"
-              placeholder="Qty"
-              value={transferForm.quantity}
+              className={fieldClass}
+              placeholder="Qty delta (e.g. -2 or 5)"
+              value={adjustForm.quantity_delta}
               onChange={(e) =>
-                setTransferForm({ ...transferForm, quantity: e.target.value })
+                setAdjustForm({ ...adjustForm, quantity_delta: e.target.value })
               }
+              required
             />
-            <button
-              type="submit"
-              className="rounded-lg bg-brand px-4 py-2 font-semibold text-brand-foreground"
+            <select
+              className={fieldClass}
+              value={adjustForm.reason_code}
+              onChange={(e) => setAdjustForm({ ...adjustForm, reason_code: e.target.value })}
             >
-              Create transfer
-            </button>
+              {["adjustment", "damage", "theft", "count_correction", "expired", "sample"].map(
+                (r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                )
+              )}
+            </select>
+            <Button type="submit">Apply adjustment</Button>
           </form>
-          <ul className="space-y-2">
-            {transfers.map((t) => (
-              <li
-                key={t.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm text-heading"
-              >
-                <span>
-                  {t.status} · {t.items?.[0]?.quantity || "?"} units
-                </span>
-                {t.status === "pending" ? (
-                  <button
-                    type="button"
-                    onClick={() => confirmTransfer(t.id)}
-                    className="rounded-lg bg-brand px-3 py-1.5 text-brand-foreground"
-                  >
-                    Confirm
-                  </button>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        </div>
+        </SurfaceCard>
       ) : null}
 
-      {tab === "adjust" ? (
-        <form
-          onSubmit={adjustStock}
-          className="grid max-w-xl gap-3 rounded-xl border border-border bg-card p-4"
-        >
-          <select
-            className="rounded-lg border border-border px-3 py-2"
-            value={adjustForm.product_id}
-            onChange={(e) => setAdjustForm({ ...adjustForm, product_id: e.target.value })}
-            required
-          >
-            <option value="">Product</option>
-            {products.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-          <input
-            className="rounded-lg border border-border px-3 py-2"
-            placeholder="Qty delta (e.g. -2 or 5)"
-            value={adjustForm.quantity_delta}
-            onChange={(e) =>
-              setAdjustForm({ ...adjustForm, quantity_delta: e.target.value })
-            }
-            required
-          />
-          <select
-            className="rounded-lg border border-border px-3 py-2"
-            value={adjustForm.reason_code}
-            onChange={(e) => setAdjustForm({ ...adjustForm, reason_code: e.target.value })}
-          >
-            {["adjustment", "damage", "theft", "count_correction", "expired", "sample"].map(
-              (r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              )
-            )}
-          </select>
-          <button
-            type="submit"
-            className="rounded-lg bg-brand px-4 py-2 font-semibold text-brand-foreground"
-          >
-            Apply adjustment
-          </button>
+      <Modal
+        isOpen={modal === "product"}
+        onClose={() => setModal(null)}
+        title="New product"
+        description="Add a SKU to the business catalog. Branch price is set on create when provided."
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setModal(null)}>
+              Cancel
+            </Button>
+            <Button type="submit" form="product-modal-form" loading={busy}>
+              Create product
+            </Button>
+          </div>
+        }
+      >
+        <form id="product-modal-form" onSubmit={createProduct} className="space-y-4">
+          <Field label="SKU">
+            <input
+              className={fieldClass}
+              value={productForm.sku}
+              onChange={(e) => setProductForm({ ...productForm, sku: e.target.value })}
+              required
+            />
+          </Field>
+          <Field label="Name">
+            <input
+              className={fieldClass}
+              value={productForm.name}
+              onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+              required
+            />
+          </Field>
+          <Field label="Branch price">
+            <input
+              className={fieldClass}
+              value={productForm.price}
+              onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
+              required
+            />
+          </Field>
         </form>
-      ) : null}
+      </Modal>
+
+      <Modal
+        isOpen={modal === "supplier"}
+        onClose={() => setModal(null)}
+        title="Add supplier"
+        description="Suppliers are used on purchase orders and AP bills."
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setModal(null)}>
+              Cancel
+            </Button>
+            <Button type="submit" form="supplier-modal-form" loading={busy}>
+              Add supplier
+            </Button>
+          </div>
+        }
+      >
+        <form id="supplier-modal-form" onSubmit={createSupplier} className="space-y-4">
+          <Field label="Supplier name">
+            <input
+              className={fieldClass}
+              value={supplierName}
+              onChange={(e) => setSupplierName(e.target.value)}
+              required
+            />
+          </Field>
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={modal === "po"}
+        onClose={() => setModal(null)}
+        title="New purchase order"
+        description="Create a draft PO for the active branch."
+      >
+        <form id="po-modal-form" onSubmit={createPO} className="space-y-4">
+          <Field label="Supplier">
+            <select
+              className={fieldClass}
+              value={poForm.supplier_id}
+              onChange={(e) => setPoForm({ ...poForm, supplier_id: e.target.value })}
+              required
+            >
+              <option value="">Select…</option>
+              {suppliers.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Product">
+            <select
+              className={fieldClass}
+              value={poForm.product_id}
+              onChange={(e) => setPoForm({ ...poForm, product_id: e.target.value })}
+              required
+            >
+              <option value="">Select…</option>
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Quantity">
+              <input
+                className={fieldClass}
+                value={poForm.quantity}
+                onChange={(e) => setPoForm({ ...poForm, quantity: e.target.value })}
+              />
+            </Field>
+            <Field label="Unit cost">
+              <input
+                className={fieldClass}
+                value={poForm.unit_cost}
+                onChange={(e) => setPoForm({ ...poForm, unit_cost: e.target.value })}
+              />
+            </Field>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setModal(null)}>
+              Cancel
+            </Button>
+            <Button type="submit" onClick={createPO} loading={busy}>
+              Create PO
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

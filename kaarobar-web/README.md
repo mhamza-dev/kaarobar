@@ -24,7 +24,7 @@ npm install
 npm run dev                  # http://localhost:3000
 ```
 
-Requires `kaarobar-BE`. Demo: `owner@kaarobar.local` / `password123`
+Requires `kaarobar-BE`. Demo: `owner@kaarobar.local` / `Password@123`
 
 ## Theme
 

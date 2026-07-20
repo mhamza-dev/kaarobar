@@ -75,11 +75,18 @@ defmodule KaarobarWeb.V1.PayrollController do
       status: run.status,
       approved_by_id: run.approved_by_id,
       journal_entry_id: run.journal_entry_id,
-      payslips: Enum.map(run.payslips || [], &serialize_payslip/1)
+      payslips:
+        Enum.map(run.payslips || [], fn slip ->
+          serialize_payslip(slip, run)
+        end)
     }
   end
 
-  def serialize_payslip(slip) do
+  def serialize_payslip(slip), do: serialize_payslip(slip, nil)
+
+  def serialize_payslip(slip, run) do
+    payroll_run = loaded_assoc(slip.payroll_run) || run
+
     %{
       id: slip.id,
       employee_id: slip.employee_id,
@@ -91,11 +98,15 @@ defmodule KaarobarWeb.V1.PayrollController do
       earnings: slip.earnings || %{},
       days_worked: to_string(slip.days_worked || 0),
       overtime_hours: to_string(slip.overtime_hours || 0),
-      period_start: slip.payroll_run && slip.payroll_run.period_start,
-      period_end: slip.payroll_run && slip.payroll_run.period_end,
-      status: slip.payroll_run && slip.payroll_run.status
+      period_start: payroll_run && payroll_run.period_start,
+      period_end: payroll_run && payroll_run.period_end,
+      status: payroll_run && payroll_run.status
     }
   end
+
+  defp loaded_assoc(%Ecto.Association.NotLoaded{}), do: nil
+  defp loaded_assoc(nil), do: nil
+  defp loaded_assoc(assoc), do: assoc
 
   defp beginning_of_month do
     today = Date.utc_today()

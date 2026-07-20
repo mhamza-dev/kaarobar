@@ -79,6 +79,8 @@ defmodule KaarobarWeb.Router do
     get "/audit-logs", AuditController, :index
 
     get "/billing/subscription", BillingController, :show
+    get "/notifications", NotificationController, :index
+    post "/notifications/:id/read", NotificationController, :mark_read
   end
 
   scope "/api/v1", KaarobarWeb.V1 do
@@ -99,6 +101,10 @@ defmodule KaarobarWeb.Router do
     get "/returns/:id", ReturnController, :show
     post "/returns", ReturnController, :create
     get "/fbr/sales/:sale_id", FbrController, :status
+
+    get "/sync/catalog", SyncController, :catalog
+    get "/sync/inventory", SyncController, :inventory
+    post "/sync/sales", SyncController, :push_sales
   end
 
   scope "/api/v1", KaarobarWeb.V1 do
@@ -156,6 +162,9 @@ defmodule KaarobarWeb.Router do
     pipe_through [:api, :authenticated, :reports_roles]
 
     get "/reports/dashboard", ReportController, :dashboard
+    get "/reports/branch", ReportController, :branch
+    get "/reports/sales-by-day", ReportController, :sales_by_day
+    get "/reports/low-stock", ReportController, :low_stock
     get "/reports/trial-balance", ReportController, :trial_balance
     get "/reports/general-ledger", ReportController, :general_ledger
     get "/reports/profit-and-loss", ReportController, :profit_and_loss

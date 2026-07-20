@@ -35,7 +35,8 @@ mix ecto.setup          # create + migrate + seed
 mix phx.server          # http://localhost:4000
 ```
 
-Demo seed: `owner@kaarobar.local` / `password123`
+Demo seed: `owner@kaarobar.local` / `Password@123` (also `owner2@`–`owner4@`; staff `manager@` / `cashier@` / … and `*2@`–`*4@`)
+Fresh data: `mix ecto.reset`
 
 ## Tests
 

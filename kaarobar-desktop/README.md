@@ -11,7 +11,7 @@ Primary actor: **Cashier / POS Operator**. Also usable by Branch Managers for ti
 | Auth + business/branch select | Done |
 | Online checkout + tills + split pay | Done |
 | Returns, till history, inventory procurement | Done |
-| Offline SQLite outbox | Deferred |
+| Offline SQLite / JSON outbox | Done (JSON outbox + `/sync/*`) |
 | Peripherals (ESC/POS, scanner, drawer) | Deferred |
 
 ## Screens

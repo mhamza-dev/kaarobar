@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
+import Modal from "@/components/modals/Modal";
+import Button from "@/components/ui/Button";
+import { Alert, EmptyState, Field, PageHeader, TabBar, fieldClass } from "@/components/app/ui";
 
 type Tab = "coa" | "journals" | "tb" | "pl" | "bs" | "gl" | "ar" | "ap";
 
@@ -64,6 +67,8 @@ export default function AccountingPage() {
   const [apAging, setApAging] = useState<AgingRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [jeModal, setJeModal] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   const [jeDesc, setJeDesc] = useState("");
   const [lineA, setLineA] = useState({ account_id: "", debit: "", credit: "" });
@@ -161,6 +166,8 @@ export default function AccountingPage() {
 
   async function createJournal(e: React.FormEvent) {
     e.preventDefault();
+    setBusy(true);
+    setError(null);
     try {
       await api("/journals", {
         method: "POST",
@@ -183,10 +190,15 @@ export default function AccountingPage() {
       });
       setMessage("Journal posted");
       setJeDesc("");
+      setLineA({ account_id: "", debit: "", credit: "" });
+      setLineB({ account_id: "", debit: "", credit: "" });
+      setJeModal(false);
       await loadCore();
       setTab("journals");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Journal failed");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -213,32 +225,21 @@ export default function AccountingPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-heading">Accounting</h1>
-        <p className="text-body">
-          Chart of accounts, journals, statements, and AR/AP aging.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Books"
+        title="Accounting"
+        description="Chart of accounts, journals, statements, and AR/AP aging."
+        action={
+          tab === "journals"
+            ? { label: "Post journal", onClick: () => setJeModal(true) }
+            : undefined
+        }
+      />
 
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
-      {message ? <p className="text-sm text-body">{message}</p> : null}
+      {error ? <Alert tone="error">{error}</Alert> : null}
+      {message ? <Alert>{message}</Alert> : null}
 
-      <div className="flex flex-wrap gap-2">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setTab(t.id)}
-            className={`rounded-lg px-3 py-1.5 text-sm ${
-              tab === t.id
-                ? "bg-brand text-brand-foreground"
-                : "border border-border text-heading hover:border-brand"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <TabBar tabs={tabs} value={tab} onChange={setTab} />
 
       {["tb", "pl", "bs", "gl"].includes(tab) ? (
         <div className="flex flex-wrap gap-3">
@@ -301,67 +302,12 @@ export default function AccountingPage() {
 
       {tab === "journals" ? (
         <div className="space-y-4">
-          <form
-            onSubmit={createJournal}
-            className="space-y-3 rounded-xl border border-border bg-card p-4"
-          >
-            <h2 className="font-semibold text-heading">Manual journal</h2>
-            <input
-              className="w-full rounded-lg border border-border px-3 py-2"
-              placeholder="Description"
-              value={jeDesc}
-              onChange={(e) => setJeDesc(e.target.value)}
-              required
+          {journals.length === 0 ? (
+            <EmptyState
+              title="No journals yet"
+              body="Post a manual journal or wait for POS/inventory postings."
             />
-            {([lineA, lineB] as const).map((line, idx) => (
-              <div key={idx} className="grid gap-2 md:grid-cols-3">
-                <select
-                  className="rounded-lg border border-border px-3 py-2"
-                  value={line.account_id}
-                  onChange={(e) =>
-                    idx === 0
-                      ? setLineA({ ...lineA, account_id: e.target.value })
-                      : setLineB({ ...lineB, account_id: e.target.value })
-                  }
-                  required
-                >
-                  <option value="">Account</option>
-                  {accounts.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.code} {a.name}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  className="rounded-lg border border-border px-3 py-2"
-                  placeholder="Debit"
-                  value={line.debit}
-                  onChange={(e) =>
-                    idx === 0
-                      ? setLineA({ ...lineA, debit: e.target.value })
-                      : setLineB({ ...lineB, debit: e.target.value })
-                  }
-                />
-                <input
-                  className="rounded-lg border border-border px-3 py-2"
-                  placeholder="Credit"
-                  value={line.credit}
-                  onChange={(e) =>
-                    idx === 0
-                      ? setLineA({ ...lineA, credit: e.target.value })
-                      : setLineB({ ...lineB, credit: e.target.value })
-                  }
-                />
-              </div>
-            ))}
-            <button
-              type="submit"
-              className="rounded-lg bg-brand px-4 py-2 font-semibold text-brand-foreground"
-            >
-              Post journal
-            </button>
-          </form>
-
+          ) : null}
           <div className="space-y-3">
             {journals.map((j) => (
               <div key={j.id} className="rounded-xl border border-border bg-card p-4 text-sm">
@@ -457,6 +403,76 @@ export default function AccountingPage() {
           ])}
         />
       ) : null}
+
+      <Modal
+        isOpen={jeModal}
+        onClose={() => setJeModal(false)}
+        title="Post journal"
+        description="Enter a balanced two-line manual journal entry."
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setJeModal(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" form="je-modal-form" loading={busy}>
+              Post journal
+            </Button>
+          </>
+        }
+      >
+        <form id="je-modal-form" onSubmit={createJournal} className="space-y-4">
+          <Field label="Description">
+            <input
+              className={fieldClass}
+              placeholder="Description"
+              value={jeDesc}
+              onChange={(e) => setJeDesc(e.target.value)}
+              required
+            />
+          </Field>
+          {([lineA, lineB] as const).map((line, idx) => (
+            <div key={idx} className="grid gap-2 md:grid-cols-3">
+              <select
+                className={fieldClass}
+                value={line.account_id}
+                onChange={(e) =>
+                  idx === 0
+                    ? setLineA({ ...lineA, account_id: e.target.value })
+                    : setLineB({ ...lineB, account_id: e.target.value })
+                }
+                required
+              >
+                <option value="">Account</option>
+                {accounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.code} {a.name}
+                  </option>
+                ))}
+              </select>
+              <input
+                className={fieldClass}
+                placeholder="Debit"
+                value={line.debit}
+                onChange={(e) =>
+                  idx === 0
+                    ? setLineA({ ...lineA, debit: e.target.value })
+                    : setLineB({ ...lineB, debit: e.target.value })
+                }
+              />
+              <input
+                className={fieldClass}
+                placeholder="Credit"
+                value={line.credit}
+                onChange={(e) =>
+                  idx === 0
+                    ? setLineA({ ...lineA, credit: e.target.value })
+                    : setLineB({ ...lineB, credit: e.target.value })
+                }
+              />
+            </div>
+          ))}
+        </form>
+      </Modal>
     </div>
   );
 }

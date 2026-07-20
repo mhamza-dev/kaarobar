@@ -231,6 +231,7 @@ defmodule Kaarobar.Tenancy do
     roles = attrs[:roles] || attrs["roles"] || []
 
     with {:ok, business} <- fetch_owned_business(business_id, actor.id),
+         true <- Kaarobar.Billing.within_limits?(business.owner_id, :user) || {:error, :plan_limit_reached},
          :ok <- Roles.validate_roles(List.wrap(roles)),
          {:ok, membership} <-
            %Membership{}

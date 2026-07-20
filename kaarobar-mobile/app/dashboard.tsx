@@ -141,8 +141,16 @@ export default function DashboardScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-      <Text style={styles.hello}>Welcome, {session.user.name}</Text>
-      <Text style={styles.hint}>Sales, cash, stock, and approvals across your shops.</Text>
+      <Text style={styles.eyebrow}>Branch workspace</Text>
+      <View style={styles.brandRow}>
+        <View style={styles.brandMark}>
+          <Text style={styles.brandMarkText}>K</Text>
+        </View>
+        <Text style={styles.hello}>Kaarobar</Text>
+      </View>
+      <Text style={styles.hint}>
+        Welcome, {session.user.name}. Sales, cash, stock, and approvals across your shops.
+      </Text>
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       <Text style={styles.section}>Business</Text>
@@ -236,8 +244,26 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgPrimary,
   },
   container: { flex: 1, padding: 24, backgroundColor: colors.bgPrimary },
-  hello: { fontSize: 24, fontWeight: "800", color: colors.heading },
-  hint: { marginTop: 6, marginBottom: 16, color: colors.body },
+  eyebrow: {
+    color: colors.brand,
+    fontWeight: "700",
+    fontSize: 11,
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+    marginBottom: 10,
+  },
+  brandRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 6 },
+  brandMark: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: colors.brand,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  brandMarkText: { color: colors.white, fontWeight: "800", fontSize: 16 },
+  hello: { fontSize: 26, fontWeight: "800", color: colors.heading },
+  hint: { marginBottom: 16, color: colors.body, lineHeight: 22 },
   error: { color: colors.danger, marginBottom: 12 },
   section: {
     marginTop: 8,
