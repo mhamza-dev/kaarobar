@@ -1,0 +1,14 @@
+{
+  "name": "kaarobar-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron ."
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^33.0.0"
+  }
+}

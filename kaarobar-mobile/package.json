@@ -1,0 +1,26 @@
+{
+  "name": "kaarobar-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "lint": "echo \"No linter configured yet\""
+  },
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "1.23.1",
+    "expo": "~52.0.0",
+    "expo-router": "~4.0.0",
+    "expo-status-bar": "~2.0.0",
+    "react": "18.3.1",
+    "react-native": "0.76.3",
+    "react-native-safe-area-context": "4.12.0",
+    "react-native-screens": "~4.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "~18.3.0",
+    "typescript": "^5.0.0"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "Kaarobar",
+    "slug": "kaarobar",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "kaarobar",
+    "userInterfaceStyle": "light",
+    "platforms": ["ios", "android"],
+    "plugins": ["expo-router"]
+  }
+}

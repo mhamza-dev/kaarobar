@@ -1,0 +1,53 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+*.pem
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Node
+node_modules/
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+
+# Elixir
+kaarobar-BE/_build/
+kaarobar-BE/deps/
+kaarobar-BE/.fetch
+kaarobar-BE/erl_crash.dump
+kaarobar-BE/*.ez
+kaarobar-BE/kaarobar-*.tar
+kaarobar-BE/priv/static/assets/
+kaarobar-BE/.elixir_ls/
+kaarobar-BE/cover/
+kaarobar-BE/doc/
+
+# Electron
+kaarobar-desktop/node_modules/
+kaarobar-desktop/dist/
+kaarobar-desktop/out/
+
+# Mobile
+kaarobar-mobile/node_modules/
+kaarobar-mobile/.expo/
+kaarobar-mobile/dist/
+
+# Packages
+packages/*/node_modules/
+packages/*/dist/
+
+# Logs
+*.log

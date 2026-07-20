@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; connect-src 'self' http://localhost:4000 http://127.0.0.1:4000; style-src 'self' 'unsafe-inline'; script-src 'self'"
+    />
+    <title>Kaarobar Desktop</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!-- Landing / Auth -->
+    <div id="auth-view" class="auth-shell">
+      <aside class="auth-hero">
+        <div class="eyebrow">Desktop POS terminal</div>
+        <h1>Kaarobar</h1>
+        <p>
+          Offline-tolerant branch POS with the same Deep Sapphire theme as web
+          and mobile. Sign in to open your owner dashboard, then run the till.
+        </p>
+      </aside>
+      <section class="auth-panel">
+        <div class="auth-card">
+          <h2 id="auth-title">Sign in</h2>
+          <p class="sub" id="auth-sub">Access dashboard and POS for your branch.</p>
+          <div id="auth-error" class="error hidden"></div>
+
+          <div id="signup-fields" class="hidden">
+            <label for="name">Full name</label>
+            <input id="name" type="text" autocomplete="name" />
+            <label for="business">Business name</label>
+            <input id="business" type="text" />
+          </div>
+
+          <label for="email">Email</label>
+          <input id="email" type="email" value="owner@kaarobar.local" autocomplete="username" />
+          <label for="password">Password</label>
+          <input id="password" type="password" value="password123" autocomplete="current-password" />
+
+          <button id="auth-submit" class="btn btn-primary" type="button">Sign in</button>
+          <button id="auth-toggle" class="btn btn-ghost" type="button">
+            Need an account? Create one
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard-view" class="hidden">
+      <header class="topbar">
+        <div class="brand">Kaarobar</div>
+        <div class="topbar-actions">
+          <span id="user-name" class="status"></span>
+          <span id="status" class="status">Online</span>
+          <button id="open-pos" type="button">Open POS</button>
+          <button id="logout" type="button">Sign out</button>
+        </div>
+      </header>
+      <main class="dashboard">
+        <h1>Owner dashboard</h1>
+        <p class="lead">Consolidated view before you open the till.</p>
+        <div class="stat-grid">
+          <div class="stat"><span>Sales today</span><strong id="stat-sales">—</strong></div>
+          <div class="stat"><span>Cash position</span><strong id="stat-cash">—</strong></div>
+          <div class="stat"><span>Low stock</span><strong id="stat-stock">—</strong></div>
+          <div class="stat"><span>Approvals</span><strong id="stat-approvals">—</strong></div>
+        </div>
+        <button id="open-pos-main" class="btn btn-primary" style="max-width:220px" type="button">
+          Go to POS
+        </button>
+      </main>
+    </div>
+
+    <!-- POS -->
+    <div id="pos-view" class="hidden">
+      <header class="topbar">
+        <div class="brand">Kaarobar POS</div>
+        <div class="topbar-actions">
+          <button id="back-dash" type="button">Dashboard</button>
+          <span id="pos-status" class="status">Online</span>
+          <button id="logout-pos" type="button">Sign out</button>
+        </div>
+      </header>
+      <main class="layout">
+        <section class="catalog">
+          <h2>Products</h2>
+          <input id="search" type="search" placeholder="Scan barcode or search SKU…" />
+          <div id="products" class="grid"></div>
+        </section>
+        <aside class="cart">
+          <h2>Cart</h2>
+          <ul id="cart-items"></ul>
+          <div class="totals">
+            <div><span>Subtotal</span><strong id="subtotal">0.00</strong></div>
+            <div><span>Tax</span><strong id="tax">0.00</strong></div>
+            <div class="grand"><span>Total</span><strong id="total">0.00</strong></div>
+          </div>
+          <button id="pay" class="pay" disabled>Charge</button>
+          <p id="pos-message" class="sub"></p>
+        </aside>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
