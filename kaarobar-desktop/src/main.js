@@ -1,7 +1,7 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("path");
 
-/** Offline outbox stub — SQLite sync lands in Phase 6 (OFF-FR). */
+/** Offline outbox stub — SQLite sync lands with OFF-FR. */
 const pendingSyncCount = 0;
 
 function createWindow() {

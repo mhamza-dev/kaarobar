@@ -1,4 +1,4 @@
-defmodule Kaarobar.Repo.Migrations.Phase1TenancyRbac do
+defmodule Kaarobar.Repo.Migrations.TenancyRbac do
   use Ecto.Migration
 
   def up do

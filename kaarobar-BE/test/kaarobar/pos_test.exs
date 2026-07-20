@@ -1,4 +1,4 @@
-defmodule Kaarobar.Phase2PosTest do
+defmodule Kaarobar.PosTest do
   use Kaarobar.DataCase
 
   alias Kaarobar.{Accounts, Inventory, Pos, Tenancy}
@@ -160,12 +160,16 @@ defmodule Kaarobar.Phase2PosTest do
     branch: branch,
     product: product
   } do
+    {:ok, till} = Pos.open_till(branch.id, owner.id, business.id, owner.id, "500")
+
     {:ok, sale} =
       Pos.create_sale(branch.id, owner.id, business.id, owner.id, sale_attrs(product, qty: "2"))
 
     assert {:ok, ret} =
              Pos.create_return(sale.id, owner.id, business.id, branch.id, owner.id, %{
                reason: "customer changed mind",
+               refund_method: "cash",
+               till_id: till.id,
                items: [%{product_id: product.id, quantity: "1"}]
              })
 

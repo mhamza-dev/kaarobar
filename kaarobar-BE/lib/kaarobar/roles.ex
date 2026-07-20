@@ -46,7 +46,7 @@ defmodule Kaarobar.Roles do
   def bundle(:pos_approve), do: ~w(owner branch_manager)
   def bundle(:inventory), do: ~w(owner branch_manager inventory_manager)
   def bundle(:accounting), do: ~w(owner accountant)
-  def bundle(:hr), do: ~w(owner hr_manager)
+  def bundle(:hr), do: ~w(owner hr_manager branch_manager)
   def bundle(:payroll_approve), do: ~w(owner accountant)
   def bundle(:reports), do: ~w(owner branch_manager accountant)
   def bundle(:employee_self), do: ~w(owner branch_manager hr_manager employee cashier inventory_manager accountant)

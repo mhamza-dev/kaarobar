@@ -244,10 +244,22 @@ seed_suppliers = fn business ->
   end)
 end
 
-seed_employees = fn business, branches ->
+seed_employees = fn business, branches, staff_users ->
   existing = Hr.list_employees(business.id, owner.id)
+  cashier = Enum.find_value(staff_users, fn {u, roles} -> if "cashier" in roles, do: u end)
 
   if length(existing) >= 3 do
+    # Ensure first employee is linked for ESS demo
+    if cashier do
+      case Enum.find(existing, &(&1.employee_code |> String.ends_with?("-1"))) do
+        %{user_id: nil} = emp ->
+          Hr.update_employee(emp.id, owner.id, %{user_id: cashier.id})
+
+        _ ->
+          :ok
+      end
+    end
+
     existing
   else
     Enum.with_index(Enum.take(branches, 3), 1)
@@ -267,7 +279,8 @@ seed_employees = fn business, branches ->
               status: "active",
               business_id: business.id,
               owner_id: owner.id,
-              branch_id: branch.id
+              branch_id: branch.id,
+              user_id: if(idx == 1 and cashier, do: cashier.id)
             })
 
           emp
@@ -431,7 +444,7 @@ businesses =
 
     products = seed_products_for_business.(business, branches)
     seed_suppliers.(business)
-    seed_employees.(business, branches)
+    seed_employees.(business, branches, staff)
     seed_opening_journal.(business)
 
     # Sample sales only on first 5 businesses (keeps seed fast)

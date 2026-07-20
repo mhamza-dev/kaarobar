@@ -8,7 +8,10 @@ defmodule Kaarobar.Schemas.Payslip do
   schema "payslips" do
     field :gross_pay, :decimal
     field :deductions, :map
+    field :earnings, :map
     field :net_pay, :decimal
+    field :days_worked, :decimal, default: Decimal.new(0)
+    field :overtime_hours, :decimal, default: Decimal.new(0)
 
     belongs_to :payroll_run, Kaarobar.Schemas.PayrollRun
     belongs_to :employee, Kaarobar.Schemas.Employee
@@ -18,7 +21,16 @@ defmodule Kaarobar.Schemas.Payslip do
 
   def changeset(payslip, attrs) do
     payslip
-    |> cast(attrs, [:gross_pay, :deductions, :net_pay, :payroll_run_id, :employee_id])
+    |> cast(attrs, [
+      :gross_pay,
+      :deductions,
+      :earnings,
+      :net_pay,
+      :days_worked,
+      :overtime_hours,
+      :payroll_run_id,
+      :employee_id
+    ])
     |> validate_required([:gross_pay, :net_pay, :payroll_run_id, :employee_id])
     |> foreign_key_constraint(:payroll_run_id)
     |> foreign_key_constraint(:employee_id)

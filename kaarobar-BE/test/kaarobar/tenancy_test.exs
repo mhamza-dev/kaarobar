@@ -1,4 +1,4 @@
-defmodule Kaarobar.Phase1TenancyTest do
+defmodule Kaarobar.TenancyTest do
   use Kaarobar.DataCase
 
   alias Kaarobar.{Accounts, Audit, Roles, Tenancy}

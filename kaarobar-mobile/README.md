@@ -6,15 +6,19 @@ Expo / React Native client for Kaarobar SRS **KRB-SRS-001**.
 
 | Actor | Mobile use |
 |-------|------------|
-| Business Owner | Consolidated dashboard, approvals, alerts (G1) |
-| Branch Manager | Approvals (returns/leave) when away from the till |
-| Employee | ESS only: clock in/out, leave request, payslips (HR-FR-002/005/011) |
+| Business Owner | Dashboard, business/branch switcher, approvals |
+| Branch Manager | Returns approve/reject, till history, inventory glance |
+| Cashier / Ops | Light POS checkout when away from desktop till |
+| Employee | ESS — clock, leave, payslips |
 
-**Auth flow:** Landing → Sign in / Sign up → Dashboard. Unauthenticated users cannot open dashboard/ESS.
+## Feature coverage
 
-## Out of scope on mobile (v1)
-
-Full accountant ledger UI, heavy inventory procurement, offline Electron sync — those stay on web/desktop per SRS client split.
+| Area | Mobile screens |
+|------|----------------|
+| Auth / tenancy | Login, signup, dashboard + business/branch chips |
+| Online POS | `/pos` — till open/close, cart qty, split pay, invoice # |
+| Returns / procurement | `/returns`, `/inventory` (stock, suppliers, PO/GRN, transfers, adjust) |
+| HR ESS | `/ess` — clock in/out, leave requests, payslip history |
 
 ## Setup
 
@@ -24,6 +28,9 @@ npm start
 ```
 
 `EXPO_PUBLIC_API_URL` defaults to `http://localhost:4000/api/v1` (use your LAN IP for a physical device).
+
+Demo login after seed: `owner@kaarobar.local` / `Password@123`  
+ESS demo: `cashier@kaarobar.local` / `Password@123` (linked to an employee on seed)
 
 ## Theme
 

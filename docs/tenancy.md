@@ -1,4 +1,4 @@
-# Phase 1 — Tenancy, identity, RBAC (TEN-FR Must)
+# Tenancy, identity & RBAC (TEN-FR)
 
 Status against KRB-SRS-001 Must items:
 
@@ -24,3 +24,9 @@ Status against KRB-SRS-001 Must items:
 ## Roles
 
 See `docs/rbac-roles.md`.
+
+## Tests
+
+```bash
+mix test test/kaarobar/tenancy_test.exs test/kaarobar/tenancy_isolation_test.exs
+```

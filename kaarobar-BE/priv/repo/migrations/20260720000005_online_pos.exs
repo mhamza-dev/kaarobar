@@ -1,4 +1,4 @@
-defmodule Kaarobar.Repo.Migrations.Phase2OnlinePos do
+defmodule Kaarobar.Repo.Migrations.OnlinePos do
   use Ecto.Migration
 
   def change do

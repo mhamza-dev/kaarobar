@@ -4,17 +4,22 @@ Electron POS terminal for Kaarobar SRS **KRB-SRS-001**.
 
 ## Purpose (SRS §2.3 / §8.1 / §10)
 
-Primary actor: **Cashier / POS Operator** (highest-frequency, lowest-friction till UI). Also usable by Branch Managers for till reconciliation.
+Primary actor: **Cashier / POS Operator**. Also usable by Branch Managers for till reconciliation and returns.
 
-| Capability | Requirement |
-|------------|-------------|
-| Online checkout | POS-FR-001–006 |
-| Offline cache + outbox | OFF-FR-001–004 (SQLite sync Phase) |
-| Idempotent sync | `client_txn_id` (OFF-FR-003) |
-| Peripherals | ESC/POS printer, USB-HID scanner, cash drawer (POS-FR-014 / §8.2) |
-| FBR on reconnect | OFF-FR-006 / FBR-FR-004 (async, never blocks sale) |
+| Capability | Status |
+|------------|--------|
+| Auth + business/branch select | Done |
+| Online checkout + tills + split pay | Done |
+| Returns, till history, inventory procurement | Done |
+| Offline SQLite outbox | Deferred |
+| Peripherals (ESC/POS, scanner, drawer) | Deferred |
 
-**Auth flow:** Sign in → Owner/branch dashboard → Open POS till. Session stored locally for the terminal.
+## Screens
+
+- **Dashboard** — KPIs + business/branch selectors
+- **POS** — products, till open/close, qty ±, split tender, invoice number
+- **Returns** — sale lookup, refund method, approve/reject, till history
+- **Inventory** — on-hand, products, suppliers, PO/GRN, transfers, adjustments
 
 ## Setup
 
@@ -23,9 +28,9 @@ npm install
 npm start
 ```
 
-API: `http://localhost:4000/api/v1` (see `src/renderer/app.js`).
+API base URL is set in `src/renderer/app.js` (`http://localhost:4000/api/v1`).
 
-Windows 10/11 primary; macOS secondary (COMP-NFR-002).
+Demo login after seed: `owner@kaarobar.local` / `Password@123`
 
 ## Theme
 

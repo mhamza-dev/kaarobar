@@ -1,4 +1,4 @@
-# Phase 2 — Online POS + INV stock core
+# POS & inventory stock core
 
 Status against KRB-SRS-001 Must items (POS-FR + INV stock core):
 
@@ -43,4 +43,4 @@ Status against KRB-SRS-001 Must items (POS-FR + INV stock core):
 
 ## Tests
 
-`mix test test/kaarobar/phase2_pos_test.exs`
+`mix test test/kaarobar/pos_test.exs`

@@ -10,14 +10,14 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <!-- Landing / Auth -->
+    <!-- Auth -->
     <div id="auth-view" class="auth-shell">
       <aside class="auth-hero">
         <div class="eyebrow">Branch till</div>
         <h1>Kaarobar</h1>
         <p>
-          Desktop POS for your branch. Works when the internet drops, then syncs
-          when you’re back. Sign in to see the dashboard, then open the till.
+          Desktop POS for your branch — checkout, returns, tills, and light
+          inventory. Sign in to open the dashboard.
         </p>
       </aside>
       <section class="auth-panel">
@@ -36,7 +36,7 @@
           <label for="email">Email</label>
           <input id="email" type="email" value="owner@kaarobar.local" autocomplete="username" />
           <label for="password">Password</label>
-          <input id="password" type="password" value="password123" autocomplete="current-password" />
+          <input id="password" type="password" value="Password@123" autocomplete="current-password" />
 
           <button id="auth-submit" class="btn btn-primary" type="button">Sign in</button>
           <button id="auth-toggle" class="btn btn-ghost" type="button">
@@ -46,18 +46,27 @@
       </section>
     </div>
 
-    <!-- Dashboard -->
-    <div id="dashboard-view" class="hidden">
+    <!-- App shell (dashboard / pos / returns / inventory) -->
+    <div id="app-shell" class="hidden">
       <header class="topbar">
         <div class="brand">Kaarobar</div>
+        <nav class="nav">
+          <button type="button" data-nav="dashboard" class="nav-btn active">Dashboard</button>
+          <button type="button" data-nav="pos" class="nav-btn">POS</button>
+          <button type="button" data-nav="returns" class="nav-btn">Returns</button>
+          <button type="button" data-nav="inventory" class="nav-btn">Inventory</button>
+        </nav>
         <div class="topbar-actions">
+          <select id="business-select" class="select" title="Business"></select>
+          <select id="branch-select" class="select" title="Branch"></select>
           <span id="user-name" class="status"></span>
           <span id="status" class="status">Online</span>
-          <button id="open-pos" type="button">Open POS</button>
           <button id="logout" type="button">Sign out</button>
         </div>
       </header>
-      <main class="dashboard">
+
+      <!-- Dashboard -->
+      <main id="dashboard-view" class="panel">
         <h1>Owner dashboard</h1>
         <p class="lead">A quick look before you open the till.</p>
         <div class="stat-grid">
@@ -66,39 +75,90 @@
           <div class="stat"><span>Low stock</span><strong id="stat-stock">—</strong></div>
           <div class="stat"><span>Approvals</span><strong id="stat-approvals">—</strong></div>
         </div>
-        <button id="open-pos-main" class="btn btn-primary" style="max-width:220px" type="button">
-          Go to POS
-        </button>
-      </main>
-    </div>
-
-    <!-- POS -->
-    <div id="pos-view" class="hidden">
-      <header class="topbar">
-        <div class="brand">Kaarobar POS</div>
-        <div class="topbar-actions">
-          <button id="back-dash" type="button">Dashboard</button>
-          <span id="pos-status" class="status">Online</span>
-          <button id="logout-pos" type="button">Sign out</button>
+        <div class="quick-links">
+          <button type="button" class="btn btn-primary" data-nav="pos">Go to POS</button>
+          <button type="button" class="btn btn-ghost" data-nav="returns">Returns</button>
+          <button type="button" class="btn btn-ghost" data-nav="inventory">Inventory</button>
         </div>
-      </header>
-      <main class="layout">
-        <section class="catalog">
-          <h2>Products</h2>
-          <input id="search" type="search" placeholder="Scan barcode or search SKU…" />
-          <div id="products" class="grid"></div>
-        </section>
-        <aside class="cart">
-          <h2>Cart</h2>
-          <ul id="cart-items"></ul>
-          <div class="totals">
-            <div><span>Subtotal</span><strong id="subtotal">0.00</strong></div>
-            <div><span>Tax</span><strong id="tax">0.00</strong></div>
-            <div class="grand"><span>Total</span><strong id="total">0.00</strong></div>
-          </div>
-          <button id="pay" class="pay" disabled>Charge</button>
-          <p id="pos-message" class="sub"></p>
-        </aside>
+      </main>
+
+      <!-- POS -->
+      <main id="pos-view" class="panel hidden">
+        <div class="layout">
+          <section class="catalog">
+            <h2>Products</h2>
+            <input id="search" type="search" placeholder="Scan barcode or search SKU…" />
+            <div id="products" class="grid"></div>
+          </section>
+          <aside class="cart">
+            <h2>Till</h2>
+            <div id="till-box" class="till-box"></div>
+            <h2>Cart</h2>
+            <ul id="cart-items"></ul>
+            <div class="totals">
+              <div><span>Subtotal</span><strong id="subtotal">0.00</strong></div>
+              <div><span>Tax</span><strong id="tax">0.00</strong></div>
+              <div class="grand"><span>Total</span><strong id="total">0.00</strong></div>
+            </div>
+            <div class="pay-split">
+              <label>Cash <input id="pay-cash" type="text" /></label>
+              <label>Card <input id="pay-card" type="text" /></label>
+              <label>Wallet <input id="pay-wallet" type="text" /></label>
+            </div>
+            <button id="pay" class="pay" disabled>Charge</button>
+            <p id="pos-message" class="sub"></p>
+          </aside>
+        </div>
+      </main>
+
+      <!-- Returns -->
+      <main id="returns-view" class="panel hidden">
+        <h1>Returns & tills</h1>
+        <p id="returns-message" class="sub"></p>
+        <div class="two-col">
+          <section class="card">
+            <h2>Create return</h2>
+            <div class="row">
+              <input id="sale-id" type="text" placeholder="Sale ID" />
+              <button id="lookup-sale" class="btn btn-primary" type="button">Lookup</button>
+            </div>
+            <div id="return-sale" class="hidden"></div>
+          </section>
+          <section class="card">
+            <h2>Pending approval</h2>
+            <div id="pending-returns"></div>
+          </section>
+        </div>
+        <div class="two-col">
+          <section class="card">
+            <h2>Recent returns</h2>
+            <div id="recent-returns"></div>
+          </section>
+          <section class="card">
+            <h2>Till history</h2>
+            <div id="till-history"></div>
+          </section>
+        </div>
+      </main>
+
+      <!-- Inventory -->
+      <main id="inventory-view" class="panel hidden">
+        <h1>Inventory</h1>
+        <p id="inv-message" class="sub"></p>
+        <div class="tabs" id="inv-tabs">
+          <button type="button" data-inv-tab="stock" class="tab active">On hand</button>
+          <button type="button" data-inv-tab="products" class="tab">Products</button>
+          <button type="button" data-inv-tab="suppliers" class="tab">Suppliers</button>
+          <button type="button" data-inv-tab="po" class="tab">PO / GRN</button>
+          <button type="button" data-inv-tab="transfers" class="tab">Transfers</button>
+          <button type="button" data-inv-tab="adjust" class="tab">Adjust</button>
+        </div>
+        <div id="inv-stock" class="inv-panel"></div>
+        <div id="inv-products" class="inv-panel hidden"></div>
+        <div id="inv-suppliers" class="inv-panel hidden"></div>
+        <div id="inv-po" class="inv-panel hidden"></div>
+        <div id="inv-transfers" class="inv-panel hidden"></div>
+        <div id="inv-adjust" class="inv-panel hidden"></div>
       </main>
     </div>
 

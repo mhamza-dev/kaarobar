@@ -82,7 +82,25 @@ defmodule KaarobarWeb.V1.SaleController do
       payments:
         Enum.map(sale.payments || [], fn p ->
           %{method: p.method, amount: to_string(p.amount), reference: p.reference}
-        end)
+        end),
+      returns:
+        case Map.get(sale, :returns) do
+          %Ecto.Association.NotLoaded{} ->
+            []
+
+          list when is_list(list) ->
+            Enum.map(list, fn r ->
+              %{
+                id: r.id,
+                status: r.status,
+                refund_amount: to_string(r.refund_amount),
+                refund_method: Map.get(r, :refund_method)
+              }
+            end)
+
+          _ ->
+            []
+        end
     }
   end
 

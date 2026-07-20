@@ -1,40 +1,8 @@
 defmodule KaarobarWeb.V1.InventoryController do
   use KaarobarWeb, :controller
-  alias Kaarobar.Inventory
+
   alias Kaarobar.Guardian
-
-  def adjust(conn, params) do
-    user = Guardian.Plug.current_resource(conn)
-    business_id = conn.assigns[:current_business_id]
-    owner_id = conn.assigns[:current_owner_id] || user.id
-    branch_id = params["branch_id"] || conn.assigns[:current_branch_id]
-
-    case Inventory.adjust_stock(branch_id, owner_id, business_id, user.id, params) do
-      {:ok, adj} -> conn |> put_status(:created) |> json(%{data: adj})
-      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
-    end
-  end
-
-  def transfer(conn, params) do
-    user = Guardian.Plug.current_resource(conn)
-    business_id = conn.assigns[:current_business_id]
-    owner_id = conn.assigns[:current_owner_id] || user.id
-
-    case Inventory.create_transfer(business_id, owner_id, params) do
-      {:ok, transfer} -> conn |> put_status(:created) |> json(%{data: transfer})
-      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
-    end
-  end
-
-  def confirm_transfer(conn, %{"id" => id}) do
-    user = Guardian.Plug.current_resource(conn)
-    owner_id = conn.assigns[:owner_id] || user.id
-
-    case Inventory.confirm_transfer(id, owner_id) do
-      {:ok, transfer} -> json(conn, %{data: transfer})
-      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
-    end
-  end
+  alias Kaarobar.Inventory
 
   def index(conn, _params) do
     user = Guardian.Plug.current_resource(conn)
@@ -90,50 +58,221 @@ defmodule KaarobarWeb.V1.InventoryController do
     end
   end
 
-  def create_po(conn, params) do
+  def adjust(conn, params) do
     user = Guardian.Plug.current_resource(conn)
-    business_id = conn.assigns[:current_business_id]
-    owner_id = conn.assigns[:current_owner_id] || user.id
-    branch_id = params["branch_id"] || conn.assigns[:current_branch_id]
+    business_id = conn.assigns[:business_id]
+    owner_id = conn.assigns[:owner_id] || user.id
+    branch_id = params["branch_id"] || conn.assigns[:branch_id]
 
-    case Inventory.create_purchase_order(business_id, branch_id, owner_id, atomize(params)) do
-      {:ok, %{po: po}} -> conn |> put_status(:created) |> json(%{data: po})
-      {:ok, po} -> conn |> put_status(:created) |> json(%{data: po})
+    case Inventory.adjust_stock(branch_id, owner_id, business_id, user.id, params) do
+      {:ok, adj} ->
+        conn
+        |> put_status(:created)
+        |> json(%{
+          data: %{
+            id: adj.id,
+            product_id: adj.product_id,
+            quantity_delta: to_string(adj.quantity_delta),
+            reason_code: adj.reason_code
+          }
+        })
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+    end
+  end
+
+  def list_adjustments(conn, _params) do
+    user = Guardian.Plug.current_resource(conn)
+    business_id = conn.assigns[:business_id]
+    owner_id = conn.assigns[:owner_id] || user.id
+    branch_id = conn.assigns[:branch_id]
+
+    data =
+      branch_id
+      |> Inventory.list_adjustments(owner_id, business_id)
+      |> Enum.map(fn a ->
+        %{
+          id: a.id,
+          product_id: a.product_id,
+          quantity_delta: to_string(a.quantity_delta),
+          reason_code: a.reason_code,
+          notes: a.notes,
+          inserted_at: a.inserted_at
+        }
+      end)
+
+    json(conn, %{data: data})
+  end
+
+  def transfer(conn, params) do
+    user = Guardian.Plug.current_resource(conn)
+    business_id = conn.assigns[:business_id]
+    owner_id = conn.assigns[:owner_id] || user.id
+
+    case Inventory.create_transfer(business_id, owner_id, params) do
+      {:ok, transfer} ->
+        conn |> put_status(:created) |> json(%{data: serialize_transfer(transfer)})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+    end
+  end
+
+  def list_transfers(conn, _params) do
+    user = Guardian.Plug.current_resource(conn)
+    business_id = conn.assigns[:business_id]
+    owner_id = conn.assigns[:owner_id] || user.id
+
+    data =
+      business_id
+      |> Inventory.list_transfers(owner_id)
+      |> Enum.map(&serialize_transfer/1)
+
+    json(conn, %{data: data})
+  end
+
+  def confirm_transfer(conn, %{"id" => id}) do
+    user = Guardian.Plug.current_resource(conn)
+    owner_id = conn.assigns[:owner_id] || user.id
+
+    case Inventory.confirm_transfer(id, owner_id) do
+      {:ok, transfer} -> json(conn, %{data: serialize_transfer(transfer)})
       {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
     end
+  end
+
+  def list_pos(conn, _params) do
+    user = Guardian.Plug.current_resource(conn)
+    business_id = conn.assigns[:business_id]
+    owner_id = conn.assigns[:owner_id] || user.id
+    branch_id = conn.assigns[:branch_id]
+
+    data =
+      Inventory.list_purchase_orders(business_id, owner_id, branch_id: branch_id)
+      |> Enum.map(&serialize_po/1)
+
+    json(conn, %{data: data})
+  end
+
+  def show_po(conn, %{"id" => id}) do
+    user = Guardian.Plug.current_resource(conn)
+    owner_id = conn.assigns[:owner_id] || user.id
+
+    case Inventory.get_purchase_order(id, owner_id) do
+      nil -> conn |> put_status(:not_found) |> json(%{error: "not_found"})
+      po -> json(conn, %{data: serialize_po(po)})
+    end
+  end
+
+  def create_po(conn, params) do
+    user = Guardian.Plug.current_resource(conn)
+    business_id = conn.assigns[:business_id]
+    owner_id = conn.assigns[:owner_id] || user.id
+    branch_id = params["branch_id"] || conn.assigns[:branch_id]
+
+    case Inventory.create_purchase_order(business_id, branch_id, owner_id, params) do
+      {:ok, po} -> conn |> put_status(:created) |> json(%{data: serialize_po(po)})
+      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+    end
+  end
+
+  def update_po_status(conn, %{"id" => id} = params) do
+    user = Guardian.Plug.current_resource(conn)
+    owner_id = conn.assigns[:owner_id] || user.id
+
+    case Inventory.update_purchase_order_status(id, owner_id, params["status"]) do
+      {:ok, po} -> json(conn, %{data: serialize_po(po)})
+      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+    end
+  end
+
+  def list_grn(conn, _params) do
+    user = Guardian.Plug.current_resource(conn)
+    business_id = conn.assigns[:business_id]
+    owner_id = conn.assigns[:owner_id] || user.id
+    branch_id = conn.assigns[:branch_id]
+
+    data =
+      Inventory.list_goods_receipts(business_id, owner_id, branch_id: branch_id)
+      |> Enum.map(&serialize_grn/1)
+
+    json(conn, %{data: data})
   end
 
   def receive_grn(conn, params) do
     user = Guardian.Plug.current_resource(conn)
-    business_id = conn.assigns[:current_business_id]
-    owner_id = conn.assigns[:current_owner_id] || user.id
-    branch_id = params["branch_id"] || conn.assigns[:current_branch_id]
+    business_id = conn.assigns[:business_id]
+    owner_id = conn.assigns[:owner_id] || user.id
+    branch_id = params["branch_id"] || conn.assigns[:branch_id]
 
-    case Inventory.receive_goods(params["purchase_order_id"], branch_id, owner_id, business_id, user.id, atomize(params)) do
-      {:ok, grn} -> conn |> put_status(:created) |> json(%{data: grn})
+    case Inventory.receive_goods(
+           params["purchase_order_id"],
+           branch_id,
+           owner_id,
+           business_id,
+           user.id,
+           params
+         ) do
+      {:ok, grn} -> conn |> put_status(:created) |> json(%{data: serialize_grn(grn)})
       {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
     end
   end
 
-  defp atomize(map) when is_map(map) do
-    Map.new(map, fn
-      {k, v} when is_binary(k) ->
-        key =
-          try do
-            String.to_existing_atom(k)
-          rescue
-            ArgumentError -> String.to_atom(k)
-          end
+  defp serialize_po(po) do
+    po = Kaarobar.Repo.preload(po, [:items, :supplier])
 
-        {key, maybe_atomize_list(v)}
-
-      {k, v} ->
-        {k, maybe_atomize_list(v)}
-    end)
+    %{
+      id: po.id,
+      status: po.status,
+      branch_id: po.branch_id,
+      supplier_id: po.supplier_id,
+      supplier_name: po.supplier && po.supplier.name,
+      notes: po.notes,
+      expected_delivery_date: po.expected_delivery_date,
+      items:
+        Enum.map(po.items || [], fn i ->
+          %{
+            product_id: i.product_id,
+            quantity: to_string(i.quantity),
+            unit_cost: to_string(i.unit_cost)
+          }
+        end)
+    }
   end
 
-  defp maybe_atomize_list(list) when is_list(list), do: Enum.map(list, &atomize_item/1)
-  defp maybe_atomize_list(v), do: v
-  defp atomize_item(map) when is_map(map), do: atomize(map)
-  defp atomize_item(v), do: v
+  defp serialize_grn(gr) do
+    gr = Kaarobar.Repo.preload(gr, [:items])
+
+    %{
+      id: gr.id,
+      status: gr.status,
+      purchase_order_id: gr.purchase_order_id,
+      branch_id: gr.branch_id,
+      notes: gr.notes,
+      items:
+        Enum.map(gr.items || [], fn i ->
+          %{
+            product_id: i.product_id,
+            quantity_received: to_string(i.quantity_received)
+          }
+        end)
+    }
+  end
+
+  defp serialize_transfer(t) do
+    t = Kaarobar.Repo.preload(t, [:items])
+
+    %{
+      id: t.id,
+      status: t.status,
+      from_branch_id: t.from_branch_id,
+      to_branch_id: t.to_branch_id,
+      notes: t.notes,
+      items:
+        Enum.map(t.items || [], fn i ->
+          %{product_id: i.product_id, quantity: to_string(i.quantity)}
+        end)
+    }
+  end
 end

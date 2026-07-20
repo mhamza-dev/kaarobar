@@ -64,7 +64,7 @@ Clients are independently deployable (no shared npm packages). Theme tokens are 
 | MongoDB Atlas | **PostgreSQL** shared database, app-enforced tenant isolation |
 | BullMQ + Redis | **Oban** (Postgres-backed job queue) |
 | React web | **Next.js** web |
-| Electron POS + SQLite outbox | **Electron** + SQLite sync (Phase offline) |
+| Electron POS + SQLite outbox | **Electron** + SQLite sync (offline) |
 | React Native | **Expo / React Native** |
 
 ```
@@ -140,7 +140,9 @@ cd kaarobar-mobile && npm install && npm start
 cd kaarobar-desktop && npm install && npm start
 ```
 
-Demo seed user: `owner@kaarobar.local` / `password123`
+Demo seed user: `owner@kaarobar.local` / `Password@123`
+
+Module docs: [Tenancy](docs/tenancy.md) · [POS](docs/pos.md) · [Returns / tills / procurement](docs/returns-tills-procurement.md) · [Accounting](docs/accounting.md) · [HR & payroll](docs/hr-payroll.md) — web, mobile, and desktop share `/api/v1`; accounting is on web + API; HR includes web + mobile ESS.
 
 ## Non-functional highlights (SRS §9)
 
@@ -155,6 +157,7 @@ Demo seed user: `owner@kaarobar.local` / `password123`
 - [ADR 001 — PostgreSQL multi-tenancy](docs/adr/001-postgres-multi-tenancy.md)
 - [Architecture & module map](docs/architecture.md)
 - [Requirement ID index](docs/requirements-index.md)
+- [Tenancy](docs/tenancy.md) · [POS](docs/pos.md) · [Returns / tills / procurement](docs/returns-tills-procurement.md) · [Accounting](docs/accounting.md) · [HR & payroll](docs/hr-payroll.md)
 
 ## Compliance note
 

@@ -45,7 +45,7 @@ Approximately **86 Must** requirements across modules + NFRs for a Must-only Rel
 | TEN-FR-006/008 | Auth + immutable audit log |
 | POS-FR-001–011 | Cart, tax, split pay, stock, invoice #, returns, discounts, till, offline IDs |
 | INV-FR-001–006/009 | Catalog, stock, transfer, PO, GRN, adjustments |
-| ACC-FR-001/003/004/010 | COA, balanced journals, auto-post, immutability |
+| ACC-FR-001/003–008/010/012/013/015 | COA, journals, GL, TB, P&L, BS, immutability, AR/AP, consolidated |
 | HR-FR-001/002/005/006/008–011 | Employees, attendance, leave, payroll calc/approve/post, ESS |
 | RPT-FR-001/002 | Owner + branch reports |
 | ADM-FR-002/003 | Plan limits + LemonSqueezy |

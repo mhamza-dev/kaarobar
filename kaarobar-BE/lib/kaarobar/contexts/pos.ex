@@ -394,11 +394,16 @@ defmodule Kaarobar.Pos do
   ## —— Returns (POS-FR-007 / 008) ————————————————————————————————
 
   def create_return(sale_id, owner_id, business_id, branch_id, requested_by_id, attrs) do
+    refund_method = attrs[:refund_method] || attrs["refund_method"] || "cash"
+    till_id = attrs[:till_id] || attrs["till_id"]
+
     with %Sale{} = sale <- get_sale(sale_id, owner_id),
          true <- sale.business_id == business_id || {:error, :wrong_business},
          true <- sale.branch_id == branch_id || {:error, :wrong_branch},
          {:ok, branch} <- fetch_branch(branch_id, business_id, owner_id),
          :ok <- validate_return_window(sale, branch),
+         :ok <- validate_refund_method(refund_method),
+         {:ok, till_id} <- resolve_return_till(branch_id, till_id, refund_method),
          {:ok, items} <- normalize_return_items(sale, attrs),
          refund_amount <- Enum.reduce(items, Decimal.new(0), &Decimal.add(&2, &1.amount)),
          status <- return_status(branch, refund_amount) do
@@ -410,19 +415,34 @@ defmodule Kaarobar.Pos do
           owner_id: owner_id,
           business_id: business_id,
           branch_id: branch_id,
+          till_id: till_id,
           requested_by_id: requested_by_id,
           refund_amount: refund_amount,
+          refund_method: refund_method,
           reason: attrs[:reason] || attrs["reason"],
-          status: if(status == "Approved", do: "PendingApproval", else: status),
-          # Insert as Pending first; auto-approve step updates + restores stock
+          status: "PendingApproval"
         })
       end)
       |> Multi.run(:items, fn _repo, %{sale_return: sale_return} ->
         insert_return_items(sale_return.id, items)
       end)
+      |> Multi.run(:audit_create, fn _repo, %{sale_return: sale_return} ->
+        Kaarobar.Audit.log(%{
+          owner_id: owner_id,
+          user_id: requested_by_id,
+          action: "return.create",
+          entity_type: "sale_return",
+          entity_id: sale_return.id,
+          metadata: %{
+            sale_id: sale.id,
+            refund_amount: to_string(refund_amount),
+            status: status
+          }
+        })
+      end)
       |> Multi.run(:finalize, fn _repo, %{sale_return: sale_return} ->
         if status == "Approved" do
-          finalize_return_approval(
+          do_finalize_return(
             Repo.preload(sale_return, [:items, :sale]),
             requested_by_id
           )
@@ -441,6 +461,28 @@ defmodule Kaarobar.Pos do
       false -> {:error, :forbidden}
     end
   end
+
+  defp validate_refund_method(method) when method in ~w(cash card wallet), do: :ok
+  defp validate_refund_method(_), do: {:error, :invalid_refund_method}
+
+  defp resolve_return_till(_branch_id, till_id, "cash") when is_binary(till_id) and till_id != "" do
+    case Repo.get_by(Till, id: till_id, status: "open") do
+      nil -> {:error, :till_required_for_cash_refund}
+      till -> {:ok, till.id}
+    end
+  end
+
+  defp resolve_return_till(branch_id, _till_id, "cash") do
+    case open_till_for_branch(branch_id) do
+      nil -> {:error, :till_required_for_cash_refund}
+      till -> {:ok, till.id}
+    end
+  end
+
+  defp resolve_return_till(_branch_id, till_id, _method) when is_binary(till_id) and till_id != "",
+    do: {:ok, till_id}
+
+  defp resolve_return_till(_, _, _), do: {:ok, nil}
 
   defp return_status(branch, refund_amount) do
     limit = branch.refund_auto_approve_limit || Decimal.new("0")
@@ -562,20 +604,64 @@ defmodule Kaarobar.Pos do
       sale_return.status == "Approved" and not is_nil(sale_return.approved_by_id) ->
         {:ok, sale_return}
 
-      sale_return.status not in ["PendingApproval", "Approved"] ->
+      sale_return.status != "PendingApproval" ->
         {:error, :invalid_status}
 
       true ->
-        finalize_return_approval(sale_return, approved_by_id)
+        case do_finalize_return(sale_return, approved_by_id) do
+          {:ok, ret} ->
+            Kaarobar.Audit.log(%{
+              owner_id: sale_return.owner_id,
+              user_id: approved_by_id,
+              action: "return.approve",
+              entity_type: "sale_return",
+              entity_id: ret.id,
+              metadata: %{refund_amount: to_string(ret.refund_amount)}
+            })
+
+            {:ok, ret}
+
+          err ->
+            err
+        end
     end
   end
 
-  defp finalize_return_approval(sale_return, approved_by_id) do
-    # When already Approved without approved_by (shouldn't happen), treat as idempotent below.
-    if sale_return.status == "Approved" and not is_nil(sale_return.approved_by_id) do
-      {:ok, Repo.preload(sale_return, [:items])}
-    else
-      do_finalize_return(sale_return, approved_by_id)
+  def reject_return(return_id, rejected_by_id, owner_id, reason \\ nil) do
+    sale_return = Repo.get_by(SaleReturn, id: return_id, owner_id: owner_id)
+
+    cond do
+      is_nil(sale_return) ->
+        {:error, :not_found}
+
+      sale_return.status != "PendingApproval" ->
+        {:error, :invalid_status}
+
+      true ->
+        Multi.new()
+        |> Multi.update(
+          :reject,
+          SaleReturn.changeset(sale_return, %{
+            status: "Rejected",
+            rejected_by_id: rejected_by_id,
+            rejection_reason: reason
+          })
+        )
+        |> Multi.run(:audit, fn _repo, %{reject: ret} ->
+          Kaarobar.Audit.log(%{
+            owner_id: owner_id,
+            user_id: rejected_by_id,
+            action: "return.reject",
+            entity_type: "sale_return",
+            entity_id: ret.id,
+            metadata: %{reason: reason}
+          })
+        end)
+        |> Repo.transaction()
+        |> case do
+          {:ok, %{reject: ret}} -> {:ok, Repo.preload(ret, [:items])}
+          {:error, _op, reason, _} -> {:error, reason}
+        end
     end
   end
 
@@ -589,28 +675,34 @@ defmodule Kaarobar.Pos do
     )
     |> Multi.run(:restore_stock, fn _repo, _ ->
       Enum.reduce_while(sale_return.items, {:ok, :restored}, fn item, acc ->
-        case Repo.get_by(InventoryRecord,
-               branch_id: sale_return.branch_id,
-               product_id: item.product_id
-             ) do
-          nil ->
-            {:halt, {:error, {:inventory_missing, item.product_id}}}
+        {count, _} =
+          from(i in InventoryRecord,
+            where: i.branch_id == ^sale_return.branch_id and i.product_id == ^item.product_id,
+            update: [
+              set: [quantity_on_hand: fragment("quantity_on_hand + ?", ^item.quantity)]
+            ]
+          )
+          |> Repo.update_all([])
 
-          inventory ->
-            inventory
-            |> InventoryRecord.changeset(%{
-              quantity_on_hand: Decimal.add(inventory.quantity_on_hand, item.quantity)
-            })
-            |> Repo.update()
-            |> case do
-              {:ok, _} -> {:cont, acc}
-              {:error, cs} -> {:halt, {:error, cs}}
-            end
+        if count == 1 do
+          {:cont, acc}
+        else
+          {:halt, {:error, {:inventory_missing, item.product_id}}}
         end
       end)
     end)
     |> Multi.run(:update_sale_status, fn _repo, _ ->
       update_sale_refund_status(sale_return.sale_id)
+    end)
+    |> Multi.run(:enqueue_journal, fn _repo, %{approve: ret} ->
+      %{
+        return_id: ret.id,
+        business_id: sale_return.business_id,
+        owner_id: sale_return.owner_id,
+        posted_by_id: approved_by_id
+      }
+      |> Kaarobar.Workers.PostReturnJournalWorker.new()
+      |> Oban.insert()
     end)
     |> Repo.transaction()
     |> case do
@@ -662,17 +754,34 @@ defmodule Kaarobar.Pos do
   def open_till(branch_id, owner_id, business_id, cashier_id, opening_cash) do
     with {:ok, _} <- fetch_branch(branch_id, business_id, owner_id),
          nil <- open_till_for_branch(branch_id) do
-      %Till{}
-      |> Till.changeset(%{
-        branch_id: branch_id,
-        owner_id: owner_id,
-        business_id: business_id,
-        cashier_id: cashier_id,
-        opened_at: DateTime.utc_now() |> DateTime.truncate(:second),
-        opening_cash: to_dec(opening_cash),
-        status: "open"
-      })
-      |> Repo.insert()
+      Multi.new()
+      |> Multi.insert(:till, fn _ ->
+        %Till{}
+        |> Till.changeset(%{
+          branch_id: branch_id,
+          owner_id: owner_id,
+          business_id: business_id,
+          cashier_id: cashier_id,
+          opened_at: DateTime.utc_now() |> DateTime.truncate(:second),
+          opening_cash: to_dec(opening_cash),
+          status: "open"
+        })
+      end)
+      |> Multi.run(:audit, fn _repo, %{till: till} ->
+        Kaarobar.Audit.log(%{
+          owner_id: owner_id,
+          user_id: cashier_id,
+          action: "till.open",
+          entity_type: "till",
+          entity_id: till.id,
+          metadata: %{opening_cash: to_string(till.opening_cash), branch_id: branch_id}
+        })
+      end)
+      |> Repo.transaction()
+      |> case do
+        {:ok, %{till: till}} -> {:ok, till}
+        {:error, _op, reason, _} -> {:error, reason}
+      end
     else
       %Till{} -> {:error, :till_already_open}
       {:error, _} = err -> err
@@ -694,8 +803,8 @@ defmodule Kaarobar.Pos do
 
       cash_refunds =
         from(r in SaleReturn,
-          where: r.branch_id == ^till.branch_id and r.status == "Approved" and
-                   r.inserted_at >= ^till.opened_at,
+          where:
+            r.till_id == ^till_id and r.status == "Approved" and r.refund_method == "cash",
           select: coalesce(sum(r.refund_amount), 0)
         )
         |> Repo.one()
@@ -709,15 +818,36 @@ defmodule Kaarobar.Pos do
       closing = to_dec(closing_cash)
       over_short = Decimal.sub(closing, expected) |> Decimal.round(2)
 
-      till
-      |> Till.changeset(%{
-        closed_at: DateTime.utc_now() |> DateTime.truncate(:second),
-        closing_cash: closing,
-        expected_cash: expected,
-        over_short: over_short,
-        status: "closed"
-      })
-      |> Repo.update()
+      Multi.new()
+      |> Multi.update(
+        :till,
+        Till.changeset(till, %{
+          closed_at: DateTime.utc_now() |> DateTime.truncate(:second),
+          closing_cash: closing,
+          expected_cash: expected,
+          over_short: over_short,
+          status: "closed"
+        })
+      )
+      |> Multi.run(:audit, fn _repo, %{till: closed} ->
+        Kaarobar.Audit.log(%{
+          owner_id: owner_id,
+          user_id: till.cashier_id,
+          action: "till.close",
+          entity_type: "till",
+          entity_id: closed.id,
+          metadata: %{
+            expected_cash: to_string(expected),
+            closing_cash: to_string(closing),
+            over_short: to_string(over_short)
+          }
+        })
+      end)
+      |> Repo.transaction()
+      |> case do
+        {:ok, %{till: closed}} -> {:ok, closed}
+        {:error, _op, reason, _} -> {:error, reason}
+      end
     else
       {:error, :invalid_till}
     end
@@ -725,6 +855,53 @@ defmodule Kaarobar.Pos do
 
   def open_till_for_branch(branch_id) do
     Repo.get_by(Till, branch_id: branch_id, status: "open")
+  end
+
+  def list_tills(branch_id, owner_id, business_id) do
+    Till
+    |> where(
+      [t],
+      t.branch_id == ^branch_id and t.owner_id == ^owner_id and t.business_id == ^business_id
+    )
+    |> order_by([t], desc: t.opened_at)
+    |> Repo.all()
+  end
+
+  def get_till(till_id, owner_id) do
+    Repo.get_by(Till, id: till_id, owner_id: owner_id)
+  end
+
+  def list_returns(branch_id, owner_id, business_id, opts \\ []) do
+    status = Keyword.get(opts, :status)
+
+    query =
+      SaleReturn
+      |> where(
+        [r],
+        r.branch_id == ^branch_id and r.owner_id == ^owner_id and r.business_id == ^business_id
+      )
+      |> order_by([r], desc: r.inserted_at)
+      |> preload([:items])
+
+    query =
+      if status do
+        where(query, [r], r.status == ^status)
+      else
+        query
+      end
+
+    Repo.all(query)
+  end
+
+  def list_pending_returns(branch_id, owner_id, business_id) do
+    list_returns(branch_id, owner_id, business_id, status: "PendingApproval")
+  end
+
+  def get_return(return_id, owner_id) do
+    SaleReturn
+    |> where([r], r.id == ^return_id and r.owner_id == ^owner_id)
+    |> preload([:items, :sale])
+    |> Repo.one()
   end
 
   ## —— Queries ——————————————————————————————————————————————————
@@ -769,7 +946,21 @@ defmodule Kaarobar.Pos do
 
   defp to_dec(%Decimal{} = d), do: d
   defp to_dec(nil), do: Decimal.new(0)
-  defp to_dec(v), do: Decimal.new("#{v}")
+  defp to_dec(v) when is_integer(v), do: Decimal.new(v)
+  defp to_dec(v) when is_float(v), do: Decimal.from_float(v)
+
+  defp to_dec(v) do
+    cleaned =
+      "#{v}"
+      |> String.trim()
+      |> String.replace(",", "")
+      |> String.replace(" ", "")
+
+    case cleaned do
+      "" -> Decimal.new(0)
+      _ -> Decimal.new(cleaned)
+    end
+  end
 
   defp max_dec(a, b) do
     if Decimal.compare(a, b) == :lt, do: b, else: a

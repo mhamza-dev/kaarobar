@@ -13,7 +13,17 @@ export default function RootLayout() {
           headerTitleStyle: { fontWeight: "700" },
           contentStyle: { backgroundColor: colors.bgPrimary },
         }}
-      />
+      >
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="landing" options={{ title: "Kaarobar" }} />
+        <Stack.Screen name="login" options={{ title: "Sign in" }} />
+        <Stack.Screen name="signup" options={{ title: "Create account" }} />
+        <Stack.Screen name="dashboard" options={{ title: "Dashboard" }} />
+        <Stack.Screen name="pos" options={{ title: "POS" }} />
+        <Stack.Screen name="returns" options={{ title: "Returns" }} />
+        <Stack.Screen name="inventory" options={{ title: "Inventory" }} />
+        <Stack.Screen name="ess" options={{ title: "Staff tools" }} />
+      </Stack>
     </>
   );
 }

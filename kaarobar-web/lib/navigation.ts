@@ -55,6 +55,7 @@ export const routes = {
   forgotPassword: "/forgot-password",
   app: "/app",
   pos: "/app/pos",
+  returns: "/app/returns",
   inventory: "/app/inventory",
   accounting: "/app/accounting",
   hr: "/app/hr",
@@ -71,6 +72,7 @@ export const routes = {
 export const appNav = [
   { title: "Dashboard", href: "/app" },
   { title: "POS", href: "/app/pos" },
+  { title: "Returns", href: "/app/returns" },
   { title: "Inventory", href: "/app/inventory" },
   { title: "Accounting", href: "/app/accounting" },
   { title: "HR", href: "/app/hr" },
