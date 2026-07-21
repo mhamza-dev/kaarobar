@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
-import { Alert, PageHeader, SurfaceCard } from "@/components/app/ui";
+import { PageHeader, SurfaceCard } from "@/components/app/ui";
+import { useToast } from "@/components/ui/Toast";
+import { useT } from "@/lib/i18n";
 
 type Usage = {
   subscription: {
@@ -22,13 +24,12 @@ type Usage = {
 type Business = { id: string; name: string; fbr_tier1?: boolean };
 
 export default function SettingsPage() {
+  const t = useT();
+  const toast = useToast();
   const [usage, setUsage] = useState<Usage | null>(null);
   const [businesses, setBusinesses] = useState<Business[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    setError(null);
     try {
       const [bill, biz] = await Promise.all([
         api<{ data: Usage }>("/billing/subscription"),
@@ -37,9 +38,9 @@ export default function SettingsPage() {
       setUsage(bill.data);
       setBusinesses(biz.data || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load settings");
+      toast.error(err instanceof Error ? err.message : t("settings.loadFailed"));
     }
-  }, []);
+  }, [t, toast]);
 
   useEffect(() => {
     load();
@@ -51,10 +52,14 @@ export default function SettingsPage() {
         method: "PATCH",
         body: JSON.stringify({ fbr_tier1: !b.fbr_tier1 }),
       });
-      setMessage(`FBR Tier-1 ${!b.fbr_tier1 ? "enabled" : "disabled"} for ${b.name}`);
+      toast.success(
+        t(!b.fbr_tier1 ? "settings.fbrEnabled" : "settings.fbrDisabled", {
+          name: b.name,
+        })
+      );
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Update failed");
+      toast.error(err instanceof Error ? err.message : t("common.updateFailed"));
     }
   }
 
@@ -63,26 +68,24 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Workspace"
-        title="Settings"
-        description="Plan limits, billing, and FBR reporting flags. Switch business or branch from the top bar."
+        eyebrow={t("common.workspace")}
+        title={t("pages.settingsTitle")}
+        description={t("pages.settingsDesc")}
       />
-
-      {error ? <Alert tone="error">{error}</Alert> : null}
-      {message ? <Alert tone="success">{message}</Alert> : null}
 
       {sub ? (
         <SurfaceCard className="p-5">
-          <h2 className="font-semibold text-heading">Subscription</h2>
+          <h2 className="font-semibold text-heading">{t("settings.subscription")}</h2>
           <p className="mt-1 text-body">
-            Plan <strong className="text-heading">{sub.plan}</strong> · {sub.status}
+            {t("settings.plan")}{" "}
+            <strong className="text-heading">{sub.plan}</strong> · {sub.status}
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             {(
               [
-                ["Businesses", usage!.usage.businesses, usage!.limits.max_businesses],
-                ["Branches", usage!.usage.branches, usage!.limits.max_branches],
-                ["Users", usage!.usage.users, usage!.limits.max_users],
+                [t("settings.businesses"), usage!.usage.businesses, usage!.limits.max_businesses],
+                [t("settings.branches"), usage!.usage.branches, usage!.limits.max_branches],
+                [t("settings.users"), usage!.usage.users, usage!.limits.max_users],
               ] as const
             ).map(([label, used, max]) => (
               <div key={label} className="rounded-md border border-border bg-card-muted p-3">
@@ -100,23 +103,18 @@ export default function SettingsPage() {
               rel="noreferrer"
               className="mt-4 inline-block rounded-md bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground"
             >
-              Manage billing
+              {t("settings.manageBilling")}
             </a>
           ) : (
-            <p className="mt-4 text-sm text-body">
-              Checkout URL not configured (`LEMONSQUEEZY_CHECKOUT_URL`).
-            </p>
+            <p className="mt-4 text-sm text-body">{t("settings.billingNotConfigured")}</p>
           )}
         </SurfaceCard>
       ) : null}
 
-      <SurfaceCard className="p-5">
-        <h2 className="font-semibold text-heading">FBR Tier-1</h2>
-        <p className="mt-1 text-sm text-body">
-          When enabled, completed sales enqueue an async FBR report and store invoice + QR payload on
-          the receipt.
-        </p>
-        <ul className="mt-4 space-y-2">
+      <SurfaceCard className="flex flex-col p-5">
+        <h2 className="shrink-0 font-semibold text-heading">{t("settings.fbrTitle")}</h2>
+        <p className="mt-1 shrink-0 text-sm text-body">{t("settings.fbrDesc")}</p>
+        <ul className="mt-4 max-h-[min(28rem,50vh)] space-y-0 overflow-y-auto">
           {businesses.map((b) => (
             <li
               key={b.id}
@@ -132,7 +130,7 @@ export default function SettingsPage() {
                     : "border border-border text-heading hover:bg-bg-hover"
                 }`}
               >
-                {b.fbr_tier1 ? "Enabled" : "Disabled"}
+                {b.fbr_tier1 ? t("common.enabled") : t("common.disabled")}
               </button>
             </li>
           ))}

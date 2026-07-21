@@ -19,7 +19,7 @@ import TermsModal from "@/components/modals/TermsModal";
 import PrivacyPolicyModal from "@/components/modals/PrivacyPolicyModal";
 import { authMethodOptions } from "@/components/auth/auth-method-options";
 import { signupSchema } from "@/lib/validations/auth";
-import { api, setSession } from "@/lib/api/client";
+import { api, bootstrapTenantSession, setSession } from "@/lib/api/client";
 import { useI18n, type Locale } from "@/lib/i18n";
 
 interface SignupFormValues {
@@ -86,6 +86,10 @@ const SignupForm = (): React.ReactElement => {
       if (result.user.locale === "ur" || result.user.locale === "en") {
         setLocale(result.user.locale);
       }
+      await bootstrapTenantSession({
+        access_token: result.access_token,
+        user: result.user,
+      });
       router.push("/app");
     } catch (error) {
       setFormError(error instanceof Error ? error.message : "Signup failed");

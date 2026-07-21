@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { LocaleProvider } from "@/lib/i18n";
+import { ToastProvider } from "@/components/ui/Toast";
 
 interface LayoutWrapperProps {
   children: ReactNode;
@@ -25,9 +26,19 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
 
   return (
     <LocaleProvider>
-      {showNavbar && <Navbar />}
-      <main className="flex-1">{children}</main>
-      {showFooter && <Footer />}
+      <ToastProvider>
+        {showNavbar && <Navbar />}
+        <main
+          className={
+            pathname.startsWith("/app")
+              ? "flex min-h-0 flex-1 flex-col"
+              : "flex-1"
+          }
+        >
+          {children}
+        </main>
+        {showFooter && <Footer />}
+      </ToastProvider>
     </LocaleProvider>
   );
 }

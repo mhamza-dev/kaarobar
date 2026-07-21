@@ -25,7 +25,15 @@ type StockRow = {
   quantity_on_hand: string;
   avg_cost: string;
 };
-type Supplier = { id: string; name: string };
+type Supplier = {
+  id: string;
+  name: string;
+  contact_name?: string | null;
+  contact_phone?: string | null;
+  city?: string | null;
+  catalogs?: string[];
+  status?: string;
+};
 type PO = {
   id: string;
   status: string;
@@ -65,7 +73,16 @@ export default function InventoryScreen() {
     type: string;
   } | null>(null);
   const [scanOpen, setScanOpen] = useState(false);
-  const [supplierName, setSupplierName] = useState("");
+  const [supplierForm, setSupplierForm] = useState({
+    name: "",
+    contact_name: "",
+    contact_role: "",
+    contact_phone: "",
+    contact_email: "",
+    city: "",
+    payment_terms: "Net 30",
+    catalogs: "",
+  });
 
   const [poForm, setPoForm] = useState({
     supplier_id: "",
@@ -176,9 +193,33 @@ export default function InventoryScreen() {
     try {
       await api("/suppliers", {
         method: "POST",
-        body: JSON.stringify({ name: supplierName }),
+        body: JSON.stringify({
+          name: supplierForm.name.trim(),
+          contact_name: supplierForm.contact_name.trim() || null,
+          contact_role: supplierForm.contact_role.trim() || null,
+          contact_phone: supplierForm.contact_phone.trim() || null,
+          contact_email: supplierForm.contact_email.trim() || null,
+          city: supplierForm.city.trim() || null,
+          payment_terms: supplierForm.payment_terms.trim() || null,
+          catalogs: supplierForm.catalogs
+            .split(",")
+            .map((x) => x.trim())
+            .filter(Boolean),
+          country: "PK",
+          currency: "PKR",
+          status: "active",
+        }),
       });
-      setSupplierName("");
+      setSupplierForm({
+        name: "",
+        contact_name: "",
+        contact_role: "",
+        contact_phone: "",
+        contact_email: "",
+        city: "",
+        payment_terms: "Net 30",
+        catalogs: "",
+      });
       setModal(null);
       setMessage("Supplier added");
       setTab("suppliers");
@@ -359,9 +400,16 @@ export default function InventoryScreen() {
       {tab === "suppliers" ? (
         <View style={styles.card}>
           {suppliers.map((s) => (
-            <Text key={s.id} style={styles.body}>
-              {s.name}
-            </Text>
+            <View key={s.id} style={{ marginBottom: 10 }}>
+              <Text style={[styles.body, { fontWeight: "700" }]}>{s.name}</Text>
+              <Text style={styles.hint}>
+                {[s.contact_name, s.contact_phone, s.city].filter(Boolean).join(" · ") ||
+                  "No contact yet"}
+              </Text>
+              {(s.catalogs || []).length > 0 ? (
+                <Text style={styles.hint}>{(s.catalogs || []).join(", ")}</Text>
+              ) : null}
+            </View>
           ))}
         </View>
       ) : null}
@@ -622,16 +670,68 @@ export default function InventoryScreen() {
       <FormModal
         visible={modal === "supplier"}
         title="Add supplier"
-        subtitle="Suppliers appear when you raise purchase orders."
+        subtitle="Company, contact person, and catalogs."
         onClose={() => setModal(null)}
         onSubmit={createSupplier}
         submitLabel="Add supplier"
       >
         <TextInput
           style={styles.input}
-          placeholder="Supplier name"
-          value={supplierName}
-          onChangeText={setSupplierName}
+          placeholder="Company / trade name *"
+          value={supplierForm.name}
+          onChangeText={(v) => setSupplierForm({ ...supplierForm, name: v })}
+          placeholderTextColor={colors.muted}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Contact person"
+          value={supplierForm.contact_name}
+          onChangeText={(v) => setSupplierForm({ ...supplierForm, contact_name: v })}
+          placeholderTextColor={colors.muted}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Role (e.g. Account manager)"
+          value={supplierForm.contact_role}
+          onChangeText={(v) => setSupplierForm({ ...supplierForm, contact_role: v })}
+          placeholderTextColor={colors.muted}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Phone"
+          value={supplierForm.contact_phone}
+          onChangeText={(v) => setSupplierForm({ ...supplierForm, contact_phone: v })}
+          keyboardType="phone-pad"
+          placeholderTextColor={colors.muted}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          value={supplierForm.contact_email}
+          onChangeText={(v) => setSupplierForm({ ...supplierForm, contact_email: v })}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          placeholderTextColor={colors.muted}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="City"
+          value={supplierForm.city}
+          onChangeText={(v) => setSupplierForm({ ...supplierForm, city: v })}
+          placeholderTextColor={colors.muted}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Payment terms (Net 30)"
+          value={supplierForm.payment_terms}
+          onChangeText={(v) => setSupplierForm({ ...supplierForm, payment_terms: v })}
+          placeholderTextColor={colors.muted}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Catalogs (comma-separated)"
+          value={supplierForm.catalogs}
+          onChangeText={(v) => setSupplierForm({ ...supplierForm, catalogs: v })}
           placeholderTextColor={colors.muted}
         />
       </FormModal>

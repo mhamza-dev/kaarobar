@@ -1,10 +1,12 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { colors } from "../lib/api";
+import { ToastProvider } from "../components/Toast";
+import { t } from "../lib/i18n";
 
 export default function RootLayout() {
   return (
-    <>
+    <ToastProvider>
       <StatusBar style="dark" />
       <Stack
         screenOptions={{
@@ -15,16 +17,16 @@ export default function RootLayout() {
         }}
       >
         <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="landing" options={{ title: "Kaarobar" }} />
-        <Stack.Screen name="login" options={{ title: "Sign in" }} />
-        <Stack.Screen name="signup" options={{ title: "Create account" }} />
-        <Stack.Screen name="dashboard" options={{ title: "Dashboard" }} />
-        <Stack.Screen name="pos" options={{ title: "POS" }} />
-        <Stack.Screen name="returns" options={{ title: "Returns" }} />
-        <Stack.Screen name="inventory" options={{ title: "Inventory" }} />
-        <Stack.Screen name="ess" options={{ title: "Staff tools" }} />
-        <Stack.Screen name="profile" options={{ title: "Profile" }} />
+        <Stack.Screen name="landing" options={{ title: t("mobile.landingTitle") }} />
+        <Stack.Screen name="login" options={{ title: t("auth.signInTitle") }} />
+        <Stack.Screen name="signup" options={{ title: t("auth.signUpTitle") }} />
+        <Stack.Screen name="dashboard" options={{ title: t("nav.dashboard") }} />
+        <Stack.Screen name="pos" options={{ title: t("nav.pos") }} />
+        <Stack.Screen name="returns" options={{ title: t("nav.returns") }} />
+        <Stack.Screen name="inventory" options={{ title: t("nav.inventory") }} />
+        <Stack.Screen name="ess" options={{ title: t("nav.ess") }} />
+        <Stack.Screen name="profile" options={{ title: t("nav.profile") }} />
       </Stack>
-    </>
+    </ToastProvider>
   );
 }

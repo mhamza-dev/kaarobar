@@ -17,6 +17,7 @@ import {
   type Session,
 } from "../lib/api";
 import { loadLocale, setLocale, t } from "../lib/i18n";
+import { useToast } from "../components/Toast";
 
 type Dashboard = {
   sales_today: string;
@@ -29,11 +30,11 @@ type Business = { id: string; name: string };
 type Branch = { id: string; name: string };
 
 export default function DashboardScreen() {
+  const toast = useToast();
   const [session, setLocal] = useState<Session | null>(null);
   const [dash, setDash] = useState<Dashboard | null>(null);
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
-  const [error, setError] = useState<string | null>(null);
 
   async function hydrate(s: Session) {
     const bizRes = await api<{ data: Business[] }>("/businesses", {}, s);
@@ -83,7 +84,7 @@ export default function DashboardScreen() {
       try {
         await hydrate(s);
       } catch (err) {
-        setError(err instanceof Error ? err.message : t("common.error"));
+        toast.error(err instanceof Error ? err.message : t("common.error"));
       }
     })();
   }, []);
@@ -112,7 +113,7 @@ export default function DashboardScreen() {
         setDash(res.data);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to switch business");
+      toast.error(err instanceof Error ? err.message : t("common.error"));
     }
   }
 
@@ -125,7 +126,7 @@ export default function DashboardScreen() {
       const res = await api<{ data: Dashboard }>("/reports/dashboard", {}, next);
       setDash(res.data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to switch branch");
+      toast.error(err instanceof Error ? err.message : t("common.error"));
     }
   }
 
@@ -157,8 +158,6 @@ export default function DashboardScreen() {
       <Text style={styles.hint}>
         {session.user.name} · {t("pages.dashboardDesc")}
       </Text>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-
       <Text style={styles.section}>{t("tenant.business")}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View style={styles.chips}>

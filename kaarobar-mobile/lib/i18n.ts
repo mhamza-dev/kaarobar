@@ -1,7 +1,7 @@
 import { I18nManager } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import en from "./en.json";
-import ur from "./ur.json";
+import en from "./i18n/en.json";
+import ur from "./i18n/ur.json";
 
 export type Locale = "en" | "ur";
 

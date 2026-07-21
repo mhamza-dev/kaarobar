@@ -11,11 +11,11 @@ import {
 } from "react-native";
 import { api, colors, getSession, setSession } from "../lib/api";
 import { getLocale, loadLocale, setLocale, t, type Locale } from "../lib/i18n";
+import { useToast } from "../components/Toast";
 
 export default function ProfileScreen() {
+  const toast = useToast();
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
   const [form, setForm] = useState({
     name: "",
@@ -55,15 +55,13 @@ export default function ProfileScreen() {
         await setLocale(locale);
         refresh();
       } catch (err) {
-        setError(err instanceof Error ? err.message : t("profile.loadError"));
+        toast.error(err instanceof Error ? err.message : t("profile.loadError"));
       }
     })();
   }, [refresh]);
 
   async function onSave() {
     setBusy(true);
-    setError(null);
-    setMessage(null);
     try {
       const body: Record<string, string> = {
         name: form.name.trim(),
@@ -100,10 +98,10 @@ export default function ProfileScreen() {
       }
       await setLocale(res.user.locale === "ur" ? "ur" : "en");
       setForm((f) => ({ ...f, password: "" }));
-      setMessage(t("profile.saved"));
+      toast.success(t("profile.saved"));
       refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("common.error"));
+      toast.error(err instanceof Error ? err.message : t("common.error"));
     } finally {
       setBusy(false);
     }
@@ -120,9 +118,6 @@ export default function ProfileScreen() {
         <Text style={styles.eyebrow}>{t("profile.eyebrow")}</Text>
         <Text style={styles.title}>{t("profile.title")}</Text>
         <Text style={styles.sub}>{t("profile.description")}</Text>
-
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        {message ? <Text style={styles.ok}>{message}</Text> : null}
 
         <Text style={styles.label}>{t("profile.name")}</Text>
         <TextInput

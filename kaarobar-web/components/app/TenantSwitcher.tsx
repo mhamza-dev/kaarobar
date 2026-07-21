@@ -8,7 +8,7 @@ type Business = { id: string; name: string; industry?: string };
 type Branch = { id: string; name: string; business_id: string };
 
 const selectClass =
-  "h-9 max-w-[min(42vw,220px)] appearance-none truncate rounded-md border border-white/10 bg-white/5 py-1.5 pl-8 pr-7 text-xs font-semibold text-white outline-none transition hover:bg-white/10 focus:border-brand focus:ring-1 focus:ring-brand";
+  "h-9 max-w-[min(42vw,220px)] appearance-none truncate rounded-md border border-rail-border bg-card py-1.5 pl-8 pr-7 text-xs font-semibold text-heading outline-none transition hover:bg-rail-hover focus:border-brand focus:ring-1 focus:ring-brand";
 
 export default function TenantSwitcher() {
   const [businesses, setBusinesses] = useState<Business[]>([]);
@@ -101,7 +101,7 @@ export default function TenantSwitcher() {
 
   if (loading && !businessId) {
     return (
-      <div className="h-9 w-40 animate-pulse rounded-md bg-white/10 sm:w-72" />
+      <div className="h-9 w-40 animate-pulse rounded-md bg-rail-hover sm:w-72" />
     );
   }
 
@@ -109,7 +109,7 @@ export default function TenantSwitcher() {
     <div className="flex min-w-0 items-center gap-2">
       <label className="relative min-w-0">
         <span className="sr-only">Business</span>
-        <Building2 className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-sidebar-muted" />
+        <Building2 className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-rail-muted" />
         <select
           className={selectClass}
           value={businessId}
@@ -127,12 +127,12 @@ export default function TenantSwitcher() {
             ))
           )}
         </select>
-        <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-sidebar-muted" />
+        <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-rail-muted" />
       </label>
 
       <label className="relative min-w-0">
         <span className="sr-only">Branch</span>
-        <MapPin className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-sidebar-muted" />
+        <MapPin className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-rail-muted" />
         <select
           className={selectClass}
           value={branchId}
@@ -150,7 +150,7 @@ export default function TenantSwitcher() {
             ))
           )}
         </select>
-        <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-sidebar-muted" />
+        <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-rail-muted" />
       </label>
     </div>
   );

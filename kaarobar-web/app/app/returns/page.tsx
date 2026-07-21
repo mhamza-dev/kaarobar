@@ -5,12 +5,13 @@ import { api, getSession } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import {
-  Alert,
   PageHeader,
   StatusBadge,
   SurfaceCard,
   fieldClass,
 } from "@/components/app/ui";
+import { useToast } from "@/components/ui/Toast";
+import { useT } from "@/lib/i18n";
 
 type SaleItem = {
   product_id: string;
@@ -48,6 +49,8 @@ type Till = {
 };
 
 export default function ReturnsPage() {
+  const t = useT();
+  const toast = useToast();
   const [saleId, setSaleId] = useState("");
   const [sale, setSale] = useState<Sale | null>(null);
   const [qtyByProduct, setQtyByProduct] = useState<Record<string, string>>({});
@@ -56,7 +59,6 @@ export default function ReturnsPage() {
   const [pending, setPending] = useState<ReturnRow[]>([]);
   const [returns, setReturns] = useState<ReturnRow[]>([]);
   const [tills, setTills] = useState<Till[]>([]);
-  const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const reload = useCallback(async () => {
@@ -70,9 +72,9 @@ export default function ReturnsPage() {
       setReturns(r.data || []);
       setTills(t.data || []);
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Failed to load");
+      toast.error(err instanceof Error ? err.message : t("returns.loadFailed"));
     }
-  }, []);
+  }, [t, toast]);
 
   useEffect(() => {
     reload();
@@ -80,7 +82,6 @@ export default function ReturnsPage() {
 
   async function lookupSale(e: React.FormEvent) {
     e.preventDefault();
-    setMessage(null);
     setBusy(true);
     try {
       const res = await api<{ data: Sale }>(`/sales/${saleId.trim()}`);
@@ -92,7 +93,7 @@ export default function ReturnsPage() {
       setQtyByProduct(initial);
     } catch (err) {
       setSale(null);
-      setMessage(err instanceof Error ? err.message : "Sale not found");
+      toast.error(err instanceof Error ? err.message : t("common.error"));
     } finally {
       setBusy(false);
     }
@@ -107,12 +108,11 @@ export default function ReturnsPage() {
       .map(([product_id, quantity]) => ({ product_id, quantity }));
 
     if (items.length === 0) {
-      setMessage("Enter at least one return quantity");
+      toast.warning(t("common.quantity"));
       return;
     }
 
     setBusy(true);
-    setMessage(null);
     try {
       const res = await api<{ data: ReturnRow }>("/returns", {
         method: "POST",
@@ -124,12 +124,12 @@ export default function ReturnsPage() {
           items,
         }),
       });
-      setMessage(`Return ${res.data.status} · Rs ${res.data.refund_amount}`);
+      toast.success(`${t("returns.returnSubmitted")} · ${res.data.refund_amount}`);
       setSale(null);
       setSaleId("");
       await reload();
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Return failed");
+      toast.error(err instanceof Error ? err.message : t("common.error"));
     } finally {
       setBusy(false);
     }
@@ -140,9 +140,9 @@ export default function ReturnsPage() {
     try {
       await api(`/returns/${id}/approve`, { method: "POST", body: "{}" });
       await reload();
-      setMessage("Return approved");
+      toast.success(t("returns.returnApproved"));
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Approve failed");
+      toast.error(err instanceof Error ? err.message : t("common.error"));
     } finally {
       setBusy(false);
     }
@@ -156,9 +156,9 @@ export default function ReturnsPage() {
         body: JSON.stringify({ reason: "Rejected by manager" }),
       });
       await reload();
-      setMessage("Return rejected");
+      toast.success(t("returns.returnRejected"));
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Reject failed");
+      toast.error(err instanceof Error ? err.message : t("common.error"));
     } finally {
       setBusy(false);
     }
@@ -167,11 +167,10 @@ export default function ReturnsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Cashier"
-        title="Returns & tills"
-        description="Process refunds, approve pending returns, and review till history."
+        eyebrow={t("returns.eyebrow")}
+        title={t("pages.returnsTitle")}
+        description={t("pages.returnsDesc")}
       />
-      {message ? <Alert>{message}</Alert> : null}
 
       <SurfaceCard className="p-5">
         <h2 className="font-semibold text-heading">Create return</h2>

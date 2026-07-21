@@ -4,7 +4,7 @@ defmodule Kaarobar.Inventory do
   alias Kaarobar.Schemas.{
     ProductBranchPrice, InventoryRecord,
     PurchaseOrder, PurchaseOrderItem, GoodsReceipt, GoodsReceiptItem,
-    StockTransfer, StockTransferItem, StockAdjustment
+    StockTransfer, StockTransferItem, StockAdjustment, Supplier
   }
   alias Ecto.Multi
 
@@ -666,5 +666,42 @@ defmodule Kaarobar.Inventory do
     )
     |> order_by([a], desc: a.inserted_at)
     |> Repo.all()
+  end
+
+  # --- Suppliers ---
+
+  def list_suppliers(business_id, owner_id) do
+    Supplier
+    |> where([s], s.business_id == ^business_id and s.owner_id == ^owner_id)
+    |> order_by([s], asc: s.name)
+    |> Repo.all()
+  end
+
+  def get_supplier(id, business_id, owner_id) do
+    Repo.get_by(Supplier, id: id, business_id: business_id, owner_id: owner_id)
+  end
+
+  def create_supplier(business_id, owner_id, attrs) do
+    attrs =
+      attrs
+      |> stringify_keys()
+      |> Map.merge(%{"business_id" => business_id, "owner_id" => owner_id})
+
+    %Supplier{}
+    |> Supplier.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  def update_supplier(%Supplier{} = supplier, attrs) do
+    supplier
+    |> Supplier.changeset(stringify_keys(attrs))
+    |> Repo.update()
+  end
+
+  defp stringify_keys(attrs) when is_map(attrs) do
+    Map.new(attrs, fn
+      {k, v} when is_atom(k) -> {Atom.to_string(k), v}
+      {k, v} -> {k, v}
+    end)
   end
 end

@@ -98,6 +98,12 @@ function t(key, vars) {
   return window.KaarobarI18n ? window.KaarobarI18n.t(key, vars) : key;
 }
 
+function notify(message, type = "info") {
+  if (window.KaarobarToast) {
+    window.KaarobarToast.show(message, { type });
+  }
+}
+
 function applyChromeI18n() {
   if (!window.KaarobarI18n) return;
   const map = {
@@ -118,6 +124,23 @@ function applyChromeI18n() {
   }
   if ($("locale-select")) $("locale-select").value = window.KaarobarI18n.getLocale();
   if ($("auth-title")) setAuthMode(mode);
+  const dashLead = document.querySelector("#dashboard-view .lead");
+  if (dashLead) dashLead.textContent = t("desktop.dashboardLead");
+  const dashTitle = document.querySelector("#dashboard-view h1");
+  if (dashTitle) dashTitle.textContent = t("desktop.dashboardTitle");
+  const dashEyebrow = document.querySelector("#dashboard-view .eyebrow");
+  if (dashEyebrow) dashEyebrow.textContent = t("desktop.dashboardEyebrow");
+  const statLabels = [
+    ["stat-sales", "desktop.salesToday"],
+    ["stat-cash", "desktop.cashPosition"],
+    ["stat-stock", "desktop.lowStock"],
+    ["stat-approvals", "desktop.approvals"],
+  ];
+  statLabels.forEach(([id, key]) => {
+    const value = $(id);
+    const label = value?.previousElementSibling;
+    if (label) label.textContent = t(key);
+  });
 }
 
 function navigate(view) {
@@ -297,9 +320,9 @@ async function openTill() {
     });
     till = res.data;
     renderTill();
-    $("pos-message").textContent = "Till opened";
+    notify(t("pos.tillOpen"), "success");
   } catch (err) {
-    $("pos-message").textContent = err.message;
+    notify(err.message, "error");
   }
 }
 
@@ -312,10 +335,12 @@ async function closeTill() {
     const over = res.data.over_short;
     till = null;
     renderTill();
-    $("pos-message").textContent =
-      over && Number(over) !== 0 ? `Till closed (over/short ${over})` : "Till closed";
+    notify(
+      over && Number(over) !== 0 ? `${t("pos.tillClosed")} (${over})` : t("pos.tillClosed"),
+      "success"
+    );
   } catch (err) {
-    $("pos-message").textContent = err.message;
+    notify(err.message, "error");
   }
 }
 
@@ -384,7 +409,7 @@ async function loadReturns() {
         )
         .join("") || "<p class='muted'>No tills</p>";
   } catch (err) {
-    $("returns-message").textContent = err.message;
+    notify(err.message, "error");
   }
 }
 
@@ -433,7 +458,7 @@ async function lookupSale() {
   } catch (err) {
     returnSale = null;
     renderReturnSale();
-    $("returns-message").textContent = err.message;
+    notify(err.message, "error");
   }
 }
 
@@ -442,7 +467,7 @@ async function submitReturn() {
     .filter(([, q]) => Number(q) > 0)
     .map(([product_id, quantity]) => ({ product_id, quantity }));
   if (!items.length) {
-    $("returns-message").textContent = "Enter at least one quantity";
+    notify(t("common.quantity"), "warning");
     return;
   }
   try {
@@ -456,12 +481,12 @@ async function submitReturn() {
         items,
       }),
     });
-    $("returns-message").textContent = `Return ${res.data.status} · Rs ${res.data.refund_amount}`;
+    notify(`${t("returns.returnSubmitted")} · ${res.data.refund_amount}`, "success");
     returnSale = null;
     renderReturnSale();
     await loadReturns();
   } catch (err) {
-    $("returns-message").textContent = err.message;
+    notify(err.message, "error");
   }
 }
 
@@ -568,7 +593,7 @@ async function loadInventory() {
             }),
           });
           closeModal();
-          $("inv-message").textContent = "Product created";
+          notify(t("inventory.productCreated"), "success");
           await loadInventory();
           showInvTab("products");
         } catch (err) {
@@ -581,19 +606,43 @@ async function loadInventory() {
       <div class="toolbar">
         <button type="button" class="btn btn-primary" id="open-supplier-modal">Add supplier</button>
       </div>
-      <ul class="plain-list">
-        ${
-          invSuppliers.map((s) => `<li>${s.name}</li>`).join("") ||
-          "<li class='muted'>No suppliers yet</li>"
-        }
-      </ul>`;
+      <table class="data-table">
+        <thead><tr><th>Company</th><th>Contact</th><th>City</th><th>Catalogs</th></tr></thead>
+        <tbody>
+          ${
+            invSuppliers
+              .map(
+                (s) => `<tr>
+              <td><strong>${s.name}</strong>${s.code ? `<div class="muted">${s.code}</div>` : ""}</td>
+              <td>${s.contact_name || "—"}<div class="muted">${s.contact_phone || s.contact_email || ""}</div></td>
+              <td>${s.city || "—"}</td>
+              <td>${(s.catalogs || []).slice(0, 3).join(", ") || "—"}</td>
+            </tr>`
+              )
+              .join("") ||
+            `<tr><td colspan="4" class="muted">No suppliers yet</td></tr>`
+          }
+        </tbody>
+      </table>`;
     $("open-supplier-modal").onclick = () => {
       openModal({
         title: "Add supplier",
-        subtitle: "Suppliers appear when you raise purchase orders.",
+        subtitle: "Company, liaison, and catalogs for purchasing.",
+        wide: true,
         bodyHtml: `
           <form id="supplier-form" class="form-stack">
-            <label>Name<input name="name" required /></label>
+            <div class="grid-2">
+              <label>Trade name<input name="name" required /></label>
+              <label>Legal name<input name="legal_name" /></label>
+              <label>Code<input name="code" placeholder="LHR-DIST" /></label>
+              <label>City<input name="city" /></label>
+              <label>Contact person<input name="contact_name" /></label>
+              <label>Role<input name="contact_role" placeholder="Account manager" /></label>
+              <label>Phone<input name="contact_phone" /></label>
+              <label>Email<input name="contact_email" type="email" /></label>
+              <label>Payment terms<input name="payment_terms" value="Net 30" /></label>
+              <label>Catalogs<input name="catalogs" placeholder="grocery, beverages" /></label>
+            </div>
             <div class="modal-actions">
               <button type="button" class="btn btn-ghost" data-close-modal>Cancel</button>
               <button class="btn btn-primary" type="submit">Add supplier</button>
@@ -603,13 +652,31 @@ async function loadInventory() {
       $("supplier-form").onsubmit = async (e) => {
         e.preventDefault();
         const fd = new FormData(e.target);
+        const catalogs = String(fd.get("catalogs") || "")
+          .split(",")
+          .map((x) => x.trim())
+          .filter(Boolean);
         try {
           await api("/suppliers", {
             method: "POST",
-            body: JSON.stringify({ name: fd.get("name") }),
+            body: JSON.stringify({
+              name: fd.get("name"),
+              legal_name: fd.get("legal_name") || null,
+              code: fd.get("code") || null,
+              city: fd.get("city") || null,
+              contact_name: fd.get("contact_name") || null,
+              contact_role: fd.get("contact_role") || null,
+              contact_phone: fd.get("contact_phone") || null,
+              contact_email: fd.get("contact_email") || null,
+              payment_terms: fd.get("payment_terms") || null,
+              catalogs,
+              country: "PK",
+              currency: "PKR",
+              status: "active",
+            }),
           });
           closeModal();
-          $("inv-message").textContent = "Supplier added";
+          notify(t("inventory.supplierAdded"), "success");
           await loadInventory();
           showInvTab("suppliers");
         } catch (err) {
@@ -700,7 +767,7 @@ async function loadInventory() {
             }),
           });
           closeModal();
-          $("inv-message").textContent = "PO created";
+          notify(t("inventory.poCreated"), "success");
           await loadInventory();
           showInvTab("po");
         } catch (err) {
@@ -732,11 +799,11 @@ async function loadInventory() {
             ],
           }),
         });
-        $("inv-message").textContent = "GRN received";
+        notify(t("inventory.grnReceived"), "success");
         await loadInventory();
         showInvTab("po");
       } catch (err) {
-        $("inv-message").textContent = err.message;
+        notify(err.message, "error");
       }
     };
 
@@ -783,10 +850,10 @@ async function loadInventory() {
             ],
           }),
         });
-        $("inv-message").textContent = "Transfer created";
+        notify(t("inventory.transferCreated"), "success");
         await loadInventory();
       } catch (err) {
-        $("inv-message").textContent = err.message;
+        notify(err.message, "error");
       }
     };
 
@@ -818,16 +885,16 @@ async function loadInventory() {
             reason_code: fd.get("reason_code"),
           }),
         });
-        $("inv-message").textContent = "Stock adjusted";
+        notify(t("inventory.stockAdjusted"), "success");
         await loadInventory();
       } catch (err) {
-        $("inv-message").textContent = err.message;
+        notify(err.message, "error");
       }
     };
 
     showInvTab("stock");
   } catch (err) {
-    $("inv-message").textContent = err.message;
+    notify(err.message, "error");
   }
 }
 
@@ -928,10 +995,10 @@ if ($("profile-form")) {
       window.KaarobarI18n?.setLocale(res.user.locale === "ur" ? "ur" : "en");
       applyChromeI18n();
       $("profile-password").value = "";
-      $("profile-msg").textContent = t("profile.saved");
+      notify(t("profile.saved"), "success");
       if ($("user-name")) $("user-name").textContent = res.user.name;
     } catch (err) {
-      $("profile-msg").textContent = err.message;
+      notify(err.message, "error");
     }
   });
 }
@@ -1016,14 +1083,13 @@ $("search").addEventListener("keydown", async (e) => {
       });
     $("search").value = "";
     renderCart();
-    $("pos-message").textContent = `Added ${p.name}`;
+    notify(`${t("common.create")}: ${p.name}`, "info");
   } catch (err) {
-    $("pos-message").textContent = err.message || "Barcode not found";
+    notify(err.message || t("common.error"), "error");
   }
 });
 
 $("pay").addEventListener("click", async () => {
-  const msg = $("pos-message");
   const total = Number($("total").textContent);
   const payments = [];
   const cash = Number($("pay-cash").value || 0);
@@ -1034,7 +1100,7 @@ $("pay").addEventListener("click", async () => {
   if (wallet > 0) payments.push({ method: "wallet", amount: round2(wallet) });
   const paySum = round2(payments.reduce((s, p) => s + p.amount, 0));
   if (!payments.length || Math.abs(paySum - total) > 0.001) {
-    msg.textContent = `Payments must total ${money(total)} (got ${money(paySum)})`;
+    notify(`${t("common.total")}: ${money(total)} / ${money(paySum)}`, "warning");
     return;
   }
   try {
@@ -1050,9 +1116,9 @@ $("pay").addEventListener("click", async () => {
     });
     cart = [];
     renderCart();
-    msg.textContent = `Sale ${res.data.invoice_number}`;
+    notify(`${t("pos.saleComplete")} · ${res.data.invoice_number}`, "success");
   } catch (err) {
-    msg.textContent = err.message || "Checkout failed";
+    notify(err.message || t("pos.checkoutFailed"), "error");
   }
 });
 
@@ -1067,7 +1133,7 @@ $("pending-returns").addEventListener("click", async (e) => {
         method: "POST",
         body: "{}",
       });
-      $("returns-message").textContent = "Return approved";
+      notify(t("returns.returnApproved"), "success");
       await loadReturns();
     }
     if (reject) {
@@ -1075,11 +1141,11 @@ $("pending-returns").addEventListener("click", async (e) => {
         method: "POST",
         body: JSON.stringify({ reason: "Rejected by manager" }),
       });
-      $("returns-message").textContent = "Return rejected";
+      notify(t("returns.returnRejected"), "success");
       await loadReturns();
     }
   } catch (err) {
-    $("returns-message").textContent = err.message;
+    notify(err.message, "error");
   }
 });
 
@@ -1108,10 +1174,10 @@ document.addEventListener("click", async (e) => {
       method: "POST",
       body: "{}",
     });
-    $("inv-message").textContent = "Transfer confirmed";
+    notify(t("inventory.transferConfirmed"), "success");
     await loadInventory();
   } catch (err) {
-    $("inv-message").textContent = err.message;
+    notify(err.message, "error");
   }
 });
 
@@ -1126,7 +1192,7 @@ async function loadProfile() {
     $("profile-password").value = "";
     $("profile-msg").textContent = "";
   } catch (err) {
-    $("profile-msg").textContent = err.message;
+    notify(err.message, "error");
   }
 }
 

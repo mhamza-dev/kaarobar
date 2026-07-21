@@ -4,12 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import { api, getSession, setSession } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
 import {
-  Alert,
   Field,
   PageHeader,
   SurfaceCard,
   fieldClass,
 } from "@/components/app/ui";
+import { useToast } from "@/components/ui/Toast";
 import { useI18n, type Locale } from "@/lib/i18n";
 
 type ProfileUser = {
@@ -22,6 +22,7 @@ type ProfileUser = {
 
 export default function ProfilePage() {
   const { t, setLocale, locale } = useI18n();
+  const toast = useToast();
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -29,12 +30,9 @@ export default function ProfilePage() {
     locale: "en" as Locale,
     password: "",
   });
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    setError(null);
     try {
       const res = await api<{ user: ProfileUser }>("/auth/me");
       const u = res.user;
@@ -47,9 +45,9 @@ export default function ProfilePage() {
       });
       if (u.locale === "ur" || u.locale === "en") setLocale(u.locale);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("profile.loadError"));
+      toast.error(err instanceof Error ? err.message : t("profile.loadError"));
     }
-  }, [setLocale, t]);
+  }, [setLocale, t, toast]);
 
   useEffect(() => {
     load();
@@ -58,8 +56,6 @@ export default function ProfilePage() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
-    setError(null);
-    setMessage(null);
     try {
       const body: Record<string, string> = {
         name: form.name.trim(),
@@ -88,9 +84,9 @@ export default function ProfilePage() {
       }
       setLocale(res.user.locale === "ur" ? "ur" : "en");
       setForm((f) => ({ ...f, password: "" }));
-      setMessage(t("profile.saved"));
+      toast.success(t("profile.saved"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("common.error"));
+      toast.error(err instanceof Error ? err.message : t("common.error"));
     } finally {
       setBusy(false);
     }
@@ -103,9 +99,6 @@ export default function ProfilePage() {
         title={t("profile.title")}
         description={t("profile.description")}
       />
-
-      {error ? <Alert tone="error">{error}</Alert> : null}
-      {message ? <Alert tone="success">{message}</Alert> : null}
 
       <SurfaceCard className="p-5">
         <form onSubmit={onSubmit} className="space-y-4">

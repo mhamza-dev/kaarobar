@@ -148,6 +148,8 @@ defmodule KaarobarWeb.Router do
     post "/inventory/grn", InventoryController, :receive_grn
     get "/suppliers", SupplierController, :index
     post "/suppliers", SupplierController, :create
+    get "/suppliers/:id", SupplierController, :show
+    patch "/suppliers/:id", SupplierController, :update
   end
 
   scope "/api/v1", KaarobarWeb.V1 do

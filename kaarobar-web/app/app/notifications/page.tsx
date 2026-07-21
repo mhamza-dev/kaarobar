@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Search, X } from "lucide-react";
 import { api } from "@/lib/api/client";
-import { Alert, PageHeader, SurfaceCard, fieldClass } from "@/components/app/ui";
+import { PageHeader, SurfaceCard, fieldClass } from "@/components/app/ui";
 import Button from "@/components/ui/Button";
+import { useToast } from "@/components/ui/Toast";
+import { useT } from "@/lib/i18n";
 
 type Note = {
   id: string;
@@ -17,19 +19,19 @@ type Note = {
 };
 
 export default function NotificationsPage() {
+  const t = useT();
+  const toast = useToast();
   const [items, setItems] = useState<Note[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
   const load = useCallback(async () => {
     try {
       const res = await api<{ data: Note[] }>("/notifications");
       setItems(res.data || []);
-      setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load");
+      toast.error(err instanceof Error ? err.message : t("notifications.loadFailed"));
     }
-  }, []);
+  }, [t, toast]);
 
   useEffect(() => {
     load();
@@ -53,26 +55,25 @@ export default function NotificationsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Inbox"
-        title="Notifications"
-        description="Leave, payroll, and billing alerts."
+        eyebrow={t("notifications.eyebrow")}
+        title={t("pages.notificationsTitle")}
+        description={t("pages.notificationsDesc")}
       />
-      {error ? <Alert tone="error">{error}</Alert> : null}
 
       <label className="relative block max-w-md">
-        <span className="sr-only">Search</span>
+        <span className="sr-only">{t("common.search")}</span>
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
         <input
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search notifications…"
+          placeholder={t("notifications.searchPlaceholder")}
           className={`${fieldClass} pl-9 pr-9`}
         />
         {query ? (
           <button
             type="button"
-            aria-label="Clear search"
+            aria-label={t("common.close")}
             className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted hover:bg-bg-hover"
             onClick={() => setQuery("")}
           >
@@ -85,7 +86,7 @@ export default function NotificationsPage() {
         {filtered.length === 0 ? (
           <SurfaceCard>
             <p className="px-6 py-10 text-center text-sm text-body">
-              {query.trim() ? "No matching notifications." : "No notifications yet."}
+              {query.trim() ? t("notifications.noMatching") : t("notifications.empty")}
             </p>
           </SurfaceCard>
         ) : (
@@ -99,12 +100,12 @@ export default function NotificationsPage() {
                 <p className="text-sm text-body">{n.body || n.status}</p>
                 <p className="mt-1 text-xs text-muted">
                   {new Date(n.inserted_at).toLocaleString()}
-                  {n.read_at ? " · read" : ""}
+                  {n.read_at ? ` · ${t("common.read")}` : ""}
                 </p>
               </div>
               {!n.read_at ? (
                 <Button size="sm" variant="outline" onClick={() => markRead(n.id)}>
-                  Mark read
+                  {t("common.markRead")}
                 </Button>
               ) : null}
             </SurfaceCard>

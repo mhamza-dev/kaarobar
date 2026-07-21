@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
 import DataTable from "@/components/ui/DataTable";
-import { Alert, Field, PageHeader, fieldClass } from "@/components/app/ui";
+import { Field, PageHeader, fieldClass } from "@/components/app/ui";
+import { useToast } from "@/components/ui/Toast";
+import { useT } from "@/lib/i18n";
 
 type DayRow = { date: string; total: string; count: number };
 type LowStock = {
@@ -20,10 +22,11 @@ type BranchDash = {
 };
 
 export default function ReportsPage() {
+  const t = useT();
+  const toast = useToast();
   const [days, setDays] = useState<DayRow[]>([]);
   const [lowStock, setLowStock] = useState<LowStock[]>([]);
   const [branch, setBranch] = useState<BranchDash | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [from, setFrom] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 13);
@@ -32,7 +35,6 @@ export default function ReportsPage() {
   const [to, setTo] = useState(() => new Date().toISOString().slice(0, 10));
 
   const load = useCallback(async () => {
-    setError(null);
     try {
       const [sales, stock, br] = await Promise.all([
         api<{ data: DayRow[] }>(`/reports/sales-by-day?from=${from}&to=${to}`),
@@ -43,9 +45,9 @@ export default function ReportsPage() {
       setLowStock(stock.data || []);
       setBranch(br.data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load reports");
+      toast.error(err instanceof Error ? err.message : t("reports.loadFailed"));
     }
-  }, [from, to]);
+  }, [from, t, toast, to]);
 
   useEffect(() => {
     load();
@@ -54,21 +56,21 @@ export default function ReportsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Insights"
-        title="Reports"
-        description="Owner and branch operations. Financial statements are under Accounting."
+        eyebrow={t("reports.eyebrow")}
+        title={t("pages.reportsTitle")}
+        description={t("pages.reportsDesc")}
       />
-
-      {error ? <Alert tone="error">{error}</Alert> : null}
 
       {branch ? (
         <div className="grid gap-3 sm:grid-cols-4">
-          {[
-            ["Sales today", branch.sales_today],
-            ["Tickets", String(branch.sales_count_today)],
-            ["Low stock", String(branch.low_stock_count)],
-            ["Pending returns", String(branch.pending_returns)],
-          ].map(([label, value]) => (
+          {(
+            [
+              [t("dashboard.salesToday"), branch.sales_today],
+              [t("reports.tickets"), String(branch.sales_count_today)],
+              [t("dashboard.lowStock"), String(branch.low_stock_count)],
+              [t("reports.pendingReturns"), String(branch.pending_returns)],
+            ] as const
+          ).map(([label, value]) => (
             <div key={label} className="rounded-md border border-border bg-card p-4">
               <p className="text-sm text-body">{label}</p>
               <p className="mt-1 text-xl font-semibold text-heading">{value}</p>
@@ -78,7 +80,7 @@ export default function ReportsPage() {
       ) : null}
 
       <div className="flex flex-wrap gap-3">
-        <Field label="From">
+        <Field label={t("common.from")}>
           <input
             type="date"
             value={from}
@@ -86,7 +88,7 @@ export default function ReportsPage() {
             className={fieldClass}
           />
         </Field>
-        <Field label="To">
+        <Field label={t("common.to")}>
           <input
             type="date"
             value={to}
@@ -99,44 +101,44 @@ export default function ReportsPage() {
       <DataTable
         maxHeight="22rem"
         searchable
-        searchPlaceholder="Search by date…"
+        searchPlaceholder={t("reports.searchDate")}
         getSearchText={(d) => `${d.date} ${d.total} ${d.count}`}
         columns={[
-          { id: "date", header: "Date", cell: (d) => d.date },
+          { id: "date", header: t("common.date"), cell: (d) => d.date },
           {
             id: "sales",
-            header: "Sales",
+            header: t("dashboard.salesToday"),
             align: "right",
             cell: (d) => <span className="tabular-nums font-medium">{d.total}</span>,
           },
           {
             id: "tickets",
-            header: "Tickets",
+            header: t("reports.tickets"),
             align: "right",
             cell: (d) => <span className="tabular-nums">{d.count}</span>,
           },
         ]}
         data={days}
         rowKey={(d) => d.date}
-        emptyTitle="No sales in range"
-        toolbar={<span className="text-sm font-semibold text-heading">Sales by day</span>}
+        emptyTitle={t("reports.noSalesInRange")}
+        toolbar={<span className="text-sm font-semibold text-heading">{t("reports.salesByDay")}</span>}
       />
 
       <DataTable
         maxHeight="22rem"
         searchable
-        searchPlaceholder="Search low stock…"
+        searchPlaceholder={t("reports.searchLowStock")}
         getSearchText={(r) => `${r.sku} ${r.name} ${r.quantity_on_hand}`}
         columns={[
           {
             id: "sku",
-            header: "SKU",
+            header: t("common.sku"),
             cell: (r) => <span className="font-medium tabular-nums">{r.sku}</span>,
           },
-          { id: "name", header: "Name", cell: (r) => r.name },
+          { id: "name", header: t("common.name"), cell: (r) => r.name },
           {
             id: "qty",
-            header: "On hand",
+            header: t("inventory.onHand"),
             align: "right",
             cell: (r) => (
               <span className="tabular-nums font-semibold text-warning">
@@ -147,8 +149,8 @@ export default function ReportsPage() {
         ]}
         data={lowStock}
         rowKey={(r) => r.product_id}
-        emptyTitle="Nothing below threshold"
-        toolbar={<span className="text-sm font-semibold text-heading">Low stock</span>}
+        emptyTitle={t("reports.nothingBelowThreshold")}
+        toolbar={<span className="text-sm font-semibold text-heading">{t("reports.lowStock")}</span>}
       />
     </div>
   );

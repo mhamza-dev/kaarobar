@@ -40,6 +40,44 @@ export function clearSession() {
   }
 }
 
+/** Pick default business + branch and persist on the session before tenant-scoped API calls. */
+export async function bootstrapTenantSession(
+  session: StoredSession
+): Promise<StoredSession> {
+  if (session.business_id && session.branch_id) return session;
+
+  try {
+    const bizRes = await api<{ data: { id: string }[] }>("/businesses", {}, session);
+    const businesses = bizRes.data || [];
+    if (businesses.length === 0) return session;
+
+    const business_id = session.business_id || businesses[0].id;
+    let next: StoredSession = { ...session, business_id };
+
+    if (!next.branch_id) {
+      const brRes = await api<{ data: { id: string }[] }>(
+        `/businesses/${business_id}/branches`,
+        {},
+        next
+      );
+      const branches = brRes.data || [];
+      if (branches[0]) {
+        next = { ...next, branch_id: branches[0].id };
+      }
+    }
+
+    if (
+      next.business_id !== session.business_id ||
+      next.branch_id !== session.branch_id
+    ) {
+      setSession(next);
+    }
+    return next;
+  } catch {
+    return session;
+  }
+}
+
 export async function api<T>(
   path: string,
   init: RequestInit = {},

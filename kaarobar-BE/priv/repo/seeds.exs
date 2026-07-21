@@ -97,8 +97,6 @@ positions = ["Cashier", "Sales Associate", "Store Keeper", "Supervisor", "Stock 
 
 customer_names = ["Walk-in Retail", "Corner Shop Credit", "Hotel Supplies Co", "Neighborhood Clinic"]
 
-supplier_names = ["Lahore Distributors", "National Supply Co", "Local Cash & Carry", "Punjab Wholesalers"]
-
 business_pool = [
   {"Al-Falah Traders", "retail", false},
   {"Noor Mart", "supermarket", true},
@@ -341,21 +339,144 @@ seed_products = fn owner, business, branches, catalog ->
   end)
 end
 
-seed_suppliers = fn owner, business ->
-  Enum.each(supplier_names, fn name ->
-    unless from(s in Supplier, where: s.business_id == ^business.id and s.name == ^name)
-           |> Repo.exists?() do
-      slug = name |> String.downcase() |> String.replace(~r/[^a-z0-9]+/, "")
+supplier_defs = [
+  %{
+    name: "Lahore Distributors",
+    legal_name: "Lahore Distributors (Pvt) Ltd",
+    code: "LHR-DIST",
+    tax_id: "1234567-8",
+    strn: "32-77-1234-567-89",
+    industry: "FMCG wholesale",
+    contact_name: "Ahmed Raza",
+    contact_role: "Key Account Manager",
+    contact_email: "ahmed@lahoredist.pk",
+    contact_phone: "+92 42 35789000",
+    contact_mobile: "+92 300 1234567",
+    contact_whatsapp: "+92 300 1234567",
+    city: "Lahore",
+    province: "Punjab",
+    address_line1: "Plot 12, Bund Road",
+    payment_terms: "Net 15",
+    payment_method: "bank_transfer",
+    bank_name: "HBL",
+    bank_iban: "PK00HABB0000123456789012",
+    bank_account_title: "Lahore Distributors Pvt Ltd",
+    credit_limit: "500000",
+    lead_time_days: 3,
+    catalogs: ["beverages", "snacks", "dairy"],
+    brands: ["Nestle", "Pepsi"],
+    tags: ["preferred", "fmcg"],
+    is_preferred: true,
+    rating: 5
+  },
+  %{
+    name: "National Supply Co",
+    legal_name: "National Supply Company",
+    code: "NAT-SUP",
+    tax_id: "2345678-9",
+    industry: "General wholesale",
+    contact_name: "Sana Malik",
+    contact_role: "Sales Director",
+    contact_email: "sana@nationalsupply.pk",
+    contact_phone: "+92 51 111222333",
+    contact_mobile: "+92 333 7654321",
+    city: "Islamabad",
+    province: "Islamabad Capital Territory",
+    address_line1: "I-9 Industrial Area",
+    payment_terms: "Net 30",
+    payment_method: "bank_transfer",
+    credit_limit: "1000000",
+    lead_time_days: 5,
+    catalogs: ["grocery", "household", "personal care"],
+    brands: ["Unilever", "P&G"],
+    tags: ["national"],
+    is_preferred: true,
+    rating: 4
+  },
+  %{
+    name: "Local Cash & Carry",
+    legal_name: "Local Cash and Carry Traders",
+    code: "LCC-01",
+    industry: "Cash & carry",
+    contact_name: "Bilal Khan",
+    contact_role: "Owner",
+    contact_email: "orders@localcc.pk",
+    contact_phone: "+92 21 34567890",
+    contact_mobile: "+92 321 1112233",
+    city: "Karachi",
+    province: "Sindh",
+    address_line1: "Saddar Wholesale Market",
+    payment_terms: "Net 7",
+    payment_method: "cash",
+    credit_limit: "100000",
+    lead_time_days: 1,
+    catalogs: ["grocery", "spices"],
+    brands: [],
+    tags: ["local", "fast"],
+    rating: 3
+  },
+  %{
+    name: "Punjab Wholesalers",
+    legal_name: "Punjab Wholesalers Concern",
+    code: "PUN-WH",
+    tax_id: "3456789-0",
+    strn: "03-04-9876-543-21",
+    industry: "Regional wholesale",
+    contact_name: "Farah Iqbal",
+    contact_role: "Procurement Lead",
+    contact_email: "farah@punjabwholesalers.pk",
+    contact_phone: "+92 41 2667788",
+    contact_mobile: "+92 345 9988776",
+    contact_whatsapp: "+92 345 9988776",
+    city: "Faisalabad",
+    province: "Punjab",
+    address_line1: "Susan Road Market",
+    payment_terms: "Net 15",
+    payment_method: "cheque",
+    bank_name: "Meezan Bank",
+    bank_iban: "PK00MEZN0000987654321098",
+    bank_account_title: "Punjab Wholesalers",
+    credit_limit: "350000",
+    lead_time_days: 4,
+    catalogs: ["textile", "home", "grocery"],
+    brands: ["Local Mills"],
+    tags: ["punjab"],
+    rating: 4
+  }
+]
 
-      %Supplier{}
-      |> Supplier.changeset(%{
-        name: name,
+seed_suppliers = fn owner, business ->
+  Enum.each(supplier_defs, fn defn ->
+    name = defn.name
+
+    existing =
+      from(s in Supplier, where: s.business_id == ^business.id and s.name == ^name)
+      |> Repo.one()
+
+    attrs =
+      defn
+      |> Map.merge(%{
         business_id: business.id,
         owner_id: owner.id,
-        payment_terms: Enum.at(["Net 7", "Net 15", "Net 30"], rem(:erlang.phash2(name), 3)),
-        contact: %{phone: "+92 42 1110000", email: "orders@#{slug}.pk"}
+        country: "PK",
+        currency: "PKR",
+        status: Map.get(defn, :status, "active"),
+        contact: %{
+          phone: defn[:contact_phone],
+          email: defn[:contact_email]
+        }
       })
-      |> Repo.insert!()
+
+    case existing do
+      nil ->
+        %Supplier{}
+        |> Supplier.changeset(attrs)
+        |> Repo.insert!()
+
+      supplier ->
+        supplier
+        |> Supplier.changeset(attrs)
+        |> Repo.update!()
     end
   end)
 end

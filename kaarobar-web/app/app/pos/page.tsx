@@ -12,7 +12,9 @@ import {
 } from "lucide-react";
 import { api, getSession } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
-import { Alert, StatusBadge, fieldClass } from "@/components/app/ui";
+import { StatusBadge, fieldClass } from "@/components/app/ui";
+import { useToast } from "@/components/ui/Toast";
+import { useT } from "@/lib/i18n";
 
 type Product = {
   id: string;
@@ -77,10 +79,11 @@ function productInitials(name: string) {
 }
 
 export default function PosPage() {
+  const t = useT();
+  const toast = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [query, setQuery] = useState("");
   const [cart, setCart] = useState<CartLine[]>([]);
-  const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [till, setTill] = useState<Till | null>(null);
   const [openingCash, setOpeningCash] = useState("0");
@@ -106,7 +109,7 @@ export default function PosPage() {
   useEffect(() => {
     api<{ data: Product[] }>("/products")
       .then((res) => setProducts(res.data || []))
-      .catch((err) => setMessage(err.message));
+      .catch((err) => toast.error(err.message));
     loadTill();
   }, [loadTill]);
 
@@ -201,7 +204,7 @@ export default function PosPage() {
         addProduct(product);
       }
       setQuery("");
-      setMessage(`Added ${product.name}`);
+      toast.info(`${t("common.create")}: ${product.name}`);
     } catch {
       // fall through to text filter
     }
@@ -266,11 +269,10 @@ export default function PosPage() {
   async function openTill() {
     const session = getSession();
     if (!session?.branch_id) {
-      setMessage("Pick a branch from the dashboard first.");
+      toast.warning(t("tenant.noBranches"));
       return;
     }
     setBusy(true);
-    setMessage(null);
     try {
       const res = await api<{ data: Till }>("/tills/open", {
         method: "POST",
@@ -280,9 +282,9 @@ export default function PosPage() {
         }),
       });
       setTill(res.data);
-      setMessage("Till opened");
+      toast.success(t("pos.tillOpen"));
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Could not open till");
+      toast.error(err instanceof Error ? err.message : t("pos.tillOpenFailed"));
     } finally {
       setBusy(false);
     }
@@ -291,7 +293,6 @@ export default function PosPage() {
   async function closeTill() {
     if (!till?.id) return;
     setBusy(true);
-    setMessage(null);
     try {
       const res = await api<{ data: Till }>(`/tills/${till.id}/close`, {
         method: "POST",
@@ -300,13 +301,13 @@ export default function PosPage() {
       setTill(null);
       setClosingCash("");
       const over = res.data.over_short;
-      setMessage(
+      toast.success(
         over && Number(over) !== 0
-          ? `Till closed (over/short ${over})`
-          : "Till closed"
+          ? `${t("pos.tillClosed")} (${over})`
+          : t("pos.tillClosed")
       );
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Could not close till");
+      toast.error(err instanceof Error ? err.message : t("pos.tillCloseFailed"));
     } finally {
       setBusy(false);
     }
@@ -315,17 +316,16 @@ export default function PosPage() {
   async function checkout() {
     const session = getSession();
     if (!session?.branch_id) {
-      setMessage("Pick a branch from the dashboard first.");
+      toast.warning(t("tenant.noBranches"));
       return;
     }
     const payments = buildPayments();
     const paySum = round2(payments.reduce((s, p) => s + p.amount, 0));
     if (payments.length === 0 || Math.abs(paySum - total) > 0.001) {
-      setMessage(`Payments must total ${money(total)} (got ${money(paySum)})`);
+      toast.warning(`${t("common.total")}: ${money(total)} / ${money(paySum)}`);
       return;
     }
     setBusy(true);
-    setMessage(null);
     try {
       const client_txn_id = crypto.randomUUID();
       const res = await api<{
@@ -347,24 +347,24 @@ export default function PosPage() {
       });
       setCart([]);
       setLastInvoice(res.data.invoice_number);
-      setMessage(`Sale ${res.data.invoice_number}`);
+      toast.success(`${t("pos.saleComplete")} · ${res.data.invoice_number}`);
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Checkout failed");
+      toast.error(err instanceof Error ? err.message : t("pos.checkoutFailed"));
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col lg:flex-row">
+    <div className="flex h-full min-h-0 flex-col lg:flex-row">
       {/* Catalog */}
-      <section className="flex min-w-0 flex-1 flex-col bg-bg-primary p-4 sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-bg-primary p-4 sm:p-6">
+        <div className="shrink-0 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand">
-              Cashier
+              {t("nav.cashier")}
             </p>
-            <h1 className="mt-1 text-2xl font-bold text-heading">Point of sale</h1>
+            <h1 className="mt-1 text-2xl font-bold text-heading">{t("pages.posTitle")}</h1>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {lastInvoice ? (
@@ -376,7 +376,7 @@ export default function PosPage() {
           </div>
         </div>
 
-        <div className="relative mt-5">
+        <div className="relative mt-5 shrink-0">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
           <input
             value={query}
@@ -392,11 +392,11 @@ export default function PosPage() {
           />
         </div>
 
-        <div className="mt-4 flex items-center justify-between text-sm">
+        <div className="mt-4 flex shrink-0 items-center justify-between text-sm">
           <p className="font-medium text-body">{filtered.length} products</p>
         </div>
 
-        <div className="mt-3 grid flex-1 grid-cols-2 content-start gap-3 overflow-auto pb-4 sm:grid-cols-3 xl:grid-cols-4">
+        <div className="mt-3 grid min-h-0 flex-1 grid-cols-2 content-start gap-3 overflow-y-auto py-4 sm:grid-cols-3 xl:grid-cols-4">
           {filtered.map((p) => {
             const inCart = cart.find((l) => l.product.id === p.id);
             return (
@@ -404,11 +404,10 @@ export default function PosPage() {
                 key={p.id}
                 type="button"
                 onClick={() => addProduct(p)}
-                className={`group rounded-md border bg-card p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-md ${
-                  inCart
-                    ? "border-brand bg-brand-light ring-2 ring-brand/20"
-                    : "border-border"
-                }`}
+                className={`group rounded-md border bg-card p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-md ${inCart
+                  ? "border-brand bg-brand-light ring-2 ring-brand/20"
+                  : "border-border"
+                  }`}
               >
                 <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-md bg-brand-soft text-sm font-bold text-brand">
                   {p.image_url ? (
@@ -437,8 +436,8 @@ export default function PosPage() {
       </section>
 
       {/* Order panel */}
-      <aside className="flex w-full flex-col border-t border-border bg-card lg:w-[400px] lg:border-l lg:border-t-0 xl:w-[420px]">
-        <div className="border-b border-border px-5 py-4">
+      <aside className="flex max-h-[min(42vh,28rem)] min-h-[12rem] w-full shrink-0 flex-col overflow-hidden border-t border-border bg-card lg:h-full lg:max-h-none lg:min-h-0 lg:w-[400px] lg:shrink-0 lg:border-l lg:border-t-0 xl:w-[420px]">
+        <div className="shrink-0 border-b border-border px-5 py-4">
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-lg font-bold text-heading">Order detail</h2>
             <span className="text-xs font-medium text-muted">
@@ -480,7 +479,7 @@ export default function PosPage() {
           </div>
         </div>
 
-        <div className="flex-1 space-y-3 overflow-auto px-5 py-4">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
           {cart.length === 0 ? (
             <div className="rounded-md border border-dashed border-border px-4 py-10 text-center">
               <p className="font-semibold text-heading">Cart is empty</p>
@@ -490,75 +489,76 @@ export default function PosPage() {
             cart.map((l) => {
               const key = cartLineKey(l);
               return (
-              <div
-                key={key}
-                className="rounded-md border border-border bg-bg-secondary p-3"
-              >
-                <div className="flex gap-3">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md bg-brand-soft text-xs font-bold text-brand">
-                    {l.product.image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={l.product.image_url} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      productInitials(l.product.name)
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="truncate font-semibold text-heading">
-                          {l.product.name}
-                          {l.variant_name ? ` · ${l.variant_name}` : ""}
-                        </p>
-                        {l.modifier_labels?.length ? (
-                          <p className="text-xs text-muted">{l.modifier_labels.join(", ")}</p>
-                        ) : null}
-                        <p className="text-xs text-muted">
-                          Rs {money(l.unit_price)} each
-                          {l.product.duration_minutes
-                            ? ` · ${l.product.duration_minutes} min`
-                            : ""}
-                        </p>
-                      </div>
-                      <strong className="text-sm text-heading">
-                        {money(l.quantity * l.unit_price)}
-                      </strong>
+                <div
+                  key={key}
+                  className="rounded-md border border-border bg-bg-secondary p-3"
+                >
+                  <div className="flex gap-3">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md bg-brand-soft text-xs font-bold text-brand">
+                      {l.product.image_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={l.product.image_url} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        productInitials(l.product.name)
+                      )}
                     </div>
-                    <div className="mt-3 flex items-center gap-2">
-                      <button
-                        type="button"
-                        className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card hover:border-brand"
-                        onClick={() => setQty(key, l.quantity - 1)}
-                      >
-                        <Minus className="h-3.5 w-3.5" />
-                      </button>
-                      <span className="w-8 text-center text-sm font-bold">
-                        {l.quantity}
-                      </span>
-                      <button
-                        type="button"
-                        className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card hover:border-brand"
-                        onClick={() => setQty(key, l.quantity + 1)}
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        className="ml-auto rounded-md p-2 text-muted hover:bg-danger-soft hover:text-danger"
-                        onClick={() => removeLine(key)}
-                        aria-label="Remove"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="truncate font-semibold text-heading">
+                            {l.product.name}
+                            {l.variant_name ? ` · ${l.variant_name}` : ""}
+                          </p>
+                          {l.modifier_labels?.length ? (
+                            <p className="text-xs text-muted">{l.modifier_labels.join(", ")}</p>
+                          ) : null}
+                          <p className="text-xs text-muted">
+                            Rs {money(l.unit_price)} each
+                            {l.product.duration_minutes
+                              ? ` · ${l.product.duration_minutes} min`
+                              : ""}
+                          </p>
+                        </div>
+                        <strong className="text-sm text-heading">
+                          {money(l.quantity * l.unit_price)}
+                        </strong>
+                      </div>
+                      <div className="mt-3 flex items-center gap-2">
+                        <button
+                          type="button"
+                          className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card hover:border-brand"
+                          onClick={() => setQty(key, l.quantity - 1)}
+                        >
+                          <Minus className="h-3.5 w-3.5" />
+                        </button>
+                        <span className="w-8 text-center text-sm font-bold">
+                          {l.quantity}
+                        </span>
+                        <button
+                          type="button"
+                          className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card hover:border-brand"
+                          onClick={() => setQty(key, l.quantity + 1)}
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          className="ml-auto rounded-md p-2 text-muted hover:bg-danger-soft hover:text-danger"
+                          onClick={() => removeLine(key)}
+                          aria-label="Remove"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );})
+              );
+            })
           )}
         </div>
 
-        <div className="border-t border-border px-5 py-4">
+        <div className="shrink-0 border-t border-border px-5 py-4">
           <div className="space-y-2 text-sm">
             <div className="flex justify-between text-body">
               <span>Subtotal</span>
@@ -586,11 +586,10 @@ export default function PosPage() {
                 key={method}
                 type="button"
                 onClick={() => setPayMethod(method)}
-                className={`rounded-md border px-2 py-3 text-center transition ${
-                  payFocus === method
-                    ? "border-brand bg-brand-light text-brand"
-                    : "border-border bg-card text-body hover:border-brand/40"
-                }`}
+                className={`rounded-md border px-2 py-3 text-center transition ${payFocus === method
+                  ? "border-brand bg-brand-light text-brand"
+                  : "border-border bg-card text-body hover:border-brand/40"
+                  }`}
               >
                 <Icon className="mx-auto h-4 w-4" />
                 <span className="mt-1 block text-xs font-semibold">{label}</span>
@@ -616,14 +615,6 @@ export default function PosPage() {
           >
             {busy ? "Processing…" : "Place order →"}
           </Button>
-
-          {message ? (
-            <div className="mt-3">
-              <Alert tone={message.startsWith("Sale") ? "success" : "info"}>
-                {message}
-              </Alert>
-            </div>
-          ) : null}
         </div>
       </aside>
 
@@ -641,11 +632,10 @@ export default function PosPage() {
                       key={v.id}
                       type="button"
                       onClick={() => setPickedVariant(v.id)}
-                      className={`rounded-md px-3 py-1.5 text-sm font-semibold ${
-                        pickedVariant === v.id
-                          ? "bg-brand text-white"
-                          : "bg-bg-tertiary text-heading"
-                      }`}
+                      className={`rounded-md px-3 py-1.5 text-sm font-semibold ${pickedVariant === v.id
+                        ? "bg-brand text-white"
+                        : "bg-bg-tertiary text-heading"
+                        }`}
                     >
                       {v.name}
                     </button>
@@ -671,9 +661,8 @@ export default function PosPage() {
                             on ? prev.filter((id) => id !== m.id) : [...prev, m.id]
                           )
                         }
-                        className={`rounded-md px-3 py-1.5 text-sm font-semibold ${
-                          on ? "bg-brand text-white" : "bg-bg-tertiary text-heading"
-                        }`}
+                        className={`rounded-md px-3 py-1.5 text-sm font-semibold ${on ? "bg-brand text-white" : "bg-bg-tertiary text-heading"
+                          }`}
                       >
                         {m.name}
                         {Number(m.price_delta) > 0 ? ` +${m.price_delta}` : ""}

@@ -10,10 +10,11 @@ import {
   ShoppingCart,
   TrendingUp,
 } from "lucide-react";
-import { api } from "@/lib/api/client";
+import { api, getSession } from "@/lib/api/client";
 import { routes } from "@/lib/navigation";
 import Button from "@/components/ui/Button";
-import { Alert, KpiCard, PageHeader, SurfaceCard } from "@/components/app/ui";
+import { KpiCard, PageHeader, SurfaceCard } from "@/components/app/ui";
+import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 
 type Dashboard = {
@@ -27,47 +28,56 @@ type Dashboard = {
 
 export default function AppDashboardPage() {
   const t = useT();
+  const toast = useToast();
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    setError(null);
+    const current = getSession();
+    if (!current?.business_id) return;
+
     try {
       const dash = await api<{ data: Dashboard }>("/reports/dashboard");
       setDashboard(dash.data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load dashboard");
+      const message = err instanceof Error ? err.message : t("dashboard.loadFailed");
+      if (message === "business_required") return;
+      toast.error(message);
     }
-  }, []);
+  }, [t, toast]);
 
   useEffect(() => {
     load();
+    function onSession() {
+      load();
+    }
+    window.addEventListener("kaarobar:session", onSession);
+    return () => window.removeEventListener("kaarobar:session", onSession);
   }, [load]);
 
   const links = [
     {
       href: routes.pos,
-      title: "Open POS",
-      subtitle: "Checkout & tills",
+      title: t("pages.openPos"),
+      subtitle: t("dashboard.openPosSub"),
       icon: ShoppingCart,
       primary: true,
     },
     {
       href: routes.inventory,
-      title: "Inventory",
-      subtitle: "Stock & purchasing",
+      title: t("nav.inventory"),
+      subtitle: t("dashboard.inventorySub"),
       icon: Boxes,
     },
     {
       href: routes.returns,
-      title: "Returns",
-      subtitle: "Refunds & approvals",
+      title: t("nav.returns"),
+      subtitle: t("dashboard.returnsSub"),
       icon: CheckCircle2,
     },
     {
       href: routes.reports,
-      title: "Reports",
-      subtitle: "Sales & cash views",
+      title: t("nav.reports"),
+      subtitle: t("dashboard.reportsSub"),
       icon: TrendingUp,
     },
   ] as const;
@@ -86,34 +96,32 @@ export default function AppDashboardPage() {
         }}
       />
 
-      {error ? <Alert tone="error">{error}</Alert> : null}
-
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
-          label="Sales today"
+          label={t("dashboard.salesToday")}
           value={dashboard?.sales_today ?? "—"}
-          hint="Branch take so far"
+          hint={t("dashboard.salesTodayHint")}
           tone="brand"
           icon={<TrendingUp className="h-5 w-5" />}
         />
         <KpiCard
-          label="Cash position"
+          label={t("dashboard.cashPosition")}
           value={dashboard?.cash_position ?? "—"}
-          hint="Till & cash accounts"
+          hint={t("dashboard.cashPositionHint")}
           tone="success"
           icon={<Banknote className="h-5 w-5" />}
         />
         <KpiCard
-          label="Low stock"
+          label={t("dashboard.lowStock")}
           value={dashboard?.low_stock_count ?? "—"}
-          hint="Needs reorder attention"
+          hint={t("dashboard.lowStockHint")}
           tone="warning"
           icon={<AlertTriangle className="h-5 w-5" />}
         />
         <KpiCard
-          label="Approvals"
+          label={t("dashboard.approvals")}
           value={dashboard?.pending_approvals ?? "—"}
-          hint="Returns waiting on you"
+          hint={t("dashboard.approvalsHint")}
           tone="danger"
           icon={<CheckCircle2 className="h-5 w-5" />}
         />
@@ -123,8 +131,12 @@ export default function AppDashboardPage() {
         <SurfaceCard className="p-5 lg:col-span-2">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-bold text-heading">Quick actions</h2>
-              <p className="mt-1 text-sm text-body">Jump into the flows you use every day.</p>
+              <h2 className="text-lg font-bold text-heading">
+                {t("dashboard.quickActions")}
+              </h2>
+              <p className="mt-1 text-sm text-body">
+                {t("dashboard.quickActionsDesc")}
+              </p>
             </div>
           </div>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -173,18 +185,18 @@ export default function AppDashboardPage() {
 
         <SurfaceCard className="flex flex-col justify-between p-5">
           <div>
-            <h2 className="text-lg font-bold text-heading">Footprint</h2>
+            <h2 className="text-lg font-bold text-heading">{t("dashboard.footprint")}</h2>
             <p className="mt-2 text-sm leading-relaxed text-body">
-              Switch business or branch anytime from the top bar — every page follows that context.
+              {t("dashboard.footprintDesc")}
             </p>
           </div>
           <div className="mt-6 space-y-3">
             <div className="flex items-center justify-between rounded-md bg-bg-tertiary px-4 py-3">
-              <span className="text-sm text-body">Businesses</span>
+              <span className="text-sm text-body">{t("dashboard.businesses")}</span>
               <strong className="text-lg text-heading">{dashboard?.businesses ?? "—"}</strong>
             </div>
             <div className="flex items-center justify-between rounded-md bg-bg-tertiary px-4 py-3">
-              <span className="text-sm text-body">Branches</span>
+              <span className="text-sm text-body">{t("dashboard.branches")}</span>
               <strong className="text-lg text-heading">{dashboard?.branches ?? "—"}</strong>
             </div>
             <Link href={routes.settings} className="block">

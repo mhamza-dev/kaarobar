@@ -19,7 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { appNav, appNavGroups, routes } from "@/lib/navigation";
-import { clearSession, getSession, setSession, type StoredSession, api } from "@/lib/api/client";
+import { clearSession, getSession, bootstrapTenantSession, type StoredSession } from "@/lib/api/client";
 import TenantSwitcher from "@/components/app/TenantSwitcher";
 import LanguageSwitcher from "@/components/app/LanguageSwitcher";
 import Button from "@/components/ui/Button";
@@ -43,20 +43,38 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { t, setLocale } = useI18n();
   const [session, setSessionState] = useState<StoredSession | null>(null);
+  const [booting, setBooting] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [tenantKey, setTenantKey] = useState("boot");
 
   useEffect(() => {
-    const current = getSession();
-    if (!current) {
-      router.replace(routes.login);
-      return;
-    }
-    setSessionState(current);
-    setTenantKey(`${current.business_id || ""}:${current.branch_id || ""}`);
-    if (current.user.locale === "ur" || current.user.locale === "en") {
-      setLocale(current.user.locale);
-    }
+    let cancelled = false;
+
+    (async () => {
+      const current = getSession();
+      if (!current) {
+        router.replace(routes.login);
+        return;
+      }
+
+      try {
+        const ready = await bootstrapTenantSession(current);
+        if (cancelled) return;
+        setSessionState(ready);
+        setTenantKey(`${ready.business_id || ""}:${ready.branch_id || ""}`);
+        if (ready.user.locale === "ur" || ready.user.locale === "en") {
+          setLocale(ready.user.locale);
+        }
+      } catch {
+        if (!cancelled) setSessionState(current);
+      } finally {
+        if (!cancelled) setBooting(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [router, setLocale]);
 
   useEffect(() => {
@@ -96,7 +114,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     )?.titleKey ?? "common.appName";
   const isPos = pathname.startsWith("/app/pos");
 
-  if (!session) {
+  if (!session || booting) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-bg-primary text-body">
         {t("common.workspaceLoading")}
@@ -129,11 +147,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition ${
-                      active
-                        ? "bg-brand text-white shadow-sm"
-                        : "text-rail-foreground hover:bg-rail-hover"
-                    }`}
+                    className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition ${active
+                      ? "bg-brand text-white shadow-sm"
+                      : "text-rail-foreground hover:bg-rail-hover"
+                      }`}
                   >
                     <Icon
                       className={`h-4 w-4 shrink-0 ${active ? "text-white" : "text-rail-muted"}`}
@@ -151,9 +168,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-bg-primary text-heading">
-      <aside className="relative z-30 hidden w-[248px] shrink-0 flex-col border-r border-rail-border bg-rail lg:flex">
-        <div className="flex items-center gap-3 border-b border-rail-border px-5 py-4">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-bg-primary text-heading lg:h-screen">
+      <aside className="relative z-30 hidden h-screen w-[248px] shrink-0 flex-col overflow-hidden border-r border-rail-border bg-rail lg:flex">
+        <div className="flex shrink-0 items-center gap-3 border-b border-rail-border px-5 py-4">
           <span className="flex h-10 w-10 items-center justify-center rounded-md bg-brand text-sm font-bold text-white shadow-brand">
             K
           </span>
@@ -164,8 +181,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <p className="text-xs text-rail-muted">{t("common.pointOfSale")}</p>
           </div>
         </div>
-        <NavBody />
-        <div className="mt-auto space-y-3 border-t border-rail-border p-4">
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <NavBody />
+        </div>
+        <div className="mt-auto shrink-0 space-y-3 border-t border-rail-border p-4">
           <LanguageSwitcher />
           <button
             type="button"
@@ -181,81 +200,55 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="relative z-20 flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-sidebar-border bg-sidebar px-3 py-2 text-sidebar-foreground sm:px-5">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="z-20 flex min-h-[4.5rem] shrink-0 flex-wrap items-center justify-between gap-3 border-b border-rail-border bg-rail px-4 sm:px-5 lg:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <Button
               variant="ghost"
               size="sm"
-              className="lg:hidden text-white hover:bg-white/10 hover:text-white focus:ring-white/20"
+              className="lg:hidden text-rail-muted hover:bg-rail-hover hover:text-heading focus:ring-brand/20"
               onClick={() => setMenuOpen((v) => !v)}
             >
               {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
-            <h1 className="truncate text-sm font-semibold tracking-wide text-white">
-              {t(titleKey)}
-            </h1>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-brand text-xs font-bold text-white shadow-brand lg:hidden">
+              K
+            </span>
+            <div className="min-w-0 border-l border-rail-border pl-3 lg:border-l-0 lg:pl-0">
+              <p className="mb-0.5 hidden text-[10px] font-bold uppercase tracking-[0.14em] text-rail-muted lg:block">
+                {t("common.workspace")}
+              </p>
+              <h1 className="truncate text-sm font-bold tracking-tight text-heading">
+                {t(titleKey)}
+              </h1>
+            </div>
           </div>
 
           <div className="flex min-w-0 flex-1 items-center justify-end gap-2 sm:gap-3">
             <TenantSwitcher />
-            <div className="hidden h-6 w-px shrink-0 bg-white/10 sm:block" aria-hidden />
+            <div className="hidden h-6 w-px shrink-0 bg-rail-border sm:block" aria-hidden />
             <div className="hidden sm:block">
-              <select
-                className="rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-xs font-semibold text-white outline-none"
-                value={session.user.locale === "ur" ? "ur" : "en"}
-                onChange={(e) => {
-                  const next = e.target.value as "en" | "ur";
-                  setLocale(next);
-                  void api<{ user?: { locale?: string } }>("/auth/me", {
-                    method: "PATCH",
-                    body: JSON.stringify({ locale: next }),
-                  })
-                    .then((res) => {
-                      const current = getSession();
-                      if (current && res.user) {
-                        setSession({
-                          ...current,
-                          user: {
-                            ...current.user,
-                            locale: res.user.locale === "ur" ? "ur" : "en",
-                          },
-                        });
-                      }
-                    })
-                    .catch(() => {
-                      /* local switch still applies */
-                    });
-                }}
-                aria-label={t("common.language")}
-              >
-                <option value="en" className="text-heading">
-                  {t("common.english")}
-                </option>
-                <option value="ur" className="text-heading">
-                  {t("common.urdu")}
-                </option>
-              </select>
+              <LanguageSwitcher compact persistToProfile />
             </div>
             <Link
               href={routes.notifications}
-              className="shrink-0 rounded-md p-2 text-sidebar-muted transition hover:bg-white/10 hover:text-white"
+              className="shrink-0 rounded-md p-2 text-rail-muted transition hover:bg-rail-hover hover:text-heading"
               aria-label={t("nav.notifications")}
             >
-              <Bell className="h-4 w-4" />
+              <Bell className="h-4 w-4" strokeWidth={2} />
             </Link>
             <Link
               href={routes.profile}
-              className="flex shrink-0 items-center gap-2.5 rounded-md border border-white/10 bg-white/5 py-1 pl-1 pr-2.5 transition hover:bg-white/10 sm:pr-3"
+              className="flex shrink-0 items-center gap-2.5 rounded-md border border-rail-border bg-card py-1 pl-1 pr-2.5 transition hover:bg-rail-hover sm:pr-3"
             >
-              <span className="flex h-8 w-8 items-center justify-center rounded-md bg-brand text-xs font-bold text-white">
+              <span className="flex h-8 w-8 items-center justify-center rounded-md bg-brand text-xs font-bold text-white shadow-brand">
                 {initials}
               </span>
               <div className="hidden max-w-[148px] leading-tight lg:block">
-                <p className="truncate text-sm font-semibold text-white">
+                <p className="truncate text-sm font-semibold text-heading">
                   {session.user.name}
                 </p>
-                <p className="truncate text-[11px] text-sidebar-muted">
+                <p className="truncate text-[11px] text-rail-muted">
                   {session.user.email}
                 </p>
               </div>
@@ -264,7 +257,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </header>
 
         {menuOpen ? (
-          <div className="border-b border-rail-border bg-rail lg:hidden">
+          <div className="max-h-[min(24rem,50vh)] shrink-0 overflow-y-auto border-b border-rail-border bg-rail lg:hidden">
             <NavBody compact />
             <div className="border-t border-rail-border px-4 py-3">
               <LanguageSwitcher />
@@ -273,13 +266,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         ) : null}
 
         <main
-          className={`relative z-10 flex-1 overflow-auto ${
-            isPos ? "p-0" : "px-4 py-6 sm:px-6 lg:px-8"
+          className={`relative z-10 min-h-0 flex-1 ${
+            isPos ? "overflow-hidden p-0" : "overflow-y-auto px-4 py-6 sm:px-6 lg:px-8"
           }`}
         >
           <div
             key={tenantKey}
-            className={isPos ? "h-full" : "mx-auto w-full max-w-7xl animate-rise"}
+            className={
+              isPos
+                ? "flex h-full min-h-0 flex-col"
+                : "mx-auto w-full max-w-7xl animate-rise"
+            }
           >
             {children}
           </div>

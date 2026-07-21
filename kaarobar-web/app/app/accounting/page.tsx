@@ -5,7 +5,9 @@ import { api } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
-import { Alert, EmptyState, Field, PageHeader, TabBar, fieldClass } from "@/components/app/ui";
+import { EmptyState, Field, PageHeader, TabBar, fieldClass } from "@/components/app/ui";
+import { useToast } from "@/components/ui/Toast";
+import { useT } from "@/lib/i18n";
 
 type Tab = "coa" | "journals" | "tb" | "pl" | "bs" | "gl" | "ar" | "ap";
 
@@ -56,6 +58,8 @@ type AgingRow = {
 };
 
 export default function AccountingPage() {
+  const t = useT();
+  const toast = useToast();
   const [tab, setTab] = useState<Tab>("tb");
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [journals, setJournals] = useState<Journal[]>([]);
@@ -66,8 +70,6 @@ export default function AccountingPage() {
   const [glAccountId, setGlAccountId] = useState("");
   const [arAging, setArAging] = useState<AgingRow[]>([]);
   const [apAging, setApAging] = useState<AgingRow[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
   const [jeModal, setJeModal] = useState(false);
   const [accountModal, setAccountModal] = useState(false);
   const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
@@ -89,7 +91,6 @@ export default function AccountingPage() {
   const [to, setTo] = useState(() => new Date().toISOString().slice(0, 10));
 
   const loadCore = useCallback(async () => {
-    setError(null);
     try {
       const [acc, je] = await Promise.all([
         api<{ data: Account[] }>("/accounts").catch(() => ({ data: [] as Account[] })),
@@ -99,9 +100,9 @@ export default function AccountingPage() {
       setJournals(je.data || []);
       if (!glAccountId && acc.data?.[0]) setGlAccountId(acc.data[0].id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load");
+      toast.error(err instanceof Error ? err.message : t("common.loadFailed"));
     }
-  }, [glAccountId]);
+  }, [glAccountId, t, toast]);
 
   useEffect(() => {
     loadCore();
@@ -114,7 +115,7 @@ export default function AccountingPage() {
       );
       setTb(res.data || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "TB failed");
+      toast.error(err instanceof Error ? err.message : t("accounting.tbFailed"));
     }
   }
 
@@ -125,7 +126,7 @@ export default function AccountingPage() {
       );
       setPl(res.data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "P&L failed");
+      toast.error(err instanceof Error ? err.message : t("accounting.plFailed"));
     }
   }
 
@@ -134,7 +135,7 @@ export default function AccountingPage() {
       const res = await api<{ data: BsData }>(`/reports/balance-sheet?as_of=${to}`);
       setBs(res.data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "BS failed");
+      toast.error(err instanceof Error ? err.message : t("accounting.bsFailed"));
     }
   }
 
@@ -146,7 +147,7 @@ export default function AccountingPage() {
       );
       setGl(res.data || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "GL failed");
+      toast.error(err instanceof Error ? err.message : t("accounting.glFailed"));
     }
   }
 
@@ -159,7 +160,7 @@ export default function AccountingPage() {
       setArAging(ar.data || []);
       setApAging(ap.data || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Aging failed");
+      toast.error(err instanceof Error ? err.message : t("accounting.agingFailed"));
     }
   }
 
@@ -175,7 +176,6 @@ export default function AccountingPage() {
   async function createJournal(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
-    setError(null);
     try {
       await api("/journals", {
         method: "POST",
@@ -196,7 +196,7 @@ export default function AccountingPage() {
           ],
         }),
       });
-      setMessage("Journal posted");
+      toast.success(t("accounting.journalPosted"));
       setJeDesc("");
       setLineA({ account_id: "", debit: "", credit: "" });
       setLineB({ account_id: "", debit: "", credit: "" });
@@ -204,7 +204,7 @@ export default function AccountingPage() {
       await loadCore();
       setTab("journals");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Journal failed");
+      toast.error(err instanceof Error ? err.message : t("accounting.journalFailed"));
     } finally {
       setBusy(false);
     }
@@ -213,10 +213,10 @@ export default function AccountingPage() {
   async function reverseJournal(id: string) {
     try {
       await api(`/journals/${id}/reverse`, { method: "POST", body: "{}" });
-      setMessage("Reversal posted");
+      toast.success(t("accounting.reversalPosted"));
       await loadCore();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Reverse failed");
+      toast.error(err instanceof Error ? err.message : t("accounting.reverseFailed"));
     }
   }
 
@@ -235,12 +235,12 @@ export default function AccountingPage() {
         method: "PATCH",
         body: JSON.stringify(accountForm),
       });
-      setMessage("Account updated");
+      toast.success(t("accounting.accountUpdated"));
       setAccountModal(false);
       setEditingAccountId(null);
       await loadCore();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Account update failed");
+      toast.error(err instanceof Error ? err.message : t("accounting.accountUpdateFailed"));
     } finally {
       setBusy(false);
     }
@@ -260,18 +260,15 @@ export default function AccountingPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Books"
-        title="Accounting"
-        description="Chart of accounts, journals, statements, and AR/AP aging."
+        eyebrow={t("accounting.eyebrow")}
+        title={t("pages.accountingTitle")}
+        description={t("pages.accountingDesc")}
         action={
           tab === "journals"
-            ? { label: "Post journal", onClick: () => setJeModal(true) }
+            ? { label: t("accounting.postJournal"), onClick: () => setJeModal(true) }
             : undefined
         }
       />
-
-      {error ? <Alert tone="error">{error}</Alert> : null}
-      {message ? <Alert>{message}</Alert> : null}
 
       <TabBar tabs={tabs} value={tab} onChange={setTab} />
 

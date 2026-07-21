@@ -11,8 +11,9 @@ import Link from "@/components/ui/Link";
 import OptionSelector from "@/components/ui/OptionSelector";
 import { authMethodOptions } from "@/components/auth/auth-method-options";
 import { loginSchema } from "@/lib/validations/auth";
-import { api, setSession } from "@/lib/api/client";
+import { api, bootstrapTenantSession, setSession } from "@/lib/api/client";
 import { useI18n, type Locale } from "@/lib/i18n";
+import { useToast } from "@/components/ui/Toast";
 
 interface LoginFormValues {
   loginMethod: "email" | "phone";
@@ -25,6 +26,7 @@ interface LoginFormValues {
 const LoginForm = (): React.ReactElement => {
   const router = useRouter();
   const { t, setLocale } = useI18n();
+  const toast = useToast();
   const [formError, setFormError] = useState<string | null>(null);
 
   const initialValues: LoginFormValues = {
@@ -63,9 +65,15 @@ const LoginForm = (): React.ReactElement => {
       if (result.user.locale === "ur" || result.user.locale === "en") {
         setLocale(result.user.locale);
       }
+      await bootstrapTenantSession({
+        access_token: result.access_token,
+        user: result.user,
+      });
       router.push("/app");
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : "Login failed");
+      const msg = error instanceof Error ? error.message : t("auth.loginFailed");
+      setFormError(msg);
+      toast.error(msg);
     }
   };
 

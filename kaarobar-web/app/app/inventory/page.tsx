@@ -6,13 +6,14 @@ import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import {
-  Alert,
   Field,
   PageHeader,
   SurfaceCard,
   TabBar,
   fieldClass,
 } from "@/components/app/ui";
+import { useToast } from "@/components/ui/Toast";
+import { useT } from "@/lib/i18n";
 
 type Tab = "stock" | "products" | "suppliers" | "pos" | "transfers" | "adjust";
 type ModalKind = "product" | "supplier" | "po" | null;
@@ -51,7 +52,84 @@ type StockRow = {
   quantity_on_hand: string;
   avg_cost: string;
 };
-type Supplier = { id: string; name: string };
+type Supplier = {
+  id: string;
+  name: string;
+  legal_name?: string | null;
+  code?: string | null;
+  tax_id?: string | null;
+  strn?: string | null;
+  website?: string | null;
+  industry?: string | null;
+  status?: string;
+  notes?: string | null;
+  is_preferred?: boolean;
+  rating?: number | null;
+  contact_name?: string | null;
+  contact_role?: string | null;
+  contact_email?: string | null;
+  contact_phone?: string | null;
+  contact_mobile?: string | null;
+  contact_whatsapp?: string | null;
+  contact_cnic?: string | null;
+  address_line1?: string | null;
+  address_line2?: string | null;
+  city?: string | null;
+  province?: string | null;
+  postal_code?: string | null;
+  country?: string | null;
+  payment_terms?: string | null;
+  payment_method?: string | null;
+  bank_name?: string | null;
+  bank_iban?: string | null;
+  bank_account_title?: string | null;
+  credit_limit?: string | null;
+  currency?: string | null;
+  lead_time_days?: number | null;
+  minimum_order_amount?: string | null;
+  catalogs?: string[];
+  brands?: string[];
+  tags?: string[];
+};
+
+const emptySupplierForm = {
+  name: "",
+  legal_name: "",
+  code: "",
+  tax_id: "",
+  strn: "",
+  website: "",
+  industry: "",
+  status: "active",
+  notes: "",
+  is_preferred: false,
+  rating: "",
+  contact_name: "",
+  contact_role: "",
+  contact_email: "",
+  contact_phone: "",
+  contact_mobile: "",
+  contact_whatsapp: "",
+  contact_cnic: "",
+  address_line1: "",
+  address_line2: "",
+  city: "",
+  province: "",
+  postal_code: "",
+  country: "PK",
+  payment_terms: "Net 30",
+  payment_method: "bank_transfer",
+  bank_name: "",
+  bank_iban: "",
+  bank_account_title: "",
+  credit_limit: "",
+  currency: "PKR",
+  lead_time_days: "",
+  minimum_order_amount: "",
+  catalogs: "",
+  brands: "",
+  tags: "",
+};
 type PO = {
   id: string;
   status: string;
@@ -66,22 +144,23 @@ type Transfer = {
 };
 
 export default function InventoryPage() {
+  const t = useT();
+  const toast = useToast();
   const [tab, setTab] = useState<Tab>("stock");
   const [modal, setModal] = useState<ModalKind>(null);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
+  const [editingSupplierId, setEditingSupplierId] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [stock, setStock] = useState<StockRow[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [pos, setPos] = useState<PO[]>([]);
   const [transfers, setTransfers] = useState<Transfer[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const [productForm, setProductForm] = useState(emptyProductForm);
   const [productImage, setProductImage] = useState<File | null>(null);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
-  const [supplierName, setSupplierName] = useState("");
+  const [supplierForm, setSupplierForm] = useState(emptySupplierForm);
   const [poForm, setPoForm] = useState({
     supplier_id: "",
     product_id: "",
@@ -105,7 +184,6 @@ export default function InventoryPage() {
   });
 
   const load = useCallback(async () => {
-    setError(null);
     try {
       const [p, s, sup, poList, tr, cats] = await Promise.all([
         api<{ data: Product[] }>("/products"),
@@ -124,9 +202,9 @@ export default function InventoryPage() {
       setTransfers(tr.data || []);
       setCategories(cats.data || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load");
+      toast.error(err instanceof Error ? err.message : t("common.loadFailed"));
     }
-  }, []);
+  }, [t, toast]);
 
   useEffect(() => {
     load();
@@ -167,7 +245,6 @@ export default function InventoryPage() {
   async function saveProduct(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
-    setError(null);
     try {
       const fd = new FormData();
       Object.entries(productForm).forEach(([k, v]) => {
@@ -177,36 +254,152 @@ export default function InventoryPage() {
 
       if (editingProductId) {
         await api(`/products/${editingProductId}`, { method: "PATCH", body: fd });
-        setMessage("Product updated");
+        toast.success(t("inventory.productUpdated"));
       } else {
         await api("/products", { method: "POST", body: fd });
-        setMessage("Product created");
+        toast.success(t("inventory.productCreated"));
       }
       closeProductModal();
       setTab("products");
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Save failed");
+      toast.error(err instanceof Error ? err.message : t("common.saveFailed"));
     } finally {
       setBusy(false);
     }
   }
 
-  async function createSupplier(e: React.FormEvent) {
+  function openNewSupplier() {
+    setEditingSupplierId(null);
+    setSupplierForm(emptySupplierForm);
+    setModal("supplier");
+  }
+
+  function openEditSupplier(s: Supplier) {
+    setEditingSupplierId(s.id);
+    setSupplierForm({
+      name: s.name || "",
+      legal_name: s.legal_name || "",
+      code: s.code || "",
+      tax_id: s.tax_id || "",
+      strn: s.strn || "",
+      website: s.website || "",
+      industry: s.industry || "",
+      status: s.status || "active",
+      notes: s.notes || "",
+      is_preferred: Boolean(s.is_preferred),
+      rating: s.rating != null ? String(s.rating) : "",
+      contact_name: s.contact_name || "",
+      contact_role: s.contact_role || "",
+      contact_email: s.contact_email || "",
+      contact_phone: s.contact_phone || "",
+      contact_mobile: s.contact_mobile || "",
+      contact_whatsapp: s.contact_whatsapp || "",
+      contact_cnic: s.contact_cnic || "",
+      address_line1: s.address_line1 || "",
+      address_line2: s.address_line2 || "",
+      city: s.city || "",
+      province: s.province || "",
+      postal_code: s.postal_code || "",
+      country: s.country || "PK",
+      payment_terms: s.payment_terms || "Net 30",
+      payment_method: s.payment_method || "bank_transfer",
+      bank_name: s.bank_name || "",
+      bank_iban: s.bank_iban || "",
+      bank_account_title: s.bank_account_title || "",
+      credit_limit: s.credit_limit || "",
+      currency: s.currency || "PKR",
+      lead_time_days: s.lead_time_days != null ? String(s.lead_time_days) : "",
+      minimum_order_amount: s.minimum_order_amount || "",
+      catalogs: (s.catalogs || []).join(", "),
+      brands: (s.brands || []).join(", "),
+      tags: (s.tags || []).join(", "),
+    });
+    setModal("supplier");
+  }
+
+  function closeSupplierModal() {
+    setModal(null);
+    setEditingSupplierId(null);
+    setSupplierForm(emptySupplierForm);
+  }
+
+  function supplierPayload() {
+    const splitList = (v: string) =>
+      v
+        .split(/[,;\n]/)
+        .map((x) => x.trim())
+        .filter(Boolean);
+
+    return {
+      name: supplierForm.name.trim(),
+      legal_name: supplierForm.legal_name.trim() || null,
+      code: supplierForm.code.trim() || null,
+      tax_id: supplierForm.tax_id.trim() || null,
+      strn: supplierForm.strn.trim() || null,
+      website: supplierForm.website.trim() || null,
+      industry: supplierForm.industry.trim() || null,
+      status: supplierForm.status,
+      notes: supplierForm.notes.trim() || null,
+      is_preferred: supplierForm.is_preferred,
+      rating: supplierForm.rating ? Number(supplierForm.rating) : null,
+      contact_name: supplierForm.contact_name.trim() || null,
+      contact_role: supplierForm.contact_role.trim() || null,
+      contact_email: supplierForm.contact_email.trim() || null,
+      contact_phone: supplierForm.contact_phone.trim() || null,
+      contact_mobile: supplierForm.contact_mobile.trim() || null,
+      contact_whatsapp: supplierForm.contact_whatsapp.trim() || null,
+      contact_cnic: supplierForm.contact_cnic.trim() || null,
+      address_line1: supplierForm.address_line1.trim() || null,
+      address_line2: supplierForm.address_line2.trim() || null,
+      city: supplierForm.city.trim() || null,
+      province: supplierForm.province.trim() || null,
+      postal_code: supplierForm.postal_code.trim() || null,
+      country: supplierForm.country.trim() || "PK",
+      payment_terms: supplierForm.payment_terms.trim() || null,
+      payment_method: supplierForm.payment_method || null,
+      bank_name: supplierForm.bank_name.trim() || null,
+      bank_iban: supplierForm.bank_iban.trim() || null,
+      bank_account_title: supplierForm.bank_account_title.trim() || null,
+      credit_limit: supplierForm.credit_limit.trim() || null,
+      currency: supplierForm.currency.trim() || "PKR",
+      lead_time_days: supplierForm.lead_time_days
+        ? Number(supplierForm.lead_time_days)
+        : null,
+      minimum_order_amount: supplierForm.minimum_order_amount.trim() || null,
+      catalogs: splitList(supplierForm.catalogs),
+      brands: splitList(supplierForm.brands),
+      tags: splitList(supplierForm.tags),
+      contact: {
+        phone: supplierForm.contact_phone.trim() || null,
+        email: supplierForm.contact_email.trim() || null,
+      },
+    };
+  }
+
+  async function saveSupplier(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     try {
-      await api("/suppliers", {
-        method: "POST",
-        body: JSON.stringify({ name: supplierName }),
-      });
-      setSupplierName("");
-      setModal(null);
-      setMessage("Supplier added");
+      const body = supplierPayload();
+      if (editingSupplierId) {
+        await api(`/suppliers/${editingSupplierId}`, {
+          method: "PATCH",
+          body: JSON.stringify(body),
+        });
+        toast.success(t("inventory.supplierUpdated"));
+      } else {
+        await api("/suppliers", {
+          method: "POST",
+          body: JSON.stringify(body),
+        });
+        toast.success(t("inventory.supplierAdded"));
+      }
+      closeSupplierModal();
       setTab("suppliers");
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Supplier failed");
+      toast.error(err instanceof Error ? err.message : t("inventory.supplierFailed"));
     } finally {
       setBusy(false);
     }
@@ -232,11 +425,11 @@ export default function InventoryPage() {
         }),
       });
       setModal(null);
-      setMessage("PO created");
+      toast.success(t("inventory.poCreated"));
       setTab("pos");
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "PO failed");
+      toast.error(err instanceof Error ? err.message : t("inventory.poFailed"));
     } finally {
       setBusy(false);
     }
@@ -259,11 +452,11 @@ export default function InventoryPage() {
           ],
         }),
       });
-      setMessage("GRN received");
+      toast.success(t("inventory.grnReceived"));
       setGrnForm({ purchase_order_id: "", product_id: "", quantity_received: "" });
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "GRN failed");
+      toast.error(err instanceof Error ? err.message : t("inventory.grnFailed"));
     }
   }
 
@@ -284,20 +477,20 @@ export default function InventoryPage() {
           ],
         }),
       });
-      setMessage("Transfer created (pending confirm)");
+      toast.success(t("inventory.transferCreated"));
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Transfer failed");
+      toast.error(err instanceof Error ? err.message : t("inventory.transferFailed"));
     }
   }
 
   async function confirmTransfer(id: string) {
     try {
       await api(`/inventory/transfers/${id}/confirm`, { method: "POST", body: "{}" });
-      setMessage("Transfer confirmed");
+      toast.success(t("inventory.transferConfirmed"));
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Confirm failed");
+      toast.error(err instanceof Error ? err.message : t("inventory.confirmFailed"));
     }
   }
 
@@ -312,45 +505,42 @@ export default function InventoryPage() {
           ...adjustForm,
         }),
       });
-      setMessage("Stock adjusted");
+      toast.success(t("inventory.stockAdjusted"));
       setAdjustForm({ product_id: "", quantity_delta: "", reason_code: "adjustment" });
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Adjust failed");
+      toast.error(err instanceof Error ? err.message : t("inventory.adjustFailed"));
     }
   }
 
   const tabs: { id: Tab; label: string }[] = [
-    { id: "stock", label: "On hand" },
-    { id: "products", label: "Products" },
-    { id: "suppliers", label: "Suppliers" },
-    { id: "pos", label: "PO / GRN" },
-    { id: "transfers", label: "Transfers" },
-    { id: "adjust", label: "Adjust" },
+    { id: "stock", label: t("inventory.tabs.stock") },
+    { id: "products", label: t("inventory.tabs.products") },
+    { id: "suppliers", label: t("inventory.tabs.suppliers") },
+    { id: "pos", label: t("inventory.tabs.pos") },
+    { id: "transfers", label: t("inventory.tabs.transfers") },
+    { id: "adjust", label: t("common.update") },
   ];
 
   const headerAction =
     tab === "products"
-      ? { label: "New product", onClick: openNewProduct }
+      ? { label: t("inventory.newProduct"), onClick: openNewProduct }
       : tab === "suppliers"
-        ? { label: "Add supplier", onClick: () => setModal("supplier") }
+        ? { label: t("inventory.addSupplier"), onClick: openNewSupplier }
         : tab === "pos"
-          ? { label: "New PO", onClick: () => setModal("po") }
+          ? { label: t("inventory.newPo"), onClick: () => setModal("po") }
           : undefined;
 
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Inventory"
-        title="Stock & procurement"
-        description="Catalog, on-hand quantities, suppliers, purchase orders, and transfers for the active branch."
+        eyebrow={t("inventory.eyebrow")}
+        title={t("pages.inventoryTitle")}
+        description={t("pages.inventoryDesc")}
         action={headerAction}
       />
 
       <TabBar tabs={tabs} value={tab} onChange={setTab} />
-
-      {error ? <Alert tone="error">{error}</Alert> : null}
-      {message ? <Alert tone="success">{message}</Alert> : null}
 
       {tab === "stock" ? (
         <DataTable
@@ -498,13 +688,120 @@ export default function InventoryPage() {
         <DataTable
           maxHeight="28rem"
           searchable
-          searchPlaceholder="Search suppliers…"
-          getSearchText={(s) => s.name}
+          searchPlaceholder="Search suppliers, city, contact…"
+          getSearchText={(s) =>
+            [
+              s.name,
+              s.legal_name,
+              s.code,
+              s.city,
+              s.contact_name,
+              s.contact_email,
+              s.industry,
+              ...(s.catalogs || []),
+              ...(s.brands || []),
+              ...(s.tags || []),
+            ]
+              .filter(Boolean)
+              .join(" ")
+          }
+          onRowClick={openEditSupplier}
           columns={[
             {
               id: "name",
-              header: "Supplier",
-              cell: (s) => <span className="font-medium text-heading">{s.name}</span>,
+              header: "Company",
+              cell: (s) => (
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-heading">{s.name}</span>
+                    {s.is_preferred ? (
+                      <span className="rounded-md bg-brand-soft px-1.5 py-0.5 text-[10px] font-bold text-brand">
+                        Preferred
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="text-xs text-muted">
+                    {s.code || "—"}
+                    {s.legal_name ? ` · ${s.legal_name}` : ""}
+                  </div>
+                </div>
+              ),
+            },
+            {
+              id: "contact",
+              header: "Contact person",
+              cell: (s) => (
+                <div>
+                  <div className="font-medium">{s.contact_name || "—"}</div>
+                  <div className="text-xs text-muted">
+                    {[s.contact_role, s.contact_phone || s.contact_mobile]
+                      .filter(Boolean)
+                      .join(" · ") || "—"}
+                  </div>
+                </div>
+              ),
+            },
+            {
+              id: "location",
+              header: "Location",
+              cell: (s) => (
+                <span className="text-body">
+                  {[s.city, s.province].filter(Boolean).join(", ") || "—"}
+                </span>
+              ),
+            },
+            {
+              id: "catalogs",
+              header: "Catalogs",
+              cell: (s) => (
+                <div className="flex max-w-[220px] flex-wrap gap-1">
+                  {(s.catalogs || []).slice(0, 4).map((c) => (
+                    <span
+                      key={c}
+                      className="rounded-md bg-bg-tertiary px-1.5 py-0.5 text-[10px] font-semibold capitalize text-body"
+                    >
+                      {c}
+                    </span>
+                  ))}
+                  {(s.catalogs || []).length === 0 ? (
+                    <span className="text-muted">—</span>
+                  ) : null}
+                </div>
+              ),
+            },
+            {
+              id: "terms",
+              header: "Terms",
+              cell: (s) => (
+                <span className="text-sm text-body">{s.payment_terms || "—"}</span>
+              ),
+            },
+            {
+              id: "status",
+              header: "Status",
+              cell: (s) => (
+                <span className="inline-flex rounded-md bg-bg-tertiary px-2 py-0.5 text-xs font-semibold capitalize">
+                  {s.status || "active"}
+                </span>
+              ),
+            },
+            {
+              id: "actions",
+              header: "",
+              align: "right",
+              width: 88,
+              cell: (s) => (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openEditSupplier(s);
+                  }}
+                >
+                  Edit
+                </Button>
+              ),
             },
           ]}
           data={suppliers}
@@ -838,29 +1135,389 @@ export default function InventoryPage() {
 
       <Modal
         isOpen={modal === "supplier"}
-        onClose={() => setModal(null)}
-        title="Add supplier"
-        description="Suppliers are used on purchase orders and AP bills."
+        onClose={closeSupplierModal}
+        title={editingSupplierId ? "Edit supplier" : "Add supplier"}
+        description="Company details, liaison contact, address, payment terms, and product catalogs."
+        size="xl"
         footer={
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setModal(null)}>
+            <Button variant="outline" onClick={closeSupplierModal}>
               Cancel
             </Button>
             <Button type="submit" form="supplier-modal-form" loading={busy}>
-              Add supplier
+              {editingSupplierId ? "Save changes" : "Add supplier"}
             </Button>
           </div>
         }
       >
-        <form id="supplier-modal-form" onSubmit={createSupplier} className="space-y-4">
-          <Field label="Supplier name">
-            <input
-              className={fieldClass}
-              value={supplierName}
-              onChange={(e) => setSupplierName(e.target.value)}
-              required
-            />
-          </Field>
+        <form id="supplier-modal-form" onSubmit={saveSupplier} className="space-y-6">
+          <section className="space-y-3">
+            <h3 className="text-sm font-bold uppercase tracking-wide text-muted">Company</h3>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Trade name">
+                <input
+                  className={fieldClass}
+                  value={supplierForm.name}
+                  onChange={(e) => setSupplierForm({ ...supplierForm, name: e.target.value })}
+                  required
+                />
+              </Field>
+              <Field label="Legal name">
+                <input
+                  className={fieldClass}
+                  value={supplierForm.legal_name}
+                  onChange={(e) =>
+                    setSupplierForm({ ...supplierForm, legal_name: e.target.value })
+                  }
+                />
+              </Field>
+              <Field label="Supplier code">
+                <input
+                  className={fieldClass}
+                  value={supplierForm.code}
+                  onChange={(e) => setSupplierForm({ ...supplierForm, code: e.target.value })}
+                  placeholder="e.g. LHR-DIST"
+                />
+              </Field>
+              <Field label="Industry">
+                <input
+                  className={fieldClass}
+                  value={supplierForm.industry}
+                  onChange={(e) =>
+                    setSupplierForm({ ...supplierForm, industry: e.target.value })
+                  }
+                  placeholder="FMCG wholesale"
+                />
+              </Field>
+              <Field label="NTN / Tax ID">
+                <input
+                  className={fieldClass}
+                  value={supplierForm.tax_id}
+                  onChange={(e) => setSupplierForm({ ...supplierForm, tax_id: e.target.value })}
+                />
+              </Field>
+              <Field label="STRN">
+                <input
+                  className={fieldClass}
+                  value={supplierForm.strn}
+                  onChange={(e) => setSupplierForm({ ...supplierForm, strn: e.target.value })}
+                />
+              </Field>
+              <Field label="Website">
+                <input
+                  className={fieldClass}
+                  value={supplierForm.website}
+                  onChange={(e) => setSupplierForm({ ...supplierForm, website: e.target.value })}
+                  placeholder="https://"
+                />
+              </Field>
+              <Field label="Status">
+                <select
+                  className={fieldClass}
+                  value={supplierForm.status}
+                  onChange={(e) => setSupplierForm({ ...supplierForm, status: e.target.value })}
+                >
+                  {["active", "inactive", "blocked", "pending"].map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Rating (1–5)">
+                <input
+                  className={fieldClass}
+                  type="number"
+                  min={1}
+                  max={5}
+                  value={supplierForm.rating}
+                  onChange={(e) => setSupplierForm({ ...supplierForm, rating: e.target.value })}
+                />
+              </Field>
+              <label className="flex items-center gap-2 pt-7 text-sm text-heading">
+                <input
+                  type="checkbox"
+                  checked={supplierForm.is_preferred}
+                  onChange={(e) =>
+                    setSupplierForm({ ...supplierForm, is_preferred: e.target.checked })
+                  }
+                />
+                Preferred supplier
+              </label>
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <h3 className="text-sm font-bold uppercase tracking-wide text-muted">
+              Primary contact
+            </h3>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Person name">
+                <input
+                  className={fieldClass}
+                  value={supplierForm.contact_name}
+                  onChange={(e) =>
+                    setSupplierForm({ ...supplierForm, contact_name: e.target.value })
+                  }
+                />
+              </Field>
+              <Field label="Role / title">
+                <input
+                  className={fieldClass}
+                  value={supplierForm.contact_role}
+                  onChange={(e) =>
+                    setSupplierForm({ ...supplierForm, contact_role: e.target.value })
+                  }
+                  placeholder="Key Account Manager"
+                />
+              </Field>
+              <Field label="Email">
+                <input
+                  type="email"
+                  className={fieldClass}
+                  value={supplierForm.contact_email}
+                  onChange={(e) =>
+                    setSupplierForm({ ...supplierForm, contact_email: e.target.value })
+                  }
+                />
+              </Field>
+              <Field label="Phone">
+                <input
+                  className={fieldClass}
+                  value={supplierForm.contact_phone}
+                  onChange={(e) =>
+                    setSupplierForm({ ...supplierForm, contact_phone: e.target.value })
+                  }
+                />
+              </Field>
+              <Field label="Mobile">
+                <input
+                  className={fieldClass}
+                  value={supplierForm.contact_mobile}
+                  onChange={(e) =>
+                    setSupplierForm({ ...supplierForm, contact_mobile: e.target.value })
+                  }
+                />
+              </Field>
+              <Field label="WhatsApp">
+                <input
+                  className={fieldClass}
+                  value={supplierForm.contact_whatsapp}
+                  onChange={(e) =>
+                    setSupplierForm({ ...supplierForm, contact_whatsapp: e.target.value })
+                  }
+                />
+              </Field>
+              <Field label="CNIC">
+                <input
+                  className={fieldClass}
+                  value={supplierForm.contact_cnic}
+                  onChange={(e) =>
+                    setSupplierForm({ ...supplierForm, contact_cnic: e.target.value })
+                  }
+                />
+              </Field>
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <h3 className="text-sm font-bold uppercase tracking-wide text-muted">Address</h3>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Address line 1">
+                <input
+                  className={fieldClass}
+                  value={supplierForm.address_line1}
+                  onChange={(e) =>
+                    setSupplierForm({ ...supplierForm, address_line1: e.target.value })
+                  }
+                />
+              </Field>
+              <Field label="Address line 2">
+                <input
+                  className={fieldClass}
+                  value={supplierForm.address_line2}
+                  onChange={(e) =>
+                    setSupplierForm({ ...supplierForm, address_line2: e.target.value })
+                  }
+                />
+              </Field>
+              <Field label="City">
+                <input
+                  className={fieldClass}
+                  value={supplierForm.city}
+                  onChange={(e) => setSupplierForm({ ...supplierForm, city: e.target.value })}
+                />
+              </Field>
+              <Field label="Province">
+                <input
+                  className={fieldClass}
+                  value={supplierForm.province}
+                  onChange={(e) =>
+                    setSupplierForm({ ...supplierForm, province: e.target.value })
+                  }
+                />
+              </Field>
+              <Field label="Postal code">
+                <input
+                  className={fieldClass}
+                  value={supplierForm.postal_code}
+                  onChange={(e) =>
+                    setSupplierForm({ ...supplierForm, postal_code: e.target.value })
+                  }
+                />
+              </Field>
+              <Field label="Country">
+                <input
+                  className={fieldClass}
+                  value={supplierForm.country}
+                  onChange={(e) => setSupplierForm({ ...supplierForm, country: e.target.value })}
+                />
+              </Field>
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <h3 className="text-sm font-bold uppercase tracking-wide text-muted">
+              Payment & credit
+            </h3>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Payment terms">
+                <input
+                  className={fieldClass}
+                  value={supplierForm.payment_terms}
+                  onChange={(e) =>
+                    setSupplierForm({ ...supplierForm, payment_terms: e.target.value })
+                  }
+                  placeholder="Net 30"
+                />
+              </Field>
+              <Field label="Payment method">
+                <select
+                  className={fieldClass}
+                  value={supplierForm.payment_method}
+                  onChange={(e) =>
+                    setSupplierForm({ ...supplierForm, payment_method: e.target.value })
+                  }
+                >
+                  {["bank_transfer", "cash", "cheque", "wallet", "credit"].map((m) => (
+                    <option key={m} value={m}>
+                      {m.replace("_", " ")}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Bank name">
+                <input
+                  className={fieldClass}
+                  value={supplierForm.bank_name}
+                  onChange={(e) =>
+                    setSupplierForm({ ...supplierForm, bank_name: e.target.value })
+                  }
+                />
+              </Field>
+              <Field label="IBAN">
+                <input
+                  className={fieldClass}
+                  value={supplierForm.bank_iban}
+                  onChange={(e) =>
+                    setSupplierForm({ ...supplierForm, bank_iban: e.target.value })
+                  }
+                />
+              </Field>
+              <Field label="Account title">
+                <input
+                  className={fieldClass}
+                  value={supplierForm.bank_account_title}
+                  onChange={(e) =>
+                    setSupplierForm({ ...supplierForm, bank_account_title: e.target.value })
+                  }
+                />
+              </Field>
+              <Field label="Credit limit">
+                <input
+                  className={fieldClass}
+                  value={supplierForm.credit_limit}
+                  onChange={(e) =>
+                    setSupplierForm({ ...supplierForm, credit_limit: e.target.value })
+                  }
+                />
+              </Field>
+              <Field label="Currency">
+                <input
+                  className={fieldClass}
+                  value={supplierForm.currency}
+                  onChange={(e) =>
+                    setSupplierForm({ ...supplierForm, currency: e.target.value })
+                  }
+                />
+              </Field>
+              <Field label="Lead time (days)">
+                <input
+                  className={fieldClass}
+                  type="number"
+                  min={0}
+                  value={supplierForm.lead_time_days}
+                  onChange={(e) =>
+                    setSupplierForm({ ...supplierForm, lead_time_days: e.target.value })
+                  }
+                />
+              </Field>
+              <Field label="Minimum order amount">
+                <input
+                  className={fieldClass}
+                  value={supplierForm.minimum_order_amount}
+                  onChange={(e) =>
+                    setSupplierForm({
+                      ...supplierForm,
+                      minimum_order_amount: e.target.value,
+                    })
+                  }
+                />
+              </Field>
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <h3 className="text-sm font-bold uppercase tracking-wide text-muted">
+              Catalogs & brands
+            </h3>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Catalogs (comma-separated)">
+                <input
+                  className={fieldClass}
+                  value={supplierForm.catalogs}
+                  onChange={(e) =>
+                    setSupplierForm({ ...supplierForm, catalogs: e.target.value })
+                  }
+                  placeholder="beverages, snacks, dairy"
+                />
+              </Field>
+              <Field label="Brands (comma-separated)">
+                <input
+                  className={fieldClass}
+                  value={supplierForm.brands}
+                  onChange={(e) => setSupplierForm({ ...supplierForm, brands: e.target.value })}
+                  placeholder="Nestle, Pepsi"
+                />
+              </Field>
+              <Field label="Tags (comma-separated)">
+                <input
+                  className={fieldClass}
+                  value={supplierForm.tags}
+                  onChange={(e) => setSupplierForm({ ...supplierForm, tags: e.target.value })}
+                  placeholder="preferred, fmcg"
+                />
+              </Field>
+            </div>
+            <Field label="Notes">
+              <textarea
+                className={fieldClass}
+                rows={3}
+                value={supplierForm.notes}
+                onChange={(e) => setSupplierForm({ ...supplierForm, notes: e.target.value })}
+              />
+            </Field>
+          </section>
         </form>
       </Modal>
 

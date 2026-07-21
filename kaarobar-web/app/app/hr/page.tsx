@@ -6,7 +6,6 @@ import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import {
-  Alert,
   EmptyState,
   Field,
   PageHeader,
@@ -14,6 +13,8 @@ import {
   TabBar,
   fieldClass,
 } from "@/components/app/ui";
+import { useToast } from "@/components/ui/Toast";
+import { useT } from "@/lib/i18n";
 
 type Tab = "employees" | "attendance" | "leave" | "payroll";
 type ModalKind = "employee" | "invite" | "payroll" | null;
@@ -75,6 +76,8 @@ type PayrollRun = {
 };
 
 export default function HrPage() {
+  const t = useT();
+  const toast = useToast();
   const [tab, setTab] = useState<Tab>("employees");
   const [modal, setModal] = useState<ModalKind>(null);
   const [editingEmployeeId, setEditingEmployeeId] = useState<string | null>(null);
@@ -82,8 +85,6 @@ export default function HrPage() {
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [leave, setLeave] = useState<Leave[]>([]);
   const [payroll, setPayroll] = useState<PayrollRun[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const [empForm, setEmpForm] = useState(emptyEmpForm);
@@ -100,7 +101,6 @@ export default function HrPage() {
   );
 
   const load = useCallback(async () => {
-    setError(null);
     try {
       const [e, a, l, p] = await Promise.all([
         api<{ data: Employee[] }>("/employees"),
@@ -113,9 +113,9 @@ export default function HrPage() {
       setLeave(l.data || []);
       setPayroll(p.data || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load HR");
+      toast.error(err instanceof Error ? err.message : t("common.loadFailed"));
     }
-  }, []);
+  }, [t, toast]);
 
   useEffect(() => {
     load();
@@ -164,7 +164,7 @@ export default function HrPage() {
           method: "PATCH",
           body: JSON.stringify(payload),
         });
-        setMessage("Employee updated");
+        toast.success(t("hr.employeeUpdated"));
       } else {
         await api("/employees", {
           method: "POST",
@@ -173,12 +173,12 @@ export default function HrPage() {
             join_date: new Date().toISOString().slice(0, 10),
           }),
         });
-        setMessage("Employee created");
+        toast.success(t("hr.employeeCreated"));
       }
       closeEmployeeModal();
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Save failed");
+      toast.error(err instanceof Error ? err.message : t("common.saveFailed"));
     } finally {
       setBusy(false);
     }
@@ -188,7 +188,7 @@ export default function HrPage() {
     ev.preventDefault();
     const session = getSession();
     if (!session?.business_id) {
-      setError("Select a business first from the dashboard.");
+      toast.warning(t("tenant.noBusinesses"));
       return;
     }
     setBusy(true);
@@ -202,15 +202,11 @@ export default function HrPage() {
           status: "active",
         }),
       });
-      setMessage(`Invited ${inviteForm.email} as ${inviteForm.roles}`);
+      toast.success(t("hr.inviteSent"));
       setInviteForm({ email: "", roles: "cashier" });
       setModal(null);
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Invite failed — user must already have a Kaarobar account"
-      );
+      toast.error(err instanceof Error ? err.message : t("common.error"));
     } finally {
       setBusy(false);
     }
@@ -219,10 +215,10 @@ export default function HrPage() {
   async function decideLeave(id: string, action: "approve" | "reject") {
     try {
       await api(`/leave/${id}/${action}`, { method: "POST", body: "{}" });
-      setMessage(`Leave ${action}d`);
+      toast.success(action === "approve" ? t("hr.leaveApproved") : t("hr.leaveRejected"));
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Leave action failed");
+      toast.error(err instanceof Error ? err.message : t("common.error"));
     }
   }
 
@@ -237,12 +233,12 @@ export default function HrPage() {
           period_end: periodEnd,
         }),
       });
-      setMessage("Payroll draft created");
+      toast.success(t("hr.payrollRun"));
       setModal(null);
       setTab("payroll");
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Payroll failed");
+      toast.error(err instanceof Error ? err.message : t("common.error"));
     } finally {
       setBusy(false);
     }
@@ -251,44 +247,41 @@ export default function HrPage() {
   async function payrollAction(id: string, action: "submit" | "approve" | "reject") {
     try {
       await api(`/payroll/${id}/${action}`, { method: "POST", body: "{}" });
-      setMessage(`Payroll ${action}`);
+      toast.success(t("common.success"));
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Payroll action failed");
+      toast.error(err instanceof Error ? err.message : t("common.error"));
     }
   }
 
   const tabs: { id: Tab; label: string }[] = [
-    { id: "employees", label: "Employees" },
-    { id: "attendance", label: "Attendance" },
-    { id: "leave", label: "Leave" },
-    { id: "payroll", label: "Payroll" },
+    { id: "employees", label: t("hr.tabs.employees") },
+    { id: "attendance", label: t("hr.tabs.attendance") },
+    { id: "leave", label: t("hr.tabs.leave") },
+    { id: "payroll", label: t("hr.tabs.payroll") },
   ];
 
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="People"
-        title="HR & payroll"
-        description="Employees, attendance, leave approvals, and payroll that posts into the ledger."
+        eyebrow={t("hr.eyebrow")}
+        title={t("pages.hrTitle")}
+        description={t("pages.hrDesc")}
         action={
           tab === "employees"
-            ? { label: "Add employee", onClick: openNewEmployee }
+            ? { label: t("hr.addEmployee"), onClick: openNewEmployee }
             : tab === "payroll"
-              ? { label: "Draft payroll", onClick: () => setModal("payroll") }
+              ? { label: t("hr.runPayroll"), onClick: () => setModal("payroll") }
               : undefined
         }
         secondaryAction={
           tab === "employees"
-            ? { label: "Invite staff", onClick: () => setModal("invite") }
+            ? { label: t("hr.inviteUser"), onClick: () => setModal("invite") }
             : undefined
         }
       />
 
       <TabBar tabs={tabs} value={tab} onChange={setTab} />
-
-      {error ? <Alert tone="error">{error}</Alert> : null}
-      {message ? <Alert tone="success">{message}</Alert> : null}
 
       {tab === "employees" ? (
         <DataTable
