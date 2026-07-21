@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import { api, colors, getSession, type Session } from "../lib/api";
+import { canAccessRoute } from "../lib/rbac";
 
 type SaleItem = {
   product_id: string;
@@ -76,6 +77,10 @@ export default function ReturnsScreen() {
       const s = await getSession();
       if (!s) {
         router.replace("/landing");
+        return;
+      }
+      if (!canAccessRoute(s, "/returns")) {
+        router.replace("/dashboard");
         return;
       }
       setLocal(s);

@@ -19,7 +19,8 @@ import {
   X,
 } from "lucide-react";
 import { appNav, appNavGroups, routes } from "@/lib/navigation";
-import { clearSession, getSession, bootstrapTenantSession, type StoredSession } from "@/lib/api/client";
+import { clearSession, getSession, hydrateSessionContext, type StoredSession } from "@/lib/api/client";
+import { canAccessBundle, canAccessPath } from "@/lib/rbac";
 import TenantSwitcher from "@/components/app/TenantSwitcher";
 import LanguageSwitcher from "@/components/app/LanguageSwitcher";
 import Button from "@/components/ui/Button";
@@ -58,7 +59,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       }
 
       try {
-        const ready = await bootstrapTenantSession(current);
+        const ready = await hydrateSessionContext(current);
         if (cancelled) return;
         setSessionState(ready);
         setTenantKey(`${ready.business_id || ""}:${ready.branch_id || ""}`);
@@ -95,19 +96,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     setMenuOpen(false);
   }, [pathname]);
 
+  const visibleNav = useMemo(
+    () => appNav.filter((item) => canAccessBundle(session, item.bundle)),
+    [session]
+  );
+
   const grouped = useMemo(
     () =>
       appNavGroups
         .map((groupKey) => ({
           groupKey,
-          items: appNav.filter((item) => item.groupKey === groupKey),
+          items: visibleNav.filter((item) => item.groupKey === groupKey),
         }))
         .filter((g) => g.items.length > 0),
-    []
+    [visibleNav]
   );
 
   const titleKey =
-    appNav.find(
+    visibleNav.find(
       (item) =>
         pathname === item.href ||
         (item.href !== "/app" && pathname.startsWith(item.href))
@@ -118,6 +124,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-bg-primary text-body">
         {t("common.workspaceLoading")}
+      </div>
+    );
+  }
+
+  if (!canAccessPath(session, pathname)) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-bg-primary p-6 text-center">
+        <div>
+          <h2 className="text-xl font-bold text-heading">{t("rbac.accessDeniedTitle")}</h2>
+          <p className="mt-2 text-body">{t("rbac.accessDeniedMessage")}</p>
+          <Button className="mt-4" onClick={() => router.push(routes.app)}>
+            {t("rbac.goToDashboard")}
+          </Button>
+        </div>
       </div>
     );
   }
@@ -168,8 +188,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-bg-primary text-heading lg:h-screen">
-      <aside className="relative z-30 hidden h-screen w-[248px] shrink-0 flex-col overflow-hidden border-r border-rail-border bg-rail lg:flex">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-bg-primary text-heading lg:flex-row">
+      <aside className="relative z-30 hidden min-h-screen w-[248px] shrink-0 flex-col overflow-hidden border-r border-rail-border bg-rail lg:flex">
         <div className="flex shrink-0 items-center gap-3 border-b border-rail-border px-5 py-4">
           <span className="flex h-10 w-10 items-center justify-center rounded-md bg-brand text-sm font-bold text-white shadow-brand">
             K
@@ -266,9 +286,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         ) : null}
 
         <main
-          className={`relative z-10 min-h-0 flex-1 ${
-            isPos ? "overflow-hidden p-0" : "overflow-y-auto px-4 py-6 sm:px-6 lg:px-8"
-          }`}
+          className={`relative z-10 min-h-0 flex-1 ${isPos ? "overflow-hidden p-0" : "overflow-y-auto px-4 py-6 sm:px-6 lg:px-8"
+            }`}
         >
           <div
             key={tenantKey}

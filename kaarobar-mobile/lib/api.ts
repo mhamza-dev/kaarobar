@@ -33,6 +33,15 @@ export type Session = {
   };
   business_id?: string;
   branch_id?: string;
+  memberships?: {
+    id: string;
+    business_id: string;
+    branch_id?: string | null;
+    roles: string[];
+    status: string;
+    business_name?: string | null;
+    branch_name?: string | null;
+  }[];
 };
 
 const SESSION_KEY = "kaarobar_session";
@@ -100,4 +109,12 @@ export async function api<T>(
     throw new Error(body?.error || body?.message || `Request failed (${res.status})`);
   }
   return body as T;
+}
+
+export async function hydrateSessionContext(session: Session): Promise<Session> {
+  const me = await api<{
+    user: Session["user"];
+    memberships: NonNullable<Session["memberships"]>;
+  }>("/auth/me", {}, session);
+  return { ...session, user: me.user, memberships: me.memberships || [] };
 }

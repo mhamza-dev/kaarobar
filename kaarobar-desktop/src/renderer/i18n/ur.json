@@ -205,7 +205,17 @@
     "emptyCart": "کارٹ خالی ہے",
     "tillStatus": "ٹل",
     "tillOpenLabel": "کھلا",
-    "tillClosedLabel": "بند"
+    "tillClosedLabel": "بند",
+    "orderDetail": "آرڈر تفصیل",
+    "lines": "{count} قطاریں",
+    "discount": "رعایت",
+    "taxOptional": "ٹیکس (اختیاری)",
+    "totalBill": "کل بل",
+    "placeOrder": "آرڈر مکمل",
+    "processing": "پروسیسنگ…",
+    "scanPlaceholder": "بار کوڈ اسکین یا SKU / نام تلاش…",
+    "productsCount": "{count} مصنوعات",
+    "lastInvoice": "آخری"
   },
   "returns": {
     "eyebrow": "واپسی",
@@ -330,5 +340,10 @@
     "landingLead": "آپ کی برانچ کے لیے پی او ایس، انوینٹری اور اسٹاف ٹولز۔",
     "getStarted": "شروع کریں",
     "staffTools": "اسٹاف ٹولز"
+  },
+  "rbac": {
+    "accessDeniedTitle": "رسائی منع ہے",
+    "accessDeniedMessage": "منتخب کاروبار اور برانچ کے لیے آپ کو یہ صفحہ کھولنے کی اجازت نہیں ہے۔",
+    "goToDashboard": "ڈیش بورڈ پر جائیں"
   }
 }

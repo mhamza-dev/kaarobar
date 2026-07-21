@@ -11,7 +11,7 @@ import Link from "@/components/ui/Link";
 import OptionSelector from "@/components/ui/OptionSelector";
 import { authMethodOptions } from "@/components/auth/auth-method-options";
 import { loginSchema } from "@/lib/validations/auth";
-import { api, bootstrapTenantSession, setSession } from "@/lib/api/client";
+import { api, hydrateSessionContext, setSession } from "@/lib/api/client";
 import { useI18n, type Locale } from "@/lib/i18n";
 import { useToast } from "@/components/ui/Toast";
 
@@ -58,17 +58,16 @@ const LoginForm = (): React.ReactElement => {
         body: JSON.stringify({ email: values.email, password: values.password }),
       }, null);
 
-      setSession({
+      const base = {
         access_token: result.access_token,
         user: result.user,
-      });
+      };
+      setSession(base);
       if (result.user.locale === "ur" || result.user.locale === "en") {
         setLocale(result.user.locale);
       }
-      await bootstrapTenantSession({
-        access_token: result.access_token,
-        user: result.user,
-      });
+      const hydrated = await hydrateSessionContext(base);
+      setSession(hydrated);
       router.push("/app");
     } catch (error) {
       const msg = error instanceof Error ? error.message : t("auth.loginFailed");

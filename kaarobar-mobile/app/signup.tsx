@@ -8,7 +8,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { api, colors, setSession } from "../lib/api";
+import { api, colors, hydrateSessionContext, setSession } from "../lib/api";
 
 export default function SignupScreen() {
   const [name, setName] = useState("");
@@ -38,7 +38,11 @@ export default function SignupScreen() {
         },
         null
       );
-      await setSession({ access_token: result.access_token, user: result.user });
+      const hydrated = await hydrateSessionContext({
+        access_token: result.access_token,
+        user: result.user,
+      });
+      await setSession(hydrated);
       router.replace("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Signup failed");

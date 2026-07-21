@@ -280,33 +280,52 @@ defmodule Kaarobar.Pos do
     subtotal_gross = Enum.reduce(items, Decimal.new(0), fn i, acc ->
       Decimal.add(acc, Decimal.mult(i.quantity, i.unit_price))
     end)
-    tax_amount = Enum.reduce(items, Decimal.new(0), &Decimal.add(&2, &1.tax))
     discount_amount = Decimal.add(line_discount, cart_discount)
-    taxable_after_cart =
-      max_dec(Decimal.sub(Decimal.sub(subtotal_gross, line_discount), cart_discount), 0)
-
-    # Cart-level discount reduces tax proportionally if applied after lines
-    tax_after =
-      if Decimal.compare(cart_discount, 0) == :gt and Decimal.compare(subtotal_gross, 0) == :gt do
-        factor =
-          Decimal.div(taxable_after_cart, max_dec(Decimal.sub(subtotal_gross, line_discount), Decimal.new("0.01")))
-
-        Decimal.mult(tax_amount, factor) |> Decimal.round(2)
-      else
-        tax_amount |> Decimal.round(2)
-      end
+    subtotal = Decimal.sub(subtotal_gross, line_discount) |> max_dec(Decimal.new(0)) |> Decimal.round(2)
+    taxable_after_discount = Decimal.sub(subtotal, cart_discount) |> max_dec(Decimal.new(0)) |> Decimal.round(2)
+    tax_after = resolve_tax_amount(items, attrs, subtotal, taxable_after_discount)
 
     total =
-      Decimal.add(taxable_after_cart, tax_after)
+      Decimal.add(taxable_after_discount, tax_after)
       |> Decimal.round(2)
 
     {:ok,
      %{
-       subtotal: Decimal.sub(subtotal_gross, line_discount) |> Decimal.round(2),
+       subtotal: subtotal,
        tax_amount: tax_after,
        discount_amount: discount_amount |> Decimal.round(2),
        total_amount: total
      }}
+  end
+
+  defp resolve_tax_amount(items, attrs, subtotal, taxable_after_discount) do
+    if tax_amount_provided?(attrs) do
+      attrs
+      |> explicit_tax_amount()
+      |> max_dec(Decimal.new(0))
+      |> Decimal.round(2)
+    else
+      auto_tax_amount(items, subtotal, taxable_after_discount)
+    end
+  end
+
+  defp tax_amount_provided?(attrs) do
+    Map.has_key?(attrs, :tax_amount) || Map.has_key?(attrs, "tax_amount")
+  end
+
+  defp explicit_tax_amount(attrs) do
+    to_dec(Map.get(attrs, :tax_amount, Map.get(attrs, "tax_amount", 0)))
+  end
+
+  defp auto_tax_amount(items, subtotal, taxable_after_discount) do
+    tax_amount = Enum.reduce(items, Decimal.new(0), &Decimal.add(&2, &1.tax))
+
+    if Decimal.compare(taxable_after_discount, subtotal) == :lt and Decimal.compare(subtotal, 0) == :gt do
+      ratio = Decimal.div(taxable_after_discount, subtotal)
+      Decimal.mult(tax_amount, ratio) |> Decimal.round(2)
+    else
+      tax_amount |> Decimal.round(2)
+    end
   end
 
   defp validate_discount_limit(branch, discount_amount, attrs) do

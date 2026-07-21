@@ -13,6 +13,7 @@ import { api, colors, getSession, type Session } from "../lib/api";
 import { FormModal } from "../components/FormModal";
 import { BarcodeScannerModal } from "../components/BarcodeScannerModal";
 import * as ImagePicker from "expo-image-picker";
+import { canAccessRoute } from "../lib/rbac";
 
 type Tab = "stock" | "products" | "suppliers" | "pos" | "transfers" | "adjust";
 type ModalKind = "product" | "supplier" | null;
@@ -135,6 +136,10 @@ export default function InventoryScreen() {
       const s = await getSession();
       if (!s) {
         router.replace("/landing");
+        return;
+      }
+      if (!canAccessRoute(s, "/inventory")) {
+        router.replace("/dashboard");
         return;
       }
       setLocal(s);

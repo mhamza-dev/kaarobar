@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { api, getSession } from "@/lib/api/client";
 import { routes } from "@/lib/navigation";
+import { canAccessBundle } from "@/lib/rbac";
 import Button from "@/components/ui/Button";
 import { KpiCard, PageHeader, SurfaceCard } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
@@ -54,6 +55,7 @@ export default function AppDashboardPage() {
     return () => window.removeEventListener("kaarobar:session", onSession);
   }, [load]);
 
+  const session = getSession();
   const links = [
     {
       href: routes.pos,
@@ -80,7 +82,13 @@ export default function AppDashboardPage() {
       subtitle: t("dashboard.reportsSub"),
       icon: TrendingUp,
     },
-  ] as const;
+  ].filter((item) => {
+    if (item.href === routes.pos) return canAccessBundle(session, "pos");
+    if (item.href === routes.inventory) return canAccessBundle(session, "inventory");
+    if (item.href === routes.returns) return canAccessBundle(session, "pos");
+    if (item.href === routes.reports) return canAccessBundle(session, "reports");
+    return true;
+  });
 
   return (
     <div className="space-y-8">
@@ -199,11 +207,13 @@ export default function AppDashboardPage() {
               <span className="text-sm text-body">{t("dashboard.branches")}</span>
               <strong className="text-lg text-heading">{dashboard?.branches ?? "—"}</strong>
             </div>
-            <Link href={routes.settings} className="block">
-              <Button variant="outline" className="w-full">
-                {t("pages.manageSettings")}
-              </Button>
-            </Link>
+            {canAccessBundle(session, "owner_manage") ? (
+              <Link href={routes.settings} className="block">
+                <Button variant="outline" className="w-full">
+                  {t("pages.manageSettings")}
+                </Button>
+              </Link>
+            ) : null}
           </div>
         </SurfaceCard>
       </div>

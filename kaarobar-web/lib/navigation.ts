@@ -74,16 +74,16 @@ export const routes = {
 } as const;
 
 export const appNav = [
-  { titleKey: "nav.dashboard", href: "/app", groupKey: "nav.overview", icon: "layout" },
-  { titleKey: "nav.pos", href: "/app/pos", groupKey: "nav.cashier", icon: "pos" },
-  { titleKey: "nav.returns", href: "/app/returns", groupKey: "nav.cashier", icon: "returns" },
-  { titleKey: "nav.inventory", href: "/app/inventory", groupKey: "nav.catalog", icon: "inventory" },
-  { titleKey: "nav.accounting", href: "/app/accounting", groupKey: "nav.backOffice", icon: "accounting" },
-  { titleKey: "nav.hr", href: "/app/hr", groupKey: "nav.backOffice", icon: "hr" },
-  { titleKey: "nav.reports", href: "/app/reports", groupKey: "nav.backOffice", icon: "reports" },
-  { titleKey: "nav.notifications", href: "/app/notifications", groupKey: "nav.system", icon: "bell" },
-  { titleKey: "nav.profile", href: "/app/profile", groupKey: "nav.system", icon: "profile" },
-  { titleKey: "nav.settings", href: "/app/settings", groupKey: "nav.system", icon: "settings" },
+  { titleKey: "nav.dashboard", href: "/app", groupKey: "nav.overview", icon: "layout", bundle: "any_staff" },
+  { titleKey: "nav.pos", href: "/app/pos", groupKey: "nav.cashier", icon: "pos", bundle: "pos" },
+  { titleKey: "nav.returns", href: "/app/returns", groupKey: "nav.cashier", icon: "returns", bundle: "pos" },
+  { titleKey: "nav.inventory", href: "/app/inventory", groupKey: "nav.catalog", icon: "inventory", bundle: "inventory" },
+  { titleKey: "nav.accounting", href: "/app/accounting", groupKey: "nav.backOffice", icon: "accounting", bundle: "accounting" },
+  { titleKey: "nav.hr", href: "/app/hr", groupKey: "nav.backOffice", icon: "hr", bundle: "hr" },
+  { titleKey: "nav.reports", href: "/app/reports", groupKey: "nav.backOffice", icon: "reports", bundle: "reports" },
+  { titleKey: "nav.notifications", href: "/app/notifications", groupKey: "nav.system", icon: "bell", bundle: "any_staff" },
+  { titleKey: "nav.profile", href: "/app/profile", groupKey: "nav.system", icon: "profile", bundle: "any_staff" },
+  { titleKey: "nav.settings", href: "/app/settings", groupKey: "nav.system", icon: "settings", bundle: "owner_manage" },
 ] as const;
 
 export const appNavGroups = [

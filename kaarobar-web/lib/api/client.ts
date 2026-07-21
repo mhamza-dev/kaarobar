@@ -11,6 +11,15 @@ export type StoredSession = {
   };
   business_id?: string;
   branch_id?: string;
+  memberships?: {
+    id: string;
+    business_id: string;
+    branch_id?: string | null;
+    roles: string[];
+    status: string;
+    business_name?: string | null;
+    branch_name?: string | null;
+  }[];
 };
 
 const SESSION_KEY = "kaarobar_session";
@@ -76,6 +85,21 @@ export async function bootstrapTenantSession(
   } catch {
     return session;
   }
+}
+
+export async function hydrateSessionContext(
+  session: StoredSession
+): Promise<StoredSession> {
+  const me = await api<{
+    user: StoredSession["user"];
+    memberships: NonNullable<StoredSession["memberships"]>;
+  }>("/auth/me", {}, session);
+  const merged: StoredSession = {
+    ...session,
+    user: me.user,
+    memberships: me.memberships || [],
+  };
+  return bootstrapTenantSession(merged);
 }
 
 export async function api<T>(

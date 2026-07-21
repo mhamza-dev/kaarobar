@@ -156,6 +156,10 @@ defmodule KaarobarWeb.V1.AuthController do
 
   defp issue_login(conn, user, opts \\ []) do
     {:ok, token, _claims} = Accounts.issue_access_token(user)
+    memberships =
+      user.id
+      |> Tenancy.list_memberships_for_user()
+      |> Enum.map(&serialize_membership/1)
 
     _ =
       Audit.log(%{
@@ -173,7 +177,8 @@ defmodule KaarobarWeb.V1.AuthController do
       mfa_required: user.mfa_required,
       mfa_enabled: Accounts.mfa_enabled?(user),
       mfa_setup_required: Keyword.get(opts, :mfa_setup_required, false),
-      user: serialize_user(user)
+      user: serialize_user(user),
+      memberships: memberships
     })
   end
 

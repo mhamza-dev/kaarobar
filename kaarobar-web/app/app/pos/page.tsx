@@ -96,6 +96,8 @@ export default function PosPage() {
   const [pendingProduct, setPendingProduct] = useState<Product | null>(null);
   const [pickedVariant, setPickedVariant] = useState("");
   const [pickedModifiers, setPickedModifiers] = useState<string[]>([]);
+  const [discountInput, setDiscountInput] = useState("");
+  const [taxInput, setTaxInput] = useState("");
 
   const loadTill = useCallback(async () => {
     try {
@@ -225,11 +227,9 @@ export default function PosPage() {
   }
 
   const subtotal = cart.reduce((s, l) => s + l.quantity * l.unit_price, 0);
-  const tax = cart.reduce((s, l) => {
-    const rate = Number(l.product.tax_rate || 0.18);
-    return s + l.quantity * l.unit_price * rate;
-  }, 0);
-  const total = round2(subtotal + tax);
+  const discount = round2(Math.min(Math.max(Number(discountInput || 0), 0), subtotal));
+  const tax = round2(Math.max(Number(taxInput || 0), 0));
+  const total = round2(subtotal - discount + tax);
 
   useEffect(() => {
     setPayCash(money(total));
@@ -342,6 +342,8 @@ export default function PosPage() {
             variant_id: l.variant_id,
             modifier_ids: l.modifier_ids || [],
           })),
+          discount_amount: discount,
+          tax_amount: tax,
           payments,
         }),
       });
@@ -479,7 +481,7 @@ export default function PosPage() {
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
+        <div className="min-h-0 max-h-[min(42vh,28rem)] flex-1 space-y-3 overflow-y-auto px-5 py-4">
           {cart.length === 0 ? (
             <div className="rounded-md border border-dashed border-border px-4 py-10 text-center">
               <p className="font-semibold text-heading">Cart is empty</p>
@@ -561,15 +563,37 @@ export default function PosPage() {
         <div className="shrink-0 border-t border-border px-5 py-4">
           <div className="space-y-2 text-sm">
             <div className="flex justify-between text-body">
-              <span>Subtotal</span>
+              <span>{t("common.subtotal")}</span>
               <strong className="text-heading">{money(subtotal)}</strong>
             </div>
             <div className="flex justify-between text-body">
-              <span>Tax</span>
+              <span>{t("common.tax")}</span>
               <strong className="text-heading">{money(tax)}</strong>
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="text-xs text-muted">
+                {t("pos.discount")}
+                <input
+                  value={discountInput}
+                  onChange={(e) => setDiscountInput(e.target.value)}
+                  className={`${fieldClass} mt-1`}
+                  inputMode="decimal"
+                  placeholder="0"
+                />
+              </label>
+              <label className="text-xs text-muted">
+                {t("pos.taxOptional")}
+                <input
+                  value={taxInput}
+                  onChange={(e) => setTaxInput(e.target.value)}
+                  className={`${fieldClass} mt-1`}
+                  inputMode="decimal"
+                  placeholder="0"
+                />
+              </label>
+            </div>
             <div className="flex items-end justify-between pt-1">
-              <span className="text-base font-semibold text-heading">Total bill</span>
+              <span className="text-base font-semibold text-heading">{t("pos.totalBill")}</span>
               <strong className="text-2xl font-bold text-heading">Rs {money(total)}</strong>
             </div>
           </div>

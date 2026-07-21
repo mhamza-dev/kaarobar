@@ -47,11 +47,14 @@
     </div>
 
     <!-- App shell (dashboard / pos / returns / inventory) -->
-    <div id="app-shell" class="hidden">
-      <header class="topbar">
+    <div id="app-shell" class="app-shell hidden">
+      <aside class="app-rail">
         <div class="brand">
           <span class="brand-mark" aria-hidden="true">K</span>
-          <span>Kaarobar</span>
+          <div>
+            <p class="brand-title">Kaarobar</p>
+            <p class="brand-sub">Point of Sale</p>
+          </div>
         </div>
         <nav class="nav">
           <button type="button" data-nav="dashboard" class="nav-btn active">Dashboard</button>
@@ -60,159 +63,178 @@
           <button type="button" data-nav="inventory" class="nav-btn">Inventory</button>
           <button type="button" data-nav="profile" class="nav-btn">Profile</button>
         </nav>
-        <div class="topbar-actions">
-          <select id="locale-select" class="select" title="Language">
-            <option value="en">English</option>
-            <option value="ur">اردو</option>
-          </select>
-          <select id="business-select" class="select" title="Business"></select>
-          <select id="branch-select" class="select" title="Branch"></select>
-          <span id="user-name" class="status"></span>
-          <span id="status" class="status">Online</span>
-          <button id="logout" type="button">Sign out</button>
-        </div>
-      </header>
+        <button id="logout" class="rail-logout" type="button">Sign out</button>
+      </aside>
 
-      <!-- Dashboard -->
-      <main id="dashboard-view" class="panel">
-        <p class="eyebrow">Branch workspace</p>
-        <h1>Owner dashboard</h1>
-        <p class="lead">A quick look before you open the till.</p>
-        <div class="stat-grid">
-          <div class="stat"><span>Sales today</span><strong id="stat-sales">—</strong></div>
-          <div class="stat"><span>Cash position</span><strong id="stat-cash">—</strong></div>
-          <div class="stat"><span>Low stock</span><strong id="stat-stock">—</strong></div>
-          <div class="stat"><span>Approvals</span><strong id="stat-approvals">—</strong></div>
-        </div>
-        <div class="quick-links">
-          <button type="button" class="btn btn-primary" data-nav="pos">Go to POS</button>
-          <button type="button" class="btn btn-ghost" data-nav="returns">Returns</button>
-          <button type="button" class="btn btn-ghost" data-nav="inventory">Inventory</button>
-        </div>
-      </main>
-
-      <!-- POS -->
-      <main id="pos-view" class="panel pos-panel hidden">
-        <div class="layout pos-layout">
-          <section class="catalog">
-            <div class="panel-head">
-              <div>
-                <p class="eyebrow">Cashier</p>
-                <h2>Point of sale</h2>
-              </div>
-              <span id="product-count" class="muted"></span>
-            </div>
-            <div class="search-wrap">
-              <input id="search" type="search" placeholder="Scan barcode or search SKU…" />
-            </div>
-            <div id="products" class="grid"></div>
-          </section>
-          <aside class="cart">
-            <div class="panel-head">
-              <h2>Order detail</h2>
-            </div>
-            <div id="till-box" class="till-box"></div>
-            <ul id="cart-items"></ul>
-            <div class="totals">
-              <div><span>Subtotal</span><strong id="subtotal">0.00</strong></div>
-              <div><span>Tax</span><strong id="tax">0.00</strong></div>
-              <div class="grand"><span>Total bill</span><strong id="total">0.00</strong></div>
-            </div>
-            <div class="pay-split">
-              <label>Cash <input id="pay-cash" type="text" /></label>
-              <label>Card <input id="pay-card" type="text" /></label>
-              <label>Wallet <input id="pay-wallet" type="text" /></label>
-            </div>
-            <button id="pay" class="pay" disabled>Place order →</button>
-            <p id="pos-message" class="sub"></p>
-          </aside>
-        </div>
-      </main>
-
-      <!-- Returns -->
-      <main id="returns-view" class="panel hidden">
-        <h1>Returns & tills</h1>
-        <p id="returns-message" class="sub"></p>
-        <div class="two-col">
-          <section class="card">
-            <h2>Create return</h2>
-            <div class="row">
-              <input id="sale-id" type="text" placeholder="Sale ID" />
-              <button id="lookup-sale" class="btn btn-primary" type="button">Lookup</button>
-            </div>
-            <div id="return-sale" class="hidden"></div>
-          </section>
-          <section class="card">
-            <h2>Pending approval</h2>
-            <div id="pending-returns"></div>
-          </section>
-        </div>
-        <div class="two-col">
-          <section class="card">
-            <h2>Recent returns</h2>
-            <div id="recent-returns"></div>
-          </section>
-          <section class="card">
-            <h2>Till history</h2>
-            <div id="till-history"></div>
-          </section>
-        </div>
-      </main>
-
-      <!-- Inventory -->
-      <main id="inventory-view" class="panel hidden">
-        <h1>Inventory</h1>
-        <p class="lead">Stock, suppliers, and purchasing for this branch.</p>
-        <p id="inv-message" class="sub"></p>
-        <div class="tabs" id="inv-tabs">
-          <button type="button" data-inv-tab="stock" class="tab active">On hand</button>
-          <button type="button" data-inv-tab="products" class="tab">Products</button>
-          <button type="button" data-inv-tab="suppliers" class="tab">Suppliers</button>
-          <button type="button" data-inv-tab="po" class="tab">PO / GRN</button>
-          <button type="button" data-inv-tab="transfers" class="tab">Transfers</button>
-          <button type="button" data-inv-tab="adjust" class="tab">Adjust</button>
-        </div>
-        <div id="inv-stock" class="inv-panel"></div>
-        <div id="inv-products" class="inv-panel hidden"></div>
-        <div id="inv-suppliers" class="inv-panel hidden"></div>
-        <div id="inv-po" class="inv-panel hidden"></div>
-        <div id="inv-transfers" class="inv-panel hidden"></div>
-        <div id="inv-adjust" class="inv-panel hidden"></div>
-      </main>
-
-      <!-- Profile -->
-      <main id="profile-view" class="panel hidden">
-        <p class="eyebrow">Account</p>
-        <h1>Your profile</h1>
-        <p class="lead">Update your name, phone, language, and password.</p>
-        <form id="profile-form" class="form-grid" style="max-width: 28rem">
-          <label>
-            <span>Display name</span>
-            <input id="profile-name" type="text" required />
-          </label>
-          <label>
-            <span>Email</span>
-            <input id="profile-email" type="email" disabled />
-          </label>
-          <label>
-            <span>Phone number</span>
-            <input id="profile-phone" type="tel" />
-          </label>
-          <label>
-            <span>Preferred language</span>
-            <select id="profile-locale">
+      <div class="app-main">
+        <header class="topbar">
+          <div class="workspace-head">
+            <p id="workspace-label" class="workspace-label">Workspace</p>
+            <p id="status" class="status">Online</p>
+          </div>
+          <div class="topbar-actions">
+            <select id="business-select" class="select" title="Business"></select>
+            <select id="branch-select" class="select" title="Branch"></select>
+            <select id="locale-select" class="select" title="Language">
               <option value="en">English</option>
               <option value="ur">اردو</option>
             </select>
-          </label>
-          <label>
-            <span>New password</span>
-            <input id="profile-password" type="password" autocomplete="new-password" />
-          </label>
-          <p id="profile-msg" class="sub"></p>
-          <button type="submit" class="btn btn-primary">Save profile</button>
-        </form>
-      </main>
+            <button type="button" class="icon-btn" aria-label="Notifications">🔔</button>
+            <div class="profile-chip">
+              <span id="user-initials" class="profile-avatar">K</span>
+              <span id="user-name" class="profile-name"></span>
+            </div>
+          </div>
+        </header>
+
+        <div class="view-wrap">
+          <!-- Dashboard -->
+          <main id="dashboard-view" class="panel">
+            <p class="eyebrow">Branch workspace</p>
+            <h1>Owner dashboard</h1>
+            <p class="lead">A quick look before you open the till.</p>
+            <div class="stat-grid">
+              <div class="stat"><span>Sales today</span><strong id="stat-sales">—</strong></div>
+              <div class="stat"><span>Cash position</span><strong id="stat-cash">—</strong></div>
+              <div class="stat"><span>Low stock</span><strong id="stat-stock">—</strong></div>
+              <div class="stat"><span>Approvals</span><strong id="stat-approvals">—</strong></div>
+            </div>
+            <div class="quick-links">
+              <button type="button" class="btn btn-primary" data-nav="pos">Go to POS</button>
+              <button type="button" class="btn btn-ghost" data-nav="returns">Returns</button>
+              <button type="button" class="btn btn-ghost" data-nav="inventory">Inventory</button>
+            </div>
+          </main>
+
+          <!-- POS -->
+          <main id="pos-view" class="panel pos-panel hidden">
+            <div class="layout pos-layout">
+              <section class="catalog">
+                <div class="panel-head">
+                  <div>
+                    <p class="eyebrow">Cashier</p>
+                    <h2>Point of sale</h2>
+                  </div>
+                  <span id="product-count" class="muted"></span>
+                </div>
+                <div class="search-wrap">
+                  <input id="search" type="search" placeholder="Scan barcode or search SKU…" />
+                </div>
+                <div id="products" class="grid"></div>
+              </section>
+              <aside class="cart">
+                <div class="panel-head">
+                  <h2>Order detail</h2>
+                </div>
+                <div id="till-box" class="till-box"></div>
+                <ul id="cart-items"></ul>
+                <div class="totals">
+                  <div><span id="lbl-subtotal">Subtotal</span><strong id="subtotal">0.00</strong></div>
+              <div><span id="lbl-discount-line">Discount</span><strong id="discount">0.00</strong></div>
+                  <div><span id="lbl-tax-line">Tax</span><strong id="tax">0.00</strong></div>
+                  <div class="grand"><span id="lbl-total-bill">Total bill</span><strong id="total">0.00</strong></div>
+                </div>
+            <div class="pay-split">
+              <label id="lbl-discount-input">Discount <input id="discount-amount" type="text" value="0" /></label>
+              <label id="lbl-tax-input">Tax (optional) <input id="tax-amount" type="text" value="0" /></label>
+            </div>
+                <div class="pay-split">
+                  <label>Cash <input id="pay-cash" type="text" /></label>
+                  <label>Card <input id="pay-card" type="text" /></label>
+                  <label>Wallet <input id="pay-wallet" type="text" /></label>
+                </div>
+                <button id="pay" class="pay" disabled>Place order →</button>
+                <p id="pos-message" class="sub"></p>
+              </aside>
+            </div>
+          </main>
+
+          <!-- Returns -->
+          <main id="returns-view" class="panel hidden">
+            <h1>Returns & tills</h1>
+            <p id="returns-message" class="sub"></p>
+            <div class="two-col">
+              <section class="card">
+                <h2>Create return</h2>
+                <div class="row">
+                  <input id="sale-id" type="text" placeholder="Sale ID" />
+                  <button id="lookup-sale" class="btn btn-primary" type="button">Lookup</button>
+                </div>
+                <div id="return-sale" class="hidden"></div>
+              </section>
+              <section class="card">
+                <h2>Pending approval</h2>
+                <div id="pending-returns"></div>
+              </section>
+            </div>
+            <div class="two-col">
+              <section class="card">
+                <h2>Recent returns</h2>
+                <div id="recent-returns"></div>
+              </section>
+              <section class="card">
+                <h2>Till history</h2>
+                <div id="till-history"></div>
+              </section>
+            </div>
+          </main>
+
+          <!-- Inventory -->
+          <main id="inventory-view" class="panel hidden">
+            <h1>Inventory</h1>
+            <p class="lead">Stock, suppliers, and purchasing for this branch.</p>
+            <p id="inv-message" class="sub"></p>
+            <div class="tabs" id="inv-tabs">
+              <button type="button" data-inv-tab="stock" class="tab active">On hand</button>
+              <button type="button" data-inv-tab="products" class="tab">Products</button>
+              <button type="button" data-inv-tab="suppliers" class="tab">Suppliers</button>
+              <button type="button" data-inv-tab="po" class="tab">PO / GRN</button>
+              <button type="button" data-inv-tab="transfers" class="tab">Transfers</button>
+              <button type="button" data-inv-tab="adjust" class="tab">Adjust</button>
+            </div>
+            <div id="inv-stock" class="inv-panel"></div>
+            <div id="inv-products" class="inv-panel hidden"></div>
+            <div id="inv-suppliers" class="inv-panel hidden"></div>
+            <div id="inv-po" class="inv-panel hidden"></div>
+            <div id="inv-transfers" class="inv-panel hidden"></div>
+            <div id="inv-adjust" class="inv-panel hidden"></div>
+          </main>
+
+          <!-- Profile -->
+          <main id="profile-view" class="panel hidden">
+            <p class="eyebrow">Account</p>
+            <h1>Your profile</h1>
+            <p class="lead">Update your name, phone, language, and password.</p>
+            <form id="profile-form" class="form-grid" style="max-width: 28rem">
+              <label>
+                <span>Display name</span>
+                <input id="profile-name" type="text" required />
+              </label>
+              <label>
+                <span>Email</span>
+                <input id="profile-email" type="email" disabled />
+              </label>
+              <label>
+                <span>Phone number</span>
+                <input id="profile-phone" type="tel" />
+              </label>
+              <label>
+                <span>Preferred language</span>
+                <select id="profile-locale">
+                  <option value="en">English</option>
+                  <option value="ur">اردو</option>
+                </select>
+              </label>
+              <label>
+                <span>New password</span>
+                <input id="profile-password" type="password" autocomplete="new-password" />
+              </label>
+              <p id="profile-msg" class="sub"></p>
+              <button type="submit" class="btn btn-primary">Save profile</button>
+            </form>
+          </main>
+        </div>
+      </div>
     </div>
 
     <!-- Shared modal -->

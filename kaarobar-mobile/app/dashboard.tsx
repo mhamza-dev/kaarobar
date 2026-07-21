@@ -13,9 +13,11 @@ import {
   clearSession,
   colors,
   getSession,
+  hydrateSessionContext,
   setSession,
   type Session,
 } from "../lib/api";
+import { canAccess } from "../lib/rbac";
 import { loadLocale, setLocale, t } from "../lib/i18n";
 import { useToast } from "../components/Toast";
 
@@ -58,6 +60,7 @@ export default function DashboardScreen() {
       }
     }
 
+    next = await hydrateSessionContext(next);
     await setSession(next);
     setLocal(next);
 
@@ -144,7 +147,12 @@ export default function DashboardScreen() {
     { href: "/inventory", title: t("nav.inventory"), subtitle: t("pages.inventoryTitle") },
     { href: "/ess", title: t("nav.ess"), subtitle: t("nav.ess") },
     { href: "/profile", title: t("nav.profile"), subtitle: t("profile.description") },
-  ] as const;
+  ].filter((item) => {
+    if (item.href === "/pos" || item.href === "/returns") return canAccess(session, "pos");
+    if (item.href === "/inventory") return canAccess(session, "inventory");
+    if (item.href === "/ess") return canAccess(session, "employee_self");
+    return true;
+  });
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>

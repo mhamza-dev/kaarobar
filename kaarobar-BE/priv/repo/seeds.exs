@@ -174,7 +174,8 @@ staff_role_defs = [
   {"cashier", "Bilal Ahmed", ["cashier"]},
   {"accountant", "Sana Malik", ["accountant"]},
   {"hr", "Imran Ali", ["hr_manager"]},
-  {"inventory", "Nadia Raza", ["inventory_manager"]}
+  {"inventory", "Nadia Raza", ["inventory_manager"]},
+  {"employee", "Ali Worker", ["employee"]}
 ]
 
 ensure_user = fn email, name, phone ->
@@ -497,7 +498,7 @@ seed_customers = fn owner, business ->
   end)
 end
 
-seed_employees = fn owner, business, branches, cashier_user ->
+seed_employees = fn owner, business, branches, employee_user ->
   existing = Hr.list_employees(business.id, owner.id)
 
   Enum.flat_map(Enum.with_index(branches, 1), fn {branch, bidx} ->
@@ -520,14 +521,14 @@ seed_employees = fn owner, business, branches, cashier_user ->
               business_id: business.id,
               owner_id: owner.id,
               branch_id: branch.id,
-              user_id: if(bidx == 1 and eidx == 1 and cashier_user, do: cashier_user.id)
+              user_id: if(bidx == 1 and eidx == 1 and employee_user, do: employee_user.id)
             })
 
           emp
 
         emp ->
-          if is_nil(emp.user_id) and bidx == 1 and eidx == 1 and cashier_user do
-            {:ok, updated} = Hr.update_employee(emp.id, owner.id, %{user_id: cashier_user.id})
+          if is_nil(emp.user_id) and bidx == 1 and eidx == 1 and employee_user do
+            {:ok, updated} = Hr.update_employee(emp.id, owner.id, %{user_id: employee_user.id})
             updated
           else
             emp
@@ -711,6 +712,7 @@ owner_summaries =
       end)
 
     cashier = Enum.find_value(staff, fn {u, roles, _, _} -> if "cashier" in roles, do: u end)
+    employee_user = Enum.find_value(staff, fn {u, roles, _, _} -> if "employee" in roles, do: u end)
 
     businesses =
       biz_defs
@@ -803,7 +805,7 @@ owner_summaries =
           products = seed_products.(owner, business, branches, catalog)
           seed_suppliers.(owner, business)
           seed_customers.(owner, business)
-          employees = seed_employees.(owner, business, branches, cashier)
+          employees = seed_employees.(owner, business, branches, employee_user)
           seed_attendance.(owner, business, employees, branches)
           seed_leave.(owner, business, employees)
           seed_opening_journal.(owner, business)
@@ -888,7 +890,7 @@ Owners
 Staff
   #{staff_logins}
 
-ESS demo: cashier@kaarobar.local is linked to an employee on the primary owner's first business.
+ESS demo: employee@kaarobar.local is linked to an employee on the primary owner's first business.
 
 Counts
   Owners:       #{total_owners}

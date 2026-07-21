@@ -8,6 +8,7 @@ let cart = [];
 let till = null;
 let businesses = [];
 let branches = [];
+let memberships = [];
 let invProducts = [];
 let invSuppliers = [];
 let invPos = [];
@@ -68,8 +69,64 @@ function getSession() {
 
 function setSession(next) {
   session = next;
+  memberships = next?.memberships || [];
   if (next) localStorage.setItem(SESSION_KEY, JSON.stringify(next));
   else localStorage.removeItem(SESSION_KEY);
+}
+
+const ROLE_BUNDLES = {
+  pos: ["owner", "branch_manager", "cashier"],
+  inventory: ["owner", "branch_manager", "inventory_manager"],
+  employee_self: [
+    "owner",
+    "branch_manager",
+    "hr_manager",
+    "employee",
+    "cashier",
+    "inventory_manager",
+    "accountant",
+  ],
+  any_staff: [
+    "owner",
+    "branch_manager",
+    "cashier",
+    "inventory_manager",
+    "accountant",
+    "hr_manager",
+    "employee",
+  ],
+};
+
+const NAV_BUNDLE = {
+  dashboard: "any_staff",
+  pos: "pos",
+  returns: "pos",
+  inventory: "inventory",
+  profile: "any_staff",
+};
+
+function activeRoles() {
+  if (!session?.business_id) return [];
+  return [...new Set(
+    memberships
+      .filter((m) => m.business_id === session.business_id && m.status === "active")
+      .filter((m) => !m.branch_id || !session.branch_id || m.branch_id === session.branch_id)
+      .flatMap((m) => m.roles || [])
+  )];
+}
+
+function canAccess(bundle) {
+  const roles = activeRoles();
+  if (roles.includes("owner")) return true;
+  return roles.some((role) => (ROLE_BUNDLES[bundle] || []).includes(role));
+}
+
+function applyNavAccess() {
+  document.querySelectorAll(".nav-btn").forEach((btn) => {
+    const bundle = NAV_BUNDLE[btn.dataset.nav];
+    const allowed = !bundle || canAccess(bundle);
+    btn.classList.toggle("hidden", !allowed);
+  });
 }
 
 async function api(path, init = {}, sess = session) {
@@ -119,6 +176,7 @@ function applyChromeI18n() {
     });
   });
   if ($("logout")) $("logout").textContent = t("common.signOut");
+  if ($("workspace-label")) $("workspace-label").textContent = t("common.workspace");
   if ($("status") && !$("status").textContent.includes("sync")) {
     $("status").textContent = t("common.online");
   }
@@ -141,9 +199,27 @@ function applyChromeI18n() {
     const label = value?.previousElementSibling;
     if (label) label.textContent = t(key);
   });
+  if ($("lbl-subtotal")) $("lbl-subtotal").textContent = t("common.subtotal");
+  if ($("lbl-discount-line")) $("lbl-discount-line").textContent = t("pos.discount");
+  if ($("lbl-tax-line")) $("lbl-tax-line").textContent = t("common.tax");
+  if ($("lbl-total-bill")) $("lbl-total-bill").textContent = t("pos.totalBill");
+  const discountLbl = $("lbl-discount-input");
+  if (discountLbl) {
+    discountLbl.childNodes[0].textContent = `${t("pos.discount")} `;
+  }
+  const taxLbl = $("lbl-tax-input");
+  if (taxLbl) {
+    taxLbl.childNodes[0].textContent = `${t("pos.taxOptional")} `;
+  }
+  if ($("pay")) $("pay").textContent = `${t("pos.placeOrder")} →`;
 }
 
 function navigate(view) {
+  const bundle = NAV_BUNDLE[view];
+  if (bundle && !canAccess(bundle)) {
+    notify("Access denied", "warning");
+    view = "dashboard";
+  }
   ["dashboard", "pos", "returns", "inventory", "profile"].forEach((v) => {
     const el = $(`${v}-view`);
     if (el) el.classList.toggle("hidden", v !== view);
@@ -188,6 +264,14 @@ function renderTenantSelects() {
 
 async function hydrateTenant(baseSession) {
   let next = { ...baseSession };
+  try {
+    const me = await api("/auth/me", {}, next);
+    memberships = me.memberships || [];
+    next.user = me.user || next.user;
+    next.memberships = memberships;
+  } catch {
+    memberships = next.memberships || [];
+  }
   const biz = await api("/businesses", {}, next);
   businesses = biz.data || [];
   if (businesses[0] && !next.business_id) next.business_id = businesses[0].id;
@@ -201,12 +285,23 @@ async function hydrateTenant(baseSession) {
   }
 
   setSession(next);
+  applyNavAccess();
   renderTenantSelects();
   return next;
 }
 
 async function loadDashboardStats() {
-  $("user-name").textContent = session?.user?.name || "";
+  const fullName = session?.user?.name || "";
+  $("user-name").textContent = fullName;
+  if ($("user-initials")) {
+    $("user-initials").textContent =
+      fullName
+        .split(" ")
+        .map((p) => p[0] || "")
+        .join("")
+        .slice(0, 2)
+        .toUpperCase() || "K";
+  }
   try {
     const dash = await api("/reports/dashboard");
     const d = dash.data || {};
@@ -228,6 +323,7 @@ async function enterApp() {
 /* —— POS —— */
 
 function renderProducts(list) {
+  if ($("product-count")) $("product-count").textContent = t("desktop.productCount", { count: list.length });
   $("products").innerHTML = list
     .map((p) => {
       const initials = String(p.name || "")
@@ -249,6 +345,8 @@ function renderProducts(list) {
 }
 
 function renderCart() {
+  const discountValue = Number($("discount-amount")?.value || 0);
+  const taxValue = Number($("tax-amount")?.value || 0);
   $("cart-items").innerHTML = cart
     .map(
       (l) => `
@@ -268,9 +366,11 @@ function renderCart() {
     .join("");
 
   const subtotal = cart.reduce((s, l) => s + l.qty * l.price, 0);
-  const tax = cart.reduce((s, l) => s + l.qty * l.price * (l.taxRate || 0.18), 0);
-  const total = round2(subtotal + tax);
+  const discount = round2(Math.min(Math.max(discountValue, 0), subtotal));
+  const tax = round2(Math.max(taxValue, 0));
+  const total = round2(subtotal - discount + tax);
   $("subtotal").textContent = money(subtotal);
+  $("discount").textContent = money(discount);
   $("tax").textContent = money(tax);
   $("total").textContent = money(total);
   $("pay-cash").value = money(total);
@@ -1062,6 +1162,9 @@ $("search").addEventListener("input", (e) => {
   );
 });
 
+$("discount-amount").addEventListener("input", () => renderCart());
+$("tax-amount").addEventListener("input", () => renderCart());
+
 $("search").addEventListener("keydown", async (e) => {
   if (e.key !== "Enter") return;
   const code = e.target.value.trim();
@@ -1090,7 +1193,10 @@ $("search").addEventListener("keydown", async (e) => {
 });
 
 $("pay").addEventListener("click", async () => {
-  const total = Number($("total").textContent);
+  const subtotal = cart.reduce((s, l) => s + l.qty * l.price, 0);
+  const discount = round2(Math.min(Math.max(Number($("discount-amount").value || 0), 0), subtotal));
+  const tax = round2(Math.max(Number($("tax-amount").value || 0), 0));
+  const total = round2(subtotal - discount + tax);
   const payments = [];
   const cash = Number($("pay-cash").value || 0);
   const card = Number($("pay-card").value || 0);
@@ -1111,6 +1217,8 @@ $("pay").addEventListener("click", async () => {
         client_txn_id: crypto.randomUUID(),
         till_id: till?.id,
         items: cart.map((l) => ({ product_id: l.id, quantity: l.qty })),
+        discount_amount: discount,
+        tax_amount: tax,
         payments,
       }),
     });

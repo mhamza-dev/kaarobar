@@ -205,7 +205,17 @@
     "emptyCart": "Cart is empty",
     "tillStatus": "Till",
     "tillOpenLabel": "Open",
-    "tillClosedLabel": "Closed"
+    "tillClosedLabel": "Closed",
+    "orderDetail": "Order detail",
+    "lines": "{count} lines",
+    "discount": "Discount",
+    "taxOptional": "Tax (optional)",
+    "totalBill": "Total bill",
+    "placeOrder": "Place order",
+    "processing": "Processing…",
+    "scanPlaceholder": "Scan barcode or search SKU / name",
+    "productsCount": "{count} products",
+    "lastInvoice": "Last"
   },
   "returns": {
     "eyebrow": "Returns",
@@ -330,5 +340,10 @@
     "landingLead": "POS, inventory, and staff tools for your branch.",
     "getStarted": "Get started",
     "staffTools": "Staff tools"
+  },
+  "rbac": {
+    "accessDeniedTitle": "Access denied",
+    "accessDeniedMessage": "You do not have permission to open this page for the selected business and branch.",
+    "goToDashboard": "Go to dashboard"
   }
 }

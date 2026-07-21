@@ -8,7 +8,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { api, colors, setSession } from "../lib/api";
+import { api, colors, hydrateSessionContext, setSession } from "../lib/api";
 import { setLocale, t, type Locale } from "../lib/i18n";
 
 export default function LoginScreen() {
@@ -38,7 +38,11 @@ export default function LoginScreen() {
         },
         null
       );
-      await setSession({ access_token: result.access_token, user: result.user });
+      const hydrated = await hydrateSessionContext({
+        access_token: result.access_token,
+        user: result.user,
+      });
+      await setSession(hydrated);
       if (result.user.locale === "ur" || result.user.locale === "en") {
         await setLocale(result.user.locale);
       }

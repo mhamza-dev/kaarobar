@@ -53,20 +53,26 @@ defmodule Kaarobar.PosTest do
     qty = Keyword.get(opts, :qty, "1")
     client_txn_id = Keyword.get(opts, :client_txn_id, Ecto.UUID.generate())
     discount = Keyword.get(opts, :discount_amount, "0")
-    # unit 100 + 18% tax = 118 per unit
-    unit_total = Decimal.mult(Decimal.new(qty), Decimal.new("118"))
+    tax_amount = Keyword.get(opts, :tax_amount, nil)
+    # unit 100 + 18% tax = 118 per unit when explicit tax is not provided
+    unit_subtotal = Decimal.mult(Decimal.new(qty), Decimal.new("100"))
+    computed_tax = Decimal.mult(Decimal.new(qty), Decimal.new("18"))
+    effective_tax = if is_nil(tax_amount), do: computed_tax, else: Decimal.new(to_string(tax_amount))
     total =
-      unit_total
+      unit_subtotal
       |> Decimal.sub(Decimal.new(discount))
+      |> Decimal.add(effective_tax)
       |> Decimal.round(2)
 
     # When cart discount applied, POS recomputes tax — for simple cases use matching payment after create
-    %{
+    attrs = %{
       client_txn_id: client_txn_id,
       items: [%{product_id: product.id, quantity: qty}],
       discount_amount: discount,
       payments: [%{method: "cash", amount: to_string(total)}]
     }
+
+    if is_nil(tax_amount), do: attrs, else: Map.put(attrs, :tax_amount, to_string(tax_amount))
   end
 
   test "POS-FR idempotent client_txn_id returns same sale", %{
@@ -271,5 +277,47 @@ defmodule Kaarobar.PosTest do
 
     price = Repo.get_by!(ProductBranchPrice, product_id: product.id, branch_id: branch.id)
     assert Decimal.eq?(price.price, Decimal.new("100"))
+  end
+
+  test "checkout supports no tax and no discount", %{
+    owner: owner,
+    business: business,
+    branch: branch,
+    product: product
+  } do
+    attrs = sale_attrs(product, tax_amount: "0", discount_amount: "0")
+    assert {:ok, sale} = Pos.create_sale(branch.id, owner.id, business.id, owner.id, attrs)
+    assert Decimal.eq?(sale.subtotal, Decimal.new("100.00"))
+    assert Decimal.eq?(sale.discount_amount, Decimal.new("0.00"))
+    assert Decimal.eq?(sale.tax_amount, Decimal.new("0.00"))
+    assert Decimal.eq?(sale.total_amount, Decimal.new("100.00"))
+  end
+
+  test "checkout supports discount with no tax", %{
+    owner: owner,
+    business: business,
+    branch: branch,
+    product: product
+  } do
+    attrs = sale_attrs(product, tax_amount: "0", discount_amount: "10")
+    assert {:ok, sale} = Pos.create_sale(branch.id, owner.id, business.id, owner.id, attrs)
+    assert Decimal.eq?(sale.subtotal, Decimal.new("100.00"))
+    assert Decimal.eq?(sale.discount_amount, Decimal.new("10.00"))
+    assert Decimal.eq?(sale.tax_amount, Decimal.new("0.00"))
+    assert Decimal.eq?(sale.total_amount, Decimal.new("90.00"))
+  end
+
+  test "checkout supports tax with no discount", %{
+    owner: owner,
+    business: business,
+    branch: branch,
+    product: product
+  } do
+    attrs = sale_attrs(product, tax_amount: "12.50", discount_amount: "0")
+    assert {:ok, sale} = Pos.create_sale(branch.id, owner.id, business.id, owner.id, attrs)
+    assert Decimal.eq?(sale.subtotal, Decimal.new("100.00"))
+    assert Decimal.eq?(sale.discount_amount, Decimal.new("0.00"))
+    assert Decimal.eq?(sale.tax_amount, Decimal.new("12.50"))
+    assert Decimal.eq?(sale.total_amount, Decimal.new("112.50"))
   end
 end

@@ -11,7 +11,8 @@ import {
 } from "react-native";
 import { api, colors, getSession, type Session } from "../lib/api";
 import { uuid } from "../lib/uuid";
-import { BarcodeScannerModal } from "../components/BarcodeScannerModal";
+import { t } from "../lib/i18n";
+import { canAccessRoute } from "../lib/rbac";
 
 type Product = {
   id: string;
@@ -51,6 +52,8 @@ export default function PosScreen() {
   const [payCash, setPayCash] = useState("");
   const [payCard, setPayCard] = useState("");
   const [payWallet, setPayWallet] = useState("");
+  const [discountInput, setDiscountInput] = useState("");
+  const [taxInput, setTaxInput] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
@@ -69,6 +72,10 @@ export default function PosScreen() {
       const s = await getSession();
       if (!s) {
         router.replace("/landing");
+        return;
+      }
+      if (!canAccessRoute(s, "/pos")) {
+        router.replace("/dashboard");
         return;
       }
       setLocal(s);
@@ -106,11 +113,9 @@ export default function PosScreen() {
   }
 
   const subtotal = cart.reduce((s, l) => s + l.quantity * l.unit_price, 0);
-  const tax = cart.reduce((s, l) => {
-    const rate = Number(l.product.tax_rate || 0.18);
-    return s + l.quantity * l.unit_price * rate;
-  }, 0);
-  const total = round2(subtotal + tax);
+  const discount = round2(Math.min(Math.max(Number(discountInput || 0), 0), subtotal));
+  const tax = round2(Math.max(Number(taxInput || 0), 0));
+  const total = round2(subtotal - discount + tax);
 
   useEffect(() => {
     setPayCash(money(total));
@@ -220,6 +225,8 @@ export default function PosScreen() {
             product_id: l.product.id,
             quantity: l.quantity,
           })),
+          discount_amount: discount,
+          tax_amount: tax,
           payments,
         }),
       });
@@ -358,9 +365,31 @@ export default function PosScreen() {
           ))
         )}
         <View style={styles.totals}>
-          <Text style={styles.body}>Subtotal {money(subtotal)}</Text>
-          <Text style={styles.body}>Tax {money(tax)}</Text>
-          <Text style={styles.total}>Total Rs {money(total)}</Text>
+          <Text style={styles.body}>{t("common.subtotal")} {money(subtotal)}</Text>
+          <Text style={styles.body}>{t("common.tax")} {money(tax)}</Text>
+          <View style={styles.row}>
+            <Text style={[styles.body, { width: 88, marginBottom: 0 }]}>{t("pos.discount")}</Text>
+            <TextInput
+              style={[styles.input, { flex: 1, marginBottom: 0 }]}
+              value={discountInput}
+              onChangeText={setDiscountInput}
+              keyboardType="decimal-pad"
+              placeholder="0"
+              placeholderTextColor={colors.muted}
+            />
+          </View>
+          <View style={styles.row}>
+            <Text style={[styles.body, { width: 88, marginBottom: 0 }]}>{t("pos.taxOptional")}</Text>
+            <TextInput
+              style={[styles.input, { flex: 1, marginBottom: 0 }]}
+              value={taxInput}
+              onChangeText={setTaxInput}
+              keyboardType="decimal-pad"
+              placeholder="0"
+              placeholderTextColor={colors.muted}
+            />
+          </View>
+          <Text style={styles.total}>{t("common.total")} Rs {money(total)}</Text>
         </View>
 
         <Text style={styles.payLabel}>Payment</Text>
@@ -388,7 +417,7 @@ export default function PosScreen() {
           onPress={checkout}
           disabled={cart.length === 0 || busy}
         >
-          <Text style={styles.btnText}>{busy ? "Processing…" : "Place order →"}</Text>
+          <Text style={styles.btnText}>{busy ? t("pos.processing") : `${t("pos.placeOrder")} →`}</Text>
         </Pressable>
       </View>
     </ScrollView>

@@ -31,7 +31,7 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
         <main
           className={
             pathname.startsWith("/app")
-              ? "flex min-h-0 flex-1 flex-col"
+              ? "flex h-dvh min-h-0 flex-1 flex-col overflow-hidden"
               : "flex-1"
           }
         >
