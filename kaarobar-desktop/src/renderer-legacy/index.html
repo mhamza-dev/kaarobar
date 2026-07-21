@@ -57,11 +57,32 @@
           </div>
         </div>
         <nav class="nav">
-          <button type="button" data-nav="dashboard" class="nav-btn active">Dashboard</button>
-          <button type="button" data-nav="pos" class="nav-btn">POS</button>
-          <button type="button" data-nav="returns" class="nav-btn">Returns</button>
-          <button type="button" data-nav="inventory" class="nav-btn">Inventory</button>
-          <button type="button" data-nav="profile" class="nav-btn">Profile</button>
+          <div class="nav-group">
+            <p class="nav-group-title">Overview</p>
+            <button type="button" data-nav="dashboard" class="nav-btn active">Dashboard</button>
+          </div>
+          <div class="nav-group">
+            <p class="nav-group-title">Cashier</p>
+            <button type="button" data-nav="pos" class="nav-btn">POS</button>
+            <button type="button" data-nav="returns" class="nav-btn">Returns</button>
+          </div>
+          <div class="nav-group">
+            <p class="nav-group-title">Catalog</p>
+            <button type="button" data-nav="inventory" class="nav-btn">Inventory</button>
+          </div>
+          <div class="nav-group">
+            <p class="nav-group-title">Back office</p>
+            <button type="button" data-nav="accounting" class="nav-btn">Accounting</button>
+            <button type="button" data-nav="hr" class="nav-btn">HR</button>
+            <button type="button" data-nav="reports" class="nav-btn">Reports</button>
+          </div>
+          <div class="nav-group">
+            <p class="nav-group-title">System</p>
+            <button type="button" data-nav="notifications" class="nav-btn">Notifications</button>
+            <button type="button" data-nav="ess" class="nav-btn">Staff tools</button>
+            <button type="button" data-nav="settings" class="nav-btn">Settings</button>
+            <button type="button" data-nav="profile" class="nav-btn">Profile</button>
+          </div>
         </nav>
         <button id="logout" class="rail-logout" type="button">Sign out</button>
       </aside>
@@ -79,7 +100,7 @@
               <option value="en">English</option>
               <option value="ur">اردو</option>
             </select>
-            <button type="button" class="icon-btn" aria-label="Notifications">🔔</button>
+            <button type="button" class="icon-btn" aria-label="Notifications">◉</button>
             <div class="profile-chip">
               <span id="user-initials" class="profile-avatar">K</span>
               <span id="user-name" class="profile-name"></span>
@@ -232,6 +253,54 @@
               <p id="profile-msg" class="sub"></p>
               <button type="submit" class="btn btn-primary">Save profile</button>
             </form>
+          </main>
+
+          <main id="accounting-view" class="panel hidden">
+            <h1>Accounting</h1>
+            <p class="lead">Chart of accounts, journals, and financial statements.</p>
+            <p id="accounting-message" class="sub"></p>
+            <div id="accounting-body" class="card"></div>
+          </main>
+
+          <main id="hr-view" class="panel hidden">
+            <h1>HR</h1>
+            <p class="lead">Employees, attendance, leave, and payroll.</p>
+            <p id="hr-message" class="sub"></p>
+            <div id="hr-body" class="card"></div>
+          </main>
+
+          <main id="reports-view" class="panel hidden">
+            <h1>Reports</h1>
+            <p class="lead">Operations and financial insights for selected tenant scope.</p>
+            <p id="reports-message" class="sub"></p>
+            <div id="reports-body" class="card"></div>
+          </main>
+
+          <main id="notifications-view" class="panel hidden">
+            <h1>Notifications</h1>
+            <p class="lead">Latest workflow alerts for your account.</p>
+            <div id="notifications-list" class="card"></div>
+          </main>
+
+          <main id="settings-view" class="panel hidden">
+            <h1>Settings</h1>
+            <p class="lead">Role permissions and workspace controls.</p>
+            <p id="settings-message" class="sub"></p>
+            <div id="settings-body" class="card"></div>
+          </main>
+
+          <!-- ESS (staff tools) -->
+          <main id="ess-view" class="panel hidden">
+            <h1>Staff tools</h1>
+            <p id="ess-hint" class="lead"></p>
+            <div class="tabs" id="ess-tabs">
+              <button type="button" data-ess-tab="clock" class="tab active">Clock</button>
+              <button type="button" data-ess-tab="leave" class="tab">Leave</button>
+              <button type="button" data-ess-tab="payslips" class="tab">Payslips</button>
+            </div>
+            <div id="ess-clock" class="ess-panel"></div>
+            <div id="ess-leave" class="ess-panel hidden"></div>
+            <div id="ess-payslips" class="ess-panel hidden"></div>
           </main>
         </div>
       </div>

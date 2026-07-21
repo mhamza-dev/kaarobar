@@ -42,9 +42,9 @@ config :phoenix, :json_library, Jason
 config :kaarobar, Kaarobar.Guardian,
   issuer: "kaarobar",
   secret_key: "dev-guardian-secret-change-in-production-kaarobar-2026",
-  ttl: {15, :minutes},
+  ttl: {1, :day},
   token_ttl: %{
-    "access" => {15, :minutes},
+    "access" => {1, :day},
     "refresh" => {14, :days},
     "mfa" => {5, :minutes}
   }

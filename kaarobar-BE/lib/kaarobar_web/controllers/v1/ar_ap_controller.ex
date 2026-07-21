@@ -17,7 +17,7 @@ defmodule KaarobarWeb.V1.ArApController do
       |> where([c], c.business_id == ^business_id and c.owner_id == ^owner_id)
       |> order_by([c], asc: c.name)
       |> Repo.all()
-      |> Enum.map(&%{id: &1.id, name: &1.name, phone: &1.phone, email: &1.email})
+      |> Enum.map(&serialize_customer/1)
 
     json(conn, %{data: data})
   end
@@ -31,6 +31,7 @@ defmodule KaarobarWeb.V1.ArApController do
            name: params["name"],
            phone: params["phone"],
            email: params["email"],
+           khata_enabled: params["khata_enabled"] == true || params["khata_enabled"] == "true",
            business_id: business_id,
            owner_id: owner_id
          })
@@ -38,10 +39,93 @@ defmodule KaarobarWeb.V1.ArApController do
       {:ok, c} ->
         conn
         |> put_status(:created)
-        |> json(%{data: %{id: c.id, name: c.name, phone: c.phone, email: c.email}})
+        |> json(%{data: serialize_customer(c)})
 
       {:error, cs} ->
         conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(cs.errors)})
+    end
+  end
+
+  def show_customer(conn, %{"id" => id}) do
+    business_id = conn.assigns[:business_id]
+    owner_id = conn.assigns[:owner_id]
+
+    case Repo.get_by(Customer, id: id, business_id: business_id, owner_id: owner_id) do
+      nil ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      c ->
+        balance = Accounting.customer_balance(c.id, business_id, owner_id)
+        json(conn, %{data: Map.merge(serialize_customer(c), %{balance: balance})})
+    end
+  end
+
+  def update_customer(conn, %{"id" => id} = params) do
+    business_id = conn.assigns[:business_id]
+    owner_id = conn.assigns[:owner_id]
+
+    case Repo.get_by(Customer, id: id, business_id: business_id, owner_id: owner_id) do
+      nil ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      c ->
+        attrs =
+          %{}
+          |> maybe_put(params, "name")
+          |> maybe_put(params, "phone")
+          |> maybe_put(params, "email")
+          |> maybe_put_bool(params, "khata_enabled")
+
+        case c |> Customer.changeset(attrs) |> Repo.update() do
+          {:ok, updated} ->
+            json(conn, %{data: serialize_customer(updated)})
+
+          {:error, cs} ->
+            conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(cs.errors)})
+        end
+    end
+  end
+
+  def customer_ledger(conn, %{"id" => id}) do
+    business_id = conn.assigns[:business_id]
+    owner_id = conn.assigns[:owner_id]
+
+    case Repo.get_by(Customer, id: id, business_id: business_id, owner_id: owner_id) do
+      nil ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      c ->
+        entries = Accounting.customer_ledger(c.id, business_id, owner_id)
+        balance = Accounting.customer_balance(c.id, business_id, owner_id)
+        json(conn, %{data: %{customer: serialize_customer(c), balance: balance, entries: entries}})
+    end
+  end
+
+  defp serialize_customer(c) do
+    %{
+      id: c.id,
+      name: c.name,
+      phone: c.phone,
+      email: c.email,
+      khata_enabled: c.khata_enabled == true
+    }
+  end
+
+  defp maybe_put(map, params, key) do
+    case Map.fetch(params, key) do
+      {:ok, value} -> Map.put(map, key, value)
+      :error -> map
+    end
+  end
+
+  defp maybe_put_bool(map, params, key) do
+    case Map.fetch(params, key) do
+      {:ok, true} -> Map.put(map, key, true)
+      {:ok, "true"} -> Map.put(map, key, true)
+      {:ok, false} -> Map.put(map, key, false)
+      {:ok, "false"} -> Map.put(map, key, false)
+      {:ok, _} -> map
+      :error -> map
     end
   end
 

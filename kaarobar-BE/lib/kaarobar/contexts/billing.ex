@@ -79,6 +79,28 @@ defmodule Kaarobar.Billing do
     end
   end
 
+  @doc """
+  Notify the owner that a plan limit blocked an action (business/branch/user).
+  """
+  def notify_plan_limit(owner_id, kind) when is_binary(owner_id) do
+    label =
+      case kind do
+        :business -> "businesses"
+        :branch -> "branches"
+        :user -> "users"
+        _ -> "resources"
+      end
+
+    Kaarobar.Notifications.notify(
+      owner_id,
+      owner_id,
+      "billing.limit",
+      %{kind: to_string(kind)},
+      title: "Plan limit reached",
+      body: "You've reached your plan limit for #{label}. Upgrade to add more."
+    )
+  end
+
   def usage_summary(owner_id) do
     {:ok, sub} = ensure_subscription(owner_id)
 

@@ -41,13 +41,14 @@ defmodule KaarobarWeb.V1.AuthController do
     email = params["email"]
     password = params["password"]
     totp_code = params["totp_code"]
+    remember_me = remember_me?(params)
 
     case Accounts.authenticate(email, password) do
       {:ok, user} ->
         cond do
           Accounts.mfa_enabled?(user) and is_binary(totp_code) and totp_code != "" ->
             case Accounts.verify_totp(user, totp_code) do
-              :ok -> issue_login(conn, user)
+              :ok -> issue_login(conn, user, remember_me: remember_me)
               {:error, _} -> unauthorized(conn, "invalid_mfa_code")
             end
 
@@ -63,10 +64,10 @@ defmodule KaarobarWeb.V1.AuthController do
 
           user.mfa_required and not Accounts.mfa_enabled?(user) ->
             # Password OK but MFA enrollment still required (Owner/Accountant default)
-            issue_login(conn, user, mfa_setup_required: true)
+            issue_login(conn, user, mfa_setup_required: true, remember_me: remember_me)
 
           true ->
-            issue_login(conn, user)
+            issue_login(conn, user, remember_me: remember_me)
         end
 
       {:error, :inactive} ->
@@ -77,10 +78,14 @@ defmodule KaarobarWeb.V1.AuthController do
     end
   end
 
-  def verify_mfa(conn, %{"mfa_token" => mfa_token, "totp_code" => code}) do
+  def verify_mfa(conn, params) do
+    mfa_token = params["mfa_token"]
+    code = params["totp_code"]
+    remember_me = remember_me?(params)
+
     with {:ok, user} <- Accounts.user_from_mfa_token(mfa_token),
          :ok <- Accounts.verify_totp(user, code) do
-      issue_login(conn, user)
+      issue_login(conn, user, remember_me: remember_me)
     else
       {:error, :invalid_mfa_token} -> unauthorized(conn, "invalid_mfa_token")
       {:error, _} -> unauthorized(conn, "invalid_mfa_code")
@@ -154,8 +159,9 @@ defmodule KaarobarWeb.V1.AuthController do
     end
   end
 
-  defp issue_login(conn, user, opts \\ []) do
-    {:ok, token, _claims} = Accounts.issue_access_token(user)
+  defp issue_login(conn, user, opts) do
+    remember_me = Keyword.get(opts, :remember_me, false)
+    {:ok, token, _claims} = Accounts.issue_access_token(user, remember_me: remember_me)
     memberships =
       user.id
       |> Tenancy.list_memberships_for_user()
@@ -168,12 +174,13 @@ defmodule KaarobarWeb.V1.AuthController do
         action: "user.login",
         entity_type: "user",
         entity_id: user.id,
-        metadata: %{}
+        metadata: %{remember_me: remember_me}
       })
 
     json(conn, %{
       access_token: token,
       token_type: "Bearer",
+      expires_in: if(remember_me, do: 10 * 24 * 60 * 60, else: 24 * 60 * 60),
       mfa_required: user.mfa_required,
       mfa_enabled: Accounts.mfa_enabled?(user),
       mfa_setup_required: Keyword.get(opts, :mfa_setup_required, false),
@@ -181,6 +188,18 @@ defmodule KaarobarWeb.V1.AuthController do
       memberships: memberships
     })
   end
+
+  defp remember_me?(params) when is_map(params) do
+    case Map.get(params, "remember_me", Map.get(params, "remember")) do
+      true -> true
+      "true" -> true
+      "1" -> true
+      1 -> true
+      _ -> false
+    end
+  end
+
+  defp remember_me?(_), do: false
 
   defp unauthorized(conn, reason) do
     conn

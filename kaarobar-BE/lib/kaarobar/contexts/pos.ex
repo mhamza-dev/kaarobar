@@ -24,7 +24,7 @@ defmodule Kaarobar.Pos do
   alias Kaarobar.Catalog
   alias Ecto.Multi
 
-  @payment_methods ~w(cash card wallet)
+  @payment_methods ~w(cash card wallet khata)
   @default_return_window_days 14
 
   ## —— Sales (POS-FR-001–006, 009, 011) ————————————————————————————
@@ -35,7 +35,7 @@ defmodule Kaarobar.Pos do
     with :ok <- require_uuid(client_txn_id) do
       case Repo.get_by(Sale, client_txn_id: client_txn_id) do
         %Sale{} = existing ->
-          {:ok, Repo.preload(existing, [:items, :payments])}
+          {:ok, Repo.preload(existing, [:items, :payments, :customer])}
 
         nil ->
           with {:ok, branch} <- fetch_branch(branch_id, business_id, owner_id),
@@ -43,7 +43,8 @@ defmodule Kaarobar.Pos do
                {:ok, money} <- compute_totals(priced_items, attrs),
                :ok <- validate_discount_limit(branch, money.discount_amount, attrs),
                {:ok, payments} <-
-                 normalize_payments(attrs[:payments] || attrs["payments"] || [], money.total_amount) do
+                 normalize_payments(attrs[:payments] || attrs["payments"] || [], money.total_amount),
+               {:ok, customer_id} <- validate_customer_for_sale(business_id, owner_id, attrs, payments) do
             do_create_sale(
               branch,
               owner_id,
@@ -53,7 +54,7 @@ defmodule Kaarobar.Pos do
               priced_items,
               money,
               payments,
-              attrs
+              Map.put(attrs, :customer_id, customer_id)
             )
           end
       end
@@ -103,6 +104,9 @@ defmodule Kaarobar.Pos do
     |> Multi.run(:payments, fn _repo, %{sale: sale} ->
       insert_payments(sale.id, payments)
     end)
+    |> Multi.run(:khata_ar, fn _repo, %{sale: sale} ->
+      maybe_create_khata_ar(sale, payments, cashier_id)
+    end)
     |> Multi.run(:enqueue_journal, fn _repo, %{sale: sale} ->
       %{sale_id: sale.id, business_id: business_id, owner_id: owner_id, posted_by_id: cashier_id}
       |> Kaarobar.Workers.PostSaleJournalWorker.new()
@@ -119,16 +123,26 @@ defmodule Kaarobar.Pos do
         {:ok, :skipped}
       end
     end)
+    |> Multi.run(:low_stock, fn _repo, _ ->
+      maybe_notify_low_stock_after_sale(branch.id, business_id, owner_id, priced_items)
+    end)
     |> Repo.transaction()
     |> case do
-      {:ok, %{sale: sale}} ->
-        {:ok, Repo.preload(sale, [:items, :payments])}
+      {:ok, %{sale: sale, khata_ar: inv}} ->
+        sale =
+          if inv do
+            Repo.get!(Sale, sale.id)
+          else
+            sale
+          end
+
+        {:ok, Repo.preload(sale, [:items, :payments, :customer])}
 
       {:error, :sale, %{errors: errors}, _} ->
         if Keyword.has_key?(errors, :client_txn_id) do
           case Repo.get_by(Sale, client_txn_id: client_txn_id) do
             nil -> {:error, :duplicate_client_txn}
-            sale -> {:ok, Repo.preload(sale, [:items, :payments])}
+            sale -> {:ok, Repo.preload(sale, [:items, :payments, :customer])}
           end
         else
           {:error, errors}
@@ -137,6 +151,101 @@ defmodule Kaarobar.Pos do
       {:error, _op, reason, _changes} ->
         {:error, reason}
     end
+  end
+
+  defp validate_customer_for_sale(business_id, owner_id, attrs, payments) do
+    customer_id = attrs[:customer_id] || attrs["customer_id"]
+    khata_total =
+      payments
+      |> Enum.filter(&(&1.method in ["khata", "credit"]))
+      |> Enum.reduce(Decimal.new(0), &Decimal.add(&2, &1.amount))
+
+    cond do
+      Decimal.compare(khata_total, 0) == :gt ->
+        with %Kaarobar.Schemas.Customer{} = c <-
+               Repo.get_by(Kaarobar.Schemas.Customer,
+                 id: customer_id,
+                 business_id: business_id,
+                 owner_id: owner_id
+               ),
+             true <- c.khata_enabled || {:error, :khata_not_enabled} do
+          {:ok, c.id}
+        else
+          nil -> {:error, :customer_required_for_khata}
+          {:error, _} = err -> err
+          false -> {:error, :khata_not_enabled}
+        end
+
+      is_binary(customer_id) and customer_id != "" ->
+        case Repo.get_by(Kaarobar.Schemas.Customer,
+               id: customer_id,
+               business_id: business_id,
+               owner_id: owner_id
+             ) do
+          %Kaarobar.Schemas.Customer{} = c -> {:ok, c.id}
+          nil -> {:error, :customer_not_found}
+        end
+
+      true ->
+        {:ok, nil}
+    end
+  end
+
+  defp maybe_create_khata_ar(sale, payments, posted_by_id) do
+    khata_amount =
+      payments
+      |> Enum.filter(&(&1.method in ["khata", "credit"]))
+      |> Enum.reduce(Decimal.new(0), &Decimal.add(&2, &1.amount))
+
+    if Decimal.compare(khata_amount, 0) != :gt do
+      {:ok, nil}
+    else
+      # Tracking invoice only — GL is posted via sale journal (AR debit for khata).
+      subtotal = sale.subtotal || Decimal.new(0)
+      tax = sale.tax_amount || Decimal.new(0)
+
+      {:ok, inv} =
+        %Kaarobar.Schemas.ArInvoice{}
+        |> Kaarobar.Schemas.ArInvoice.changeset(%{
+          owner_id: sale.owner_id,
+          business_id: sale.business_id,
+          branch_id: sale.branch_id,
+          customer_id: sale.customer_id,
+          sale_id: sale.id,
+          invoice_number: "KH-#{sale.invoice_number}",
+          invoice_date: Date.utc_today(),
+          due_date: Date.add(Date.utc_today(), 30),
+          subtotal: subtotal,
+          tax_amount: tax,
+          total_amount: khata_amount,
+          balance_due: khata_amount,
+          status: "open",
+          notes: "POS khata · #{sale.invoice_number}"
+        })
+        |> Repo.insert()
+
+      sale
+      |> Sale.changeset(%{ar_invoice_id: inv.id})
+      |> Repo.update()
+
+      _ = posted_by_id
+      {:ok, inv}
+    end
+  end
+
+  defp maybe_notify_low_stock_after_sale(branch_id, business_id, owner_id, priced_items) do
+    Enum.each(priced_items, fn item ->
+      if Map.get(item, :track_inventory) != false do
+        Kaarobar.Inventory.maybe_notify_low_stock(
+          branch_id,
+          item.product_id,
+          business_id,
+          owner_id
+        )
+      end
+    end)
+
+    {:ok, :checked}
   end
 
   defp resolve_line_items(branch_id, business_id, owner_id, attrs) do
@@ -337,9 +446,39 @@ defmodule Kaarobar.Pos do
         :ok
 
       force_pending? ->
+        _ =
+          Kaarobar.Notifications.notify_roles(
+            branch.business_id,
+            branch.owner_id,
+            ["owner", "admin"],
+            "discount.approval_needed",
+            %{
+              branch_id: branch.id,
+              discount_amount: to_string(discount_amount),
+              limit: to_string(limit)
+            },
+            title: "Discount needs approval",
+            body: "A checkout discount requires approval."
+          )
+
         {:error, :discount_requires_approval}
 
       Decimal.compare(discount_amount, limit) == :gt ->
+        _ =
+          Kaarobar.Notifications.notify_roles(
+            branch.business_id,
+            branch.owner_id,
+            ["owner", "admin"],
+            "discount.approval_needed",
+            %{
+              branch_id: branch.id,
+              discount_amount: to_string(discount_amount),
+              limit: to_string(limit)
+            },
+            title: "Discount needs approval",
+            body: "A checkout discount exceeds the auto-approve limit."
+          )
+
         {:error, {:discount_exceeds_limit, to_string(limit)}}
 
       true ->
@@ -350,7 +489,12 @@ defmodule Kaarobar.Pos do
   defp normalize_payments(raw_payments, total) do
     payments =
       Enum.map(raw_payments, fn p ->
-        method = p[:method] || p["method"] || "cash"
+        method =
+          case p[:method] || p["method"] || "cash" do
+            "credit" -> "khata"
+            other -> other
+          end
+
         %{
           method: method,
           amount: to_dec(p[:amount] || p["amount"]),
@@ -566,8 +710,23 @@ defmodule Kaarobar.Pos do
       end)
       |> Repo.transaction()
       |> case do
-        {:ok, %{finalize: result}} -> {:ok, result}
-        {:error, _op, reason, _} -> {:error, reason}
+        {:ok, %{finalize: result}} ->
+          if result.status == "PendingApproval" do
+            Kaarobar.Notifications.notify_roles(
+              business_id,
+              owner_id,
+              ["owner", "admin"],
+              "return.pending",
+              %{return_id: result.id, sale_id: sale_id},
+              title: "Return awaiting approval",
+              body: "A return of Rs #{result.refund_amount} needs approval."
+            )
+          end
+
+          {:ok, result}
+
+        {:error, _op, reason, _} ->
+          {:error, reason}
       end
     else
       nil -> {:error, :sale_not_found}
@@ -733,6 +892,17 @@ defmodule Kaarobar.Pos do
               metadata: %{refund_amount: to_string(ret.refund_amount)}
             })
 
+            if sale_return.requested_by_id do
+              Kaarobar.Notifications.notify(
+                sale_return.requested_by_id,
+                sale_return.owner_id,
+                "return.approved",
+                %{return_id: ret.id},
+                title: "Return approved",
+                body: "Your return of Rs #{ret.refund_amount} was approved."
+              )
+            end
+
             {:ok, ret}
 
           err ->
@@ -773,8 +943,22 @@ defmodule Kaarobar.Pos do
         end)
         |> Repo.transaction()
         |> case do
-          {:ok, %{reject: ret}} -> {:ok, Repo.preload(ret, [:items])}
-          {:error, _op, reason, _} -> {:error, reason}
+          {:ok, %{reject: ret}} ->
+            if sale_return.requested_by_id do
+              Kaarobar.Notifications.notify(
+                sale_return.requested_by_id,
+                owner_id,
+                "return.rejected",
+                %{return_id: ret.id},
+                title: "Return rejected",
+                body: reason || "Your return request was rejected."
+              )
+            end
+
+            {:ok, Repo.preload(ret, [:items])}
+
+          {:error, _op, reason, _} ->
+            {:error, reason}
         end
     end
   end

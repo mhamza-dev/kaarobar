@@ -170,6 +170,7 @@ owner_defs = [
 ]
 
 staff_role_defs = [
+  {"admin", "Admin User", ["admin"]},
   {"manager", "Ayesha Khan", ["branch_manager"]},
   {"cashier", "Bilal Ahmed", ["cashier"]},
   {"accountant", "Sana Malik", ["accountant"]},
@@ -177,6 +178,15 @@ staff_role_defs = [
   {"inventory", "Nadia Raza", ["inventory_manager"]},
   {"employee", "Ali Worker", ["employee"]}
 ]
+
+# Trial plans have tight user seats — only seed portal-critical staff there.
+staff_roles_for_plan = fn
+  "trial" -> Enum.filter(staff_role_defs, fn {role, _, _} -> role in ~w(admin cashier employee) end)
+  _ -> staff_role_defs
+end
+
+# Roles that need a home branch for POS / ESS clock-in
+branch_scoped_roles = MapSet.new(["admin", "cashier", "employee"])
 
 ensure_user = fn email, name, phone ->
   case Accounts.get_user_by_email(email) do
@@ -189,10 +199,29 @@ ensure_user = fn email, name, phone ->
           phone: phone
         })
 
-      user
+      # Staff should not be forced into MFA enrollment for demo portal login.
+      if user.mfa_required do
+        {:ok, user} =
+          user
+          |> Ecto.Changeset.change(%{mfa_required: false})
+          |> Repo.update()
+
+        user
+      else
+        user
+      end
 
     user ->
-      user
+      if user.mfa_required and user.email != "owner@kaarobar.local" do
+        {:ok, updated} =
+          user
+          |> Ecto.Changeset.change(%{mfa_required: false})
+          |> Repo.update()
+
+        updated
+      else
+        user
+      end
   end
 end
 
@@ -211,27 +240,37 @@ ensure_membership = fn actor, business, user, roles, branch_id ->
       |> Repo.one()
     end
 
-  if existing do
-    existing
-  else
-    case Tenancy.create_membership(actor, %{
-           user_id: user.id,
-           business_id: business.id,
-           branch_id: branch_id,
-           roles: roles,
-           status: "active"
-         }) do
-      {:ok, m} ->
-        m
+  cond do
+    existing && Enum.sort(existing.roles || []) == Enum.sort(roles) && existing.status == "active" ->
+      existing
 
-      {:error, :plan_limit_reached} ->
-        IO.puts("    ! user limit — skip #{user.email} on #{business.name}")
-        nil
+    existing ->
+      case Tenancy.update_membership(existing.id, actor, %{roles: roles, status: "active"}) do
+        {:ok, m} -> m
+        {:error, reason} ->
+          IO.puts("    ! membership update #{user.email}: #{inspect(reason)}")
+          existing
+      end
 
-      {:error, reason} ->
-        IO.puts("    ! membership #{user.email}: #{inspect(reason)}")
-        nil
-    end
+    true ->
+      case Tenancy.create_membership(actor, %{
+             user_id: user.id,
+             business_id: business.id,
+             branch_id: branch_id,
+             roles: roles,
+             status: "active"
+           }) do
+        {:ok, m} ->
+          m
+
+        {:error, :plan_limit_reached} ->
+          IO.puts("    ! user limit — skip #{user.email} on #{business.name}")
+          nil
+
+        {:error, reason} ->
+          IO.puts("    ! membership #{user.email}: #{inspect(reason)}")
+          nil
+      end
   end
 end
 
@@ -490,52 +529,157 @@ seed_customers = fn owner, business ->
       |> Customer.changeset(%{
         name: name,
         phone: "+92300#{1_000_000 + :erlang.phash2({business.id, name}, 8_999_999)}",
+        khata_enabled: true,
         business_id: business.id,
         owner_id: owner.id
       })
       |> Repo.insert!()
+    else
+      from(c in Customer, where: c.business_id == ^business.id and c.name == ^name)
+      |> Repo.update_all(set: [khata_enabled: true])
     end
   end)
 end
 
-seed_employees = fn owner, business, branches, employee_user ->
+seed_employees = fn owner, business, branches, portal_users ->
   existing = Hr.list_employees(business.id, owner.id)
+  home_branch = hd(branches)
 
-  Enum.flat_map(Enum.with_index(branches, 1), fn {branch, bidx} ->
-    Enum.map(1..2, fn eidx ->
-      code = "E#{String.slice(business.id, 0, 4)}-B#{bidx}-#{eidx}"
-      gidx = (bidx - 1) * 2 + eidx
+  # Dedicated HR profiles for portal logins (admin / cashier / employee).
+  portal_emps =
+    portal_users
+    |> Enum.reject(fn {_role, user} -> is_nil(user) end)
+    |> Enum.with_index()
+    |> Enum.map(fn {{role_key, user}, idx} ->
+      code = "PORTAL-#{String.upcase(role_key)}"
+      position =
+        case role_key do
+          "admin" -> "Administrator"
+          "cashier" -> "Cashier"
+          "employee" -> "Employee"
+          _ -> "Staff"
+        end
 
-      case Enum.find(existing, &(&1.employee_code == code)) do
+      case Enum.find(existing, &(&1.employee_code == code)) ||
+             Enum.find(existing, &(&1.user_id == user.id)) do
         nil ->
-          {:ok, emp} =
-            Hr.create_employee(%{
-              employee_code: code,
-              name: Enum.at(employee_names, rem(gidx, length(employee_names))),
-              position: Enum.at(positions, rem(gidx, length(positions))),
-              join_date: Date.add(Date.utc_today(), -(90 + gidx * 7)),
-              basic_salary: "#{22_000 + gidx * 1_500}",
-              allowances: %{"transport" => "2500", "meal" => "1500"},
-              phone: "+92301#{1_000_000 + gidx * 117}",
-              status: "active",
-              business_id: business.id,
-              owner_id: owner.id,
-              branch_id: branch.id,
-              user_id: if(bidx == 1 and eidx == 1 and employee_user, do: employee_user.id)
-            })
-
-          emp
+          case Hr.create_employee(%{
+                 employee_code: code,
+                 name: user.name,
+                 position: position,
+                 join_date: Date.add(Date.utc_today(), -(30 + idx * 5)),
+                 basic_salary: "#{30_000 + idx * 5_000}",
+                 allowances: %{"transport" => "3000", "meal" => "2000"},
+                 phone: user.phone,
+                 status: "active",
+                 business_id: business.id,
+                 owner_id: owner.id,
+                 branch_id: home_branch.id,
+                 user_id: user.id
+               }) do
+            {:ok, emp} -> emp
+            {:error, reason} ->
+              IO.puts("    ! portal employee #{code}: #{inspect(reason)}")
+              nil
+          end
 
         emp ->
-          if is_nil(emp.user_id) and bidx == 1 and eidx == 1 and employee_user do
-            {:ok, updated} = Hr.update_employee(emp.id, owner.id, %{user_id: employee_user.id})
-            updated
+          attrs =
+            %{}
+            |> then(fn a -> if is_nil(emp.user_id), do: Map.put(a, :user_id, user.id), else: a end)
+            |> then(fn a -> if emp.name != user.name, do: Map.put(a, :name, user.name), else: a end)
+
+          if map_size(attrs) > 0 do
+            case Hr.update_employee(emp.id, owner.id, attrs) do
+              {:ok, updated} -> updated
+              _ -> emp
+            end
           else
             emp
           end
       end
     end)
-  end)
+    |> Enum.reject(&is_nil/1)
+
+  linked_user_ids = MapSet.new(Enum.map(portal_emps, & &1.user_id))
+
+  generic =
+    Enum.flat_map(Enum.with_index(branches, 1), fn {branch, bidx} ->
+      Enum.map(1..2, fn eidx ->
+        code = "E#{String.slice(business.id, 0, 4)}-B#{bidx}-#{eidx}"
+        gidx = (bidx - 1) * 2 + eidx
+
+        case Enum.find(existing, &(&1.employee_code == code)) do
+          nil ->
+            {:ok, emp} =
+              Hr.create_employee(%{
+                employee_code: code,
+                name: Enum.at(employee_names, rem(gidx, length(employee_names))),
+                position: Enum.at(positions, rem(gidx, length(positions))),
+                join_date: Date.add(Date.utc_today(), -(90 + gidx * 7)),
+                basic_salary: "#{22_000 + gidx * 1_500}",
+                allowances: %{"transport" => "2500", "meal" => "1500"},
+                phone: "+92301#{1_000_000 + gidx * 117}",
+                status: "active",
+                business_id: business.id,
+                owner_id: owner.id,
+                branch_id: branch.id,
+                user_id: nil
+              })
+
+            emp
+
+          emp ->
+            # Don't steal a portal-linked user_id onto generic rows
+            if emp.user_id && MapSet.member?(linked_user_ids, emp.user_id) do
+              emp
+            else
+              emp
+            end
+        end
+      end)
+    end)
+
+  portal_emps ++ generic
+end
+
+seed_portal_payroll = fn owner, business, employees ->
+  portal = Enum.filter(employees, &(&1.user_id != nil))
+
+  if portal == [] do
+    :ok
+  else
+    today = Date.utc_today()
+    period_start = Date.new!(today.year, today.month, 1) |> Date.add(-1) |> then(fn d -> Date.new!(d.year, d.month, 1) end)
+    period_end = Date.new!(today.year, today.month, 1) |> Date.add(-1)
+
+    existing =
+      from(r in Kaarobar.Schemas.PayrollRun,
+        where:
+          r.business_id == ^business.id and r.period_start == ^period_start and
+            r.period_end == ^period_end
+      )
+      |> Repo.one()
+
+    run =
+      case existing do
+        nil ->
+          case Hr.create_payroll_run(business.id, owner.id, period_start, period_end) do
+            {:ok, r} -> r
+            _ -> nil
+          end
+
+        r ->
+          r
+      end
+
+    if run && run.status in ["Draft", "PendingApproval"] do
+      _ = Hr.submit_payroll(run.id, owner.id)
+      _ = Hr.approve_payroll(run.id, owner.id, owner.id)
+    end
+
+    :ok
+  end
 end
 
 seed_attendance = fn owner, business, employees, branches ->
@@ -692,8 +836,10 @@ owner_summaries =
     {:ok, _} = Billing.set_plan(owner.id, odef.plan)
 
     # Per-owner staff (primary owner keeps classic emails)
+    role_defs = staff_roles_for_plan.(odef.plan)
+
     staff =
-      Enum.map(staff_role_defs, fn {role, name, roles} ->
+      Enum.map(role_defs, fn {role, name, roles} ->
         email =
           if odef.staff_prefix == "" do
             "#{role}@kaarobar.local"
@@ -712,7 +858,16 @@ owner_summaries =
       end)
 
     cashier = Enum.find_value(staff, fn {u, roles, _, _} -> if "cashier" in roles, do: u end)
+    admin_user = Enum.find_value(staff, fn {u, roles, _, _} -> if "admin" in roles, do: u end)
     employee_user = Enum.find_value(staff, fn {u, roles, _, _} -> if "employee" in roles, do: u end)
+
+    portal_users =
+      [
+        {"admin", admin_user},
+        {"cashier", cashier},
+        {"employee", employee_user}
+      ]
+      |> Enum.reject(fn {_, u} -> is_nil(u) end)
 
     businesses =
       biz_defs
@@ -795,17 +950,41 @@ owner_summaries =
           IO.puts("  ! #{business.name} — no branches (plan limit?)")
           %{business: business, branches: [], products: [], employees: []}
         else
-          # Memberships: managers/accountant/hr/inventory business-wide; cashier on first branch
+          # Memberships:
+          # - admin / cashier / employee → first branch of first business only
+          #   (matches linked HR profile for ESS; avoids orphan tenant switches)
+          # - managers / accountant / hr / inventory → business-wide on every business
           Enum.each(staff, fn {user, roles, _role, _email} ->
-            branch_id = if "cashier" in roles, do: hd(branches).id, else: nil
-            ensure_membership.(owner, business, user, roles, branch_id)
+            portal_scoped? = Enum.any?(roles, &MapSet.member?(branch_scoped_roles, &1))
+
+            cond do
+              portal_scoped? and idx == 0 ->
+                ensure_membership.(owner, business, user, roles, hd(branches).id)
+
+              portal_scoped? ->
+                :ok
+
+              true ->
+                ensure_membership.(owner, business, user, roles, nil)
+            end
           end)
 
           catalog = catalog_for.(industry)
           products = seed_products.(owner, business, branches, catalog)
           seed_suppliers.(owner, business)
           seed_customers.(owner, business)
-          employees = seed_employees.(owner, business, branches, employee_user)
+
+          # Link portal logins to HR profiles on the owner's first business only
+          # (employees.user_id is globally unique).
+          employees =
+            if idx == 0 do
+              emps = seed_employees.(owner, business, branches, portal_users)
+              seed_portal_payroll.(owner, business, emps)
+              emps
+            else
+              seed_employees.(owner, business, branches, [])
+            end
+
           seed_attendance.(owner, business, employees, branches)
           seed_leave.(owner, business, employees)
           seed_opening_journal.(owner, business)
@@ -838,6 +1017,86 @@ owner_summaries =
       businesses: businesses
     }
   end)
+
+# —— Keep portal staff on the business that owns their HR profile ——————
+
+Enum.each(owner_summaries, fn %{staff: staff} ->
+  Enum.each(staff, fn {user, roles, _role, _email} ->
+    if Enum.any?(roles, &MapSet.member?(branch_scoped_roles, &1)) do
+      case Repo.one(from(e in Kaarobar.Schemas.Employee, where: e.user_id == ^user.id)) do
+        %{business_id: home_biz} ->
+          {n, _} =
+            from(m in Kaarobar.Schemas.Membership,
+              where: m.user_id == ^user.id and m.business_id != ^home_biz
+            )
+            |> Repo.delete_all()
+
+          if n > 0 do
+            IO.puts("  cleaned #{n} extra membership(s) for #{user.email}")
+          end
+
+        _ ->
+          :ok
+      end
+    end
+  end)
+end)
+
+# —— Sample in-app notifications + default prefs ————————————————
+
+alias Kaarobar.Notifications
+alias Kaarobar.Schemas.Notification
+
+demo_inbox_emails =
+  MapSet.new([
+    "owner@kaarobar.local",
+    "admin@kaarobar.local",
+    "cashier@kaarobar.local",
+    "employee@kaarobar.local"
+  ])
+
+Enum.each(owner_summaries, fn %{owner: owner, staff: staff} ->
+  targets =
+    [owner | Enum.map(staff, fn {u, _roles, _role, _email} -> u end)]
+    |> Enum.filter(fn u -> MapSet.member?(demo_inbox_emails, u.email) end)
+
+  Enum.each(targets, fn user ->
+    Notifications.get_or_create_preferences(user.id)
+
+    samples = [
+      {"leave_request", "Leave request pending", "A teammate submitted leave for review."},
+      {"payroll.approved", "Payslip ready", "Your latest payslip has been approved."},
+      {"billing.limit", "Plan usage", "You're approaching a plan limit on this workspace."}
+    ]
+
+    Enum.each(samples, fn {type, title, body} ->
+      existing =
+        from(n in Notification,
+          where: n.user_id == ^user.id and n.channel == "in_app" and n.type == ^type,
+          limit: 1
+        )
+        |> Repo.one()
+
+      if is_nil(existing) do
+        %Notification{}
+        |> Notification.changeset(%{
+          user_id: user.id,
+          owner_id: owner.id,
+          channel: "in_app",
+          type: type,
+          title: title,
+          body: body,
+          payload: %{},
+          status: "sent",
+          sent_at: DateTime.utc_now() |> DateTime.truncate(:second)
+        })
+        |> Repo.insert!()
+      end
+    end)
+  end)
+end)
+
+IO.puts("Seeded sample in-app notifications for demo portal users")
 
 # —— Summary ————————————————————————————————————————————————————
 
@@ -887,10 +1146,19 @@ Seed complete. Password for all demo users: Password@123
 Owners
   #{owner_logins}
 
-Staff
+Staff portal logins (primary owner — also mirrored per-owner with suffixes 2/3/4)
+  admin@kaarobar.local       → Admin (POS, inventory, HR-ish ops, Staff tools)
+  employee@kaarobar.local    → Employee (POS, inventory, Staff tools / ESS)
+  cashier@kaarobar.local     → Cashier (POS, Staff tools / ESS)
+  manager@kaarobar.local     → Branch manager
+  accountant@kaarobar.local  → Accountant
+  hr@kaarobar.local          → HR manager
+  inventory@kaarobar.local   → Inventory manager
+
   #{staff_logins}
 
-ESS demo: employee@kaarobar.local is linked to an employee on the primary owner's first business.
+ESS: admin / cashier / employee are linked to HR employee profiles on each owner's first business
+     (clock-in, leave, payslips). Owners do not get Staff tools.
 
 Counts
   Owners:       #{total_owners}

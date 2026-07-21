@@ -10,6 +10,7 @@ defmodule Kaarobar.Schemas.Customer do
     field :phone, :string
     field :email, :string
     field :loyalty_points, :integer, default: 0
+    field :khata_enabled, :boolean, default: false
 
     belongs_to :business, Kaarobar.Schemas.Business
     belongs_to :owner, Kaarobar.Schemas.User
@@ -19,7 +20,15 @@ defmodule Kaarobar.Schemas.Customer do
 
   def changeset(customer, attrs) do
     customer
-    |> cast(attrs, [:name, :phone, :email, :loyalty_points, :business_id, :owner_id])
+    |> cast(attrs, [
+      :name,
+      :phone,
+      :email,
+      :loyalty_points,
+      :khata_enabled,
+      :business_id,
+      :owner_id
+    ])
     |> validate_required([:name, :business_id, :owner_id])
     |> foreign_key_constraint(:business_id)
     |> foreign_key_constraint(:owner_id)

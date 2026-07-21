@@ -24,6 +24,7 @@ defmodule Kaarobar.Schemas.Sale do
     belongs_to :cashier, Kaarobar.Schemas.User
     belongs_to :customer, Kaarobar.Schemas.Customer
     belongs_to :till, Kaarobar.Schemas.Till
+    belongs_to :ar_invoice, Kaarobar.Schemas.ArInvoice
 
     has_many :items, Kaarobar.Schemas.SaleItem
     has_many :payments, Kaarobar.Schemas.SalePayment
@@ -34,8 +35,36 @@ defmodule Kaarobar.Schemas.Sale do
 
   def changeset(sale, attrs) do
     sale
-    |> cast(attrs, [:invoice_number, :client_txn_id, :status, :subtotal, :tax_amount, :discount_amount, :total_amount, :fbr_invoice_no, :fbr_qr_payload, :fbr_reported_at, :notes, :branch_id, :owner_id, :business_id, :cashier_id, :customer_id, :till_id])
-    |> validate_required([:invoice_number, :client_txn_id, :subtotal, :total_amount, :branch_id, :owner_id, :business_id, :cashier_id])
+    |> cast(attrs, [
+      :invoice_number,
+      :client_txn_id,
+      :status,
+      :subtotal,
+      :tax_amount,
+      :discount_amount,
+      :total_amount,
+      :fbr_invoice_no,
+      :fbr_qr_payload,
+      :fbr_reported_at,
+      :notes,
+      :branch_id,
+      :owner_id,
+      :business_id,
+      :cashier_id,
+      :customer_id,
+      :till_id,
+      :ar_invoice_id
+    ])
+    |> validate_required([
+      :invoice_number,
+      :client_txn_id,
+      :subtotal,
+      :total_amount,
+      :branch_id,
+      :owner_id,
+      :business_id,
+      :cashier_id
+    ])
     |> foreign_key_constraint(:branch_id)
     |> foreign_key_constraint(:cashier_id)
     |> unique_constraint(:client_txn_id)

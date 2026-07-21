@@ -36,6 +36,8 @@ defmodule KaarobarWeb.V1.MembershipController do
         conn |> put_status(:created) |> json(%{data: serialize(membership)})
       else
         {:error, :plan_limit_reached} ->
+          owner_id = Tenancy.owner_id_for_business(business_id) || user.id
+          _ = Kaarobar.Billing.notify_plan_limit(owner_id, :user)
           conn |> put_status(:payment_required) |> json(%{error: "plan_limit_reached", limit: "users"})
 
         {:error, :not_found} ->

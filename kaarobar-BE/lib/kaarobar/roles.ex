@@ -5,6 +5,7 @@ defmodule Kaarobar.Roles do
 
   @roles ~w(
     owner
+    admin
     branch_manager
     cashier
     inventory_manager
@@ -13,17 +14,65 @@ defmodule Kaarobar.Roles do
     employee
   )
 
+  @role_aliases %{
+    "manager" => "branch_manager",
+    "inventory_clerk" => "inventory_manager",
+    "hr" => "hr_manager"
+  }
+
   @mfa_default_roles ~w(owner accountant)
 
-  def all, do: @roles
+  @bundles ~w(
+    owner_manage
+    pos
+    pos_approve
+    inventory
+    accounting
+    customers
+    hr
+    leave_approve
+    payroll_approve
+    reports
+    notifications
+    settings
+    employee_self
+    any_staff
+  )a
 
-  def valid?(role) when is_binary(role), do: role in @roles
+  @bundle_defaults %{
+    owner_manage: ~w(owner),
+    pos: ~w(owner admin branch_manager cashier employee),
+    pos_approve: ~w(owner admin),
+    inventory: ~w(owner admin branch_manager inventory_manager employee),
+    accounting: ~w(owner admin accountant),
+    customers: ~w(owner admin accountant branch_manager cashier employee),
+    hr: ~w(owner admin hr_manager branch_manager),
+    leave_approve: ~w(owner admin hr_manager),
+    payroll_approve: ~w(owner admin accountant),
+    reports: ~w(owner admin branch_manager accountant),
+    notifications: @roles,
+    # Owner-only business controls (subscriptions / integrations / role matrix)
+    settings: ~w(owner),
+    # Staff self-service (clock / leave / payslips) — Admin & Employees (incl. cashiers); not owners
+    employee_self: ~w(admin employee cashier),
+    any_staff: @roles
+  }
+
+  def all, do: @roles
+  def bundles, do: @bundles
+  def mfa_default_roles, do: @mfa_default_roles
+
+  def valid?(role) when is_binary(role), do: normalize_role(role) in @roles
   def valid?(_), do: false
 
-  def validate_roles(roles) when is_list(roles) do
-    invalid = Enum.reject(roles, &valid?/1)
+  def normalize_role(role) when is_binary(role), do: Map.get(@role_aliases, role, role)
+  def normalize_role(role), do: role
 
-    if invalid == [] and roles != [] do
+  def validate_roles(roles) when is_list(roles) do
+    normalized = Enum.map(roles, &normalize_role/1)
+    invalid = Enum.reject(normalized, &valid?/1)
+
+    if invalid == [] and normalized != [] do
       :ok
     else
       {:error, {:invalid_roles, invalid}}
@@ -32,23 +81,29 @@ defmodule Kaarobar.Roles do
 
   def validate_roles(_), do: {:error, :invalid_roles}
 
-  def mfa_default_roles, do: @mfa_default_roles
-
   def requires_mfa_by_default?(roles) when is_list(roles) do
-    Enum.any?(roles, &(&1 in @mfa_default_roles))
+    normalized = Enum.map(roles, &normalize_role/1)
+    Enum.any?(normalized, &(&1 in @mfa_default_roles))
   end
 
   def requires_mfa_by_default?(_), do: false
 
-  # Permission bundles used by Authorize plug
-  def bundle(:owner_manage), do: ~w(owner)
-  def bundle(:pos), do: ~w(owner branch_manager cashier)
-  def bundle(:pos_approve), do: ~w(owner branch_manager)
-  def bundle(:inventory), do: ~w(owner branch_manager inventory_manager)
-  def bundle(:accounting), do: ~w(owner accountant)
-  def bundle(:hr), do: ~w(owner hr_manager branch_manager)
-  def bundle(:payroll_approve), do: ~w(owner accountant)
-  def bundle(:reports), do: ~w(owner branch_manager accountant)
-  def bundle(:employee_self), do: ~w(owner branch_manager hr_manager employee cashier inventory_manager accountant)
-  def bundle(:any_staff), do: @roles
+  # Permission bundles used by Authorize plug.
+  def bundle(bundle) when is_atom(bundle), do: Map.get(@bundle_defaults, bundle, [])
+
+  def bundle_allowed?(bundle, role, overrides \\ %{})
+
+  def bundle_allowed?(bundle, role, overrides) when is_atom(bundle) and is_binary(role) do
+    normalized = normalize_role(role)
+    default_allowed = normalized in bundle(bundle)
+    override_for_role = get_in(overrides, [normalized, Atom.to_string(bundle)])
+
+    case override_for_role do
+      true -> true
+      false -> false
+      _ -> default_allowed
+    end
+  end
+
+  def bundle_allowed?(_, _, _), do: false
 end

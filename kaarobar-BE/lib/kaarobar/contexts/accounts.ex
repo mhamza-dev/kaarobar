@@ -2,6 +2,7 @@ defmodule Kaarobar.Accounts do
   @moduledoc """
   Identity & MFA (TEN-FR-006).
   """
+  @compile {:no_warn_undefined, NimbleTOTP}
 
   alias Kaarobar.{Audit, Guardian, Repo}
   alias Kaarobar.Schemas.User
@@ -115,8 +116,17 @@ defmodule Kaarobar.Accounts do
     end
   end
 
-  def issue_access_token(%User{} = user) do
-    Guardian.encode_and_sign(user, %{}, token_type: "access", ttl: {15, :minute})
+  def issue_access_token(%User{} = user, opts \\ []) do
+    ttl =
+      if Keyword.get(opts, :remember_me, false) do
+        # Remember me: 10 days
+        {10, :day}
+      else
+        # Default session: 1 day
+        {1, :day}
+      end
+
+    Guardian.encode_and_sign(user, %{}, token_type: "access", ttl: ttl)
   end
 
   def issue_mfa_challenge_token(%User{} = user) do

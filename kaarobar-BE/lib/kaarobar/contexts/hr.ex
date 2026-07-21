@@ -91,13 +91,33 @@ defmodule Kaarobar.Hr do
 
   def clock_in(attrs) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
-    date = attrs[:date] || attrs["date"] || Date.utc_today()
+    normalized = normalize_attrs(attrs)
+    date = normalize_date(normalized[:date] || Date.utc_today())
+    employee_id = normalized[:employee_id]
 
-    %AttendanceRecord{}
-    |> AttendanceRecord.changeset(
-      Map.merge(normalize_attrs(attrs), %{clock_in: now, date: date})
-    )
-    |> Repo.insert()
+    case get_attendance_for_day(employee_id, date) do
+      %{clock_out: nil} = existing ->
+        # Already clocked in today — return the open record (idempotent).
+        {:ok, existing}
+
+      %{clock_out: %DateTime{}} = existing ->
+        # Same-day re-entry: reopen the existing unique row.
+        existing
+        |> AttendanceRecord.changeset(%{
+          clock_in: now,
+          source: normalized[:source] || existing.source,
+          branch_id: normalized[:branch_id] || existing.branch_id
+        })
+        |> Ecto.Changeset.put_change(:clock_out, nil)
+        |> Repo.update()
+
+      nil ->
+        %AttendanceRecord{}
+        |> AttendanceRecord.changeset(
+          Map.merge(normalized, %{clock_in: now, date: date})
+        )
+        |> Repo.insert()
+    end
   end
 
   def clock_out(attendance_id, owner_id \\ nil) do
@@ -151,6 +171,21 @@ defmodule Kaarobar.Hr do
     |> Repo.one()
   end
 
+  def get_attendance_for_day(nil, _date), do: nil
+
+  def get_attendance_for_day(employee_id, date) do
+    from(a in AttendanceRecord,
+      where: a.employee_id == ^employee_id and a.date == ^date
+    )
+    |> Repo.one()
+  end
+
+  def preload_attendance(%AttendanceRecord{} = record) do
+    Repo.preload(record, :employee)
+  end
+
+  def preload_attendance(record), do: record
+
   ## —— Leave (HR-FR-005) ———————————————————————————————————————
 
   def request_leave(attrs) do
@@ -158,6 +193,9 @@ defmodule Kaarobar.Hr do
     |> LeaveRequest.changeset(Map.put_new(normalize_attrs(attrs), :status, "Pending"))
     |> Repo.insert()
   end
+
+  def preload_leave(%LeaveRequest{} = leave), do: Repo.preload(leave, :employee)
+  def preload_leave(leave), do: leave
 
   def list_leave(business_id, owner_id, opts \\ []) do
     status = Keyword.get(opts, :status)
@@ -303,8 +341,19 @@ defmodule Kaarobar.Hr do
 
   def submit_payroll(run_id, owner_id \\ nil) do
     with {:ok, run} <- fetch_run(run_id, owner_id),
-         :ok <- require_status(run, ["Draft", "Rejected"]) do
-      update_payroll_status(run, "PendingApproval", %{})
+         :ok <- require_status(run, ["Draft", "Rejected"]),
+         {:ok, updated} <- update_payroll_status(run, "PendingApproval", %{}) do
+      Kaarobar.Notifications.notify_roles(
+        updated.business_id,
+        updated.owner_id,
+        ["owner", "admin", "accountant"],
+        "payroll.pending",
+        %{payroll_run_id: updated.id},
+        title: "Payroll awaiting approval",
+        body: "Payroll #{updated.period_start}–#{updated.period_end} was submitted for approval."
+      )
+
+      {:ok, updated}
     end
   end
 
@@ -331,9 +380,10 @@ defmodule Kaarobar.Hr do
             metadata: %{}
           })
 
-          Kaarobar.Notifications.enqueue_email(
+          Kaarobar.Notifications.notify_roles(
+            approved.business_id,
             approved.owner_id,
-            approved.owner_id,
+            ["owner", "admin", "accountant"],
             "payroll.approved",
             %{payroll_run_id: approved.id, period_start: approved.period_start, period_end: approved.period_end},
             title: "Payroll approved",
@@ -521,7 +571,7 @@ defmodule Kaarobar.Hr do
             on: p.payroll_run_id == r.id,
             where: p.employee_id == ^emp.id and r.status in ["Approved", "Posted", "Disbursed"],
             order_by: [desc: r.period_end],
-            preload: [:payroll_run],
+            preload: [:payroll_run, :employee],
             limit: 24
           )
           |> Repo.all()
@@ -581,4 +631,15 @@ defmodule Kaarobar.Hr do
         {k, v}
     end)
   end
+
+  defp normalize_date(%Date{} = date), do: date
+
+  defp normalize_date(str) when is_binary(str) do
+    case Date.from_iso8601(str) do
+      {:ok, date} -> date
+      _ -> Date.utc_today()
+    end
+  end
+
+  defp normalize_date(_), do: Date.utc_today()
 end

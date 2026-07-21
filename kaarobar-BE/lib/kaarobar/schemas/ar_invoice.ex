@@ -21,6 +21,7 @@ defmodule Kaarobar.Schemas.ArInvoice do
     belongs_to :branch, Kaarobar.Schemas.Branch
     belongs_to :customer, Kaarobar.Schemas.Customer
     belongs_to :journal_entry, Kaarobar.Schemas.JournalEntry
+    belongs_to :sale, Kaarobar.Schemas.Sale
 
     has_many :payments, Kaarobar.Schemas.ArPayment
 
@@ -43,7 +44,8 @@ defmodule Kaarobar.Schemas.ArInvoice do
       :business_id,
       :branch_id,
       :customer_id,
-      :journal_entry_id
+      :journal_entry_id,
+      :sale_id
     ])
     |> validate_required([
       :invoice_number,

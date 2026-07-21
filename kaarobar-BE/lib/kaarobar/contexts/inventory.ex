@@ -404,8 +404,12 @@ defmodule Kaarobar.Inventory do
       end)
       |> Repo.transaction()
       |> case do
-        {:ok, %{adjustment: adj}} -> {:ok, adj}
-        {:error, _op, reason, _} -> {:error, reason}
+        {:ok, %{adjustment: adj}} ->
+          maybe_notify_low_stock(branch_id, product_id, business_id, owner_id)
+          {:ok, adj}
+
+        {:error, _op, reason, _} ->
+          {:error, reason}
       end
     end
   end
@@ -488,8 +492,21 @@ defmodule Kaarobar.Inventory do
     end)
     |> Repo.transaction()
     |> case do
-      {:ok, %{transfer: transfer}} -> {:ok, transfer}
-      {:error, _op, reason, _} -> {:error, reason}
+      {:ok, %{transfer: transfer}} ->
+        Kaarobar.Notifications.notify_roles(
+          business_id,
+          owner_id,
+          ["owner", "admin", "inventory_manager", "branch_manager"],
+          "transfer.pending",
+          %{transfer_id: transfer.id, to_branch_id: transfer.to_branch_id},
+          title: "Stock transfer pending",
+          body: "A stock transfer is waiting to be confirmed."
+        )
+
+        {:ok, transfer}
+
+      {:error, _op, reason, _} ->
+        {:error, reason}
     end
   end
 
@@ -599,9 +616,86 @@ defmodule Kaarobar.Inventory do
         end)
         |> Repo.transaction()
         |> case do
-          {:ok, %{transfer: t}} -> {:ok, t}
-          {:error, _op, reason, _} -> {:error, reason}
+          {:ok, %{transfer: t}} ->
+            Enum.each(t.items || Repo.preload(t, :items).items, fn item ->
+              maybe_notify_low_stock(
+                t.from_branch_id,
+                item.product_id,
+                t.business_id,
+                owner_id
+              )
+            end)
+
+            Kaarobar.Notifications.notify_roles(
+              t.business_id,
+              owner_id,
+              ["owner", "admin", "inventory_manager", "branch_manager"],
+              "transfer.confirmed",
+              %{transfer_id: t.id},
+              title: "Stock transfer confirmed",
+              body: "A stock transfer was confirmed and stock moved."
+            )
+
+            {:ok, t}
+
+          {:error, _op, reason, _} ->
+            {:error, reason}
         end
+    end
+  end
+
+  @low_stock_threshold Decimal.new("5")
+
+  @doc """
+  Notify inventory roles when on-hand qty is at/below threshold.
+  Debounced to once per calendar day per product/branch while still low.
+  """
+  def maybe_notify_low_stock(branch_id, product_id, business_id, owner_id) do
+    inv =
+      Repo.get_by(InventoryRecord,
+        branch_id: branch_id,
+        product_id: product_id
+      )
+
+    cond do
+      is_nil(inv) ->
+        :ok
+
+      Decimal.compare(inv.quantity_on_hand || Decimal.new(0), @low_stock_threshold) == :gt ->
+        :ok
+
+      true ->
+        now = DateTime.utc_now() |> DateTime.truncate(:second)
+        already =
+          case inv.low_stock_notified_at do
+            %DateTime{} = at -> DateTime.to_date(at) == DateTime.to_date(now)
+            _ -> false
+          end
+
+        unless already do
+          product = Repo.get(Kaarobar.Schemas.Product, product_id)
+          name = (product && product.name) || "Product"
+
+          Kaarobar.Notifications.notify_roles(
+            business_id,
+            owner_id,
+            ["owner", "admin", "cashier", "inventory_manager"],
+            "inventory.low_stock",
+            %{
+              product_id: product_id,
+              branch_id: branch_id,
+              quantity_on_hand: to_string(inv.quantity_on_hand)
+            },
+            title: "Low stock · #{name}",
+            body: "#{name} is low (#{inv.quantity_on_hand} left)."
+          )
+
+          inv
+          |> InventoryRecord.changeset(%{low_stock_notified_at: now})
+          |> Repo.update()
+        end
+
+        :ok
     end
   end
 

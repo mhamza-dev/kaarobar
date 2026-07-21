@@ -25,7 +25,7 @@ defmodule Kaarobar.Schemas.Notification do
     notification
     |> cast(attrs, [:channel, :type, :payload, :status, :sent_at, :read_at, :title, :body, :user_id, :owner_id])
     |> validate_required([:channel, :type, :user_id, :owner_id])
-    |> validate_inclusion(:channel, ["email", "sms", "whatsapp", "push"])
+    |> validate_inclusion(:channel, ["email", "sms", "whatsapp", "push", "in_app"])
     |> foreign_key_constraint(:user_id)
   end
 end

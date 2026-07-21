@@ -53,5 +53,6 @@ defmodule Kaarobar.Schemas.Employee do
     |> foreign_key_constraint(:business_id)
     |> foreign_key_constraint(:branch_id)
     |> unique_constraint([:business_id, :employee_code])
+    |> unique_constraint(:user_id, name: :employees_user_id_unique)
   end
 end

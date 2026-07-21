@@ -10,7 +10,7 @@ import {
   View,
 } from "react-native";
 import { api, colors, getSession, type Session } from "../lib/api";
-import { canAccessRoute } from "../lib/rbac";
+import { canAccess, canAccessRoute } from "../lib/rbac";
 
 type SaleItem = {
   product_id: string;
@@ -56,6 +56,7 @@ export default function ReturnsScreen() {
   const [tills, setTills] = useState<Till[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const canApprove = canAccess(session, "pos_approve");
 
   const reload = useCallback(async () => {
     try {
@@ -261,20 +262,26 @@ export default function ReturnsScreen() {
               </Text>
               <Text style={styles.body}>{r.reason || "No reason"}</Text>
               <View style={styles.row}>
-                <Pressable
-                  style={styles.btn}
-                  onPress={() => approve(r.id)}
-                  disabled={busy}
-                >
-                  <Text style={styles.btnText}>Approve</Text>
-                </Pressable>
-                <Pressable
-                  style={styles.btnSecondary}
-                  onPress={() => reject(r.id)}
-                  disabled={busy}
-                >
-                  <Text style={styles.btnSecondaryText}>Reject</Text>
-                </Pressable>
+                {canApprove ? (
+                  <>
+                    <Pressable
+                      style={styles.btn}
+                      onPress={() => approve(r.id)}
+                      disabled={busy}
+                    >
+                      <Text style={styles.btnText}>Approve</Text>
+                    </Pressable>
+                    <Pressable
+                      style={styles.btnSecondary}
+                      onPress={() => reject(r.id)}
+                      disabled={busy}
+                    >
+                      <Text style={styles.btnSecondaryText}>Reject</Text>
+                    </Pressable>
+                  </>
+                ) : (
+                  <Text style={styles.body}>Awaiting owner/admin</Text>
+                )}
               </View>
             </View>
           ))

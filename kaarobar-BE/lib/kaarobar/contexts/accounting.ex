@@ -553,6 +553,7 @@ defmodule Kaarobar.Accounting do
 
     cash_account = get_account_by_code(business_id, "1000")
     bank_account = get_account_by_code(business_id, "1010")
+    ar_account = get_account_by_code(business_id, "1100")
     revenue_account = get_account_by_code(business_id, "4000")
     sales_tax_account = get_account_by_code(business_id, "2100")
     cogs_account = get_account_by_code(business_id, "5000")
@@ -563,7 +564,14 @@ defmodule Kaarobar.Accounting do
       |> Enum.group_by(& &1.method)
       |> Enum.map(fn {method, payments} ->
         amount = Enum.reduce(payments, Decimal.new(0), &Decimal.add(&2, &1.amount))
-        account = if method == "cash", do: cash_account, else: bank_account
+
+        account =
+          case method do
+            "cash" -> cash_account
+            "khata" -> ar_account
+            "credit" -> ar_account
+            _ -> bank_account
+          end
 
         %{
           account_id: account.id,
@@ -1182,5 +1190,98 @@ defmodule Kaarobar.Accounting do
           supplier_name: doc.supplier && doc.supplier.name
         })
     end
+  end
+
+  def customer_balance(customer_id, business_id, owner_id) do
+    open =
+      from(i in Kaarobar.Schemas.ArInvoice,
+        where:
+          i.customer_id == ^customer_id and i.business_id == ^business_id and
+            i.owner_id == ^owner_id and i.status in ["open", "partial"],
+        select: coalesce(sum(i.balance_due), 0)
+      )
+      |> Repo.one()
+
+    to_string(open || Decimal.new(0))
+  end
+
+  def customer_ledger(customer_id, business_id, owner_id) do
+    invoices =
+      from(i in Kaarobar.Schemas.ArInvoice,
+        where:
+          i.customer_id == ^customer_id and i.business_id == ^business_id and
+            i.owner_id == ^owner_id,
+        order_by: [desc: i.inserted_at],
+        preload: [:payments]
+      )
+      |> Repo.all()
+
+    sales =
+      from(s in Kaarobar.Schemas.Sale,
+        where:
+          s.customer_id == ^customer_id and s.business_id == ^business_id and
+            s.owner_id == ^owner_id,
+        order_by: [desc: s.inserted_at],
+        preload: [:payments]
+      )
+      |> Repo.all()
+
+    inv_entries =
+      Enum.flat_map(invoices, fn inv ->
+        base = [
+          %{
+            id: inv.id,
+            kind: "ar_invoice",
+            date: inv.invoice_date || DateTime.to_date(inv.inserted_at),
+            reference: inv.invoice_number,
+            description: inv.notes || "AR invoice",
+            debit: to_string(inv.total_amount),
+            credit: "0",
+            balance_due: to_string(inv.balance_due),
+            sale_id: inv.sale_id
+          }
+        ]
+
+        pays =
+          Enum.map(inv.payments || [], fn p ->
+            %{
+              id: p.id,
+              kind: "ar_payment",
+              date: DateTime.to_date(p.inserted_at),
+              reference: inv.invoice_number,
+              description: "Payment (#{p.method})",
+              debit: "0",
+              credit: to_string(p.amount),
+              balance_due: nil,
+              sale_id: inv.sale_id
+            }
+          end)
+
+        base ++ pays
+      end)
+
+    sale_entries =
+      Enum.map(sales, fn s ->
+        khata =
+          (s.payments || [])
+          |> Enum.filter(&(&1.method in ["khata", "credit"]))
+          |> Enum.reduce(Decimal.new(0), &Decimal.add(&2, &1.amount))
+
+        %{
+          id: s.id,
+          kind: "sale",
+          date: DateTime.to_date(s.inserted_at),
+          reference: s.invoice_number,
+          description: if(Decimal.compare(khata, 0) == :gt, do: "POS khata sale", else: "POS sale"),
+          debit: to_string(s.total_amount),
+          credit: "0",
+          balance_due: nil,
+          sale_id: s.id
+        }
+      end)
+
+    (inv_entries ++ sale_entries)
+    |> Enum.uniq_by(&{&1.kind, &1.id})
+    |> Enum.sort_by(& &1.date, {:desc, Date})
   end
 end

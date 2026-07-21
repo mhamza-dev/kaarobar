@@ -52,7 +52,7 @@ defmodule KaarobarWeb.V1.SaleController do
   end
 
   defp serialize_sale(sale) do
-    sale = Kaarobar.Repo.preload(sale, [:items, :payments])
+    sale = Kaarobar.Repo.preload(sale, [:items, :payments, :customer])
 
     %{
       id: sale.id,
@@ -65,9 +65,13 @@ defmodule KaarobarWeb.V1.SaleController do
       total_amount: to_string(sale.total_amount),
       branch_id: sale.branch_id,
       till_id: sale.till_id,
+      customer_id: sale.customer_id,
+      customer_name: sale.customer && sale.customer.name,
+      ar_invoice_id: sale.ar_invoice_id,
       fbr_invoice_no: sale.fbr_invoice_no,
       fbr_qr_payload: sale.fbr_qr_payload,
       fbr_reported_at: sale.fbr_reported_at,
+      inserted_at: sale.inserted_at,
       items:
         Enum.map(sale.items || [], fn i ->
           %{

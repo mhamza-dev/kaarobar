@@ -24,6 +24,8 @@ defmodule KaarobarWeb.V1.BranchController do
         conn |> put_status(:forbidden) |> json(%{error: "forbidden_role"})
 
       not Billing.within_limits?(Tenancy.owner_id_for_business(business_id) || user.id, :branch) ->
+        owner_id = Tenancy.owner_id_for_business(business_id) || user.id
+        _ = Billing.notify_plan_limit(owner_id, :branch)
         conn |> put_status(:payment_required) |> json(%{error: "plan_limit_reached"})
 
       true ->

@@ -26,6 +26,16 @@ type Product = {
 
 type CartLine = { product: Product; quantity: number; unit_price: number };
 
+type Customer = { id: string; name: string; khata_enabled?: boolean };
+
+type Receipt = {
+  invoice_number: string;
+  total_amount: string;
+  customer_name?: string | null;
+  items: { name: string; quantity: string; line_total: string }[];
+  payments: { method: string; amount: string }[];
+};
+
 type Till = {
   id: string;
   status: string;
@@ -52,6 +62,10 @@ export default function PosScreen() {
   const [payCash, setPayCash] = useState("");
   const [payCard, setPayCard] = useState("");
   const [payWallet, setPayWallet] = useState("");
+  const [payKhata, setPayKhata] = useState("");
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customerId, setCustomerId] = useState("");
+  const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [discountInput, setDiscountInput] = useState("");
   const [taxInput, setTaxInput] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -80,8 +94,12 @@ export default function PosScreen() {
       }
       setLocal(s);
       try {
-        const res = await api<{ data: Product[] }>("/products");
-        setProducts(res.data || []);
+        const [prod, cust] = await Promise.all([
+          api<{ data: Product[] }>("/products"),
+          api<{ data: Customer[] }>("/customers").catch(() => ({ data: [] as Customer[] })),
+        ]);
+        setProducts(prod.data || []);
+        setCustomers(cust.data || []);
         await loadTill();
       } catch (err) {
         setMessage(err instanceof Error ? err.message : "Failed to load");
@@ -121,6 +139,7 @@ export default function PosScreen() {
     setPayCash(money(total));
     setPayCard("");
     setPayWallet("");
+    setPayKhata("");
   }, [total]);
 
   function addProduct(product: Product) {
@@ -204,23 +223,30 @@ export default function PosScreen() {
     const cash = Number(payCash || 0);
     const card = Number(payCard || 0);
     const wallet = Number(payWallet || 0);
+    const khata = Number(payKhata || 0);
     if (cash > 0) payments.push({ method: "cash", amount: round2(cash) });
     if (card > 0) payments.push({ method: "card", amount: round2(card) });
     if (wallet > 0) payments.push({ method: "wallet", amount: round2(wallet) });
+    if (khata > 0) payments.push({ method: "khata", amount: round2(khata) });
     const paySum = round2(payments.reduce((s, p) => s + p.amount, 0));
     if (payments.length === 0 || Math.abs(paySum - total) > 0.001) {
       setMessage(`Payments must total ${money(total)} (got ${money(paySum)})`);
       return;
     }
+    if (khata > 0 && !customerId) {
+      setMessage("Select a customer for khata");
+      return;
+    }
     setBusy(true);
     setMessage(null);
     try {
-      const res = await api<{ data: { invoice_number: string } }>("/sales", {
+      const res = await api<{ data: Receipt }>("/sales", {
         method: "POST",
         body: JSON.stringify({
           branch_id: session.branch_id,
           client_txn_id: uuid(),
           till_id: till?.id,
+          customer_id: customerId || undefined,
           items: cart.map((l) => ({
             product_id: l.product.id,
             quantity: l.quantity,
@@ -231,6 +257,7 @@ export default function PosScreen() {
         }),
       });
       setCart([]);
+      setReceipt(res.data);
       setMessage(`Sale ${res.data.invoice_number}`);
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Checkout failed");
@@ -392,12 +419,31 @@ export default function PosScreen() {
           <Text style={styles.total}>{t("common.total")} Rs {money(total)}</Text>
         </View>
 
+        <Text style={styles.payLabel}>Customer</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            {customers.slice(0, 12).map((c) => (
+              <Pressable
+                key={c.id}
+                style={[styles.chip, customerId === c.id && styles.chipOn]}
+                onPress={() => setCustomerId(customerId === c.id ? "" : c.id)}
+              >
+                <Text style={[styles.chipText, customerId === c.id && styles.chipTextOn]}>
+                  {c.name}
+                  {c.khata_enabled ? " ·K" : ""}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </ScrollView>
+
         <Text style={styles.payLabel}>Payment</Text>
         {(
           [
             ["Cash", payCash, setPayCash],
             ["Card", payCard, setPayCard],
             ["Wallet", payWallet, setPayWallet],
+            ["Khata", payKhata, setPayKhata],
           ] as const
         ).map(([label, value, setter]) => (
           <View key={label} style={styles.row}>
@@ -427,6 +473,30 @@ export default function PosScreen() {
       onScan={lookupBarcode}
       title="Scan to cart"
     />
+    {receipt ? (
+      <View style={styles.receiptOverlay}>
+        <View style={styles.receiptCard}>
+          <Text style={styles.title}>Invoice {receipt.invoice_number}</Text>
+          {receipt.customer_name ? (
+            <Text style={styles.body}>Customer: {receipt.customer_name}</Text>
+          ) : null}
+          {receipt.items.map((item, i) => (
+            <Text key={`${item.name}-${i}`} style={styles.body}>
+              {item.name} × {item.quantity} · {item.line_total}
+            </Text>
+          ))}
+          <Text style={styles.total}>Total Rs {receipt.total_amount}</Text>
+          {receipt.payments.map((p, i) => (
+            <Text key={`${p.method}-${i}`} style={styles.body}>
+              {p.method}: {p.amount}
+            </Text>
+          ))}
+          <Pressable style={styles.btn} onPress={() => setReceipt(null)}>
+            <Text style={styles.btnText}>Close</Text>
+          </Pressable>
+        </View>
+      </View>
+    ) : null}
     </>
   );
 }
@@ -570,5 +640,29 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: colors.muted,
     textTransform: "uppercase",
+  },
+  chip: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: colors.card,
+  },
+  chipOn: { backgroundColor: colors.brand, borderColor: colors.brand },
+  chipText: { color: colors.heading, fontWeight: "600", fontSize: 12 },
+  chipTextOn: { color: colors.white },
+  receiptOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+  },
+  receiptCard: {
+    width: "100%",
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    padding: 16,
   },
 });

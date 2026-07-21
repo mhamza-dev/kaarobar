@@ -27,6 +27,7 @@ defmodule KaarobarWeb.V1.BusinessController do
           conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(changeset.errors)})
       end
     else
+      _ = Billing.notify_plan_limit(user.id, :business)
       conn |> put_status(:payment_required) |> json(%{error: "plan_limit_reached"})
     end
   end

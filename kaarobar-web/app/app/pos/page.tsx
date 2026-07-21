@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Banknote,
+  BookUser,
   CreditCard,
   Minus,
   Plus,
@@ -13,6 +14,7 @@ import {
 import { api, getSession } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
 import { StatusBadge, fieldClass } from "@/components/app/ui";
+import SaleReceiptModal, { type ReceiptSale } from "@/components/app/SaleReceiptModal";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 
@@ -59,7 +61,14 @@ type Till = {
   over_short?: string | null;
 };
 
-type PayMethod = "cash" | "card" | "wallet";
+type PayMethod = "cash" | "card" | "wallet" | "khata";
+
+type Customer = {
+  id: string;
+  name: string;
+  phone?: string | null;
+  khata_enabled?: boolean;
+};
 
 function money(n: number) {
   return n.toFixed(2);
@@ -91,8 +100,16 @@ export default function PosPage() {
   const [payCash, setPayCash] = useState("");
   const [payCard, setPayCard] = useState("");
   const [payWallet, setPayWallet] = useState("");
+  const [payKhata, setPayKhata] = useState("");
   const [payFocus, setPayFocus] = useState<PayMethod>("cash");
   const [lastInvoice, setLastInvoice] = useState<string | null>(null);
+  const [receipt, setReceipt] = useState<ReceiptSale | null>(null);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customerId, setCustomerId] = useState("");
+  const [customerQuery, setCustomerQuery] = useState("");
+  const [newCustomerName, setNewCustomerName] = useState("");
+  const [newCustomerPhone, setNewCustomerPhone] = useState("");
+  const [showNewCustomer, setShowNewCustomer] = useState(false);
   const [pendingProduct, setPendingProduct] = useState<Product | null>(null);
   const [pickedVariant, setPickedVariant] = useState("");
   const [pickedModifiers, setPickedModifiers] = useState<string[]>([]);
@@ -112,9 +129,24 @@ export default function PosPage() {
     api<{ data: Product[] }>("/products")
       .then((res) => setProducts(res.data || []))
       .catch((err) => toast.error(err.message));
+    api<{ data: Customer[] }>("/customers")
+      .then((res) => setCustomers(res.data || []))
+      .catch(() => setCustomers([]));
     loadTill();
-  }, [loadTill]);
+  }, [loadTill, toast]);
 
+  const selectedCustomer = customers.find((c) => c.id === customerId) || null;
+  const filteredCustomers = useMemo(() => {
+    const q = customerQuery.trim().toLowerCase();
+    if (!q) return customers.slice(0, 8);
+    return customers
+      .filter(
+        (c) =>
+          c.name.toLowerCase().includes(q) ||
+          (c.phone || "").toLowerCase().includes(q)
+      )
+      .slice(0, 8);
+  }, [customers, customerQuery]);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return products;
@@ -235,24 +267,16 @@ export default function PosPage() {
     setPayCash(money(total));
     setPayCard("");
     setPayWallet("");
+    setPayKhata("");
     setPayFocus("cash");
   }, [total]);
 
   function setPayMethod(method: PayMethod) {
     setPayFocus(method);
-    if (method === "cash") {
-      setPayCash(money(total));
-      setPayCard("");
-      setPayWallet("");
-    } else if (method === "card") {
-      setPayCash("");
-      setPayCard(money(total));
-      setPayWallet("");
-    } else {
-      setPayCash("");
-      setPayCard("");
-      setPayWallet(money(total));
-    }
+    setPayCash(method === "cash" ? money(total) : "");
+    setPayCard(method === "card" ? money(total) : "");
+    setPayWallet(method === "wallet" ? money(total) : "");
+    setPayKhata(method === "khata" ? money(total) : "");
   }
 
   function buildPayments() {
@@ -260,12 +284,55 @@ export default function PosPage() {
     const cash = Number(payCash || 0);
     const card = Number(payCard || 0);
     const wallet = Number(payWallet || 0);
+    const khata = Number(payKhata || 0);
     if (cash > 0) parts.push({ method: "cash", amount: round2(cash) });
     if (card > 0) parts.push({ method: "card", amount: round2(card) });
     if (wallet > 0) parts.push({ method: "wallet", amount: round2(wallet) });
+    if (khata > 0) parts.push({ method: "khata", amount: round2(khata) });
     return parts;
   }
 
+  async function createCustomerQuick() {
+    if (!newCustomerName.trim()) {
+      toast.warning("Customer name required");
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await api<{ data: Customer }>("/customers", {
+        method: "POST",
+        body: JSON.stringify({
+          name: newCustomerName.trim(),
+          phone: newCustomerPhone.trim() || undefined,
+          khata_enabled: true,
+        }),
+      });
+      setCustomers((prev) => [...prev, res.data].sort((a, b) => a.name.localeCompare(b.name)));
+      setCustomerId(res.data.id);
+      setShowNewCustomer(false);
+      setNewCustomerName("");
+      setNewCustomerPhone("");
+      toast.success("Customer created · khata started");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function enableKhata() {
+    if (!customerId) return;
+    try {
+      const res = await api<{ data: Customer }>(`/customers/${customerId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ khata_enabled: true }),
+      });
+      setCustomers((prev) => prev.map((c) => (c.id === res.data.id ? res.data : c)));
+      toast.success("Khata enabled for customer");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
+    }
+  }
   async function openTill() {
     const session = getSession();
     if (!session?.branch_id) {
@@ -325,17 +392,27 @@ export default function PosPage() {
       toast.warning(`${t("common.total")}: ${money(total)} / ${money(paySum)}`);
       return;
     }
+    const khataAmt = payments.find((p) => p.method === "khata")?.amount || 0;
+    if (khataAmt > 0) {
+      if (!customerId) {
+        toast.warning("Select a customer for khata");
+        return;
+      }
+      if (!selectedCustomer?.khata_enabled) {
+        toast.warning("Enable khata for this customer first");
+        return;
+      }
+    }
     setBusy(true);
     try {
       const client_txn_id = crypto.randomUUID();
-      const res = await api<{
-        data: { invoice_number: string; id: string };
-      }>("/sales", {
+      const res = await api<{ data: ReceiptSale }>("/sales", {
         method: "POST",
         body: JSON.stringify({
           branch_id: session.branch_id,
           client_txn_id,
           till_id: till?.id,
+          customer_id: customerId || undefined,
           items: cart.map((l) => ({
             product_id: l.product.id,
             quantity: l.quantity,
@@ -349,6 +426,7 @@ export default function PosPage() {
       });
       setCart([]);
       setLastInvoice(res.data.invoice_number);
+      setReceipt(res.data);
       toast.success(`${t("pos.saleComplete")} · ${res.data.invoice_number}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("pos.checkoutFailed"));
@@ -598,12 +676,90 @@ export default function PosPage() {
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-3 gap-2">
+          <div className="mt-3 space-y-2 border-t border-border pt-3">
+            <label className="block text-xs font-semibold text-heading">
+              Customer / khata
+              <input
+                className={`${fieldClass} mt-1`}
+                placeholder="Search customer…"
+                value={customerQuery}
+                onChange={(e) => setCustomerQuery(e.target.value)}
+              />
+            </label>
+            <div className="flex flex-wrap gap-1">
+              {filteredCustomers.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setCustomerId(c.id)}
+                  className={`rounded-md border px-2 py-1 text-xs ${
+                    customerId === c.id
+                      ? "border-brand bg-brand-light text-brand"
+                      : "border-border text-body"
+                  }`}
+                >
+                  {c.name}
+                  {c.khata_enabled ? " · khata" : ""}
+                </button>
+              ))}
+            </div>
+            {selectedCustomer ? (
+              <div className="flex flex-wrap items-center gap-2 text-xs text-body">
+                <span>
+                  Attached: <strong className="text-heading">{selectedCustomer.name}</strong>
+                </span>
+                {!selectedCustomer.khata_enabled ? (
+                  <Button size="sm" variant="secondary" onClick={() => void enableKhata()}>
+                    Start khata
+                  </Button>
+                ) : null}
+                <button
+                  type="button"
+                  className="text-muted underline"
+                  onClick={() => setCustomerId("")}
+                >
+                  Clear
+                </button>
+              </div>
+            ) : null}
+            {showNewCustomer ? (
+              <div className="space-y-2 rounded-md border border-border p-2">
+                <input
+                  className={fieldClass}
+                  placeholder="Name"
+                  value={newCustomerName}
+                  onChange={(e) => setNewCustomerName(e.target.value)}
+                />
+                <input
+                  className={fieldClass}
+                  placeholder="Phone"
+                  value={newCustomerPhone}
+                  onChange={(e) => setNewCustomerPhone(e.target.value)}
+                />
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => void createCustomerQuick()} disabled={busy}>
+                    Create + start khata
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={() => setShowNewCustomer(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button size="sm" variant="secondary" onClick={() => setShowNewCustomer(true)}>
+                <BookUser className="mr-1 h-3.5 w-3.5" />
+                New customer
+              </Button>
+            )}
+          </div>
+
+          <div className="mt-4 grid grid-cols-4 gap-2">
             {(
               [
                 ["cash", "Cash", Banknote, payCash, setPayCash],
                 ["card", "Card", CreditCard, payCard, setPayCard],
                 ["wallet", "Wallet", Wallet, payWallet, setPayWallet],
+                ["khata", "Khata", BookUser, payKhata, setPayKhata],
               ] as const
             ).map(([method, label, Icon, value, setter]) => (
               <button
@@ -717,6 +873,8 @@ export default function PosPage() {
           </div>
         </div>
       ) : null}
+
+      <SaleReceiptModal sale={receipt} onClose={() => setReceipt(null)} />
     </div>
   );
 }

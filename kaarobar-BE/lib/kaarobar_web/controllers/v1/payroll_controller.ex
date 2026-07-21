@@ -86,12 +86,13 @@ defmodule KaarobarWeb.V1.PayrollController do
 
   def serialize_payslip(slip, run) do
     payroll_run = loaded_assoc(slip.payroll_run) || run
+    employee = loaded_assoc(Map.get(slip, :employee))
 
     %{
       id: slip.id,
       employee_id: slip.employee_id,
-      employee_name: slip.employee && slip.employee.name,
-      employee_code: slip.employee && slip.employee.employee_code,
+      employee_name: employee && employee.name,
+      employee_code: employee && employee.employee_code,
       gross_pay: to_string(slip.gross_pay || 0),
       net_pay: to_string(slip.net_pay || 0),
       deductions: slip.deductions || %{},

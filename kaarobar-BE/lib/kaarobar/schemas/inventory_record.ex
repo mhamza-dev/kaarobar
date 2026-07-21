@@ -8,6 +8,7 @@ defmodule Kaarobar.Schemas.InventoryRecord do
   schema "inventory_records" do
     field :quantity_on_hand, :decimal
     field :avg_cost, :decimal
+    field :low_stock_notified_at, :utc_datetime
 
     belongs_to :branch, Kaarobar.Schemas.Branch
     belongs_to :product, Kaarobar.Schemas.Product
@@ -19,7 +20,15 @@ defmodule Kaarobar.Schemas.InventoryRecord do
 
   def changeset(record, attrs) do
     record
-    |> cast(attrs, [:quantity_on_hand, :avg_cost, :branch_id, :product_id, :owner_id, :business_id])
+    |> cast(attrs, [
+      :quantity_on_hand,
+      :avg_cost,
+      :low_stock_notified_at,
+      :branch_id,
+      :product_id,
+      :owner_id,
+      :business_id
+    ])
     |> validate_required([:branch_id, :product_id, :owner_id, :business_id])
     |> foreign_key_constraint(:branch_id)
     |> foreign_key_constraint(:product_id)

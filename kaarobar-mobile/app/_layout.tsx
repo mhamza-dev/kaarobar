@@ -25,6 +25,8 @@ export default function RootLayout() {
         <Stack.Screen name="returns" options={{ title: t("nav.returns") }} />
         <Stack.Screen name="inventory" options={{ title: t("nav.inventory") }} />
         <Stack.Screen name="ess" options={{ title: t("nav.ess") }} />
+        <Stack.Screen name="leave" options={{ title: "Leave approvals" }} />
+        <Stack.Screen name="notifications" options={{ title: t("nav.notifications") }} />
         <Stack.Screen name="profile" options={{ title: t("nav.profile") }} />
       </Stack>
     </ToastProvider>

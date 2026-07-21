@@ -25,6 +25,7 @@ import TenantSwitcher from "@/components/app/TenantSwitcher";
 import LanguageSwitcher from "@/components/app/LanguageSwitcher";
 import Button from "@/components/ui/Button";
 import { useI18n } from "@/lib/i18n";
+import { useUnreadNotifications } from "@/lib/hooks/useUnreadNotifications";
 
 const icons = {
   layout: LayoutDashboard,
@@ -43,6 +44,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { t, setLocale } = useI18n();
+  const { unread } = useUnreadNotifications();
   const [session, setSessionState] = useState<StoredSession | null>(null);
   const [booting, setBooting] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -252,10 +254,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
             <Link
               href={routes.notifications}
-              className="shrink-0 rounded-md p-2 text-rail-muted transition hover:bg-rail-hover hover:text-heading"
+              className="relative shrink-0 rounded-md p-2 text-rail-muted transition hover:bg-rail-hover hover:text-heading"
               aria-label={t("nav.notifications")}
             >
               <Bell className="h-4 w-4" strokeWidth={2} />
+              {unread > 0 ? (
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-white">
+                  {unread > 99 ? "99+" : unread}
+                </span>
+              ) : null}
             </Link>
             <Link
               href={routes.profile}

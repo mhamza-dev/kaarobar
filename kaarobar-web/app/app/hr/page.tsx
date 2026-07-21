@@ -15,6 +15,7 @@ import {
 } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
+import { canAccessBundle } from "@/lib/rbac";
 
 type Tab = "employees" | "attendance" | "leave" | "payroll";
 type ModalKind = "employee" | "invite" | "payroll" | null;
@@ -78,6 +79,9 @@ type PayrollRun = {
 export default function HrPage() {
   const t = useT();
   const toast = useToast();
+  const session = getSession();
+  const canLeaveApprove = canAccessBundle(session, "leave_approve");
+  const canPayrollApprove = canAccessBundle(session, "payroll_approve");
   const [tab, setTab] = useState<Tab>("employees");
   const [modal, setModal] = useState<ModalKind>(null);
   const [editingEmployeeId, setEditingEmployeeId] = useState<string | null>(null);
@@ -102,20 +106,28 @@ export default function HrPage() {
 
   const load = useCallback(async () => {
     try {
-      const [e, a, l, p] = await Promise.all([
+      const requests: Promise<unknown>[] = [
         api<{ data: Employee[] }>("/employees"),
         api<{ data: Attendance[] }>("/attendance"),
-        api<{ data: Leave[] }>("/leave"),
         api<{ data: PayrollRun[] }>("/payroll"),
-      ]);
-      setEmployees(e.data || []);
-      setAttendance(a.data || []);
-      setLeave(l.data || []);
-      setPayroll(p.data || []);
+      ];
+      if (canLeaveApprove) {
+        requests.splice(2, 0, api<{ data: Leave[] }>("/leave"));
+      }
+      const results = await Promise.all(requests);
+      setEmployees((results[0] as { data: Employee[] }).data || []);
+      setAttendance((results[1] as { data: Attendance[] }).data || []);
+      if (canLeaveApprove) {
+        setLeave((results[2] as { data: Leave[] }).data || []);
+        setPayroll((results[3] as { data: PayrollRun[] }).data || []);
+      } else {
+        setLeave([]);
+        setPayroll((results[2] as { data: PayrollRun[] }).data || []);
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.loadFailed"));
     }
-  }, [t, toast]);
+  }, [canLeaveApprove, t, toast]);
 
   useEffect(() => {
     load();
@@ -407,7 +419,7 @@ export default function HrPage() {
                     {l.reason ? ` · ${l.reason}` : ""}
                   </div>
                 </div>
-                {l.status === "Pending" ? (
+                {l.status === "Pending" && canLeaveApprove ? (
                   <div className="flex gap-2">
                     <Button size="sm" onClick={() => decideLeave(l.id, "approve")}>
                       Approve
@@ -428,7 +440,7 @@ export default function HrPage() {
       ) : null}
 
       {tab === "payroll" ? (
-        <div className="space-y-4">
+        <div className="max-h-[min(80vh,42rem)] space-y-4 overflow-y-auto">
           {payroll.map((run) => (
             <SurfaceCard key={run.id} className="space-y-3 p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -451,7 +463,7 @@ export default function HrPage() {
                       Submit
                     </Button>
                   ) : null}
-                  {run.status === "PendingApproval" ? (
+                  {run.status === "PendingApproval" && canPayrollApprove ? (
                     <>
                       <Button size="sm" onClick={() => payrollAction(run.id, "approve")}>
                         Approve & post

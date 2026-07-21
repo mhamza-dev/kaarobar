@@ -2,36 +2,35 @@
 
 Electron POS terminal for Kaarobar SRS **KRB-SRS-001**.
 
-## Purpose (SRS §2.3 / §8.1 / §10)
-
-Primary actor: **Cashier / POS Operator**. Also usable by Branch Managers for till reconciliation and returns.
-
-| Capability | Status |
-|------------|--------|
-| Auth + business/branch select | Done |
-| Online checkout + tills + split pay | Done |
-| Returns, till history, inventory procurement | Done |
-| Offline SQLite / JSON outbox | Done (JSON outbox + `/sync/*`) |
-| Peripherals (ESC/POS, scanner, drawer) | Deferred |
-
-## Screens
-
-- **Dashboard** — KPIs + business/branch selectors
-- **POS** — products, till open/close, qty ±, split tender, invoice number
-- **Returns** — sale lookup, refund method, approve/reject, till history
-- **Inventory** — on-hand, products, suppliers, PO/GRN, transfers, adjustments
+The renderer is a **Vite + React + TypeScript + Tailwind** app that reuses the same UI components and page layouts as `kaarobar-web` for visual/UX parity. Electron `main` / `preload` keep offline IPC (`window.kaarobarPos`).
 
 ## Setup
 
 ```bash
 npm install
-npm start
+npm run dev    # Vite + Electron (hot reload)
+npm start      # production build then Electron
 ```
 
-API base URL is set in `src/renderer/app.js` (`http://localhost:4000/api/v1`).
+API base URL: `VITE_API_URL` (default `http://localhost:4000/api/v1`).
 
 Demo login after seed: `owner@kaarobar.local` / `Password@123`
 
+## Screens (match Web)
+
+- Dashboard, POS, Returns, Inventory, Accounting, HR, Reports
+- Notifications, Settings (Subscriptions / Integrations / Roles), Profile
+- Staff tools (ESS): clock / leave / payslips
+
+## Architecture
+
+| Layer | Path |
+|-------|------|
+| Electron main + IPC | `src/main.js`, `src/preload.js` |
+| React renderer (source) | `renderer/` |
+| Production UI build | `dist/` (loaded by Electron) |
+| Legacy vanilla UI (retired) | `src/renderer-legacy/` |
+
 ## Theme
 
-Deep Sapphire (`#1d4ed8` / sidebar `#0b1220`) aligned with web and mobile.
+Deep Sapphire design tokens from Web `globals.css` (`#1d4ed8` / rail `#0d1524`).

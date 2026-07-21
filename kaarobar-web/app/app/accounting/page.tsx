@@ -9,9 +9,17 @@ import { EmptyState, Field, PageHeader, TabBar, fieldClass } from "@/components/
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 
-type Tab = "coa" | "journals" | "tb" | "pl" | "bs" | "gl" | "ar" | "ap";
+type Tab = "coa" | "journals" | "tb" | "pl" | "bs" | "gl" | "ar" | "ap" | "customers";
 
 type Account = { id: string; code: string; name: string; type: string };
+type Customer = {
+  id: string;
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  khata_enabled?: boolean;
+  balance?: string;
+};
 type Journal = {
   id: string;
   date: string;
@@ -70,6 +78,12 @@ export default function AccountingPage() {
   const [glAccountId, setGlAccountId] = useState("");
   const [arAging, setArAging] = useState<AgingRow[]>([]);
   const [apAging, setApAging] = useState<AgingRow[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [ledgerCustomer, setLedgerCustomer] = useState<Customer | null>(null);
+  const [ledgerEntries, setLedgerEntries] = useState<
+    { kind: string; date: string; reference: string; description: string; debit: string; credit: string }[]
+  >([]);
+  const [customerForm, setCustomerForm] = useState({ name: "", phone: "", khata_enabled: true });
   const [jeModal, setJeModal] = useState(false);
   const [accountModal, setAccountModal] = useState(false);
   const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
@@ -170,8 +184,65 @@ export default function AccountingPage() {
     if (tab === "bs") loadBs();
     if (tab === "gl") loadGl();
     if (tab === "ar" || tab === "ap") loadAging();
+    if (tab === "customers") void loadCustomers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, from, to, glAccountId]);
+
+  async function loadCustomers() {
+    try {
+      const res = await api<{ data: Customer[] }>("/customers");
+      setCustomers(res.data || []);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("common.loadFailed"));
+    }
+  }
+
+  async function createCustomer(e: React.FormEvent) {
+    e.preventDefault();
+    if (!customerForm.name.trim()) return;
+    setBusy(true);
+    try {
+      await api("/customers", {
+        method: "POST",
+        body: JSON.stringify(customerForm),
+      });
+      setCustomerForm({ name: "", phone: "", khata_enabled: true });
+      toast.success("Customer created");
+      await loadCustomers();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function openLedger(c: Customer) {
+    try {
+      const res = await api<{
+        data: {
+          customer: Customer;
+          balance: string;
+          entries: typeof ledgerEntries;
+        };
+      }>(`/customers/${c.id}/ledger`);
+      setLedgerCustomer({ ...res.data.customer, balance: res.data.balance });
+      setLedgerEntries(res.data.entries || []);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
+    }
+  }
+
+  async function toggleKhata(c: Customer) {
+    try {
+      await api(`/customers/${c.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ khata_enabled: !c.khata_enabled }),
+      });
+      await loadCustomers();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
+    }
+  }
 
   async function createJournal(e: React.FormEvent) {
     e.preventDefault();
@@ -255,6 +326,7 @@ export default function AccountingPage() {
     { id: "coa", label: "Chart of accounts" },
     { id: "ar", label: "AR aging" },
     { id: "ap", label: "AP aging" },
+    { id: "customers", label: "Customers / khata" },
   ];
 
   return (
@@ -369,7 +441,7 @@ export default function AccountingPage() {
               body="Post a manual journal or wait for POS/inventory postings."
             />
           ) : null}
-          <div className="space-y-3">
+          <div className="max-h-[min(80vh,42rem)] space-y-3 overflow-y-auto">
             {journals.map((j) => (
               <div key={j.id} className="rounded-md border border-border bg-card p-4 text-sm">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -463,6 +535,101 @@ export default function AccountingPage() {
             r.bucket,
           ])}
         />
+      ) : null}
+
+      {tab === "customers" ? (
+        <div className="space-y-4">
+          <form
+            onSubmit={createCustomer}
+            className="grid gap-3 rounded-md border border-border p-4 sm:grid-cols-4"
+          >
+            <input
+              className={fieldClass}
+              placeholder="Name"
+              value={customerForm.name}
+              onChange={(e) => setCustomerForm({ ...customerForm, name: e.target.value })}
+              required
+            />
+            <input
+              className={fieldClass}
+              placeholder="Phone"
+              value={customerForm.phone}
+              onChange={(e) => setCustomerForm({ ...customerForm, phone: e.target.value })}
+            />
+            <label className="flex items-center gap-2 text-sm text-heading">
+              <input
+                type="checkbox"
+                checked={customerForm.khata_enabled}
+                onChange={(e) =>
+                  setCustomerForm({ ...customerForm, khata_enabled: e.target.checked })
+                }
+              />
+              Start khata
+            </label>
+            <Button type="submit" disabled={busy}>
+              Add customer
+            </Button>
+          </form>
+
+          <DataTable
+            maxHeight="22rem"
+            searchable
+            searchPlaceholder="Search customers…"
+            getSearchText={(c) => `${c.name} ${c.phone || ""}`}
+            columns={[
+              { id: "name", header: "Name", cell: (c) => c.name },
+              { id: "phone", header: "Phone", cell: (c) => c.phone || "—" },
+              {
+                id: "khata",
+                header: "Khata",
+                cell: (c) => (c.khata_enabled ? "On" : "Off"),
+              },
+              {
+                id: "actions",
+                header: "",
+                cell: (c) => (
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="secondary" onClick={() => void openLedger(c)}>
+                      Ledger
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => void toggleKhata(c)}>
+                      {c.khata_enabled ? "Disable" : "Enable"} khata
+                    </Button>
+                  </div>
+                ),
+              },
+            ]}
+            data={customers}
+            rowKey={(c) => c.id}
+            emptyTitle="No customers"
+            emptyBody="Create a customer to start a khata ledger."
+          />
+
+          {ledgerCustomer ? (
+            <div className="rounded-md border border-border p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-heading">{ledgerCustomer.name} · khata</h3>
+                  <p className="text-sm text-body">Balance due: Rs {ledgerCustomer.balance}</p>
+                </div>
+                <Button size="sm" variant="secondary" onClick={() => setLedgerCustomer(null)}>
+                  Close
+                </Button>
+              </div>
+              <StatementTable
+                headers={["Date", "Kind", "Ref", "Description", "Debit", "Credit"]}
+                rows={ledgerEntries.map((e) => [
+                  String(e.date),
+                  e.kind,
+                  e.reference,
+                  e.description,
+                  e.debit,
+                  e.credit,
+                ])}
+              />
+            </div>
+          ) : null}
+        </div>
       ) : null}
 
       <Modal

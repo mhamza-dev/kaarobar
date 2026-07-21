@@ -12,6 +12,7 @@ import {
 } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
+import { canAccessBundle } from "@/lib/rbac";
 
 type SaleItem = {
   product_id: string;
@@ -51,6 +52,7 @@ type Till = {
 export default function ReturnsPage() {
   const t = useT();
   const toast = useToast();
+  const canApprove = canAccessBundle(getSession(), "pos_approve");
   const [saleId, setSaleId] = useState("");
   const [sale, setSale] = useState<Sale | null>(null);
   const [qtyByProduct, setQtyByProduct] = useState<Record<string, string>>({});
@@ -261,17 +263,23 @@ export default function ReturnsPage() {
                   <div className="text-body">{r.reason || "No reason"}</div>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" disabled={busy} onClick={() => approve(r.id)}>
-                    Approve
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={busy}
-                    onClick={() => reject(r.id)}
-                  >
-                    Reject
-                  </Button>
+                  {canApprove ? (
+                    <>
+                      <Button size="sm" disabled={busy} onClick={() => approve(r.id)}>
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={busy}
+                        onClick={() => reject(r.id)}
+                      >
+                        Reject
+                      </Button>
+                    </>
+                  ) : (
+                    <span className="text-xs text-muted">Awaiting owner/admin</span>
+                  )}
                 </div>
               </li>
             ))}

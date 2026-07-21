@@ -14,6 +14,7 @@ import { setLocale, t, type Locale } from "../lib/i18n";
 export default function LoginScreen() {
   const [email, setEmail] = useState("owner@kaarobar.local");
   const [password, setPassword] = useState("Password@123");
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -34,7 +35,11 @@ export default function LoginScreen() {
         "/auth/login",
         {
           method: "POST",
-          body: JSON.stringify({ email: email.trim(), password }),
+          body: JSON.stringify({
+            email: email.trim(),
+            password,
+            remember_me: rememberMe,
+          }),
         },
         null
       );
@@ -81,6 +86,16 @@ export default function LoginScreen() {
         placeholder="••••••••"
         placeholderTextColor={colors.muted}
       />
+
+      <Pressable
+        style={styles.rememberRow}
+        onPress={() => setRememberMe((v) => !v)}
+      >
+        <View style={[styles.checkbox, rememberMe && styles.checkboxOn]}>
+          {rememberMe ? <Text style={styles.checkboxMark}>✓</Text> : null}
+        </View>
+        <Text style={styles.rememberLabel}>Remember me</Text>
+      </Pressable>
 
       <Pressable style={styles.primary} onPress={onSubmit} disabled={busy}>
         {busy ? (
@@ -130,6 +145,29 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   primaryText: { color: colors.white, fontWeight: "700", fontSize: 16 },
+  rememberRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 8,
+    marginTop: 2,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkboxOn: {
+    backgroundColor: colors.brand,
+    borderColor: colors.brand,
+  },
+  checkboxMark: { color: colors.white, fontSize: 14, fontWeight: "700" },
+  rememberLabel: { color: colors.heading, fontWeight: "600" },
   link: { marginTop: 18, textAlign: "center", color: colors.brand, fontWeight: "600" },
   linkMuted: { marginTop: 10, textAlign: "center", color: colors.muted },
 });

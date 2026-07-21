@@ -20,6 +20,7 @@ export type StoredSession = {
     business_name?: string | null;
     branch_name?: string | null;
   }[];
+  role_settings?: Record<string, Record<string, boolean>>;
 };
 
 const SESSION_KEY = "kaarobar_session";
@@ -94,12 +95,28 @@ export async function hydrateSessionContext(
     user: StoredSession["user"];
     memberships: NonNullable<StoredSession["memberships"]>;
   }>("/auth/me", {}, session);
-  const merged: StoredSession = {
+  let merged: StoredSession = {
     ...session,
     user: me.user,
     memberships: me.memberships || [],
   };
-  return bootstrapTenantSession(merged);
+  merged = await bootstrapTenantSession(merged);
+
+  if (merged.business_id) {
+    try {
+      const roleSettings = await api<{ data: { roles: Record<string, Record<string, boolean>> } }>(
+        `/businesses/${merged.business_id}/role-settings`,
+        {},
+        merged
+      );
+      merged = { ...merged, role_settings: roleSettings.data?.roles || {} };
+      setSession(merged);
+    } catch {
+      // Non-owner users may not have access to role-settings endpoint.
+    }
+  }
+
+  return merged;
 }
 
 export async function api<T>(

@@ -6,7 +6,7 @@ defmodule Kaarobar.Tenancy do
   import Ecto.Query
 
   alias Kaarobar.{Audit, Roles, Repo}
-  alias Kaarobar.Schemas.{Business, Branch, Membership, User}
+  alias Kaarobar.Schemas.{Business, Branch, BusinessRoleSetting, Membership, User}
   alias Kaarobar.Accounting
 
   ## —— Businesses (TEN-FR-001 / 009) ————————————————————————————————
@@ -233,15 +233,17 @@ defmodule Kaarobar.Tenancy do
   def create_membership(actor, attrs) do
     business_id = attrs[:business_id] || attrs["business_id"]
     roles = attrs[:roles] || attrs["roles"] || []
+    normalized_roles = normalize_roles(roles)
 
     with {:ok, business} <- fetch_owned_business(business_id, actor.id),
          true <- Kaarobar.Billing.within_limits?(business.owner_id, :user) || {:error, :plan_limit_reached},
-         :ok <- Roles.validate_roles(List.wrap(roles)),
+         :ok <- Roles.validate_roles(List.wrap(normalized_roles)),
          {:ok, membership} <-
            %Membership{}
            |> Membership.changeset(
              Map.merge(normalize_attrs(attrs), %{
                owner_id: business.owner_id,
+               roles: normalized_roles,
                status: attrs[:status] || attrs["status"] || "active"
              })
            )
@@ -268,9 +270,16 @@ defmodule Kaarobar.Tenancy do
     with %Membership{} = membership <- Repo.get(Membership, membership_id),
          {:ok, _} <- fetch_owned_business(membership.business_id, actor.id),
          roles = attrs[:roles] || attrs["roles"],
-         :ok <- if(roles, do: Roles.validate_roles(List.wrap(roles)), else: :ok),
+         normalized_roles = if(roles, do: normalize_roles(List.wrap(roles)), else: nil),
+         :ok <- if(normalized_roles, do: Roles.validate_roles(normalized_roles), else: :ok),
          {:ok, updated} <-
-           membership |> Membership.changeset(normalize_attrs(attrs)) |> Repo.update(),
+           membership
+           |> Membership.changeset(
+             attrs
+             |> normalize_attrs()
+             |> maybe_put_roles(normalized_roles)
+           )
+           |> Repo.update(),
          {:ok, _} <-
            Audit.log(%{
              owner_id: membership.owner_id,
@@ -391,6 +400,131 @@ defmodule Kaarobar.Tenancy do
     end
   end
 
+  def user_has_bundle_access?(user, business_id, branch_id, bundle) when is_atom(bundle) do
+    cond do
+      is_nil(user) or is_nil(business_id) ->
+        false
+
+      # Staff tools are never for business owners (even if they also hold staff roles).
+      user_is_owner?(user, business_id) and bundle == :employee_self ->
+        false
+
+      # Owners get full back-office access for all other bundles.
+      user_is_owner?(user, business_id) ->
+        true
+
+      true ->
+        overrides = get_role_bundle_overrides(business_id)
+        memberships = get_membership(user.id, business_id, branch_id)
+
+        memberships
+        |> Enum.flat_map(&(&1.roles || []))
+        |> Enum.map(&Roles.normalize_role/1)
+        |> Enum.uniq()
+        |> Enum.any?(fn role -> Roles.bundle_allowed?(bundle, role, overrides) end)
+    end
+  end
+
+  def user_has_bundle_access?(_, _, _, _), do: false
+
+  def get_role_bundle_overrides(business_id) do
+    BusinessRoleSetting
+    |> where([s], s.business_id == ^business_id)
+    |> Repo.all()
+    |> Enum.reduce(%{}, fn s, acc ->
+      put_in(acc, [s.role, s.bundle], s.allowed)
+    end)
+  end
+
+  def list_role_settings(business_id, actor) do
+    cond do
+      is_nil(actor) or is_nil(business_id) ->
+        {:error, :not_found}
+
+      user_is_owner?(actor, business_id) or user_can_access_business?(actor, business_id) ->
+        {:ok, role_settings_matrix(business_id)}
+
+      true ->
+        {:error, :forbidden}
+    end
+  end
+
+  defp role_settings_matrix(business_id) do
+    overrides = get_role_bundle_overrides(business_id)
+
+    for role <- Roles.all(), into: %{} do
+      role_key = to_string_key(role)
+
+      bundles =
+        for bundle <- Roles.bundles(), into: %{} do
+          key = to_string_key(bundle)
+          default = Roles.bundle_allowed?(bundle, role_key, %{})
+          override = get_in(overrides, [role_key, key])
+          {key, if(is_boolean(override), do: override, else: default)}
+        end
+
+      {role_key, bundles}
+    end
+  end
+
+  def update_role_settings(business_id, actor, payload) when is_map(payload) do
+    with {:ok, business} <- fetch_owned_business(business_id, actor.id) do
+      Ecto.Multi.new()
+      |> Ecto.Multi.delete_all(
+        :clear_existing,
+        from(s in BusinessRoleSetting, where: s.business_id == ^business_id)
+      )
+      |> Ecto.Multi.run(:insert_settings, fn repo, _ ->
+        rows =
+          payload
+          |> Enum.flat_map(fn {role, bundles} ->
+            normalized_role = Roles.normalize_role(role)
+
+            if Roles.valid?(normalized_role) and is_map(bundles) do
+              bundles
+              |> Enum.filter(fn {bundle, allowed} ->
+                bundle in Enum.map(Roles.bundles(), &Atom.to_string/1) and is_boolean(allowed)
+              end)
+              |> Enum.map(fn {bundle, allowed} ->
+                %{
+                  id: Ecto.UUID.generate(),
+                  business_id: business_id,
+                  owner_id: business.owner_id,
+                  role: normalized_role,
+                  bundle: bundle,
+                  allowed: allowed,
+                  inserted_at: DateTime.utc_now() |> DateTime.truncate(:second),
+                  updated_at: DateTime.utc_now() |> DateTime.truncate(:second)
+                }
+              end)
+            else
+              []
+            end
+          end)
+
+        case rows do
+          [] -> {:ok, 0}
+          _ -> repo.insert_all(BusinessRoleSetting, rows)
+        end
+      end)
+      |> Ecto.Multi.run(:audit, fn _repo, _ ->
+        Audit.log(%{
+          owner_id: business.owner_id,
+          user_id: actor.id,
+          action: "rbac.role_settings_update",
+          entity_type: "business",
+          entity_id: business_id,
+          metadata: %{roles_updated: Map.keys(payload)}
+        })
+      end)
+      |> Repo.transaction()
+      |> case do
+        {:ok, _} -> list_role_settings(business_id, actor)
+        {:error, _step, reason, _} -> {:error, reason}
+      end
+    end
+  end
+
   def user_is_owner?(user, business_id) do
     case get_business_by_id(business_id) do
       %Business{owner_id: owner_id} -> owner_id == user.id
@@ -427,7 +561,7 @@ defmodule Kaarobar.Tenancy do
       user_is_owner?(actor, business_id) ->
         {:ok, get_business_by_id(business_id)}
 
-      user_has_any_role?(actor, business_id, nil, ["owner", "branch_manager"]) ->
+      user_has_any_role?(actor, business_id, nil, ["owner", "admin", "branch_manager"]) ->
         {:ok, get_business_by_id(business_id)}
 
       true ->
@@ -442,7 +576,7 @@ defmodule Kaarobar.Tenancy do
 
       branch ->
         if user_is_owner?(actor, branch.business_id) or
-             user_has_any_role?(actor, branch.business_id, branch.id, ["owner", "branch_manager"]) do
+             user_has_any_role?(actor, branch.business_id, branch.id, ["owner", "admin", "branch_manager"]) do
           {:ok, branch}
         else
           {:error, :forbidden}
@@ -507,4 +641,12 @@ defmodule Kaarobar.Tenancy do
         {k, v}
     end)
   end
+
+  defp normalize_roles(roles), do: Enum.map(roles, &Roles.normalize_role/1)
+  defp maybe_put_roles(attrs, nil), do: attrs
+  defp maybe_put_roles(attrs, roles), do: Map.put(attrs, :roles, roles)
+
+  defp to_string_key(value) when is_atom(value), do: Atom.to_string(value)
+  defp to_string_key(value) when is_binary(value), do: value
+  defp to_string_key(value), do: to_string(value)
 end

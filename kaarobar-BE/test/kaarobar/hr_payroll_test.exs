@@ -66,18 +66,30 @@ defmodule Kaarobar.HrPayrollTest do
   end
 
   test "HR-FR-002 clock in/out", %{emp: emp, business: business, owner: owner, branch: branch} do
-    assert {:ok, rec} =
-             Hr.clock_in(%{
-               employee_id: emp.id,
-               business_id: business.id,
-               owner_id: owner.id,
-               branch_id: branch.id,
-               source: "mobile"
-             })
+    attrs = %{
+      employee_id: emp.id,
+      business_id: business.id,
+      owner_id: owner.id,
+      branch_id: branch.id,
+      source: "mobile"
+    }
 
+    assert {:ok, rec} = Hr.clock_in(attrs)
     assert rec.clock_in
+
+    # Second clock-in same day is idempotent (returns open record).
+    assert {:ok, same} = Hr.clock_in(attrs)
+    assert same.id == rec.id
+    assert is_nil(same.clock_out)
+
     assert {:ok, out} = Hr.clock_out(rec.id, owner.id)
     assert out.clock_out
+
+    # After clock-out, clock-in again reopens the same day row.
+    assert {:ok, reopened} = Hr.clock_in(attrs)
+    assert reopened.id == rec.id
+    assert reopened.clock_in
+    assert is_nil(reopened.clock_out)
 
     rows = Hr.list_attendance(business.id, owner.id, employee_id: emp.id)
     assert length(rows) == 1

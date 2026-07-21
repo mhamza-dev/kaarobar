@@ -81,9 +81,9 @@ export const appNav = [
   { titleKey: "nav.accounting", href: "/app/accounting", groupKey: "nav.backOffice", icon: "accounting", bundle: "accounting" },
   { titleKey: "nav.hr", href: "/app/hr", groupKey: "nav.backOffice", icon: "hr", bundle: "hr" },
   { titleKey: "nav.reports", href: "/app/reports", groupKey: "nav.backOffice", icon: "reports", bundle: "reports" },
-  { titleKey: "nav.notifications", href: "/app/notifications", groupKey: "nav.system", icon: "bell", bundle: "any_staff" },
+  { titleKey: "nav.notifications", href: "/app/notifications", groupKey: "nav.system", icon: "bell", bundle: "notifications" },
   { titleKey: "nav.profile", href: "/app/profile", groupKey: "nav.system", icon: "profile", bundle: "any_staff" },
-  { titleKey: "nav.settings", href: "/app/settings", groupKey: "nav.system", icon: "settings", bundle: "owner_manage" },
+  { titleKey: "nav.settings", href: "/app/settings", groupKey: "nav.system", icon: "settings", bundle: "any_staff" },
 ] as const;
 
 export const appNavGroups = [

@@ -126,15 +126,19 @@ defmodule Kaarobar.PlatformIntegrationsTest do
   end
 
   test "NOT-FR enqueue delivers via mailer in test", %{owner: owner} do
-    assert {:ok, n} =
+    assert {:ok, created} =
              Notifications.enqueue_email(owner.id, owner.id, "leave_request", %{leave_id: "x"},
                body: "Leave filed"
              )
 
-    assert n.status == "pending"
-    assert %{success: 1} = Oban.drain_queue(queue: :notifications)
+    email = Enum.find(created, &(&1.channel == "email"))
+    assert email
+    assert email.status == "pending"
 
-    updated = Repo.get!(Kaarobar.Schemas.Notification, n.id)
+    drained = Oban.drain_queue(queue: :notifications)
+    assert drained.success >= 1
+
+    updated = Repo.get!(Kaarobar.Schemas.Notification, email.id)
     assert updated.status == "sent"
   end
 

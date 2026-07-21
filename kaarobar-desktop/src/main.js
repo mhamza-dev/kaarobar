@@ -3,6 +3,7 @@ const path = require("path");
 const fs = require("fs");
 
 const API_URL = process.env.KAAROBAR_API_URL || "http://localhost:4000/api/v1";
+const DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
 
 function outboxPath() {
   return path.join(app.getPath("userData"), "sales-outbox.json");
@@ -39,7 +40,12 @@ function createWindow() {
     },
   });
 
-  win.loadFile(path.join(__dirname, "renderer", "index.html"));
+  if (DEV_SERVER_URL) {
+    win.loadURL(DEV_SERVER_URL);
+    win.webContents.openDevTools({ mode: "detach" });
+  } else {
+    win.loadFile(path.join(__dirname, "..", "dist", "index.html"));
+  }
 }
 
 app.whenReady().then(() => {

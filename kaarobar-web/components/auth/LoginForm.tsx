@@ -55,7 +55,11 @@ const LoginForm = (): React.ReactElement => {
         };
       }>("/auth/login", {
         method: "POST",
-        body: JSON.stringify({ email: values.email, password: values.password }),
+        body: JSON.stringify({
+          email: values.email,
+          password: values.password,
+          remember_me: Boolean(values.remember),
+        }),
       }, null);
 
       const base = {

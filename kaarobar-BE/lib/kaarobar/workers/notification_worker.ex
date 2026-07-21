@@ -15,6 +15,11 @@ defmodule Kaarobar.Workers.NotificationWorker do
             Kaarobar.Notifications.mark_sent(id)
             :ok
 
+          {:error, :unsupported_channel} ->
+            Logger.info("Notification #{id} unsupported channel=#{notification.channel}")
+            Kaarobar.Notifications.mark_failed(id)
+            :ok
+
           {:error, reason} ->
             Logger.warning("Notification #{id} failed: #{inspect(reason)}")
             Kaarobar.Notifications.mark_failed(id)

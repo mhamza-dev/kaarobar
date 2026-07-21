@@ -37,6 +37,7 @@ export default function DashboardScreen() {
   const [dash, setDash] = useState<Dashboard | null>(null);
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [unread, setUnread] = useState(0);
 
   async function hydrate(s: Session) {
     const bizRes = await api<{ data: Business[] }>("/businesses", {}, s);
@@ -64,11 +65,26 @@ export default function DashboardScreen() {
     await setSession(next);
     setLocal(next);
 
-    try {
-      const res = await api<{ data: Dashboard }>("/reports/dashboard", {}, next);
-      setDash(res.data);
-    } catch {
+    if (canAccess(next, "reports")) {
+      try {
+        const res = await api<{ data: Dashboard }>("/reports/dashboard", {}, next);
+        setDash(res.data);
+      } catch {
+        setDash(null);
+      }
+    } else {
       setDash(null);
+    }
+
+    try {
+      const countRes = await api<{ data: { unread: number } }>(
+        "/notifications/unread-count",
+        {},
+        next
+      );
+      setUnread(countRes.data?.unread ?? 0);
+    } catch {
+      setUnread(0);
     }
   }
 
@@ -108,12 +124,20 @@ export default function DashboardScreen() {
         const withBranch = { ...next, branch_id: br.data[0].id };
         await setSession(withBranch);
         setLocal(withBranch);
-        const res = await api<{ data: Dashboard }>(
-          "/reports/dashboard",
-          {},
-          withBranch
-        );
-        setDash(res.data);
+        if (canAccess(withBranch, "reports")) {
+          try {
+            const res = await api<{ data: Dashboard }>(
+              "/reports/dashboard",
+              {},
+              withBranch
+            );
+            setDash(res.data);
+          } catch {
+            setDash(null);
+          }
+        } else {
+          setDash(null);
+        }
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.error"));
@@ -125,11 +149,31 @@ export default function DashboardScreen() {
     const next = { ...session, branch_id };
     await setSession(next);
     setLocal(next);
+    if (!canAccess(next, "reports")) {
+      setDash(null);
+    } else {
+      try {
+        const res = await api<{ data: Dashboard }>("/reports/dashboard", {}, next);
+        setDash(res.data);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : t("common.error");
+        if (message === "forbidden_role") {
+          setDash(null);
+        } else {
+          toast.error(message);
+        }
+      }
+    }
+
     try {
-      const res = await api<{ data: Dashboard }>("/reports/dashboard", {}, next);
-      setDash(res.data);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("common.error"));
+      const countRes = await api<{ data: { unread: number } }>(
+        "/notifications/unread-count",
+        {},
+        next
+      );
+      setUnread(countRes.data?.unread ?? 0);
+    } catch {
+      setUnread(0);
     }
   }
 
@@ -145,11 +189,25 @@ export default function DashboardScreen() {
     { href: "/pos", title: t("nav.pos"), subtitle: t("pages.posTitle") },
     { href: "/returns", title: t("nav.returns"), subtitle: t("pages.returnsTitle") },
     { href: "/inventory", title: t("nav.inventory"), subtitle: t("pages.inventoryTitle") },
+    {
+      href: "/leave",
+      title: "Leave approvals",
+      subtitle: "Approve or reject staff leave",
+    },
+    {
+      href: "/notifications",
+      title: t("nav.notifications"),
+      subtitle:
+        unread > 0
+          ? `${unread} unread`
+          : t("pages.notificationsDesc"),
+    },
     { href: "/ess", title: t("nav.ess"), subtitle: t("nav.ess") },
     { href: "/profile", title: t("nav.profile"), subtitle: t("profile.description") },
   ].filter((item) => {
     if (item.href === "/pos" || item.href === "/returns") return canAccess(session, "pos");
     if (item.href === "/inventory") return canAccess(session, "inventory");
+    if (item.href === "/leave") return canAccess(session, "leave_approve");
     if (item.href === "/ess") return canAccess(session, "employee_self");
     return true;
   });

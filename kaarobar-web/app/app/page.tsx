@@ -35,13 +35,17 @@ export default function AppDashboardPage() {
   const load = useCallback(async () => {
     const current = getSession();
     if (!current?.business_id) return;
+    if (!canAccessBundle(current, "reports")) {
+      setDashboard(null);
+      return;
+    }
 
     try {
       const dash = await api<{ data: Dashboard }>("/reports/dashboard");
       setDashboard(dash.data);
     } catch (err) {
       const message = err instanceof Error ? err.message : t("dashboard.loadFailed");
-      if (message === "business_required") return;
+      if (message === "business_required" || message === "forbidden_role") return;
       toast.error(message);
     }
   }, [t, toast]);

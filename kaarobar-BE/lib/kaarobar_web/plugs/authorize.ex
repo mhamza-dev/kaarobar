@@ -1,24 +1,18 @@
 defmodule KaarobarWeb.Plugs.Authorize do
   @moduledoc """
   Enforces role bundles at the API layer (TEN-FR-003 / SEC-NFR-002).
-  Owners of the business always pass.
+  Business owners pass most bundles; `:employee_self` (staff tools) is excluded.
   """
   import Plug.Conn
 
-  alias Kaarobar.{Roles, Tenancy}
+  alias Kaarobar.Tenancy
 
   def init(opts) do
-    roles =
-      cond do
-        bundle = Keyword.get(opts, :bundle) -> Roles.bundle(bundle)
-        roles = Keyword.get(opts, :roles) -> roles
-        true -> Roles.bundle(:any_staff)
-      end
-
-    %{roles: roles, require_business: Keyword.get(opts, :require_business, true)}
+    bundle = Keyword.get(opts, :bundle, :any_staff)
+    %{bundle: bundle, require_business: Keyword.get(opts, :require_business, true)}
   end
 
-  def call(conn, %{roles: roles, require_business: require_business}) do
+  def call(conn, %{bundle: bundle, require_business: require_business}) do
     user = conn.assigns[:current_user] || Guardian.Plug.current_resource(conn)
     business_id = conn.assigns[:business_id]
     branch_id = conn.assigns[:branch_id]
@@ -33,7 +27,7 @@ defmodule KaarobarWeb.Plugs.Authorize do
       is_nil(business_id) ->
         conn
 
-      Tenancy.user_has_any_role?(user, business_id, branch_id, roles) ->
+      Tenancy.user_has_bundle_access?(user, business_id, branch_id, bundle) ->
         conn
 
       true ->

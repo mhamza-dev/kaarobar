@@ -26,8 +26,16 @@ defmodule KaarobarWeb.Router do
     plug KaarobarWeb.Plugs.Authorize, bundle: :accounting
   end
 
+  pipeline :customer_roles do
+    plug KaarobarWeb.Plugs.Authorize, bundle: :customers
+  end
+
   pipeline :hr_roles do
     plug KaarobarWeb.Plugs.Authorize, bundle: :hr
+  end
+
+  pipeline :leave_approve_roles do
+    plug KaarobarWeb.Plugs.Authorize, bundle: :leave_approve
   end
 
   pipeline :payroll_approve_roles do
@@ -74,6 +82,8 @@ defmodule KaarobarWeb.Router do
 
     get "/businesses/:business_id/memberships", MembershipController, :index
     post "/businesses/:business_id/memberships", MembershipController, :create
+    get "/businesses/:business_id/role-settings", RoleSettingsController, :show
+    put "/businesses/:business_id/role-settings", RoleSettingsController, :update
     patch "/memberships/:id", MembershipController, :update
     post "/memberships/:id/deactivate", MembershipController, :deactivate
 
@@ -81,7 +91,13 @@ defmodule KaarobarWeb.Router do
 
     get "/billing/subscription", BillingController, :show
     get "/notifications", NotificationController, :index
+    get "/notifications/unread-count", NotificationController, :unread_count
+    post "/notifications/read-all", NotificationController, :mark_all_read
     post "/notifications/:id/read", NotificationController, :mark_read
+    get "/notification-preferences", NotificationController, :get_preferences
+    put "/notification-preferences", NotificationController, :update_preferences
+    post "/device-tokens", NotificationController, :register_device
+    delete "/device-tokens/:id", NotificationController, :revoke_device
   end
 
   scope "/api/v1", KaarobarWeb.V1 do
@@ -164,8 +180,6 @@ defmodule KaarobarWeb.Router do
     post "/journals", JournalController, :create
     post "/journals/:id/reverse", JournalController, :reverse
 
-    get "/customers", ArApController, :list_customers
-    post "/customers", ArApController, :create_customer
     get "/ar/invoices", ArApController, :list_ar
     post "/ar/invoices", ArApController, :create_ar
     post "/ar/invoices/:id/pay", ArApController, :pay_ar
@@ -174,6 +188,16 @@ defmodule KaarobarWeb.Router do
     post "/ap/bills", ArApController, :create_ap
     post "/ap/bills/:id/pay", ArApController, :pay_ap
     get "/ap/aging", ArApController, :ap_aging
+  end
+
+  scope "/api/v1", KaarobarWeb.V1 do
+    pipe_through [:api, :authenticated, :customer_roles]
+
+    get "/customers", ArApController, :list_customers
+    post "/customers", ArApController, :create_customer
+    get "/customers/:id", ArApController, :show_customer
+    patch "/customers/:id", ArApController, :update_customer
+    get "/customers/:id/ledger", ArApController, :customer_ledger
   end
 
   scope "/api/v1", KaarobarWeb.V1 do
@@ -199,15 +223,20 @@ defmodule KaarobarWeb.Router do
     patch "/employees/:id", EmployeeController, :update
 
     get "/attendance", AttendanceController, :index
-    get "/leave", LeaveController, :index
-    post "/leave/:id/approve", LeaveController, :approve
-    post "/leave/:id/reject", LeaveController, :reject
 
     get "/payroll", PayrollController, :index
     get "/payroll/:id", PayrollController, :show
     post "/payroll", PayrollController, :create
     post "/payroll/:id/submit", PayrollController, :submit
     post "/payroll/:id/reject", PayrollController, :reject
+  end
+
+  scope "/api/v1", KaarobarWeb.V1 do
+    pipe_through [:api, :authenticated, :leave_approve_roles]
+
+    get "/leave", LeaveController, :index
+    post "/leave/:id/approve", LeaveController, :approve
+    post "/leave/:id/reject", LeaveController, :reject
   end
 
   scope "/api/v1", KaarobarWeb.V1 do

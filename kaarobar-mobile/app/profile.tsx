@@ -12,11 +12,20 @@ import {
 import { api, colors, getSession, setSession } from "../lib/api";
 import { getLocale, loadLocale, setLocale, t, type Locale } from "../lib/i18n";
 import { useToast } from "../components/Toast";
+import { registerForPushNotifications } from "../lib/push";
+
+type NotificationPrefs = {
+  email: boolean;
+  in_app: boolean;
+  push: boolean;
+  muted_types: string[];
+};
 
 export default function ProfileScreen() {
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const [tick, setTick] = useState(0);
+  const [prefs, setPrefs] = useState<NotificationPrefs | null>(null);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -53,12 +62,40 @@ export default function ProfileScreen() {
           password: "",
         });
         await setLocale(locale);
+        try {
+          const prefRes = await api<{ data: NotificationPrefs }>("/notification-preferences");
+          setPrefs(prefRes.data);
+        } catch {
+          setPrefs(null);
+        }
         refresh();
       } catch (err) {
         toast.error(err instanceof Error ? err.message : t("profile.loadError"));
       }
     })();
   }, [refresh]);
+
+  async function savePrefs(next: NotificationPrefs) {
+    setPrefs(next);
+    try {
+      const res = await api<{ data: NotificationPrefs }>("/notification-preferences", {
+        method: "PUT",
+        body: JSON.stringify(next),
+      });
+      setPrefs(res.data);
+      if (next.push) {
+        await registerForPushNotifications().catch(() => null);
+      }
+      toast.success("Notification preferences saved");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
+    }
+  }
+
+  function togglePref(key: keyof Pick<NotificationPrefs, "email" | "in_app" | "push">) {
+    if (!prefs) return;
+    void savePrefs({ ...prefs, [key]: !prefs[key] });
+  }
 
   async function onSave() {
     setBusy(true);
@@ -169,6 +206,36 @@ export default function ProfileScreen() {
             <Text style={styles.btnText}>{t("profile.save")}</Text>
           )}
         </Pressable>
+
+        <Text style={[styles.label, { marginTop: 28 }]}>{t("nav.notifications")}</Text>
+        <Text style={styles.hint}>
+          Choose how you receive leave, payroll, and billing alerts.
+        </Text>
+        {prefs ? (
+          <View style={{ marginTop: 8, gap: 8 }}>
+            {(
+              [
+                ["email", "Email"],
+                ["in_app", "In-app inbox"],
+                ["push", "Push"],
+              ] as const
+            ).map(([key, label]) => (
+              <Pressable
+                key={key}
+                style={[styles.chip, prefs[key] && styles.chipOn]}
+                onPress={() => togglePref(key)}
+              >
+                <Text style={[styles.chipText, prefs[key] && styles.chipTextOn]}>
+                  {prefs[key] ? "On · " : "Off · "}
+                  {label}
+                </Text>
+              </Pressable>
+            ))}
+            <Text style={styles.hint}>
+              Push notifications show when the app is closed or in the background.
+            </Text>
+          </View>
+        ) : null}
 
         <Text style={styles.meta}>
           {t("common.language")}: {locale === "ur" ? t("common.urdu") : t("common.english")}

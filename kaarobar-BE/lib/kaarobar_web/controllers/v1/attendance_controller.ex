@@ -48,8 +48,16 @@ defmodule KaarobarWeb.V1.AttendanceController do
       }
 
       case Hr.clock_in(attrs) do
-        {:ok, rec} -> conn |> put_status(:created) |> json(%{data: serialize(rec)})
-        {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+        {:ok, rec} ->
+          json(conn, %{data: serialize(Hr.preload_attendance(rec))})
+
+        {:error, %Ecto.Changeset{} = changeset} ->
+          conn
+          |> put_status(:unprocessable_entity)
+          |> json(%{error: format_changeset_error(changeset)})
+
+        {:error, reason} ->
+          conn |> put_status(:unprocessable_entity) |> json(%{error: to_string(reason)})
       end
     end
   end
@@ -59,8 +67,8 @@ defmodule KaarobarWeb.V1.AttendanceController do
     owner_id = conn.assigns[:owner_id] || user.id
 
     case Hr.clock_out(id, owner_id) do
-      {:ok, rec} -> json(conn, %{data: serialize(rec)})
-      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+      {:ok, rec} -> json(conn, %{data: serialize(Hr.preload_attendance(rec))})
+      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: to_string(reason)})
     end
   end
 
@@ -68,13 +76,31 @@ defmodule KaarobarWeb.V1.AttendanceController do
     %{
       id: rec.id,
       employee_id: rec.employee_id,
-      employee_name: rec.employee && rec.employee.name,
+      employee_name: employee_name(rec),
       branch_id: rec.branch_id,
       date: rec.date,
       clock_in: rec.clock_in,
       clock_out: rec.clock_out,
       source: rec.source
     }
+  end
+
+  defp employee_name(%{employee: %{name: name}}), do: name
+  defp employee_name(_), do: nil
+
+  defp format_changeset_error(%Ecto.Changeset{} = changeset) do
+    cond do
+      Keyword.has_key?(changeset.errors, :employee_id) ->
+        case Keyword.get(changeset.errors, :employee_id) do
+          {"has already been taken", _} -> "already_clocked_in_today"
+          _ -> "invalid_attendance"
+        end
+
+      true ->
+        changeset
+        |> Ecto.Changeset.traverse_errors(fn {msg, _opts} -> msg end)
+        |> inspect()
+    end
   end
 
   defp maybe_kw(opts, _k, nil), do: opts
