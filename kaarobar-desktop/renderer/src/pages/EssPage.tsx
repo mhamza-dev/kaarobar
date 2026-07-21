@@ -29,6 +29,9 @@ type EssData = {
     gross_pay?: string;
     net_pay?: string;
     status?: string;
+    overtime_hours?: string;
+    earnings?: Record<string, string>;
+    deductions?: Record<string, string>;
   }[];
 };
 
@@ -272,6 +275,16 @@ export default function EssPage() {
                   <p className="text-body">
                     Gross {p.gross_pay} · Net {p.net_pay}
                   </p>
+                  <p className="text-body">
+                    Hours {p.earnings?.worked_hours || "0"} · OT{" "}
+                    {p.overtime_hours || p.earnings?.ot_hours || "0"} · Factor{" "}
+                    {p.earnings?.attendance_factor || "—"}
+                  </p>
+                  {p.deductions ? (
+                    <p className="text-body">
+                      Tax {p.deductions.income_tax || "0"} · EOBI {p.deductions.eobi || "0"}
+                    </p>
+                  ) : null}
                 </div>
                 <span className="text-body">{p.status || ""}</span>
               </div>

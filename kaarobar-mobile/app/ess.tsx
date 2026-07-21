@@ -32,6 +32,8 @@ type EssData = {
     net_pay: string;
     period_start?: string;
     period_end?: string;
+    overtime_hours?: string;
+    earnings?: Record<string, string>;
     deductions?: Record<string, string>;
   }[];
 };
@@ -262,6 +264,11 @@ export default function EssScreen() {
                 </Text>
                 <Text style={styles.cardBody}>
                   Gross {p.gross_pay} · Net {p.net_pay}
+                </Text>
+                <Text style={styles.row}>
+                  Hours {p.earnings?.worked_hours || "0"} · OT{" "}
+                  {p.overtime_hours || p.earnings?.ot_hours || "0"} · Factor{" "}
+                  {p.earnings?.attendance_factor || "—"}
                 </Text>
                 {p.deductions ? (
                   <Text style={styles.row}>

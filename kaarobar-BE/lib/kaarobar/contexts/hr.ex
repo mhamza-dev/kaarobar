@@ -109,12 +109,13 @@ defmodule Kaarobar.Hr do
           branch_id: normalized[:branch_id] || existing.branch_id
         })
         |> Ecto.Changeset.put_change(:clock_out, nil)
+        |> Ecto.Changeset.put_change(:hours_worked, nil)
         |> Repo.update()
 
       nil ->
         %AttendanceRecord{}
         |> AttendanceRecord.changeset(
-          Map.merge(normalized, %{clock_in: now, date: date})
+          Map.merge(normalized, %{clock_in: now, date: date, hours_worked: nil})
         )
         |> Repo.insert()
     end
@@ -137,13 +138,28 @@ defmodule Kaarobar.Hr do
 
       record ->
         now = DateTime.utc_now() |> DateTime.truncate(:second)
+        hours = compute_shift_hours(record.clock_in, now)
 
         record
-        |> AttendanceRecord.changeset(%{clock_out: now})
+        |> AttendanceRecord.changeset(%{clock_out: now, hours_worked: hours})
         |> Repo.update()
     end
   end
 
+  @doc """
+  Hours between two timestamps, rounded to 2 decimals. Nil/invalid → 0.
+  """
+  def compute_shift_hours(nil, _), do: Decimal.new(0)
+  def compute_shift_hours(_, nil), do: Decimal.new(0)
+
+  def compute_shift_hours(%DateTime{} = cin, %DateTime{} = cout) do
+    secs = DateTime.diff(cout, cin, :second)
+
+    Decimal.div(Decimal.new(max(secs, 0)), Decimal.new(3600))
+    |> Decimal.round(2)
+  end
+
+  def compute_shift_hours(_, _), do: Decimal.new(0)
   def list_attendance(business_id, owner_id, opts \\ []) do
     employee_id = Keyword.get(opts, :employee_id)
     from_date = Keyword.get(opts, :from)
@@ -342,7 +358,9 @@ defmodule Kaarobar.Hr do
   def submit_payroll(run_id, owner_id \\ nil) do
     with {:ok, run} <- fetch_run(run_id, owner_id),
          :ok <- require_status(run, ["Draft", "Rejected"]),
-         {:ok, updated} <- update_payroll_status(run, "PendingApproval", %{}) do
+         {:ok, _recalc} <- recalculate_payroll(run.id, owner_id),
+         {:ok, fresh} <- fetch_run(run.id, owner_id),
+         {:ok, updated} <- update_payroll_status(fresh, "PendingApproval", %{}) do
       Kaarobar.Notifications.notify_roles(
         updated.business_id,
         updated.owner_id,
@@ -354,6 +372,58 @@ defmodule Kaarobar.Hr do
       )
 
       {:ok, updated}
+    end
+  end
+
+  @doc """
+  Rebuild payslips for a Draft/Rejected run from latest attendance and leave.
+  """
+  def recalculate_payroll(run_id, owner_id \\ nil) do
+    with {:ok, run} <- fetch_run(run_id, owner_id),
+         :ok <- require_status(run, ["Draft", "Rejected"]) do
+      employees = list_employees(run.business_id, run.owner_id, status: "active")
+
+      Multi.new()
+      |> Multi.delete_all(
+        :clear_slips,
+        from(p in Payslip, where: p.payroll_run_id == ^run.id)
+      )
+      |> Multi.run(:payslips, fn _repo, _ ->
+        slips =
+          Enum.map(employees, fn emp ->
+            calc = calculate_payslip(emp, run.period_start, run.period_end)
+
+            %Payslip{}
+            |> Payslip.changeset(
+              Map.merge(calc, %{
+                payroll_run_id: run.id,
+                employee_id: emp.id
+              })
+            )
+            |> Repo.insert()
+          end)
+
+        if Enum.all?(slips, &match?({:ok, _}, &1)) do
+          {:ok, Enum.map(slips, fn {:ok, s} -> s end)}
+        else
+          {:error, :payslip_failed}
+        end
+      end)
+      |> Multi.run(:audit, fn _repo, _ ->
+        Audit.log(%{
+          owner_id: run.owner_id,
+          user_id: run.owner_id,
+          action: "payroll.recalculate",
+          entity_type: "payroll_run",
+          entity_id: run.id,
+          metadata: %{period_start: run.period_start, period_end: run.period_end}
+        })
+      end)
+      |> Repo.transaction()
+      |> case do
+        {:ok, _} -> {:ok, get_payroll_run!(run.id)}
+        {:error, _op, reason, _} -> {:error, reason}
+      end
     end
   end
 
@@ -444,58 +514,76 @@ defmodule Kaarobar.Hr do
   end
 
   @doc """
-  Gross = (basic + allowances) × attendance factor + overtime.
-  Attendance factor = (worked days + approved leave days) / period calendar days.
-  OT hours = sum of (clock hours − 8) for days over 8h.
+  Hours-based payroll for the period (Mon-Sat x 8h expected).
+
+  - Only completed shifts (clock_in + clock_out) count toward worked hours / OT.
+  - Approved leave credits 8h per overlapping calendar day.
+  - Zero clocks and zero leave -> zero base pay (no full-month fallback).
   """
   def calculate_payslip(%Employee{} = emp, period_start, period_end) do
-    period_days = max(Date.diff(period_end, period_start) + 1, 1)
     basic = to_dec(emp.basic_salary)
     allowances = sum_allowances(emp.allowances)
     salary = Decimal.add(basic, allowances)
 
-    {days_present, ot_hours} = attendance_summary(emp.id, period_start, period_end)
-    leave_days = approved_leave_days(emp.id, period_start, period_end)
+    expected_hours = expected_working_hours(period_start, period_end)
 
-    # If no attendance clocked yet in the period, treat as full-month salary (common for salaried staff).
-    # Once clocks exist, pay is prorated by present + approved leave days.
-    credited_days =
-      if Decimal.compare(days_present, 0) == :eq and Decimal.compare(leave_days, 0) == :eq do
-        Decimal.new(period_days)
-      else
-        Decimal.add(days_present, leave_days)
-        |> Decimal.min(Decimal.new(period_days))
-      end
+    {days_present, worked_hours, ot_hours} =
+      attendance_hours_summary(emp.id, period_start, period_end)
+
+    leave_days = approved_leave_days(emp.id, period_start, period_end)
+    leave_hours = Decimal.mult(leave_days, Decimal.new(8))
+
+    credited_hours =
+      Decimal.add(worked_hours, leave_hours)
+      |> Decimal.min(expected_hours)
 
     factor =
-      Decimal.div(credited_days, Decimal.new(period_days))
-      |> Decimal.min(Decimal.new(1))
+      if Decimal.compare(expected_hours, 0) == :eq do
+        Decimal.new(0)
+      else
+        Decimal.div(credited_hours, expected_hours)
+        |> Decimal.min(Decimal.new(1))
+      end
 
     base_pay = Decimal.mult(salary, factor) |> Decimal.round(2)
 
     hourly =
-      salary
-      |> Decimal.div(Decimal.new(period_days))
-      |> Decimal.div(Decimal.new(8))
+      if Decimal.compare(expected_hours, 0) == :eq do
+        Decimal.new(0)
+      else
+        Decimal.div(salary, expected_hours)
+      end
 
     ot_mult = to_dec(emp.overtime_rate || "1.5")
     overtime_pay = Decimal.mult(Decimal.mult(hourly, ot_hours), ot_mult) |> Decimal.round(2)
 
     gross = Decimal.add(base_pay, overtime_pay) |> Decimal.round(2)
-    deductions = PayrollDeductions.compute(gross, basic)
+
+    deductions =
+      if Decimal.compare(gross, 0) == :eq do
+        %{income_tax: Decimal.new("0.00"), eobi: Decimal.new("0.00"), total: Decimal.new("0.00")}
+      else
+        PayrollDeductions.compute(gross, basic)
+      end
+
     net = Decimal.sub(gross, deductions.total) |> Decimal.round(2)
 
     %{
       gross_pay: gross,
       net_pay: net,
-      days_worked: credited_days,
+      days_worked: days_present,
       overtime_hours: ot_hours,
       earnings: %{
         "basic" => to_string(basic),
         "allowances" => to_string(allowances),
+        "worked_hours" => to_string(worked_hours),
+        "leave_hours" => to_string(leave_hours),
+        "expected_hours" => to_string(expected_hours),
+        "credited_hours" => to_string(credited_hours),
         "attendance_factor" => to_string(factor),
         "base_pay" => to_string(base_pay),
-        "overtime_pay" => to_string(overtime_pay)
+        "overtime_pay" => to_string(overtime_pay),
+        "ot_hours" => to_string(ot_hours)
       },
       deductions: %{
         "income_tax" => to_string(deductions.income_tax),
@@ -504,37 +592,51 @@ defmodule Kaarobar.Hr do
     }
   end
 
-  defp attendance_summary(employee_id, from_date, to_date) do
+  @doc """
+  Count Mon-Sat days in [from, to] inclusive x 8 hours.
+  """
+  def expected_working_hours(from_date, to_date) do
+    days = count_working_days(from_date, to_date)
+    Decimal.mult(Decimal.new(days), Decimal.new(8))
+  end
+
+  def count_working_days(from_date, to_date) do
+    if Date.compare(from_date, to_date) == :gt do
+      0
+    else
+      from_date
+      |> Date.range(to_date)
+      |> Enum.count(fn d -> Date.day_of_week(d) != 7 end)
+    end
+  end
+
+  defp attendance_hours_summary(employee_id, from_date, to_date) do
     records =
       from(a in AttendanceRecord,
         where:
           a.employee_id == ^employee_id and a.date >= ^from_date and a.date <= ^to_date and
-            not is_nil(a.clock_in)
+            not is_nil(a.clock_in) and not is_nil(a.clock_out)
       )
       |> Repo.all()
 
     days = Decimal.new(length(records))
 
-    ot =
-      Enum.reduce(records, Decimal.new(0), fn rec, acc ->
-        hours = hours_worked(rec)
-        ot = Decimal.sub(hours, Decimal.new(8)) |> Decimal.max(Decimal.new(0))
-        Decimal.add(acc, ot)
+    {worked, ot} =
+      Enum.reduce(records, {Decimal.new(0), Decimal.new(0)}, fn rec, {w_acc, ot_acc} ->
+        hours =
+          cond do
+            match?(%Decimal{}, rec.hours_worked) ->
+              rec.hours_worked
+
+            true ->
+              compute_shift_hours(rec.clock_in, rec.clock_out)
+          end
+
+        day_ot = Decimal.sub(hours, Decimal.new(8)) |> Decimal.max(Decimal.new(0))
+        {Decimal.add(w_acc, hours), Decimal.add(ot_acc, day_ot)}
       end)
 
-    {days, Decimal.round(ot, 2)}
-  end
-
-  defp hours_worked(%{clock_in: nil}), do: Decimal.new(0)
-
-  defp hours_worked(%{clock_in: _cin, clock_out: nil}) do
-    # Open shift: count at least standard day if still open
-    Decimal.new(8)
-  end
-
-  defp hours_worked(%{clock_in: cin, clock_out: cout}) do
-    secs = DateTime.diff(cout, cin, :second)
-    Decimal.div(Decimal.new(max(secs, 0)), Decimal.new(3600)) |> Decimal.round(2)
+    {days, Decimal.round(worked, 2), Decimal.round(ot, 2)}
   end
 
   defp approved_leave_days(employee_id, from_date, to_date) do

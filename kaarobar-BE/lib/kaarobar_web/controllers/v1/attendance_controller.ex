@@ -81,10 +81,15 @@ defmodule KaarobarWeb.V1.AttendanceController do
       date: rec.date,
       clock_in: rec.clock_in,
       clock_out: rec.clock_out,
+      hours_worked:
+        case rec.hours_worked do
+          %Decimal{} = d -> Decimal.to_string(d)
+          nil -> "0"
+          v -> to_string(v)
+        end,
       source: rec.source
     }
   end
-
   defp employee_name(%{employee: %{name: name}}), do: name
   defp employee_name(_), do: nil
 

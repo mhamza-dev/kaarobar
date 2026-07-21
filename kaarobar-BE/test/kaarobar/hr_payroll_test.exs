@@ -84,12 +84,14 @@ defmodule Kaarobar.HrPayrollTest do
 
     assert {:ok, out} = Hr.clock_out(rec.id, owner.id)
     assert out.clock_out
+    assert match?(%Decimal{}, out.hours_worked)
 
     # After clock-out, clock-in again reopens the same day row.
     assert {:ok, reopened} = Hr.clock_in(attrs)
     assert reopened.id == rec.id
     assert reopened.clock_in
     assert is_nil(reopened.clock_out)
+    assert is_nil(reopened.hours_worked)
 
     rows = Hr.list_attendance(business.id, owner.id, employee_id: emp.id)
     assert length(rows) == 1
@@ -130,7 +132,7 @@ defmodule Kaarobar.HrPayrollTest do
   end
 
   test "HR-FR-008 tax slabs and eobi", %{} do
-    # Below first slab threshold → 0 tax, eobi floor
+    # Below first slab threshold -> 0 tax, eobi floor
     d = PayrollDeductions.compute(Decimal.new("40000"), Decimal.new("35000"))
     assert Decimal.eq?(d.income_tax, Decimal.new("0.00"))
     assert Decimal.compare(d.eobi, Decimal.new("100")) != :lt
@@ -140,16 +142,38 @@ defmodule Kaarobar.HrPayrollTest do
     assert Decimal.compare(d2.income_tax, Decimal.new("0")) == :gt
   end
 
-  test "HR-FR-006/009/010 payroll calc, approve, journal post", %{
+  test "hours-based payroll prorates from completed clocks", %{
     emp: emp,
     business: business,
     owner: owner,
     branch: branch
   } do
-    # Partial attendance day with OT (>8h)
-    cin = ~U[2026-07-01 03:00:00Z]
-    cout = ~U[2026-07-01 14:00:00Z]
+    # Wed 2026-07-01: 8h completed shift
+    {:ok, _} =
+      insert_attendance(emp, business, owner, branch, ~D[2026-07-01], ~U[2026-07-01 03:00:00Z], ~U[2026-07-01 11:00:00Z])
 
+    calc = Hr.calculate_payslip(emp, ~D[2026-07-01], ~D[2026-07-31])
+    expected = Hr.expected_working_hours(~D[2026-07-01], ~D[2026-07-31])
+    assert Decimal.eq?(Decimal.new(calc.earnings["expected_hours"]), expected)
+    assert Decimal.eq?(Decimal.new(calc.earnings["worked_hours"]), Decimal.new("8.00"))
+    assert Decimal.compare(calc.gross_pay, Decimal.new(0)) == :gt
+    assert Decimal.compare(calc.gross_pay, Decimal.new("55000")) == :lt
+  end
+
+  test "zero clocks and zero leave yields zero base pay", %{emp: emp} do
+    calc = Hr.calculate_payslip(emp, ~D[2026-06-01], ~D[2026-06-30])
+    assert Decimal.eq?(calc.gross_pay, Decimal.new("0.00"))
+    assert Decimal.eq?(calc.net_pay, Decimal.new("0.00"))
+    assert calc.earnings["worked_hours"] in ["0", "0.00"]
+    assert Decimal.eq?(Decimal.new(calc.earnings["attendance_factor"]), Decimal.new(0))
+  end
+
+  test "open shift ignored until clock-out", %{
+    emp: emp,
+    business: business,
+    owner: owner,
+    branch: branch
+  } do
     {:ok, _} =
       %Kaarobar.Schemas.AttendanceRecord{}
       |> Kaarobar.Schemas.AttendanceRecord.changeset(%{
@@ -157,12 +181,94 @@ defmodule Kaarobar.HrPayrollTest do
         business_id: business.id,
         owner_id: owner.id,
         branch_id: branch.id,
-        date: ~D[2026-07-01],
-        clock_in: cin,
-        clock_out: cout,
+        date: ~D[2026-07-02],
+        clock_in: ~U[2026-07-02 03:00:00Z],
+        clock_out: nil,
         source: "pos"
       })
       |> Repo.insert()
+
+    calc = Hr.calculate_payslip(emp, ~D[2026-07-01], ~D[2026-07-31])
+    assert Decimal.eq?(Decimal.new(calc.earnings["worked_hours"]), Decimal.new(0))
+    assert Decimal.eq?(calc.gross_pay, Decimal.new("0.00"))
+  end
+
+  test "OT after 8h completed shift", %{
+    emp: emp,
+    business: business,
+    owner: owner,
+    branch: branch
+  } do
+    # 11h shift => 3h OT
+    {:ok, _} =
+      insert_attendance(
+        emp,
+        business,
+        owner,
+        branch,
+        ~D[2026-07-01],
+        ~U[2026-07-01 03:00:00Z],
+        ~U[2026-07-01 14:00:00Z]
+      )
+
+    calc = Hr.calculate_payslip(emp, ~D[2026-07-01], ~D[2026-07-31])
+    assert Decimal.eq?(calc.overtime_hours, Decimal.new("3.00"))
+    assert Decimal.compare(Decimal.new(calc.earnings["overtime_pay"]), Decimal.new(0)) == :gt
+  end
+
+  test "Sunday not counted in expected hours" do
+    # 2026-07-05 is Sunday; week Mon-Sat Jul 6-11 has 6 working days
+    assert Hr.count_working_days(~D[2026-07-05], ~D[2026-07-05]) == 0
+    assert Hr.count_working_days(~D[2026-07-06], ~D[2026-07-11]) == 6
+    assert Decimal.eq?(Hr.expected_working_hours(~D[2026-07-06], ~D[2026-07-11]), Decimal.new(48))
+  end
+
+  test "recalculate updates draft after new attendance", %{
+    emp: emp,
+    business: business,
+    owner: owner,
+    branch: branch
+  } do
+    assert {:ok, run} =
+             Hr.create_payroll_run(business.id, owner.id, ~D[2026-07-01], ~D[2026-07-31])
+
+    slip0 = hd(run.payslips)
+    assert Decimal.eq?(slip0.gross_pay, Decimal.new("0.00"))
+
+    {:ok, _} =
+      insert_attendance(
+        emp,
+        business,
+        owner,
+        branch,
+        ~D[2026-07-01],
+        ~U[2026-07-01 03:00:00Z],
+        ~U[2026-07-01 11:00:00Z]
+      )
+
+    assert {:ok, updated} = Hr.recalculate_payroll(run.id, owner.id)
+    slip1 = hd(updated.payslips)
+    assert Decimal.compare(slip1.gross_pay, Decimal.new(0)) == :gt
+    assert Decimal.compare(slip1.gross_pay, slip0.gross_pay) == :gt
+  end
+
+  test "HR-FR-006/009/010 payroll calc, approve, journal post", %{
+    emp: emp,
+    business: business,
+    owner: owner,
+    branch: branch
+  } do
+    # Partial attendance day with OT (>8h)
+    {:ok, _} =
+      insert_attendance(
+        emp,
+        business,
+        owner,
+        branch,
+        ~D[2026-07-01],
+        ~U[2026-07-01 03:00:00Z],
+        ~U[2026-07-01 14:00:00Z]
+      )
 
     assert {:ok, run} =
              Hr.create_payroll_run(business.id, owner.id, ~D[2026-07-01], ~D[2026-07-31])
@@ -174,6 +280,8 @@ defmodule Kaarobar.HrPayrollTest do
     assert Map.has_key?(slip.deductions, "income_tax")
     assert Map.has_key?(slip.deductions, "eobi")
     assert Decimal.compare(slip.overtime_hours, Decimal.new(0)) == :gt
+    assert Map.has_key?(slip.earnings, "worked_hours")
+    assert Map.has_key?(slip.earnings, "attendance_factor")
 
     assert {:ok, submitted} = Hr.submit_payroll(run.id, owner.id)
     assert submitted.status == "PendingApproval"
@@ -220,5 +328,23 @@ defmodule Kaarobar.HrPayrollTest do
   } do
     {:ok, run} = Hr.create_payroll_run(business.id, owner.id, ~D[2026-06-01], ~D[2026-06-30])
     assert {:error, {:invalid_status, "Draft"}} = Hr.approve_payroll(run.id, owner.id, owner.id)
+  end
+
+  defp insert_attendance(emp, business, owner, branch, date, cin, cout) do
+    hours = Hr.compute_shift_hours(cin, cout)
+
+    %Kaarobar.Schemas.AttendanceRecord{}
+    |> Kaarobar.Schemas.AttendanceRecord.changeset(%{
+      employee_id: emp.id,
+      business_id: business.id,
+      owner_id: owner.id,
+      branch_id: branch.id,
+      date: date,
+      clock_in: cin,
+      clock_out: cout,
+      hours_worked: hours,
+      source: "pos"
+    })
+    |> Repo.insert()
   end
 end

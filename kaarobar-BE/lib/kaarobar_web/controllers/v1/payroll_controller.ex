@@ -47,6 +47,16 @@ defmodule KaarobarWeb.V1.PayrollController do
     end
   end
 
+  def recalculate(conn, %{"id" => id}) do
+    user = Guardian.Plug.current_resource(conn)
+    owner_id = conn.assigns[:owner_id] || user.id
+
+    case Hr.recalculate_payroll(id, owner_id) do
+      {:ok, run} -> json(conn, %{data: serialize_run(run)})
+      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+    end
+  end
+
   def approve(conn, %{"id" => id}) do
     user = Guardian.Plug.current_resource(conn)
     owner_id = conn.assigns[:owner_id] || user.id

@@ -228,6 +228,7 @@ defmodule KaarobarWeb.Router do
     get "/payroll/:id", PayrollController, :show
     post "/payroll", PayrollController, :create
     post "/payroll/:id/submit", PayrollController, :submit
+    post "/payroll/:id/recalculate", PayrollController, :recalculate
     post "/payroll/:id/reject", PayrollController, :reject
   end
 

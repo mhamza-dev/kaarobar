@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { api, getSession } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
@@ -63,6 +63,8 @@ type Payslip = {
   net_pay: string;
   days_worked?: string;
   overtime_hours?: string;
+  earnings?: Record<string, string>;
+  deductions?: Record<string, string>;
 };
 
 type PayrollRun = {
@@ -254,10 +256,12 @@ export default function HrPage() {
     }
   }
 
-  async function payrollAction(id: string, action: "submit" | "approve" | "reject") {
+  async function payrollAction(id: string, action: "submit" | "approve" | "reject" | "recalculate") {
     try {
       await api(`/payroll/${id}/${action}`, { method: "POST", body: "{}" });
-      toast.success(t("common.success"));
+      toast.success(
+        action === "recalculate" ? "Payroll recalculated from attendance" : t("common.success")
+      );
       await load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.error"));
@@ -439,6 +443,10 @@ export default function HrPage() {
 
       {tab === "payroll" ? (
         <div className="space-y-4">
+          <p className="text-sm text-body">
+            Pay is computed from clocked hours and approved leave (Mon–Sat × 8h). Incomplete shifts
+            do not count until clock-out.
+          </p>
           {payroll.map((run) => (
             <SurfaceCard key={run.id} className="space-y-3 p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -453,28 +461,37 @@ export default function HrPage() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {run.status === "Draft" || run.status === "Rejected" ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => payrollAction(run.id, "submit")}
-                    >
-                      Submit
-                    </Button>
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => payrollAction(run.id, "recalculate")}
+                      >
+                        Recalculate
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => payrollAction(run.id, "submit")}
+                      >
+                        Submit
+                      </Button>
+                    </>
                   ) : null}
-                      {run.status === "PendingApproval" && canPayrollApprove ? (
-                        <>
-                          <Button size="sm" onClick={() => payrollAction(run.id, "approve")}>
-                            Approve & post
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => payrollAction(run.id, "reject")}
-                          >
-                            Reject
-                          </Button>
-                        </>
-                      ) : null}
+                  {run.status === "PendingApproval" && canPayrollApprove ? (
+                    <>
+                      <Button size="sm" onClick={() => payrollAction(run.id, "approve")}>
+                        Approve & post
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => payrollAction(run.id, "reject")}
+                      >
+                        Reject
+                      </Button>
+                    </>
+                  ) : null}
                 </div>
               </div>
               <table className="w-full text-left text-sm">
@@ -482,22 +499,48 @@ export default function HrPage() {
                   <tr className="text-body">
                     <th className="py-1">Employee</th>
                     <th className="py-1">Days</th>
-                    <th className="py-1">OT hrs</th>
+                    <th className="py-1">Hours</th>
+                    <th className="py-1">OT</th>
+                    <th className="py-1">Factor</th>
                     <th className="py-1">Gross</th>
                     <th className="py-1">Net</th>
                   </tr>
                 </thead>
                 <tbody>
                   {run.payslips?.map((s) => (
-                    <tr key={s.id} className="border-t border-border text-heading">
-                      <td className="py-2">
-                        {s.employee_name || s.employee_code || s.id.slice(0, 8)}
-                      </td>
-                      <td className="py-2">{s.days_worked}</td>
-                      <td className="py-2">{s.overtime_hours}</td>
-                      <td className="py-2">{s.gross_pay}</td>
-                      <td className="py-2">{s.net_pay}</td>
-                    </tr>
+                    <Fragment key={s.id}>
+                      <tr className="border-t border-border text-heading">
+                        <td className="py-2">
+                          {s.employee_name || s.employee_code || s.id.slice(0, 8)}
+                        </td>
+                        <td className="py-2">{s.days_worked ?? "—"}</td>
+                        <td className="py-2">{s.earnings?.worked_hours ?? "—"}</td>
+                        <td className="py-2">{s.overtime_hours ?? s.earnings?.ot_hours ?? "—"}</td>
+                        <td className="py-2">{s.earnings?.attendance_factor ?? "—"}</td>
+                        <td className="py-2">{s.gross_pay}</td>
+                        <td className="py-2">{s.net_pay}</td>
+                      </tr>
+                      {s.earnings || s.deductions ? (
+                        <tr className="border-t border-border/60 text-xs text-body">
+                          <td colSpan={7} className="pb-3 pt-0">
+                            {s.earnings ? (
+                              <span>
+                                Credited {s.earnings.credited_hours ?? "—"}h / expected{" "}
+                                {s.earnings.expected_hours ?? "—"}h · leave{" "}
+                                {s.earnings.leave_hours ?? "0"}h · base {s.earnings.base_pay ?? "—"}{" "}
+                                · OT pay {s.earnings.overtime_pay ?? "0"}
+                              </span>
+                            ) : null}
+                            {s.deductions ? (
+                              <span className="ml-2">
+                                · Tax {s.deductions.income_tax ?? "0"} · EOBI{" "}
+                                {s.deductions.eobi ?? "0"}
+                              </span>
+                            ) : null}
+                          </td>
+                        </tr>
+                      ) : null}
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
