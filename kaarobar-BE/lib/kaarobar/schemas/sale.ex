@@ -17,6 +17,7 @@ defmodule Kaarobar.Schemas.Sale do
     field :fbr_qr_payload, :string
     field :fbr_reported_at, :utc_datetime
     field :notes, :string
+    field :source, :string, default: "pos"
 
     belongs_to :branch, Kaarobar.Schemas.Branch
     belongs_to :owner, Kaarobar.Schemas.User
@@ -47,6 +48,7 @@ defmodule Kaarobar.Schemas.Sale do
       :fbr_qr_payload,
       :fbr_reported_at,
       :notes,
+      :source,
       :branch_id,
       :owner_id,
       :business_id,
@@ -63,10 +65,28 @@ defmodule Kaarobar.Schemas.Sale do
       :branch_id,
       :owner_id,
       :business_id,
-      :cashier_id
+      :source
     ])
+    |> validate_inclusion(:source, ~w(pos online))
+    |> validate_cashier_for_source()
     |> foreign_key_constraint(:branch_id)
     |> foreign_key_constraint(:cashier_id)
     |> unique_constraint(:client_txn_id)
+  end
+
+  defp validate_cashier_for_source(changeset) do
+    source = get_field(changeset, :source) || "pos"
+    cashier_id = get_field(changeset, :cashier_id)
+
+    cond do
+      source == "online" ->
+        changeset
+
+      is_nil(cashier_id) or cashier_id == "" ->
+        add_error(changeset, :cashier_id, "can't be blank")
+
+      true ->
+        changeset
+    end
   end
 end

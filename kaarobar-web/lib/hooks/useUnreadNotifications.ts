@@ -20,7 +20,8 @@ export function useUnreadNotifications(opts?: {
   const outApp = useRef(true);
 
   const refresh = useCallback(async () => {
-    if (!getSession()?.access_token) {
+    const session = getSession();
+    if (!session?.access_token || session.actor === "consumer") {
       setUnread(0);
       return 0;
     }

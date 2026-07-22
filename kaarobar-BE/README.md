@@ -39,6 +39,8 @@ mix phx.server          # http://localhost:4000
 Demo seed: `owner@kaarobar.local` / `Password@123` (also `owner2@`–`owner4@`; staff `manager@` / `cashier@` / … and `*2@`–`*4@`)
 Fresh data: `mix ecto.reset`
 
+Unified login: `POST /api/v1/auth/login` with `actor: "business" | "consumer"`. Buyers land on web `/app` (shared routes; UI by actor). Deprecated `/portal/auth/login|register` proxy to the same. Public API: `GET /api/v1/marketplace/businesses`.
+
 Dev-only credential browser (owners / staff / customer portal accounts from the DB): [http://localhost:4000/dev/creds](http://localhost:4000/dev/creds) — enabled only when `config :kaarobar, dev_routes: true` (dev.exs).
 
 ## Uploads / S3

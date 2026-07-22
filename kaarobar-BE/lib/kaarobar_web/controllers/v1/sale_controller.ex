@@ -4,21 +4,27 @@ defmodule KaarobarWeb.V1.SaleController do
   alias Kaarobar.Guardian
   alias Kaarobar.Pos
 
-  def index(conn, _params) do
+  def index(conn, params) do
     user = Guardian.Plug.current_resource(conn)
     business_id = conn.assigns[:business_id]
     owner_id = conn.assigns[:owner_id] || user.id
     branch_id = conn.assigns[:branch_id]
+    source = params["source"]
 
-    if is_nil(business_id) or is_nil(branch_id) do
-      conn |> put_status(:bad_request) |> json(%{error: "business_and_branch_required"})
+    if is_nil(business_id) do
+      conn |> put_status(:bad_request) |> json(%{error: "business_required"})
     else
-      data =
-        branch_id
-        |> Pos.list_sales(owner_id, business_id)
-        |> Enum.map(&serialize_sale/1)
+      # Online orders can be listed without branch; POS list still prefers branch
+      if source != "online" and is_nil(branch_id) do
+        conn |> put_status(:bad_request) |> json(%{error: "business_and_branch_required"})
+      else
+        data =
+          branch_id
+          |> Pos.list_sales(owner_id, business_id, source: source)
+          |> Enum.map(&serialize_sale/1)
 
-      json(conn, %{data: data})
+        json(conn, %{data: data})
+      end
     end
   end
 
@@ -59,6 +65,7 @@ defmodule KaarobarWeb.V1.SaleController do
       invoice_number: sale.invoice_number,
       client_txn_id: sale.client_txn_id,
       status: sale.status,
+      source: sale.source || "pos",
       subtotal: to_string(sale.subtotal),
       tax_amount: to_string(sale.tax_amount),
       discount_amount: to_string(sale.discount_amount || 0),
@@ -67,6 +74,7 @@ defmodule KaarobarWeb.V1.SaleController do
       till_id: sale.till_id,
       customer_id: sale.customer_id,
       customer_name: sale.customer && sale.customer.name,
+      notes: sale.notes,
       ar_invoice_id: sale.ar_invoice_id,
       fbr_invoice_no: sale.fbr_invoice_no,
       fbr_qr_payload: sale.fbr_qr_payload,

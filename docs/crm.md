@@ -17,49 +17,51 @@ Customer flags: `marketing_opt_in_email`, `marketing_opt_in_sms`, `marketing_opt
 
 - Table: `campaign_segments` (`name`, `filters` JSON)
 - Filters supported: `khata_enabled`, `min_points`, `loyalty_tier_id`, `inactive_days`
-- `POST /api/v1/crm/campaigns/preview` returns audience size
+- `POST /api/v1/crm/campaigns/preview` returns audience size **and** paid-messaging cost estimate
 - Campaigns may use `audience: "segment"` + `segment_id`
 
-### Loyalty tiers (CRM-FR-007 Should)
+### Message templates
 
-- Table: `loyalty_tiers` (`min_points`, `earn_rate`, `redeem_rate`)
-- Recomputed on loyalty adjust / sale earn
-- CRUD: `/api/v1/crm/loyalty-tiers`
+- Table: `crm_message_templates` (`name`, `channel`, `title_template`, `body_template`, `variables`)
+- CRUD: `/api/v1/crm/templates`; preview: `POST /api/v1/crm/templates/preview`
+- Defaults seeded per business on first list
 
-### Coupons (CRM-FR-005 / CRM-FR-014 / POS-FR-019)
+### Paid messaging (internal wallet)
 
-- Tables: `coupons`, `coupon_redemptions`
-- POS checkout accepts `coupon_code`
-- Marketing CRUD + `POST /api/v1/crm/coupons/validate`
+- `businesses.messaging_wallet_balance` + `messaging_wallet_ledger`
+- Campaign fields: `budget_amount`, `estimated_cost`, `actual_cost`, `unit_cost_snapshot`, `template_id`
+- Unit rates via `config :kaarobar, :messaging_unit_costs` (email/in_app free; SMS/WhatsApp charged)
+- Send blocked with `budget_exceeded` / `insufficient_credits`
+- Top-up: `POST /api/v1/crm/messaging-wallet/top-up` (owner MVP stub)
 
-### SMS / WhatsApp (CRM-FR-003 / CRM-FR-004)
+### Loyalty tiers / Coupons / SMS-WA
 
-- Campaign `channel`: `email` | `in_app` | `sms` | `whatsapp`
-- Adapters: `Kaarobar.Messaging.Sms.Mock` / `Whatsapp.Mock` (config `:sms_adapter`, `:whatsapp_adapter`)
-- Oban workers: `SmsCampaignWorker`, `WhatsappCampaignWorker`
+Unchanged from prior Phase A notes.
 
-### Customer Portal (TEN-FR-014, CUS-FR-*)
+### Customer / Consumer identity (TEN-FR-014, CUS-FR-*)
 
-- Tables: `customer_accounts`, `customer_sessions` (separate from staff `users`)
-- Business flags: `portal_self_register`, `portal_invite_from_sale`
-- Auth: `/api/v1/portal/auth/*`
-- Self-service (Bearer session + `x-business-id`): `/api/v1/portal/me`, `/orders`, `/loyalty`, `/ar`, `/bookings` (disabled stub)
-- Isolation: plug sets `SET LOCAL app.customer_id`
-- Staff invite: `POST /api/v1/customers/:id/portal-invite`
+- Tables: `customer_accounts`, `customer_sessions` (separate from business `users`)
+- **Unified auth:** `POST /api/v1/auth/login|register` with `actor: "business" | "consumer"` (aliases `staff`/`buyer` accepted)
+- Invite accept: `POST /api/v1/auth/buyer/accept-invite` → `/login?as=consumer&invite=…`
+- Self-service APIs (consumer Bearer): `/api/v1/portal/me`, `/orders`, `/loyalty`, `/ar`, …
 
-**Deferred:** CUS-FR-005 appointment self-booking (needs Phase B SCH).
+## Clients
 
-## Web clients
-
-- Staff marketing UI: `/app/marketing` (campaigns, segments, coupons, tiers)
-- POS coupon field: web + desktop checkout
-- Customer Portal UI: `/portal/*` (no staff chrome)
-- Role home widgets: `/app` dashboard (TEN-FR-013)
+- **Web:** filesystem `app/workspace/*` rewritten to browser `/app/*`; marketing at `/app/marketing` (campaigns, templates, wallet, segments, coupons, tiers)
+- **Mobile:** Expo routes under `/app/*` (shared business/consumer shells)
+- **Desktop:** HashRouter `/app/*`, business-only; marketing page mirrors web templates/wallet
+- Actors: login toggle **Business** / **Consumer** (`?as=consumer`)
 
 ## Config
 
 ```elixir
 config :kaarobar,
   sms_adapter: Kaarobar.Messaging.Sms.Mock,
-  whatsapp_adapter: Kaarobar.Messaging.Whatsapp.Mock
+  whatsapp_adapter: Kaarobar.Messaging.Whatsapp.Mock,
+  messaging_unit_costs: %{
+    "email" => "0",
+    "in_app" => "0",
+    "sms" => "2.50",
+    "whatsapp" => "3.00"
+  }
 ```

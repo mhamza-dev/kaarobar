@@ -8,21 +8,71 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { api, colors, hydrateSessionContext, setSession } from "../lib/api";
+import {
+  api,
+  colors,
+  hydrateSessionContext,
+  setSession,
+  type AuthActor,
+  type Session,
+} from "../lib/api";
 import { setLocale, t, type Locale } from "../lib/i18n";
 import KaarobarLogo from "../components/KaarobarLogo";
 
 export default function LoginScreen() {
+  const [actor, setActor] = useState<AuthActor>("business");
   const [email, setEmail] = useState("owner@kaarobar.local");
   const [password, setPassword] = useState("Password@123");
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  function toggleBuyer() {
+    const next: AuthActor = actor === "consumer" ? "business" : "consumer";
+    setActor(next);
+    setEmail(next === "consumer" ? "ayesha.customer@kaarobar-demo.pk" : "owner@kaarobar.local");
+    setError(null);
+  }
+
   async function onSubmit() {
     setBusy(true);
     setError(null);
     try {
+      if (actor === "consumer") {
+        const result = await api<{
+          access_token: string;
+          account: NonNullable<Session["account"]>;
+          memberships?: Session["buyer_memberships"];
+        }>(
+          "/auth/login",
+          {
+            method: "POST",
+            body: JSON.stringify({
+              actor: "consumer",
+              email: email.trim(),
+              password,
+            }),
+          },
+          null
+        );
+        const base: Session = {
+          actor: "consumer",
+          access_token: result.access_token,
+          account: result.account,
+          buyer_memberships: result.memberships || [],
+          user: {
+            id: result.account.id,
+            email: result.account.email,
+            name: result.account.name || result.account.email,
+            phone: result.account.phone,
+          },
+        };
+        const hydrated = await hydrateSessionContext(base);
+        await setSession(hydrated);
+        router.replace("/app/dashboard");
+        return;
+      }
+
       const result = await api<{
         access_token: string;
         user: {
@@ -37,6 +87,7 @@ export default function LoginScreen() {
         {
           method: "POST",
           body: JSON.stringify({
+            actor: "business",
             email: email.trim(),
             password,
             remember_me: rememberMe,
@@ -45,6 +96,7 @@ export default function LoginScreen() {
         null
       );
       const hydrated = await hydrateSessionContext({
+        actor: "business",
         access_token: result.access_token,
         user: result.user,
       });
@@ -52,7 +104,7 @@ export default function LoginScreen() {
       if (result.user.locale === "ur" || result.user.locale === "en") {
         await setLocale(result.user.locale);
       }
-      router.replace("/dashboard");
+      router.replace("/app/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : t("common.error"));
     } finally {
@@ -66,11 +118,25 @@ export default function LoginScreen() {
         <KaarobarLogo size={48} />
         <View>
           <Text style={styles.brandTitle}>{t("common.appName")}</Text>
-          <Text style={styles.brandSub}>{t("common.pointOfSale")}</Text>
+          <Text style={styles.brandSub}>
+            {actor === "consumer" ? "Consumer marketplace" : t("common.pointOfSale")}
+          </Text>
         </View>
       </View>
-      <Text style={styles.title}>{t("auth.signInTitle")}</Text>
-      <Text style={styles.hint}>{t("auth.signInSub")}</Text>
+      <Text style={styles.title}>
+        {actor === "consumer" ? "Consumer sign in" : t("auth.signInTitle")}
+      </Text>
+      <Text style={styles.hint}>
+        {actor === "consumer"
+          ? "Order from Kaarobar stores with your buyer account."
+          : t("auth.signInSub")}
+      </Text>
+
+      <Pressable style={styles.toggle} onPress={toggleBuyer}>
+        <Text style={styles.toggleText}>
+          {actor === "consumer" ? "Sign in as Business" : "Sign in as Consumer"}
+        </Text>
+      </Pressable>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -81,7 +147,7 @@ export default function LoginScreen() {
         value={email}
         onChangeText={setEmail}
         style={styles.input}
-        placeholder="you@company.com"
+        placeholder={actor === "consumer" ? "you@email.com" : "you@company.com"}
         placeholderTextColor={colors.muted}
       />
 
@@ -95,15 +161,17 @@ export default function LoginScreen() {
         placeholderTextColor={colors.muted}
       />
 
-      <Pressable
-        style={styles.rememberRow}
-        onPress={() => setRememberMe((v) => !v)}
-      >
-        <View style={[styles.checkbox, rememberMe && styles.checkboxOn]}>
-          {rememberMe ? <Text style={styles.checkboxMark}>✓</Text> : null}
-        </View>
-        <Text style={styles.rememberLabel}>Remember me</Text>
-      </Pressable>
+      {actor === "business" ? (
+        <Pressable
+          style={styles.rememberRow}
+          onPress={() => setRememberMe((v) => !v)}
+        >
+          <View style={[styles.checkbox, rememberMe && styles.checkboxOn]}>
+            {rememberMe ? <Text style={styles.checkboxMark}>✓</Text> : null}
+          </View>
+          <Text style={styles.rememberLabel}>Remember me</Text>
+        </Pressable>
+      ) : null}
 
       <Pressable style={styles.primary} onPress={onSubmit} disabled={busy}>
         {busy ? (
@@ -113,9 +181,11 @@ export default function LoginScreen() {
         )}
       </Pressable>
 
-      <Link href="/signup" style={styles.link}>
-        {t("auth.needAccount")}
-      </Link>
+      {actor === "business" ? (
+        <Link href="/signup" style={styles.link}>
+          {t("auth.needAccount")}
+        </Link>
+      ) : null}
       <Link href="/landing" style={styles.linkMuted}>
         {t("common.back")}
       </Link>
@@ -129,7 +199,17 @@ const styles = StyleSheet.create({
   brandTitle: { fontSize: 20, fontWeight: "800", color: colors.heading },
   brandSub: { fontSize: 12, color: colors.muted, marginTop: 2 },
   title: { fontSize: 28, fontWeight: "800", color: colors.heading },
-  hint: { marginTop: 8, marginBottom: 20, color: colors.body },
+  hint: { marginTop: 8, marginBottom: 12, color: colors.body },
+  toggle: {
+    alignSelf: "flex-start",
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.brand,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  toggleText: { color: colors.brand, fontWeight: "700", fontSize: 13 },
   error: {
     backgroundColor: "#fee2e2",
     color: colors.danger,

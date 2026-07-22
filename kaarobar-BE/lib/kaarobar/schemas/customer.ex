@@ -27,6 +27,7 @@ defmodule Kaarobar.Schemas.Customer do
     belongs_to :owner, Kaarobar.Schemas.User
     belongs_to :user, Kaarobar.Schemas.User
     belongs_to :loyalty_tier, Kaarobar.Schemas.LoyaltyTier
+    belongs_to :customer_account, Kaarobar.Schemas.CustomerAccount
 
     timestamps(type: :utc_datetime)
   end
@@ -52,7 +53,8 @@ defmodule Kaarobar.Schemas.Customer do
       :loyalty_tier_id,
       :business_id,
       :owner_id,
-      :user_id
+      :user_id,
+      :customer_account_id
     ])
     |> update_change(:phone, &blank_to_nil/1)
     |> update_change(:email, &blank_to_nil/1)
@@ -66,7 +68,11 @@ defmodule Kaarobar.Schemas.Customer do
     |> foreign_key_constraint(:owner_id)
     |> foreign_key_constraint(:user_id)
     |> foreign_key_constraint(:loyalty_tier_id)
+    |> foreign_key_constraint(:customer_account_id)
     |> unique_constraint([:business_id, :phone], name: :customers_business_id_phone_index)
+    |> unique_constraint([:business_id, :customer_account_id],
+      name: :customers_business_id_customer_account_id_uidx
+    )
   end
 
   defp blank_to_nil(nil), do: nil

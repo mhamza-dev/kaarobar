@@ -1,8 +1,10 @@
 # Kaarobar Desktop (`kaarobar-desktop`)
 
-Electron POS terminal for Kaarobar SRS **KRB-SRS-001**.
+Electron POS terminal for Kaarobar SRS **KRB-SRS-003**.
 
 The renderer is a **Vite + React + TypeScript + Tailwind** app that reuses the same UI components and page layouts as `kaarobar-web` for visual/UX parity. Electron `main` / `preload` keep offline IPC (`window.kaarobarPos`).
+
+**Business-only:** desktop has no consumer / marketplace shell. Consumers use web (`/login?as=consumer`) or mobile. Login/register always send `actor: "business"`.
 
 ## Setup
 
@@ -16,7 +18,7 @@ API base URL: `VITE_API_URL` (default `http://localhost:4000/api/v1`).
 
 Demo login after seed: `owner@kaarobar.local` / `Password@123`
 
-## Screens (match Web)
+## Screens (match Web staff)
 
 - Dashboard, POS, Returns, Inventory, Accounting, HR, Reports
 - Notifications, Settings (Subscriptions / Integrations / Roles), Profile

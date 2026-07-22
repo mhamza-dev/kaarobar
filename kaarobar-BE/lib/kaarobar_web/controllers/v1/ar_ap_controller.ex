@@ -36,6 +36,7 @@ defmodule KaarobarWeb.V1.ArApController do
         "business_id" => business_id,
         "owner_id" => owner_id
       })
+      |> maybe_attach_global_account()
 
     case %Customer{} |> Customer.changeset(attrs) |> Repo.insert() do
       {:ok, c} ->
@@ -54,6 +55,23 @@ defmodule KaarobarWeb.V1.ArApController do
 
       {:error, cs} ->
         conn |> put_status(:unprocessable_entity) |> json(%{error: customer_error(cs)})
+    end
+  end
+
+  defp maybe_attach_global_account(attrs) do
+    email =
+      case attrs["email"] do
+        e when is_binary(e) -> e |> String.trim() |> String.downcase()
+        _ -> nil
+      end
+
+    if is_binary(email) and email != "" do
+      case Repo.get_by(Kaarobar.Schemas.CustomerAccount, email: email) do
+        %{id: id} -> Map.put(attrs, "customer_account_id", id)
+        nil -> attrs
+      end
+    else
+      attrs
     end
   end
 
@@ -276,11 +294,15 @@ defmodule KaarobarWeb.V1.ArApController do
   end
 
   defp serialize_customer(c) do
+    c = Kaarobar.Repo.preload(c, :customer_account)
+    account = c.customer_account
+    linked? = not is_nil(Map.get(c, :customer_account_id))
+
     %{
       id: c.id,
-      name: c.name,
-      phone: c.phone,
-      email: c.email,
+      name: (account && account.name) || c.name,
+      phone: if(linked? and account, do: account.phone, else: c.phone) || c.phone,
+      email: if(linked? and account, do: account.email, else: c.email) || c.email,
       address: c.address,
       notes: c.notes,
       cnic: c.cnic,
@@ -294,6 +316,8 @@ defmodule KaarobarWeb.V1.ArApController do
       marketing_opt_in_sms: Map.get(c, :marketing_opt_in_sms) == true,
       marketing_opt_in_whatsapp: Map.get(c, :marketing_opt_in_whatsapp) == true,
       portal_enabled: Map.get(c, :portal_enabled) == true,
+      portal_linked: linked?,
+      customer_account_id: Map.get(c, :customer_account_id),
       user_id: c.user_id,
       profile_pic_url: Profiles.profile_pic_url(c)
     }

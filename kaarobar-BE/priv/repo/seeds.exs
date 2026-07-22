@@ -2000,7 +2000,18 @@ seed_crm_and_finance = fn owner, business, branches, products ->
 
   _ =
     business
-    |> change(%{portal_self_register: true, portal_invite_from_sale: true})
+    |> change(%{
+      portal_self_register: true,
+      portal_invite_from_sale: true,
+      marketplace_enabled: true,
+      online_branch_id: branch && branch.id,
+      marketplace_slug:
+        business.name
+        |> String.downcase()
+        |> String.replace(~r/[^a-z0-9]+/, "-")
+        |> String.trim("-")
+        |> then(fn s -> "#{s}-#{String.slice(business.id, 0, 8)}" end)
+    })
     |> Repo.update()
 
   existing_tier_names =
@@ -2258,52 +2269,47 @@ seed_crm_and_finance = fn owner, business, branches, products ->
     end
   end
 
-  portal_account_attrs =
+  portal_customers =
     customers
     |> Enum.filter(fn c -> c.portal_enabled and is_binary(c.email) and c.email != "" end)
-    |> Enum.reject(fn c ->
-      from(a in CustomerAccount,
-        where: a.business_id == ^business.id and a.email == ^String.downcase(c.email)
-      )
-      |> Repo.exists?()
-    end)
-    |> Enum.map(fn c ->
-      %{
-        email: String.downcase(c.email),
-        customer_id: c.id,
-        owner_id: owner.id,
-        business_id: business.id,
-        status: "active"
-      }
-    end)
 
-  _ =
-    bulk_insert!.(
-      CustomerAccount,
-      portal_account_attrs,
-      changeset: fn data, attrs ->
-        data
-        |> cast(attrs, [
-          :email,
-          :customer_id,
-          :owner_id,
-          :business_id,
-          :status,
-          :email_verified
-        ])
-        |> validate_required([:email, :customer_id, :owner_id, :business_id])
-        |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/)
-        |> update_change(:email, &String.downcase/1)
-      end,
-      extras: fn _ ->
-        # All seeded portal customers use portal_password from customer_defs (Password@123)
-        %{
-          password_hash: demo_password_hash,
-          email_verified: true,
-          email_verify_token_hash: nil
-        }
+  Enum.each(portal_customers, fn c ->
+    email = String.downcase(c.email)
+
+    account =
+      case Repo.get_by(CustomerAccount, email: email) do
+        %CustomerAccount{} = existing ->
+          existing
+
+        nil ->
+          {:ok, created} =
+            %CustomerAccount{}
+            |> cast(
+              %{
+                email: email,
+                name: c.name,
+                phone: c.phone,
+                status: "active",
+                email_verified: true
+              },
+              [:email, :name, :phone, :status, :email_verified]
+            )
+            |> validate_required([:email])
+            |> update_change(:email, &String.downcase/1)
+            |> unique_constraint(:email, name: :customer_accounts_email_uidx)
+            |> put_change(:password_hash, demo_password_hash)
+            |> Repo.insert()
+
+          created
       end
-    )
+
+    if is_nil(c.customer_account_id) or c.customer_account_id != account.id do
+      _ =
+        c
+        |> change(%{customer_account_id: account.id, portal_enabled: true})
+        |> Repo.update()
+    end
+  end)
 
   :ok
 end
@@ -2380,17 +2386,13 @@ owner_logins =
   |> Enum.join("\n  ")
 
 portal_login_lines =
-  owner_summaries
-  |> Enum.filter(fn s -> s.email == "owner@kaarobar.local" end)
-  |> Enum.flat_map(fn s -> Enum.take(s.businesses, 3) end)
-  |> Enum.flat_map(fn %{business: business} ->
-    customer_defs
-    |> Enum.filter(&(&1[:portal] == true && is_binary(&1[:email])))
-    |> Enum.map(fn defn ->
-      pwd = defn[:portal_password] || "Password@123"
-      "#{defn.email}  /  #{pwd}  (business_id: #{business.id} · #{business.name})"
-    end)
-  end)
+  from(a in Kaarobar.Schemas.CustomerAccount,
+    order_by: [asc: a.email],
+    limit: 12,
+    select: a.email
+  )
+  |> Repo.all()
+  |> Enum.map(fn email -> "#{email}  /  Password@123" end)
   |> Enum.join("\n  ")
 
 IO.puts("""
@@ -2414,7 +2416,8 @@ Staff portal logins (primary owner — also mirrored per-owner with suffixes 2/3
 ESS: admin / cashier / employee are linked to HR employee profiles on each owner's first business
      (clock-in, leave, payslips). Owners do not get Staff tools.
 
-Customer portal (/portal/login) — use Business ID + email + password
+Buyer login (/login?as=buyer) — email + password only (no business ID)
+  Marketplace: /app (discover) · /app/market/:id (order)
   #{portal_login_lines}
 
 POS coupons on enriched businesses: WELCOME10 (10%), FLAT100 (Rs 100)

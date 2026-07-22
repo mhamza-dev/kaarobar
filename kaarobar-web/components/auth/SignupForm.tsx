@@ -19,8 +19,15 @@ import TermsModal from "@/components/modals/TermsModal";
 import PrivacyPolicyModal from "@/components/modals/PrivacyPolicyModal";
 import { authMethodOptions } from "@/components/auth/auth-method-options";
 import { signupSchema } from "@/lib/validations/auth";
-import { api, hydrateSessionContext, setSession } from "@/lib/api/client";
+import {
+  api,
+  hydrateSessionContext,
+  setSession,
+  type AuthActor,
+  type StoredSession,
+} from "@/lib/api/client";
 import { useI18n, type Locale } from "@/lib/i18n";
+import * as Yup from "yup";
 
 interface SignupFormValues {
   signupMethod: "email" | "phone";
@@ -33,12 +40,34 @@ interface SignupFormValues {
   acceptTerms: boolean;
 }
 
-const SignupForm = (): React.ReactElement => {
+type SignupFormProps = {
+  actor: AuthActor;
+};
+
+const buyerSignupSchema = Yup.object({
+  signupMethod: Yup.string().oneOf(["email", "phone"]).required(),
+  fullName: Yup.string().required("Full name is required"),
+  businessName: Yup.string().optional(),
+  email: Yup.string().when("signupMethod", {
+    is: "email",
+    then: (s) => s.email("Invalid email").required("Email is required"),
+    otherwise: (s) => s.optional(),
+  }),
+  phoneNumber: Yup.string().optional(),
+  password: Yup.string().min(8, "Min 8 characters").required("Password is required"),
+  confirmPassword: Yup.string()
+    .oneOf([Yup.ref("password")], "Passwords must match")
+    .required("Confirm password"),
+  acceptTerms: Yup.boolean().oneOf([true], "Accept terms to continue"),
+});
+
+const SignupForm = ({ actor }: SignupFormProps): React.ReactElement => {
   const router = useRouter();
   const { setLocale } = useI18n();
   const [termsModal, setTermsModal] = useState(false);
   const [privacyModal, setPrivacyModal] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const isBuyer = actor === "consumer";
 
   const initialValues: SignupFormValues = {
     signupMethod: "email",
@@ -58,6 +87,44 @@ const SignupForm = (): React.ReactElement => {
         setFormError("Phone signup will be available soon. Please use email.");
         return;
       }
+
+      if (isBuyer) {
+        const result = await api<{
+          access_token: string;
+          account: NonNullable<StoredSession["account"]>;
+          memberships?: StoredSession["buyer_memberships"];
+        }>(
+          "/auth/register",
+          {
+            method: "POST",
+            body: JSON.stringify({
+              actor: "consumer",
+              email: values.email,
+              password: values.password,
+              name: values.fullName,
+              phone: values.phoneNumber || null,
+            }),
+          },
+          null
+        );
+        const session: StoredSession = {
+          actor: "consumer",
+          access_token: result.access_token,
+          account: result.account,
+          buyer_memberships: result.memberships || [],
+          user: {
+            id: result.account.id,
+            email: result.account.email,
+            name: result.account.name || result.account.email,
+            phone: result.account.phone,
+          },
+        };
+        setSession(session);
+        await hydrateSessionContext(session);
+        router.push("/app");
+        return;
+      }
+
       const result = await api<{
         access_token: string;
         user: {
@@ -72,6 +139,7 @@ const SignupForm = (): React.ReactElement => {
         {
           method: "POST",
           body: JSON.stringify({
+            actor: "business",
             email: values.email,
             password: values.password,
             name: values.fullName,
@@ -82,7 +150,11 @@ const SignupForm = (): React.ReactElement => {
         null
       );
 
-      const base = { access_token: result.access_token, user: result.user };
+      const base: StoredSession = {
+        actor: "business",
+        access_token: result.access_token,
+        user: result.user,
+      };
       setSession(base);
       if (result.user.locale === "ur" || result.user.locale === "en") {
         setLocale(result.user.locale);
@@ -99,7 +171,7 @@ const SignupForm = (): React.ReactElement => {
     <>
       <CustomForm
         initialValues={initialValues}
-        validationSchema={signupSchema}
+        validationSchema={isBuyer ? buyerSignupSchema : signupSchema}
         onSubmit={handleSubmit}
       >
         {({ values, setFieldValue, isSubmitting }) => (
@@ -109,27 +181,29 @@ const SignupForm = (): React.ReactElement => {
                 {formError}
               </p>
             ) : null}
-            <OptionSelector
-              label="Sign up with"
-              value={values.signupMethod}
-              onChange={(value) => {
-                setFieldValue("signupMethod", value);
+            {!isBuyer ? (
+              <OptionSelector
+                label="Sign up with"
+                value={values.signupMethod}
+                onChange={(value) => {
+                  setFieldValue("signupMethod", value);
 
-                if (value === "email") {
-                  setFieldValue("phoneNumber", "");
-                } else {
-                  setFieldValue("email", "");
-                }
-              }}
-              options={authMethodOptions}
-            />
+                  if (value === "email") {
+                    setFieldValue("phoneNumber", "");
+                  } else {
+                    setFieldValue("email", "");
+                  }
+                }}
+                options={authMethodOptions}
+              />
+            ) : null}
 
-            {values.signupMethod === "email" ? (
+            {values.signupMethod === "email" || isBuyer ? (
               <Input
                 type="email"
                 name="email"
                 label="Email Address"
-                placeholder="you@company.com"
+                placeholder={isBuyer ? "you@email.com" : "you@company.com"}
                 leftIcon={<Mail size={18} />}
                 required
               />
@@ -144,7 +218,7 @@ const SignupForm = (): React.ReactElement => {
               />
             )}
 
-            <div className="grid grid-cols-1 gap-x-4 md:grid-cols-2">
+            <div className={`grid grid-cols-1 gap-x-4 ${isBuyer ? "" : "md:grid-cols-2"}`}>
               <Input
                 type="text"
                 name="fullName"
@@ -154,14 +228,16 @@ const SignupForm = (): React.ReactElement => {
                 required
               />
 
-              <Input
-                type="text"
-                name="businessName"
-                label="Business Name"
-                placeholder="Your business name"
-                leftIcon={<Building2 size={18} />}
-                required
-              />
+              {!isBuyer ? (
+                <Input
+                  type="text"
+                  name="businessName"
+                  label="Business Name"
+                  placeholder="Your business name"
+                  leftIcon={<Building2 size={18} />}
+                  required
+                />
+              ) : null}
             </div>
 
             <div className="grid grid-cols-1 gap-x-4 md:grid-cols-2">
@@ -225,7 +301,7 @@ const SignupForm = (): React.ReactElement => {
               loading={isSubmitting}
               endIcon={<ArrowRight size={18} />}
             >
-              Create Account
+              {isBuyer ? "Create consumer account" : "Create Account"}
             </Button>
           </div>
         )}

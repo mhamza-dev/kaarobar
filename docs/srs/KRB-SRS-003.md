@@ -171,7 +171,12 @@ Kaarobar is a multi-tenant SaaS product for Pakistan-first Owners who operate on
 
 #### 1.4.4 Out of Scope (Release 1.0)
 
-- Customer-facing **e-commerce storefront** / online shop
+- Courier / driver dispatch networks and live delivery ETA maps
+- Multi-restaurant carts in a single checkout
+- External card PSP tokenization (online orders record `card`/`wallet` like POS until PSP lands)
+- Cross-business shared loyalty point balances (points remain per business membership)
+
+> **v3.2 note:** Platform-wide customer identity and marketplace discover/order-ahead are **in scope** (see CUS-FR marketplace requirements). The prior “e-commerce storefront out of scope” line is reversed for Kaarobar-listed businesses.
 - Full **manufacturing / MRP** beyond simple recipe/BOM when that module is later enabled
 - **Biometric** attendance hardware
 - **Multi-currency group consolidation**
@@ -799,6 +804,10 @@ All requirements use MoSCoW priority. Requirement IDs are unique and stable for 
 | CUS-FR-008 | The system should enforce strict self-data-only visibility for customer sessions via `customer_id` isolation. | Should |
 | CUS-FR-009 | The system should support password reset and email verification for customer accounts. | Should |
 | CUS-FR-010 | The system should allow session revocation by the customer or by the Owner. | Should |
+| CUS-FR-011 | Customer portal identity shall be platform-wide (unique email); a customer may hold memberships at multiple businesses across owners. | Should |
+| CUS-FR-012 | The system should expose a public marketplace listing of businesses with `marketplace_enabled`, plus per-business catalog for the configured online branch. | Should |
+| CUS-FR-013 | Authenticated customers should place online pickup/order-ahead sales (`source=online`) paid by card or wallet; khata is not accepted online in MVP. | Should |
+| CUS-FR-014 | Consumer login shall not require a business ID; consumers select or filter by business after authentication. Business and consumer share one sign-in surface (`actor=business|consumer`); there is no separate portal login product. | Should |
 
 ### 5.12 Helpdesk & Support
 

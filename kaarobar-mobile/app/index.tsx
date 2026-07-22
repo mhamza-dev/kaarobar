@@ -22,5 +22,5 @@ export default function Index() {
     );
   }
 
-  return <Redirect href={authed ? "/dashboard" : "/landing"} />;
+  return <Redirect href={authed ? "/app/dashboard" : "/landing"} />;
 }

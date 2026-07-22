@@ -1,9 +1,50 @@
 defmodule KaarobarWeb.V1.AuthController do
   use KaarobarWeb, :controller
 
-  alias Kaarobar.{Accounts, Audit, Tenancy, Billing}
+  alias Kaarobar.{Accounts, Audit, Billing, CustomerPortal, Tenancy}
 
   def register(conn, params) do
+    case actor(params) do
+      "consumer" -> register_buyer(conn, params)
+      "business" -> register_staff(conn, params)
+      _ -> conn |> put_status(:bad_request) |> json(%{error: "invalid_actor"})
+    end
+  end
+
+  def login(conn, params) do
+    case actor(params) do
+      "consumer" -> login_buyer(conn, params)
+      "business" -> login_staff(conn, params)
+      _ -> conn |> put_status(:bad_request) |> json(%{error: "invalid_actor"})
+    end
+  end
+
+  def accept_buyer_invite(conn, params) do
+    token = params["token"] || params["invite"]
+    password = params["password"]
+
+    case CustomerPortal.accept_invite(token, password) do
+      {:ok, account} ->
+        {:ok, _session, access_token} =
+          CustomerPortal.create_session(account, user_agent(conn))
+
+        account = CustomerPortal.preload_account(account)
+        json(conn, serialize_buyer_login(access_token, account))
+
+      {:error, :invalid_token} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: "invalid_token"})
+
+      {:error, %Ecto.Changeset{} = cs} ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> json(%{error: "validation_failed", details: translate_errors(cs)})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+    end
+  end
+
+  defp register_staff(conn, params) do
     attrs = %{
       email: params["email"],
       password: params["password"],
@@ -18,6 +59,7 @@ defmodule KaarobarWeb.V1.AuthController do
       conn
       |> put_status(:created)
       |> json(%{
+        actor: "business",
         access_token: token,
         token_type: "Bearer",
         mfa_required: user.mfa_required,
@@ -37,7 +79,27 @@ defmodule KaarobarWeb.V1.AuthController do
     end
   end
 
-  def login(conn, params) do
+  defp register_buyer(conn, params) do
+    case CustomerPortal.register(params) do
+      {:ok, account} ->
+        {:ok, _session, token} = CustomerPortal.create_session(account, user_agent(conn))
+        account = CustomerPortal.preload_account(account)
+
+        conn
+        |> put_status(:created)
+        |> json(serialize_buyer_login(token, account))
+
+      {:error, %Ecto.Changeset{} = cs} ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> json(%{error: "validation_failed", details: translate_errors(cs)})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+    end
+  end
+
+  defp login_staff(conn, params) do
     email = params["email"]
     password = params["password"]
     totp_code = params["totp_code"]
@@ -63,12 +125,25 @@ defmodule KaarobarWeb.V1.AuthController do
             })
 
           user.mfa_required and not Accounts.mfa_enabled?(user) ->
-            # Password OK but MFA enrollment still required (Owner/Accountant default)
             issue_login(conn, user, mfa_setup_required: true, remember_me: remember_me)
 
           true ->
             issue_login(conn, user, remember_me: remember_me)
         end
+
+      {:error, :inactive} ->
+        unauthorized(conn, "inactive")
+
+      {:error, _} ->
+        unauthorized(conn, "invalid_credentials")
+    end
+  end
+
+  defp login_buyer(conn, params) do
+    case CustomerPortal.authenticate(params["email"], params["password"]) do
+      {:ok, account} ->
+        {:ok, _session, token} = CustomerPortal.create_session(account, user_agent(conn))
+        json(conn, serialize_buyer_login(token, account))
 
       {:error, :inactive} ->
         unauthorized(conn, "inactive")
@@ -96,6 +171,7 @@ defmodule KaarobarWeb.V1.AuthController do
     user = Guardian.Plug.current_resource(conn)
 
     json(conn, %{
+      actor: "business",
       user: serialize_user(user),
       memberships:
         user.id
@@ -141,11 +217,8 @@ defmodule KaarobarWeb.V1.AuthController do
     case extract_upload(params) do
       {:ok, upload} ->
         case Kaarobar.Profiles.upload_user_pic(user, upload) do
-          {:ok, updated} ->
-            json(conn, %{user: serialize_user(updated)})
-
-          {:error, reason} ->
-            profile_pic_error(conn, reason)
+          {:ok, updated} -> json(conn, %{user: serialize_user(updated)})
+          {:error, reason} -> profile_pic_error(conn, reason)
         end
 
       {:error, reason} ->
@@ -186,9 +259,52 @@ defmodule KaarobarWeb.V1.AuthController do
     end
   end
 
+  defp actor(params) when is_map(params) do
+    case params["actor"] || params[:actor] || "business" do
+      # Canonical
+      "business" -> "business"
+      "consumer" -> "consumer"
+      # Legacy aliases (one release)
+      "staff" -> "business"
+      "buyer" -> "consumer"
+      "customer" -> "consumer"
+      "" -> "business"
+      nil -> "business"
+      _ -> :invalid
+    end
+  end
+
+  defp serialize_buyer_login(token, account) do
+    memberships =
+      Enum.map(account.memberships || [], fn c ->
+        %{
+          customer_id: c.id,
+          business_id: c.business_id,
+          business_name: c.business && c.business.name,
+          loyalty_points: c.loyalty_points || 0,
+          portal_enabled: c.portal_enabled == true
+        }
+      end)
+
+    %{
+      actor: "consumer",
+      access_token: token,
+      token_type: "Bearer",
+      account: %{
+        id: account.id,
+        email: account.email,
+        name: account.name,
+        phone: account.phone,
+        email_verified: account.email_verified
+      },
+      memberships: memberships
+    }
+  end
+
   defp issue_login(conn, user, opts) do
     remember_me = Keyword.get(opts, :remember_me, false)
     {:ok, token, _claims} = Accounts.issue_access_token(user, remember_me: remember_me)
+
     memberships =
       user.id
       |> Tenancy.list_memberships_for_user()
@@ -205,6 +321,7 @@ defmodule KaarobarWeb.V1.AuthController do
       })
 
     json(conn, %{
+      actor: "business",
       access_token: token,
       token_type: "Bearer",
       expires_in: if(remember_me, do: 10 * 24 * 60 * 60, else: 24 * 60 * 60),
@@ -303,6 +420,10 @@ defmodule KaarobarWeb.V1.AuthController do
       {:error, reason} ->
         {:error, reason}
     end
+  end
+
+  defp user_agent(conn) do
+    get_req_header(conn, "user-agent") |> List.first()
   end
 
   defp translate_errors(changeset) do

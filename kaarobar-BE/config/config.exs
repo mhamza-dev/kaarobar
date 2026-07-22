@@ -61,7 +61,13 @@ config :kaarobar,
   public_base_url: "http://localhost:4000",
   upload_dir: nil,
   sms_adapter: Kaarobar.Messaging.Sms.Mock,
-  whatsapp_adapter: Kaarobar.Messaging.Whatsapp.Mock
+  whatsapp_adapter: Kaarobar.Messaging.Whatsapp.Mock,
+  messaging_unit_costs: %{
+    "email" => "0",
+    "in_app" => "0",
+    "sms" => "2.50",
+    "whatsapp" => "3.00"
+  }
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

@@ -70,6 +70,7 @@ const SignupForm = (): React.ReactElement => {
         {
           method: "POST",
           body: JSON.stringify({
+            actor: "business",
             email: values.email,
             password: values.password,
             name: values.fullName,
@@ -80,7 +81,11 @@ const SignupForm = (): React.ReactElement => {
         null
       );
 
-      const base = { access_token: result.access_token, user: result.user };
+      const base = {
+        actor: "business" as const,
+        access_token: result.access_token,
+        user: result.user,
+      };
       setSession(base);
       if (result.user.locale === "ur" || result.user.locale === "en") {
         setLocale(result.user.locale);

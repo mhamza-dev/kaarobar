@@ -22,8 +22,19 @@ export const colors = {
 export const API_URL =
   process.env.EXPO_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 
+export type AuthActor = "business" | "consumer";
+
+export type BuyerMembership = {
+  customer_id: string;
+  business_id: string;
+  business_name?: string | null;
+  loyalty_points?: number;
+  portal_enabled?: boolean;
+};
+
 export type Session = {
   access_token: string;
+  actor?: AuthActor;
   user: {
     id: string;
     email: string;
@@ -32,6 +43,14 @@ export type Session = {
     locale?: "en" | "ur";
     profile_pic_url?: string | null;
   };
+  account?: {
+    id: string;
+    email: string;
+    name?: string | null;
+    phone?: string | null;
+    email_verified?: boolean;
+  };
+  buyer_memberships?: BuyerMembership[];
   business_id?: string;
   branch_id?: string;
   memberships?: {
@@ -48,6 +67,10 @@ export type Session = {
 const SESSION_KEY = "kaarobar_session";
 
 let memorySession: Session | null = null;
+
+export function isConsumerSession(session?: Session | null): boolean {
+  return (session ?? memorySession)?.actor === "consumer";
+}
 
 export async function getSession(): Promise<Session | null> {
   if (memorySession) return memorySession;
@@ -101,7 +124,9 @@ export async function api<T>(
     headers.set("Authorization", `Bearer ${current.access_token}`);
   }
   if (current?.business_id) headers.set("x-business-id", current.business_id);
-  if (current?.branch_id) headers.set("x-branch-id", current.branch_id);
+  if (current?.branch_id && !isConsumerSession(current)) {
+    headers.set("x-branch-id", current.branch_id);
+  }
 
   const res = await fetch(`${API_URL}${path}`, { ...init, headers });
   const text = await res.text();
@@ -113,9 +138,36 @@ export async function api<T>(
 }
 
 export async function hydrateSessionContext(session: Session): Promise<Session> {
+  if (isConsumerSession(session)) {
+    try {
+      const me = await api<{
+        data: {
+          account: NonNullable<Session["account"]>;
+          memberships: BuyerMembership[];
+        };
+      }>("/portal/me", {}, session);
+      const merged: Session = {
+        ...session,
+        actor: "consumer",
+        account: me.data.account,
+        buyer_memberships: me.data.memberships || [],
+        user: {
+          id: me.data.account.id,
+          email: me.data.account.email,
+          name: me.data.account.name || me.data.account.email,
+          phone: me.data.account.phone,
+        },
+      };
+      await setSession(merged);
+      return merged;
+    } catch {
+      return session;
+    }
+  }
+
   const me = await api<{
     user: Session["user"];
     memberships: NonNullable<Session["memberships"]>;
   }>("/auth/me", {}, session);
-  return { ...session, user: me.user, memberships: me.memberships || [] };
+  return { ...session, actor: "business", user: me.user, memberships: me.memberships || [] };
 }

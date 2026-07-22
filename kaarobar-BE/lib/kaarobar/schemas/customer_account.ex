@@ -9,6 +9,8 @@ defmodule Kaarobar.Schemas.CustomerAccount do
     field :email, :string
     field :password_hash, :string
     field :password, :string, virtual: true
+    field :name, :string
+    field :phone, :string
     field :email_verified, :boolean, default: false
     field :email_verify_token_hash, :string
     field :password_reset_token_hash, :string
@@ -18,9 +20,7 @@ defmodule Kaarobar.Schemas.CustomerAccount do
     field :last_login_at, :utc_datetime
     field :status, :string, default: "active"
 
-    belongs_to :customer, Kaarobar.Schemas.Customer
-    belongs_to :owner, Kaarobar.Schemas.User
-    belongs_to :business, Kaarobar.Schemas.Business
+    has_many :memberships, Kaarobar.Schemas.Customer, foreign_key: :customer_account_id
     has_many :sessions, Kaarobar.Schemas.CustomerSession
 
     timestamps(type: :utc_datetime)
@@ -31,19 +31,17 @@ defmodule Kaarobar.Schemas.CustomerAccount do
     |> cast(attrs, [
       :email,
       :password,
-      :customer_id,
-      :owner_id,
-      :business_id,
+      :name,
+      :phone,
       :email_verified,
       :email_verify_token_hash,
       :status
     ])
-    |> validate_required([:email, :password, :customer_id, :owner_id, :business_id])
+    |> validate_required([:email, :password])
     |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/, message: "must have the @ sign and no spaces")
     |> validate_length(:password, min: 8, max: 72)
     |> update_change(:email, &String.downcase/1)
-    |> unique_constraint([:business_id, :email])
-    |> unique_constraint(:customer_id)
+    |> unique_constraint(:email, name: :customer_accounts_email_uidx)
     |> hash_password()
   end
 
@@ -58,6 +56,8 @@ defmodule Kaarobar.Schemas.CustomerAccount do
   def changeset(account, attrs) do
     account
     |> cast(attrs, [
+      :name,
+      :phone,
       :email_verified,
       :email_verify_token_hash,
       :password_reset_token_hash,

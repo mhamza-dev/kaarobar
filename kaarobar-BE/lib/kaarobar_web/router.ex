@@ -72,14 +72,19 @@ defmodule KaarobarWeb.Router do
     post "/auth/register", AuthController, :register
     post "/auth/login", AuthController, :login
     post "/auth/mfa/verify", AuthController, :verify_mfa
+    post "/auth/buyer/accept-invite", AuthController, :accept_buyer_invite
     post "/billing/webhook", BillingController, :webhook
 
-    # Customer Portal auth (CUS-FR) — unauthenticated
+    # Deprecated: prefer POST /auth/login|register with actor=buyer
     post "/portal/auth/register", PortalAuthController, :register
     post "/portal/auth/login", PortalAuthController, :login
     post "/portal/auth/verify-email", PortalAuthController, :verify_email
     post "/portal/auth/request-reset", PortalAuthController, :request_reset
     post "/portal/auth/reset-password", PortalAuthController, :reset_password
+
+    get "/marketplace/businesses", MarketplaceController, :index
+    get "/marketplace/businesses/:id", MarketplaceController, :show
+    get "/marketplace/businesses/:id/catalog", MarketplaceController, :catalog
   end
 
   scope "/api/v1", KaarobarWeb.V1 do
@@ -92,6 +97,7 @@ defmodule KaarobarWeb.Router do
     delete "/portal/me/profile-pic", PortalController, :delete_profile_pic
     get "/portal/orders", PortalController, :orders
     get "/portal/orders/:id", PortalController, :show_order
+    post "/portal/orders", PortalController, :place_order
     get "/portal/loyalty", PortalController, :loyalty
     get "/portal/ar", PortalController, :ar
     post "/portal/ar/pay", PortalController, :pay_ar
@@ -270,6 +276,15 @@ defmodule KaarobarWeb.Router do
     post "/crm/loyalty-tiers", CrmController, :create_tier
     patch "/crm/loyalty-tiers/:id", CrmController, :update_tier
     delete "/crm/loyalty-tiers/:id", CrmController, :delete_tier
+
+    get "/crm/templates", CrmController, :list_templates
+    post "/crm/templates", CrmController, :create_template
+    patch "/crm/templates/:id", CrmController, :update_template
+    delete "/crm/templates/:id", CrmController, :delete_template
+    post "/crm/templates/preview", CrmController, :preview_template
+
+    get "/crm/messaging-wallet", CrmController, :messaging_wallet
+    post "/crm/messaging-wallet/top-up", CrmController, :top_up_wallet
   end
 
   scope "/api/v1", KaarobarWeb.V1 do

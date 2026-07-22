@@ -21,9 +21,9 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
   const hideLayout =
     HIDDEN_LAYOUT_ROUTES.includes(pathname) ||
     pathname.startsWith("/app") ||
-    pathname.startsWith("/portal");
+    pathname.startsWith("/workspace");
 
-  const isAppShell = pathname.startsWith("/app");
+  const isAppShell = pathname.startsWith("/app") || pathname.startsWith("/workspace");
   const showNavbar = !hideLayout;
   const showFooter = !hideLayout && !user;
 

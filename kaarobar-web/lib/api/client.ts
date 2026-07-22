@@ -1,7 +1,18 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
 
+export type AuthActor = "business" | "consumer";
+
+export type BuyerMembership = {
+  customer_id: string;
+  business_id: string;
+  business_name?: string | null;
+  loyalty_points?: number;
+  portal_enabled?: boolean;
+};
+
 export type StoredSession = {
   access_token: string;
+  actor?: AuthActor;
   user: {
     id: string;
     email: string;
@@ -10,6 +21,15 @@ export type StoredSession = {
     locale?: "en" | "ur";
     profile_pic_url?: string | null;
   };
+  /** Buyer account (when actor=consumer) */
+  account?: {
+    id: string;
+    email: string;
+    name?: string | null;
+    phone?: string | null;
+    email_verified?: boolean;
+  };
+  buyer_memberships?: BuyerMembership[];
   business_id?: string;
   branch_id?: string;
   memberships?: {
@@ -51,10 +71,16 @@ export function clearSession() {
   }
 }
 
+export function isConsumerSession(session?: StoredSession | null): boolean {
+  const s = session === undefined ? getSession() : session;
+  return s?.actor === "consumer";
+}
+
 /** Pick default business + branch and persist on the session before tenant-scoped API calls. */
 export async function bootstrapTenantSession(
   session: StoredSession
 ): Promise<StoredSession> {
+  if (isConsumerSession(session)) return session;
   if (session.business_id && session.branch_id) return session;
 
   try {
@@ -92,12 +118,41 @@ export async function bootstrapTenantSession(
 export async function hydrateSessionContext(
   session: StoredSession
 ): Promise<StoredSession> {
+  if (isConsumerSession(session)) {
+    // Refresh buyer profile via portal me
+    try {
+      const me = await api<{
+        data: {
+          account: NonNullable<StoredSession["account"]>;
+          memberships: BuyerMembership[];
+        };
+      }>("/portal/me", {}, session);
+      const merged: StoredSession = {
+        ...session,
+        actor: "consumer",
+        account: me.data.account,
+        buyer_memberships: me.data.memberships || [],
+        user: {
+          id: me.data.account.id,
+          email: me.data.account.email,
+          name: me.data.account.name || me.data.account.email,
+          phone: me.data.account.phone,
+        },
+      };
+      setSession(merged);
+      return merged;
+    } catch {
+      return session;
+    }
+  }
+
   const me = await api<{
     user: StoredSession["user"];
     memberships: NonNullable<StoredSession["memberships"]>;
   }>("/auth/me", {}, session);
   let merged: StoredSession = {
     ...session,
+    actor: "business",
     user: me.user,
     memberships: me.memberships || [],
   };
@@ -122,35 +177,32 @@ export async function hydrateSessionContext(
 
 export async function api<T>(
   path: string,
-  init: RequestInit = {},
+  options: RequestInit = {},
   session?: StoredSession | null
 ): Promise<T> {
   const current = session === undefined ? getSession() : session;
-  const headers = new Headers(init.headers);
+  const headers = new Headers(options.headers);
   const isFormData =
-    typeof FormData !== "undefined" && init.body instanceof FormData;
+    typeof FormData !== "undefined" && options.body instanceof FormData;
   if (!isFormData && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
   if (current?.access_token) {
     headers.set("Authorization", `Bearer ${current.access_token}`);
   }
-  if (current?.business_id) headers.set("x-business-id", current.business_id);
-  if (current?.branch_id) headers.set("x-branch-id", current.branch_id);
-
-  const res = await fetch(`${API_URL}${path}`, { ...init, headers });
-  const text = await res.text();
-  let body: unknown = null;
-  if (text) {
-    try {
-      body = JSON.parse(text);
-    } catch {
-      body = { message: text };
-    }
+  if (current?.business_id) {
+    headers.set("x-business-id", current.business_id);
   }
+  if (current?.branch_id && !isConsumerSession(current)) {
+    headers.set("x-branch-id", current.branch_id);
+  }
+
+  const res = await fetch(`${API_URL}${path}`, { ...options, headers });
+  const body = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const err = body as { error?: string; message?: string } | null;
-    throw new Error(err?.error || err?.message || `Request failed (${res.status})`);
+    throw new Error(
+      (body as { error?: string }).error || res.statusText || "request_failed"
+    );
   }
   return body as T;
 }

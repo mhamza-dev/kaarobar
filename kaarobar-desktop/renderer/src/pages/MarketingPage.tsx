@@ -1,14 +1,16 @@
+"use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
-import { Field, PageHeader, SurfaceCard, fieldClass } from "@/components/app/ui";
+import { Field, PageHeader, SurfaceCard, TabBar, fieldClass } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
+import { detailRoutes } from "@/lib/navigation";
 
 type Campaign = {
   id: string;
@@ -16,11 +18,25 @@ type Campaign = {
   title: string;
   message: string;
   audience: string;
+  channel?: string;
   min_points?: number | null;
+  segment_id?: string | null;
+  coupon_id?: string | null;
+  template_id?: string | null;
+  budget_amount?: string | null;
+  estimated_cost?: string | null;
+  actual_cost?: string | null;
   status: string;
   sent_at?: string | null;
   recipient_count?: number;
-  delivery?: { notified: number; email_only: number; skipped: number; total: number };
+  delivery?: {
+    notified: number;
+    email_only: number;
+    skipped: number;
+    total: number;
+    sms_queued?: number;
+    whatsapp_queued?: number;
+  };
   recipients?: {
     id: string;
     customer_name?: string;
@@ -29,27 +45,117 @@ type Campaign = {
   }[];
 };
 
+type MsgTemplate = {
+  id: string;
+  name: string;
+  channel: string;
+  title_template: string;
+  body_template: string;
+  variables: Record<string, string>;
+};
+
+type Segment = { id: string; name: string; filters: Record<string, unknown> };
+type Coupon = {
+  id: string;
+  code: string;
+  discount_type: string;
+  discount_value: string;
+  usage_limit?: number | null;
+  usage_count: number;
+  min_cart?: string | null;
+  stackable: boolean;
+  active: boolean;
+  campaign_id?: string | null;
+};
+type Tier = {
+  id: string;
+  name: string;
+  min_points: number;
+  earn_rate: string;
+  redeem_rate: string;
+};
+
 const emptyForm = {
   name: "",
   title: "",
   message: "",
   audience: "all",
+  channel: "email",
   min_points: "",
+  segment_id: "",
+  coupon_id: "",
+  template_id: "",
+  budget_amount: "",
 };
+
+type Tab = "campaigns" | "templates" | "segments" | "coupons" | "tiers";
 
 export default function MarketingPage() {
   const t = useT();
   const toast = useToast();
+  const navigate = useNavigate();
+  const [tab, setTab] = useState<Tab>("campaigns");
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [templates, setTemplates] = useState<MsgTemplate[]>([]);
+  const [segments, setSegments] = useState<Segment[]>([]);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [tiers, setTiers] = useState<Tier[]>([]);
   const [busy, setBusy] = useState(false);
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [detail, setDetail] = useState<Campaign | null>(null);
+  const [previewCount, setPreviewCount] = useState<number | null>(null);
+  const [costPreview, setCostPreview] = useState<{
+    estimated_cost: string;
+    unit_cost: string;
+    wallet_balance: string;
+    can_send: boolean;
+  } | null>(null);
+  const [wallet, setWallet] = useState<{ balance: string; unit_costs: Record<string, string> } | null>(
+    null
+  );
+  const [tplForm, setTplForm] = useState({
+    name: "",
+    channel: "email",
+    title_template: "",
+    body_template: "",
+  });
+  const [tplPreview, setTplPreview] = useState<{ title: string; message: string } | null>(null);
+  const [topUpAmount, setTopUpAmount] = useState("500");
+  const [segForm, setSegForm] = useState({ name: "", min_points: "", khata: false });
+  const [couponForm, setCouponForm] = useState({
+    code: "",
+    discount_type: "percent",
+    discount_value: "",
+    usage_limit: "",
+    min_cart: "",
+    stackable: false,
+  });
+  const [tierForm, setTierForm] = useState({
+    name: "",
+    min_points: "0",
+    earn_rate: "1",
+    redeem_rate: "1",
+  });
 
   const load = useCallback(async () => {
     try {
-      const res = await api<{ data: Campaign[] }>("/crm/campaigns");
-      setCampaigns(res.data || []);
+      const [c, s, co, ti, tpl, w] = await Promise.all([
+        api<{ data: Campaign[] }>("/crm/campaigns"),
+        api<{ data: Segment[] }>("/crm/segments"),
+        api<{ data: Coupon[] }>("/crm/coupons"),
+        api<{ data: Tier[] }>("/crm/loyalty-tiers"),
+        api<{ data: MsgTemplate[] }>("/crm/templates"),
+        api<{ data: { balance: string; unit_costs: Record<string, string> } }>(
+          "/crm/messaging-wallet"
+        ),
+      ]);
+      setCampaigns(c.data || []);
+      setSegments(s.data || []);
+      setCoupons(co.data || []);
+      setTiers(ti.data || []);
+      setTemplates(tpl.data || []);
+      setWallet(w.data || null);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.loadFailed"));
     }
@@ -58,6 +164,41 @@ export default function MarketingPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  async function previewAudience() {
+    try {
+      const res = await api<{
+        data: {
+          count: number;
+          estimated_cost: string;
+          unit_cost: string;
+          wallet_balance: string;
+          can_send: boolean;
+        };
+      }>("/crm/campaigns/preview", {
+        method: "POST",
+        body: JSON.stringify({
+          audience: form.audience,
+          channel: form.channel,
+          budget_amount: form.budget_amount || null,
+          min_points:
+            form.audience === "min_points" && form.min_points
+              ? Number(form.min_points)
+              : null,
+          segment_id: form.audience === "segment" ? form.segment_id || null : null,
+        }),
+      });
+      setPreviewCount(res.data.count);
+      setCostPreview({
+        estimated_cost: res.data.estimated_cost,
+        unit_cost: res.data.unit_cost,
+        wallet_balance: res.data.wallet_balance,
+        can_send: res.data.can_send,
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
+    }
+  }
 
   async function createCampaign(e: React.FormEvent) {
     e.preventDefault();
@@ -70,16 +211,102 @@ export default function MarketingPage() {
           title: form.title,
           message: form.message,
           audience: form.audience,
+          channel: form.channel,
+          template_id: form.template_id || null,
+          budget_amount: form.budget_amount || null,
           min_points:
             form.audience === "min_points" && form.min_points
               ? Number(form.min_points)
               : null,
+          segment_id: form.audience === "segment" ? form.segment_id || null : null,
+          coupon_id: form.coupon_id || null,
         }),
       });
       toast.success(t("marketing.drafted"));
       setModal(false);
       setForm(emptyForm);
+      setPreviewCount(null);
+      setCostPreview(null);
       await load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function applyTemplate(id: string) {
+    const tpl = templates.find((x) => x.id === id);
+    setForm((f) => {
+      if (!tpl) return { ...f, template_id: id };
+      const vars = tpl.variables || {};
+      let title = tpl.title_template;
+      let message = tpl.body_template;
+      Object.entries(vars).forEach(([k, v]) => {
+        title = title.replaceAll(`{{${k}}}`, String(v));
+        message = message.replaceAll(`{{${k}}}`, String(v));
+      });
+      return {
+        ...f,
+        template_id: id,
+        channel: tpl.channel,
+        title,
+        message,
+      };
+    });
+  }
+
+  async function previewTemplate() {
+    try {
+      const res = await api<{ data: { title: string; message: string } }>(
+        "/crm/templates/preview",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            channel: tplForm.channel,
+            title_template: tplForm.title_template,
+            body_template: tplForm.body_template,
+            variables: { name: "Ayesha", business: "Demo Store", points: "120" },
+          }),
+        }
+      );
+      setTplPreview(res.data);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
+    }
+  }
+
+  async function createTemplate(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await api("/crm/templates", {
+        method: "POST",
+        body: JSON.stringify({
+          ...tplForm,
+          variables: { name: "Customer", business: "Store", points: "100" },
+        }),
+      });
+      setTplForm({ name: "", channel: "email", title_template: "", body_template: "" });
+      setTplPreview(null);
+      await load();
+      toast.success("Template saved");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function topUpWallet() {
+    setBusy(true);
+    try {
+      const res = await api<{ data: { balance: string } }>("/crm/messaging-wallet/top-up", {
+        method: "POST",
+        body: JSON.stringify({ amount: topUpAmount, note: "Owner top-up" }),
+      });
+      setWallet((w) => (w ? { ...w, balance: res.data.balance } : w));
+      toast.success(`Wallet credited · Rs ${res.data.balance}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.error"));
     } finally {
@@ -114,20 +341,89 @@ export default function MarketingPage() {
     }
   }
 
-  async function openDetail(c: Campaign) {
+  async function createSegment(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
     try {
-      const res = await api<{ data: Campaign }>(`/crm/campaigns/${c.id}`);
-      setDetail(res.data);
+      const filters: Record<string, unknown> = {};
+      if (segForm.khata) filters.khata_enabled = true;
+      if (segForm.min_points) filters.min_points = Number(segForm.min_points);
+      await api("/crm/segments", {
+        method: "POST",
+        body: JSON.stringify({ name: segForm.name, filters }),
+      });
+      setSegForm({ name: "", min_points: "", khata: false });
+      await load();
+      toast.success("Segment created");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.error"));
+    } finally {
+      setBusy(false);
     }
   }
 
-  function audienceLabel(audience: string) {
-    if (audience === "khata") return t("marketing.audienceKhata");
-    if (audience === "min_points") return t("marketing.audienceMinPoints");
-    return t("marketing.audienceAll");
+  async function createCoupon(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await api("/crm/coupons", {
+        method: "POST",
+        body: JSON.stringify({
+          code: couponForm.code,
+          discount_type: couponForm.discount_type,
+          discount_value: couponForm.discount_value,
+          usage_limit: couponForm.usage_limit ? Number(couponForm.usage_limit) : null,
+          min_cart: couponForm.min_cart || null,
+          stackable: couponForm.stackable,
+        }),
+      });
+      setCouponForm({
+        code: "",
+        discount_type: "percent",
+        discount_value: "",
+        usage_limit: "",
+        min_cart: "",
+        stackable: false,
+      });
+      await load();
+      toast.success("Coupon created");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
+    } finally {
+      setBusy(false);
+    }
   }
+
+  async function createTier(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await api("/crm/loyalty-tiers", {
+        method: "POST",
+        body: JSON.stringify({
+          name: tierForm.name,
+          min_points: Number(tierForm.min_points),
+          earn_rate: tierForm.earn_rate,
+          redeem_rate: tierForm.redeem_rate,
+        }),
+      });
+      setTierForm({ name: "", min_points: "0", earn_rate: "1", redeem_rate: "1" });
+      await load();
+      toast.success("Tier created");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const tabs: { id: Tab; label: string; infoKey?: string }[] = [
+    { id: "campaigns", label: "Campaigns", infoKey: "tab.marketing.campaigns" },
+    { id: "templates", label: "Templates" },
+    { id: "segments", label: "Segments", infoKey: "tab.marketing.segments" },
+    { id: "coupons", label: "Coupons", infoKey: "tab.marketing.coupons" },
+    { id: "tiers", label: "Loyalty tiers", infoKey: "tab.marketing.tiers" },
+  ];
 
   return (
     <div className="space-y-6">
@@ -136,83 +432,427 @@ export default function MarketingPage() {
         title={t("pages.marketingTitle")}
         description={t("pages.marketingDesc")}
         infoKey="page.marketing"
-        action={{ label: t("marketing.newCampaign"), onClick: () => setModal(true) }}
+        action={
+          tab === "campaigns"
+            ? { label: t("marketing.newCampaign"), onClick: () => setModal(true) }
+            : undefined
+        }
         secondaryAction={{
           label: t("nav.customers"),
           onClick: () => {
-            window.location.hash = "#/app/customers";
+            navigate("/app/customers");
           },
         }}
       />
 
-      <p className="text-sm text-body">
-        {t("marketing.hint")}{" "}
-        <Link to="/app/customers" className="text-brand underline">
-          {t("nav.customers")}
-        </Link>
-        .
-      </p>
-
-      <DataTable
-        maxHeight="24rem"
-        searchable
-        searchPlaceholder={t("marketing.search")}
-        getSearchText={(c) => `${c.name} ${c.title} ${c.status}`}
-        columns={[
-          { id: "name", header: t("common.name"), cell: (c) => c.name },
-          {
-            id: "audience",
-            header: t("marketing.audience"),
-            cell: (c) => audienceLabel(c.audience),
-          },
-          {
-            id: "status",
-            header: t("common.status"),
-            cell: (c) =>
-              c.status === "Draft" ? t("marketing.statusDraft") : t("marketing.statusSent"),
-          },
-          {
-            id: "sent",
-            header: t("marketing.sent"),
-            cell: (c) => (c.sent_at ? String(c.sent_at).slice(0, 16) : "—"),
-          },
-          {
-            id: "recipients",
-            header: t("marketing.recipients"),
-            cell: (c) => String(c.recipient_count ?? 0),
-          },
-          {
-            id: "actions",
-            header: "",
-            align: "right",
-            width: 56,
-            cell: (c) => (
-              <div className="flex justify-end">
-                <ActionMenu
-                  items={[
-                    {
-                      id: "detail",
-                      label: t("marketing.detail"),
-                      onClick: () => void openDetail(c),
-                    },
-                    {
-                      id: "send",
-                      label: t("marketing.send"),
-                      onClick: () => void sendCampaign(c),
-                      hidden: c.status !== "Draft",
-                      disabled: busy,
-                    },
-                  ]}
-                />
-              </div>
-            ),
-          },
-        ]}
-        data={campaigns}
-        rowKey={(c) => c.id}
-        emptyTitle={t("marketing.emptyTitle")}
-        emptyBody={t("marketing.emptyBody")}
+      <TabBar
+        tabs={tabs}
+        value={tab}
+        onChange={setTab}
+        aria-label="Marketing sections"
       />
+
+      {tab === "campaigns" ? (
+        <>
+          <SurfaceCard className="flex flex-wrap items-end gap-3 p-4">
+            <div>
+              <p className="text-xs font-semibold uppercase text-muted">Messaging wallet</p>
+              <p className="text-lg font-bold text-heading">
+                Rs {wallet?.balance ?? "0.00"}
+              </p>
+              <p className="text-xs text-body">
+                Rates · SMS Rs {wallet?.unit_costs?.sms ?? "2.50"} · WhatsApp Rs{" "}
+                {wallet?.unit_costs?.whatsapp ?? "3.00"}
+              </p>
+            </div>
+            <Field label="Top up (PKR)">
+              <input
+                className={fieldClass}
+                value={topUpAmount}
+                onChange={(e) => setTopUpAmount(e.target.value)}
+              />
+            </Field>
+            <Button size="sm" disabled={busy} onClick={() => void topUpWallet()}>
+              Credit wallet
+            </Button>
+          </SurfaceCard>
+
+          <p className="text-sm text-body">
+            {t("marketing.hint")}{" "}
+            <Link to="/app/customers" className="text-brand underline">
+              {t("nav.customers")}
+            </Link>
+            . Opt-in consent is required for email/SMS/WhatsApp sends. Paid channels debit the
+            messaging wallet.
+          </p>
+
+          <DataTable
+            maxHeight="24rem"
+            searchable
+            searchPlaceholder={t("marketing.search")}
+            getSearchText={(c) => `${c.name} ${c.title} ${c.status} ${c.channel || ""}`}
+            onRowClick={(c) => navigate(detailRoutes.campaign(c.id))}
+            columns={[
+              {
+                id: "name",
+                header: t("common.name"),
+                cell: (c) => (
+                  <Link
+                    to={detailRoutes.campaign(c.id)}
+                    className="font-semibold text-brand underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {c.name}
+                  </Link>
+                ),
+              },
+              {
+                id: "channel",
+                header: "Channel",
+                cell: (c) => c.channel || "email",
+              },
+              {
+                id: "audience",
+                header: t("marketing.audience"),
+                cell: (c) => c.audience,
+              },
+              {
+                id: "status",
+                header: t("common.status"),
+                cell: (c) =>
+                  c.status === "Draft" ? t("marketing.statusDraft") : t("marketing.statusSent"),
+              },
+              {
+                id: "recipients",
+                header: t("marketing.recipients"),
+                cell: (c) => String(c.recipient_count ?? 0),
+              },
+              {
+                id: "actions",
+                header: "",
+                align: "right",
+                width: 56,
+                cell: (c) => (
+                  <div className="flex justify-end">
+                    <ActionMenu
+                      items={[
+                        {
+                          id: "detail",
+                          label: t("marketing.detail"),
+                          onClick: () => navigate(detailRoutes.campaign(c.id)),
+                        },
+                        {
+                          id: "send",
+                          label: t("marketing.send"),
+                          onClick: () => void sendCampaign(c),
+                          hidden: c.status !== "Draft",
+                          disabled: busy,
+                        },
+                      ]}
+                    />
+                  </div>
+                ),
+              },
+            ]}
+            data={campaigns}
+            rowKey={(c) => c.id}
+            emptyTitle={t("marketing.emptyTitle")}
+            emptyBody={t("marketing.emptyBody")}
+          />
+        </>
+      ) : null}
+
+      {tab === "templates" ? (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <SurfaceCard className="space-y-3 p-4">
+            <h3 className="font-semibold text-heading">New template</h3>
+            <form onSubmit={createTemplate} className="grid gap-3">
+              <Field label="Name">
+                <input
+                  className={fieldClass}
+                  required
+                  value={tplForm.name}
+                  onChange={(e) => setTplForm({ ...tplForm, name: e.target.value })}
+                />
+              </Field>
+              <Field label="Channel">
+                <select
+                  className={fieldClass}
+                  value={tplForm.channel}
+                  onChange={(e) => setTplForm({ ...tplForm, channel: e.target.value })}
+                >
+                  <option value="email">Email</option>
+                  <option value="in_app">In-app</option>
+                  <option value="sms">SMS</option>
+                  <option value="whatsapp">WhatsApp</option>
+                </select>
+              </Field>
+              <Field label="Title template">
+                <input
+                  className={fieldClass}
+                  required
+                  value={tplForm.title_template}
+                  onChange={(e) => setTplForm({ ...tplForm, title_template: e.target.value })}
+                  placeholder="{{business}} offer for {{name}}"
+                />
+              </Field>
+              <Field label="Body template">
+                <textarea
+                  className={fieldClass}
+                  required
+                  rows={4}
+                  value={tplForm.body_template}
+                  onChange={(e) => setTplForm({ ...tplForm, body_template: e.target.value })}
+                  placeholder="Hi {{name}}, … Use {{points}} for loyalty."
+                />
+              </Field>
+              <div className="flex gap-2">
+                <Button type="button" variant="secondary" onClick={() => void previewTemplate()}>
+                  Preview
+                </Button>
+                <Button type="submit" loading={busy}>
+                  Save template
+                </Button>
+              </div>
+            </form>
+            {tplPreview ? (
+              <div className="rounded-lg border border-border bg-white p-3 text-sm shadow-sm">
+                <p className="text-xs font-semibold uppercase text-muted">
+                  Preview ({tplForm.channel})
+                </p>
+                <p className="mt-2 font-bold text-heading">{tplPreview.title}</p>
+                <p className="mt-1 whitespace-pre-wrap text-body">{tplPreview.message}</p>
+                {tplForm.channel === "sms" ? (
+                  <p className="mt-2 text-xs text-muted">
+                    {tplPreview.message.length} characters
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+          </SurfaceCard>
+          <SurfaceCard className="space-y-3 p-4">
+            <h3 className="font-semibold text-heading">Saved templates</h3>
+            <ul className="divide-y divide-border">
+              {templates.length === 0 ? (
+                <li className="py-3 text-sm text-body">No templates yet — defaults will seed on load.</li>
+              ) : (
+                templates.map((tpl) => (
+                  <li key={tpl.id} className="py-3 text-sm">
+                    <p className="font-semibold text-heading">
+                      {tpl.name}{" "}
+                      <span className="text-xs font-normal text-muted">· {tpl.channel}</span>
+                    </p>
+                    <p className="text-body">{tpl.title_template}</p>
+                  </li>
+                ))
+              )}
+            </ul>
+          </SurfaceCard>
+        </div>
+      ) : null}
+
+      {tab === "segments" ? (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <SurfaceCard className="space-y-3 p-4">
+            <h3 className="font-semibold text-heading">New segment</h3>
+            <form onSubmit={createSegment} className="grid gap-3">
+              <Field label="Name">
+                <input
+                  className={fieldClass}
+                  required
+                  value={segForm.name}
+                  onChange={(e) => setSegForm({ ...segForm, name: e.target.value })}
+                />
+              </Field>
+              <Field label="Min points">
+                <input
+                  className={fieldClass}
+                  type="number"
+                  min={0}
+                  value={segForm.min_points}
+                  onChange={(e) => setSegForm({ ...segForm, min_points: e.target.value })}
+                />
+              </Field>
+              <label className="flex items-center gap-2 text-sm text-body">
+                <input
+                  type="checkbox"
+                  checked={segForm.khata}
+                  onChange={(e) => setSegForm({ ...segForm, khata: e.target.checked })}
+                />
+                Khata customers only
+              </label>
+              <Button type="submit" loading={busy}>
+                Save segment
+              </Button>
+            </form>
+          </SurfaceCard>
+          <DataTable
+            columns={[
+              { id: "name", header: "Name", cell: (s) => s.name },
+              {
+                id: "filters",
+                header: "Filters",
+                cell: (s) => JSON.stringify(s.filters || {}),
+              },
+            ]}
+            data={segments}
+            rowKey={(s) => s.id}
+            emptyTitle="No segments"
+            emptyBody="Create a named audience filter."
+          />
+        </div>
+      ) : null}
+
+      {tab === "coupons" ? (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <SurfaceCard className="space-y-3 p-4">
+            <h3 className="font-semibold text-heading">New coupon</h3>
+            <form onSubmit={createCoupon} className="grid gap-3">
+              <Field label="Code">
+                <input
+                  className={fieldClass}
+                  required
+                  value={couponForm.code}
+                  onChange={(e) =>
+                    setCouponForm({ ...couponForm, code: e.target.value.toUpperCase() })
+                  }
+                />
+              </Field>
+              <Field label="Type">
+                <select
+                  className={fieldClass}
+                  value={couponForm.discount_type}
+                  onChange={(e) =>
+                    setCouponForm({ ...couponForm, discount_type: e.target.value })
+                  }
+                >
+                  <option value="percent">Percent</option>
+                  <option value="fixed">Fixed</option>
+                </select>
+              </Field>
+              <Field label="Value">
+                <input
+                  className={fieldClass}
+                  required
+                  value={couponForm.discount_value}
+                  onChange={(e) =>
+                    setCouponForm({ ...couponForm, discount_value: e.target.value })
+                  }
+                />
+              </Field>
+              <Field label="Usage limit">
+                <input
+                  className={fieldClass}
+                  value={couponForm.usage_limit}
+                  onChange={(e) =>
+                    setCouponForm({ ...couponForm, usage_limit: e.target.value })
+                  }
+                />
+              </Field>
+              <Field label="Min cart">
+                <input
+                  className={fieldClass}
+                  value={couponForm.min_cart}
+                  onChange={(e) => setCouponForm({ ...couponForm, min_cart: e.target.value })}
+                />
+              </Field>
+              <label className="flex items-center gap-2 text-sm text-body">
+                <input
+                  type="checkbox"
+                  checked={couponForm.stackable}
+                  onChange={(e) =>
+                    setCouponForm({ ...couponForm, stackable: e.target.checked })
+                  }
+                />
+                Stackable with other discounts
+              </label>
+              <Button type="submit" loading={busy}>
+                Save coupon
+              </Button>
+            </form>
+          </SurfaceCard>
+          <DataTable
+            columns={[
+              { id: "code", header: "Code", cell: (c) => c.code },
+              {
+                id: "value",
+                header: "Discount",
+                cell: (c) =>
+                  c.discount_type === "percent"
+                    ? `${c.discount_value}%`
+                    : `Rs ${c.discount_value}`,
+              },
+              {
+                id: "usage",
+                header: "Usage",
+                cell: (c) =>
+                  `${c.usage_count}${c.usage_limit != null ? ` / ${c.usage_limit}` : ""}`,
+              },
+            ]}
+            data={coupons}
+            rowKey={(c) => c.id}
+            emptyTitle="No coupons"
+            emptyBody="Create a promo code for POS checkout."
+          />
+        </div>
+      ) : null}
+
+      {tab === "tiers" ? (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <SurfaceCard className="space-y-3 p-4">
+            <h3 className="font-semibold text-heading">New loyalty tier</h3>
+            <form onSubmit={createTier} className="grid gap-3">
+              <Field label="Name">
+                <input
+                  className={fieldClass}
+                  required
+                  value={tierForm.name}
+                  onChange={(e) => setTierForm({ ...tierForm, name: e.target.value })}
+                />
+              </Field>
+              <Field label="Min points">
+                <input
+                  className={fieldClass}
+                  type="number"
+                  min={0}
+                  required
+                  value={tierForm.min_points}
+                  onChange={(e) => setTierForm({ ...tierForm, min_points: e.target.value })}
+                />
+              </Field>
+              <Field label="Earn rate multiplier">
+                <input
+                  className={fieldClass}
+                  value={tierForm.earn_rate}
+                  onChange={(e) => setTierForm({ ...tierForm, earn_rate: e.target.value })}
+                />
+              </Field>
+              <Field label="Redeem rate multiplier">
+                <input
+                  className={fieldClass}
+                  value={tierForm.redeem_rate}
+                  onChange={(e) => setTierForm({ ...tierForm, redeem_rate: e.target.value })}
+                />
+              </Field>
+              <Button type="submit" loading={busy}>
+                Save tier
+              </Button>
+            </form>
+          </SurfaceCard>
+          <DataTable
+            columns={[
+              { id: "name", header: "Name", cell: (t) => t.name },
+              { id: "min", header: "Min points", cell: (t) => String(t.min_points) },
+              { id: "earn", header: "Earn ×", cell: (t) => t.earn_rate },
+              { id: "redeem", header: "Redeem ×", cell: (t) => t.redeem_rate },
+            ]}
+            data={tiers}
+            rowKey={(t) => t.id}
+            emptyTitle="No tiers"
+            emptyBody="Add named loyalty tiers for customers."
+          />
+        </div>
+      ) : null}
 
       {detail ? (
         <SurfaceCard className="space-y-3 p-4">
@@ -220,20 +860,8 @@ export default function MarketingPage() {
             <div>
               <h3 className="font-semibold text-heading">{detail.name}</h3>
               <p className="text-sm text-body">
-                {detail.title} ·{" "}
-                {detail.status === "Draft"
-                  ? t("marketing.statusDraft")
-                  : t("marketing.statusSent")}
+                {detail.title} · {detail.channel || "email"} · {detail.status}
               </p>
-              {detail.delivery ? (
-                <p className="text-sm text-body">
-                  {t("marketing.deliverySummary", {
-                    notified: detail.delivery.notified,
-                    email: detail.delivery.email_only,
-                    skipped: detail.delivery.skipped,
-                  })}
-                </p>
-              ) : null}
             </div>
             <Button size="sm" variant="secondary" onClick={() => setDetail(null)}>
               {t("common.close")}
@@ -256,9 +884,15 @@ export default function MarketingPage() {
         onClose={() => setModal(false)}
         title={t("marketing.newCampaign")}
         footer={
-          <Button type="submit" form="campaign-form" loading={busy}>
-            {t("marketing.saveDraft")}
-          </Button>
+          <div className="flex gap-2">
+            <Button type="button" variant="secondary" onClick={() => void previewAudience()}>
+              Preview audience
+              {previewCount != null ? ` (${previewCount})` : ""}
+            </Button>
+            <Button type="submit" form="campaign-form" loading={busy}>
+              {t("marketing.saveDraft")}
+            </Button>
+          </div>
         }
       >
         <form id="campaign-form" onSubmit={createCampaign} className="grid gap-3">
@@ -269,6 +903,20 @@ export default function MarketingPage() {
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
             />
+          </Field>
+          <Field label="Template (optional)">
+            <select
+              className={fieldClass}
+              value={form.template_id}
+              onChange={(e) => applyTemplate(e.target.value)}
+            >
+              <option value="">None — write freely</option>
+              {templates.map((tpl) => (
+                <option key={tpl.id} value={tpl.id}>
+                  {tpl.name} ({tpl.channel})
+                </option>
+              ))}
+            </select>
           </Field>
           <Field label={t("marketing.notificationTitle")}>
             <input
@@ -287,6 +935,38 @@ export default function MarketingPage() {
               onChange={(e) => setForm({ ...form, message: e.target.value })}
             />
           </Field>
+          <div className="rounded-lg border border-border bg-bg-primary p-3 text-sm">
+            <p className="mb-1 text-xs font-semibold uppercase text-muted">Message preview</p>
+            <p className="font-semibold text-heading">{form.title || "Title"}</p>
+            <p className="mt-1 whitespace-pre-wrap text-body">{form.message || "Message body…"}</p>
+          </div>
+          <Field label="Channel">
+            <select
+              className={fieldClass}
+              value={form.channel}
+              onChange={(e) => setForm({ ...form, channel: e.target.value })}
+            >
+              <option value="email">Email</option>
+              <option value="in_app">In-app</option>
+              <option value="sms">SMS</option>
+              <option value="whatsapp">WhatsApp</option>
+            </select>
+          </Field>
+          <Field label="Budget (PKR)">
+            <input
+              className={fieldClass}
+              type="number"
+              min={0}
+              step="0.01"
+              placeholder={
+                form.channel === "sms" || form.channel === "whatsapp"
+                  ? "Required for paid channels"
+                  : "Optional soft cap"
+              }
+              value={form.budget_amount}
+              onChange={(e) => setForm({ ...form, budget_amount: e.target.value })}
+            />
+          </Field>
           <Field label={t("marketing.audience")}>
             <select
               className={fieldClass}
@@ -296,6 +976,7 @@ export default function MarketingPage() {
               <option value="all">{t("marketing.audienceAll")}</option>
               <option value="khata">{t("marketing.audienceKhata")}</option>
               <option value="min_points">{t("marketing.audienceMinPoints")}</option>
+              <option value="segment">Named segment</option>
             </select>
           </Field>
           {form.audience === "min_points" ? (
@@ -308,6 +989,46 @@ export default function MarketingPage() {
                 onChange={(e) => setForm({ ...form, min_points: e.target.value })}
               />
             </Field>
+          ) : null}
+          {form.audience === "segment" ? (
+            <Field label="Segment">
+              <select
+                className={fieldClass}
+                required
+                value={form.segment_id}
+                onChange={(e) => setForm({ ...form, segment_id: e.target.value })}
+              >
+                <option value="">Select…</option>
+                {segments.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          ) : null}
+          <Field label="Link coupon (optional)">
+            <select
+              className={fieldClass}
+              value={form.coupon_id}
+              onChange={(e) => setForm({ ...form, coupon_id: e.target.value })}
+            >
+              <option value="">None</option>
+              {coupons.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.code}
+                </option>
+              ))}
+            </select>
+          </Field>
+          {costPreview ? (
+            <p className="text-sm text-body">
+              Est. cost Rs {costPreview.estimated_cost} (Rs {costPreview.unit_cost}/msg) · Wallet Rs{" "}
+              {costPreview.wallet_balance}
+              {!costPreview.can_send ? (
+                <span className="text-danger"> · Over budget or insufficient credits</span>
+              ) : null}
+            </p>
           ) : null}
         </form>
       </Modal>

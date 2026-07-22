@@ -31,6 +31,7 @@ export default function SignupScreen() {
         {
           method: "POST",
           body: JSON.stringify({
+            actor: "business",
             email: email.trim(),
             password,
             name: name.trim(),
@@ -40,11 +41,12 @@ export default function SignupScreen() {
         null
       );
       const hydrated = await hydrateSessionContext({
+        actor: "business",
         access_token: result.access_token,
         user: result.user,
       });
       await setSession(hydrated);
-      router.replace("/dashboard");
+      router.replace("/app/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Signup failed");
     } finally {

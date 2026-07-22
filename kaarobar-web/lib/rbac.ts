@@ -109,6 +109,26 @@ export function canAccessPath(
   session: StoredSession | null,
   path: string
 ): boolean {
+  if (!session) return false;
+
+  const buyerShared =
+    path === "/app" ||
+    path === "/app/sales" ||
+    path.startsWith("/app/sales/") ||
+    path === "/app/customers" ||
+    path.startsWith("/app/customers/") ||
+    path === "/app/accounting" ||
+    path.startsWith("/app/accounting/") ||
+    path.startsWith("/app/market/");
+
+  // Buyer sessions: shared /app routes with buyer views + store pages
+  if (session.actor === "consumer") {
+    return buyerShared;
+  }
+
+  // Staff: all ROUTE_BUNDLES; store detail is buyer-only
+  if (path.startsWith("/app/market/")) return false;
+
   const exact = ROUTE_BUNDLES[path as keyof typeof ROUTE_BUNDLES];
   if (exact) return canAccessBundle(session, exact);
   const prefix = Object.keys(ROUTE_BUNDLES).find(

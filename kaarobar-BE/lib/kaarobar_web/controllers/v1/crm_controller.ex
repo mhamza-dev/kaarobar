@@ -65,6 +65,12 @@ defmodule KaarobarWeb.V1.CrmController do
       {:error, :already_sent} ->
         conn |> put_status(:unprocessable_entity) |> json(%{error: "already_sent"})
 
+      {:error, :budget_exceeded} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: "budget_exceeded"})
+
+      {:error, :insufficient_credits} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: "insufficient_credits"})
+
       {:error, reason} ->
         conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
     end
@@ -179,6 +185,100 @@ defmodule KaarobarWeb.V1.CrmController do
     end
   end
 
+  ## Templates
+
+  def list_templates(conn, _params) do
+    business_id = conn.assigns.business_id
+    _ = Crm.ensure_default_templates(business_id)
+
+    data =
+      Crm.list_templates(business_id)
+      |> Enum.map(&serialize_template/1)
+
+    json(conn, %{data: data})
+  end
+
+  def create_template(conn, params) do
+    case Crm.create_template(conn.assigns.business_id, params) do
+      {:ok, t} -> conn |> put_status(:created) |> json(%{data: serialize_template(t)})
+      {:error, cs} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(cs.errors)})
+    end
+  end
+
+  def update_template(conn, %{"id" => id} = params) do
+    case Crm.update_template(id, conn.assigns.business_id, params) do
+      {:ok, t} -> json(conn, %{data: serialize_template(t)})
+      {:error, :not_found} -> conn |> put_status(:not_found) |> json(%{error: "not_found"})
+      {:error, cs} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(cs.errors)})
+    end
+  end
+
+  def delete_template(conn, %{"id" => id}) do
+    case Crm.delete_template(id, conn.assigns.business_id) do
+      {:ok, _} -> json(conn, %{data: %{ok: true}})
+      {:error, :not_found} -> conn |> put_status(:not_found) |> json(%{error: "not_found"})
+    end
+  end
+
+  def preview_template(conn, params) do
+    vars = params["variables"] || %{}
+    rendered =
+      Crm.render_template(
+        params["title_template"] || params["title"],
+        params["body_template"] || params["message"],
+        stringify_map(vars)
+      )
+
+    json(conn, %{data: Map.put(rendered, :channel, params["channel"] || "email")})
+  end
+
+  def messaging_wallet(conn, _params) do
+    balance = Crm.wallet_balance(conn.assigns.business_id, conn.assigns.owner_id)
+    rates = Application.get_env(:kaarobar, :messaging_unit_costs, %{})
+
+    json(conn, %{
+      data: %{
+        balance: Decimal.to_string(balance),
+        unit_costs: rates
+      }
+    })
+  end
+
+  def top_up_wallet(conn, params) do
+    case Crm.top_up_wallet(
+           conn.assigns.business_id,
+           conn.assigns.owner_id,
+           params["amount"],
+           params["note"]
+         ) do
+      {:ok, balance} ->
+        json(conn, %{data: %{balance: Decimal.to_string(balance)}})
+
+      {:error, :invalid_amount} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: "invalid_amount"})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+    end
+  end
+
+  defp serialize_template(t) do
+    %{
+      id: t.id,
+      name: t.name,
+      channel: t.channel,
+      title_template: t.title_template,
+      body_template: t.body_template,
+      variables: t.variables || %{}
+    }
+  end
+
+  defp stringify_map(map) when is_map(map) do
+    Map.new(map, fn {k, v} -> {to_string(k), v} end)
+  end
+
+  defp stringify_map(_), do: %{}
+
   defp serialize_campaign(c, with_recipients \\ false) do
     recipients = loaded_recipients(c)
 
@@ -192,6 +292,11 @@ defmodule KaarobarWeb.V1.CrmController do
       min_points: c.min_points,
       segment_id: Map.get(c, :segment_id),
       coupon_id: Map.get(c, :coupon_id),
+      template_id: Map.get(c, :template_id),
+      budget_amount: c.budget_amount && to_string(c.budget_amount),
+      estimated_cost: c.estimated_cost && to_string(c.estimated_cost),
+      actual_cost: c.actual_cost && to_string(c.actual_cost),
+      unit_cost_snapshot: c.unit_cost_snapshot && to_string(c.unit_cost_snapshot),
       status: c.status,
       sent_at: c.sent_at,
       recipient_count: length(recipients),

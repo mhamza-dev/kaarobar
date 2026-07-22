@@ -33,14 +33,14 @@ const BUNDLES: Record<string, readonly string[]> = {
 type Bundle = keyof typeof BUNDLES;
 
 const ROUTES: Record<string, Bundle> = {
-  "/dashboard": "any_staff",
-  "/pos": "pos",
-  "/returns": "pos",
-  "/customers": "customers",
-  "/marketing": "marketing",
-  "/inventory": "inventory",
-  "/ess": "employee_self",
-  "/profile": "any_staff",
+  "/app/dashboard": "any_staff",
+  "/app/pos": "pos",
+  "/app/returns": "pos",
+  "/app/customers": "customers",
+  "/app/marketing": "marketing",
+  "/app/inventory": "inventory",
+  "/app/ess": "employee_self",
+  "/app/profile": "any_staff",
 };
 
 export function activeRoles(session: Session | null): string[] {
@@ -62,6 +62,22 @@ export function canAccess(session: Session | null, bundle: Bundle): boolean {
 }
 
 export function canAccessRoute(session: Session | null, route: string): boolean {
+  if (!session) return false;
+
+  if (session.actor === "consumer") {
+    return (
+      route === "/app/dashboard" ||
+      route === "/app/sales" ||
+      route === "/app/customers" ||
+      route === "/app/accounting" ||
+      route.startsWith("/app/market/")
+    );
+  }
+
+  if (route === "/app/sales" || route === "/app/accounting" || route.startsWith("/app/market")) {
+    return false;
+  }
+
   const bundle = ROUTES[route];
   if (!bundle) return true;
   return canAccess(session, bundle);

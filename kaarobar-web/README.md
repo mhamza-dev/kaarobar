@@ -7,19 +7,18 @@ Next.js client for Kaarobar SRS **KRB-SRS-001**.
 | Surface | Audience | Behaviour |
 |---------|----------|-----------|
 | Marketing site (`/`) | Prospects | Product story: multi-business POS + books + HR, Pakistan/FBR ready |
-| Auth (`/login`, `/signup`) | Owners | Email/password → JWT session (TEN-FR-006) |
-| App (`/app/*`) | Owner, Manager, Accountant, Inventory, HR, Cashier (browser POS) | Dashboard, POS, inventory, accounting, HR shells |
-| Customer Portal (`/portal/*`) | Customers | Orders, loyalty, khata/AR — separate login from staff |
+| Auth (`/login`, `/signup`) | Business & consumers | Shared sign-in; **`?as=consumer`** / Sign in as Consumer sends `actor=consumer` |
+| App (`/app/*`) | Business or consumers | Same routes; UI switches by session actor (`as`) |
 
-**Auth flow:** logged out → landing; logged in (staff) → `/app` dashboard. Customers use `/portal/login` (not staff auth).
+**Auth flow:** logged out → landing; after login → `/app` (business dashboard or consumer discover). Filesystem: `app/workspace/*` rewritten to `/app/*`.
 
-## Customer Portal
+## Consumer marketplace
 
 With API + web running:
 
-1. Open [http://localhost:3000/portal/login](http://localhost:3000/portal/login)
-2. Enter **Business ID** (UUID from seed output or staff app), customer **email**, and **password**
-3. After sign-in: `/portal` (orders, loyalty, AR)
+1. Sign in: [http://localhost:3000/login?as=consumer](http://localhost:3000/login?as=consumer)
+2. Home `/app` lists stores; order at `/app/market/:id`
+3. Shared routes: `/app/sales` (orders), `/app/customers` (loyalty), `/app/accounting` (khata)
 
 Demo seeds (after `mix ecto.setup` / `mix ecto.reset` in `kaarobar-BE`):
 
@@ -27,9 +26,10 @@ Demo seeds (after `mix ecto.setup` / `mix ecto.reset` in `kaarobar-BE`):
 |-------|--------|
 | Password | `Password@123` |
 | Emails | `ayesha.customer@kaarobar-demo.pk`, `admin@neighborhoodclinic.pk`, `procurement@hotelsupplies.pk`, `raza.traders@kaarobar-demo.pk` |
-| Business ID | Printed in the seed summary for `owner@kaarobar.local` businesses |
 
-Self-register: `/portal/register` when the business has `portal_self_register` enabled. Staff can set a portal password on the customer form under `/app/customers`.
+Seeded demo businesses are marketplace-listed. Staff owners can toggle marketplace under **Settings → Integrations**. Online sales appear via `GET /sales?source=online`.
+
+Staff can attach a customer to a buyer account (invite email → `/login?as=consumer&invite=…`).
 
 See also [docs/crm.md](../docs/crm.md).
 

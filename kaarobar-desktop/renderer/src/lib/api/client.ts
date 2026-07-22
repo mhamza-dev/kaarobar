@@ -4,6 +4,8 @@ const API_URL =
 
 export type StoredSession = {
   access_token: string;
+  /** Desktop is staff-only; always `"business"` when set. */
+  actor?: "business";
   user: {
     id: string;
     email: string;
@@ -100,6 +102,7 @@ export async function hydrateSessionContext(
   }>("/auth/me", {}, session);
   let merged: StoredSession = {
     ...session,
+    actor: "business",
     user: me.user,
     memberships: me.memberships || [],
   };

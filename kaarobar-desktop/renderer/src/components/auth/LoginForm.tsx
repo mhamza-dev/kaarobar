@@ -54,6 +54,7 @@ const LoginForm = (): React.ReactElement => {
       }>("/auth/login", {
         method: "POST",
         body: JSON.stringify({
+          actor: "business",
           email: values.email,
           password: values.password,
           remember_me: Boolean(values.remember),
@@ -61,6 +62,7 @@ const LoginForm = (): React.ReactElement => {
       }, null);
 
       const base = {
+        actor: "business" as const,
         access_token: result.access_token,
         user: result.user,
       };

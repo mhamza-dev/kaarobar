@@ -47,8 +47,12 @@ defmodule Kaarobar.Pos do
                  apply_coupon(business_id, owner_id, attrs, money),
                :ok <- validate_discount_limit(branch, money.discount_amount, attrs),
                {:ok, payments} <-
-                 normalize_payments(attrs[:payments] || attrs["payments"] || [], money.total_amount),
-               {:ok, customer_id} <- validate_customer_for_sale(business_id, owner_id, attrs, payments) do
+                 normalize_payments(
+                   attrs[:payments] || attrs["payments"] || [],
+                   money.total_amount
+                 ),
+               {:ok, customer_id} <- validate_customer_for_sale(business_id, owner_id, attrs, payments),
+               :ok <- validate_online_sale(attrs, cashier_id, payments) do
             do_create_sale(
               branch,
               owner_id,
@@ -89,6 +93,8 @@ defmodule Kaarobar.Pos do
       decrement_stock!(branch.id, priced_items)
     end)
     |> Multi.insert(:sale, fn %{invoice_number: invoice_number} ->
+      source = sale_source(attrs)
+
       %Sale{}
       |> Sale.changeset(%{
         branch_id: branch.id,
@@ -100,6 +106,7 @@ defmodule Kaarobar.Pos do
         customer_id: attrs[:customer_id] || attrs["customer_id"],
         till_id: attrs[:till_id] || attrs["till_id"],
         status: "Completed",
+        source: source,
         subtotal: money.subtotal,
         tax_amount: money.tax_amount,
         discount_amount: money.discount_amount,
@@ -114,10 +121,15 @@ defmodule Kaarobar.Pos do
       insert_payments(sale.id, payments)
     end)
     |> Multi.run(:khata_ar, fn _repo, %{sale: sale} ->
-      maybe_create_khata_ar(sale, payments, cashier_id)
+      maybe_create_khata_ar(sale, payments, cashier_id || owner_id)
     end)
     |> Multi.run(:enqueue_journal, fn _repo, %{sale: sale} ->
-      %{sale_id: sale.id, business_id: business_id, owner_id: owner_id, posted_by_id: cashier_id}
+      %{
+        sale_id: sale.id,
+        business_id: business_id,
+        owner_id: owner_id,
+        posted_by_id: cashier_id || owner_id
+      }
       |> Kaarobar.Workers.PostSaleJournalWorker.new()
       |> Oban.insert()
     end)
@@ -652,12 +664,31 @@ defmodule Kaarobar.Pos do
             other -> other
           end
 
+        amount_raw = p[:amount] || p["amount"]
+
         %{
           method: method,
-          amount: to_dec(p[:amount] || p["amount"]),
+          amount:
+            if is_nil(amount_raw) or amount_raw == "" do
+              :auto
+            else
+              to_dec(amount_raw)
+            end,
           reference: p[:reference] || p["reference"]
         }
       end)
+
+    payments =
+      case payments do
+        [%{amount: :auto} = p] ->
+          [%{p | amount: total}]
+
+        list ->
+          Enum.map(list, fn
+            %{amount: :auto} = p -> %{p | amount: Decimal.new(0)}
+            p -> p
+          end)
+      end
 
     cond do
       payments == [] ->
@@ -673,6 +704,37 @@ defmodule Kaarobar.Pos do
           {:ok, payments}
         else
           {:error, {:payment_mismatch, to_string(total), to_string(sum)}}
+        end
+    end
+  end
+
+  defp sale_source(attrs) do
+    case attrs[:source] || attrs["source"] || "pos" do
+      "online" -> "online"
+      _ -> "pos"
+    end
+  end
+
+  defp validate_online_sale(attrs, cashier_id, payments) do
+    case sale_source(attrs) do
+      "online" ->
+        cond do
+          not is_nil(cashier_id) and cashier_id != "" ->
+            # Online sales should not require a cashier; ignore if provided
+            :ok
+
+          Enum.any?(payments, &(&1.method in ["khata", "credit", "cash"])) ->
+            {:error, :invalid_online_payment}
+
+          true ->
+            :ok
+        end
+
+      _ ->
+        if is_nil(cashier_id) or cashier_id == "" do
+          {:error, :cashier_required}
+        else
+          :ok
         end
     end
   end
@@ -1361,15 +1423,33 @@ defmodule Kaarobar.Pos do
 
   ## —— Queries ——————————————————————————————————————————————————
 
-  def list_sales(branch_id, owner_id, business_id) do
-    Sale
-    |> where(
-      [s],
-      s.branch_id == ^branch_id and s.owner_id == ^owner_id and s.business_id == ^business_id
-    )
-    |> order_by([s], desc: s.inserted_at)
-    |> preload([:items, :payments])
-    |> Repo.all()
+  def list_sales(branch_id, owner_id, business_id, opts \\ []) do
+    source = opts[:source]
+
+    query =
+      Sale
+      |> where(
+        [s],
+        s.owner_id == ^owner_id and s.business_id == ^business_id
+      )
+      |> then(fn q ->
+        if is_binary(branch_id) and branch_id != "" do
+          where(q, [s], s.branch_id == ^branch_id)
+        else
+          q
+        end
+      end)
+      |> then(fn q ->
+        if is_binary(source) and source in ~w(pos online) do
+          where(q, [s], s.source == ^source)
+        else
+          q
+        end
+      end)
+      |> order_by([s], desc: s.inserted_at)
+      |> preload([:items, :payments, :customer])
+
+    Repo.all(query)
   end
 
   def get_sale(sale_id, owner_id) do

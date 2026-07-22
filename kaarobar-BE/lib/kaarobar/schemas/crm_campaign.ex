@@ -18,12 +18,17 @@ defmodule Kaarobar.Schemas.CrmCampaign do
     field :min_points, :integer
     field :status, :string, default: "Draft"
     field :sent_at, :utc_datetime
+    field :budget_amount, :decimal
+    field :estimated_cost, :decimal
+    field :actual_cost, :decimal
+    field :unit_cost_snapshot, :decimal
 
     belongs_to :business, Kaarobar.Schemas.Business
     belongs_to :owner, Kaarobar.Schemas.User
     belongs_to :created_by, Kaarobar.Schemas.User
     belongs_to :segment, Kaarobar.Schemas.CampaignSegment
     belongs_to :coupon, Kaarobar.Schemas.Coupon
+    belongs_to :template, Kaarobar.Schemas.CrmMessageTemplate
     has_many :recipients, Kaarobar.Schemas.CrmCampaignRecipient, foreign_key: :campaign_id
 
     timestamps(type: :utc_datetime)
@@ -48,7 +53,12 @@ defmodule Kaarobar.Schemas.CrmCampaign do
       :owner_id,
       :created_by_id,
       :segment_id,
-      :coupon_id
+      :coupon_id,
+      :template_id,
+      :budget_amount,
+      :estimated_cost,
+      :actual_cost,
+      :unit_cost_snapshot
     ])
     |> validate_required([
       :name,
@@ -69,6 +79,7 @@ defmodule Kaarobar.Schemas.CrmCampaign do
     |> foreign_key_constraint(:created_by_id)
     |> foreign_key_constraint(:segment_id)
     |> foreign_key_constraint(:coupon_id)
+    |> foreign_key_constraint(:template_id)
   end
 
   defp validate_segment_audience(changeset) do

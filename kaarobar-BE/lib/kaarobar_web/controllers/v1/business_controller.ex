@@ -89,7 +89,12 @@ defmodule KaarobarWeb.V1.BusinessController do
       is_active: b.is_active,
       loyalty_earn_per_amount: to_string(b.loyalty_earn_per_amount || 100),
       loyalty_points_per_earn: b.loyalty_points_per_earn || 1,
-      loyalty_redeem_value: to_string(b.loyalty_redeem_value || 1)
+      loyalty_redeem_value: to_string(b.loyalty_redeem_value || 1),
+      portal_self_register: b.portal_self_register == true,
+      portal_invite_from_sale: b.portal_invite_from_sale != false,
+      marketplace_enabled: b.marketplace_enabled == true,
+      marketplace_slug: b.marketplace_slug,
+      online_branch_id: b.online_branch_id
     }
   end
 

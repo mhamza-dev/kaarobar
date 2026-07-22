@@ -70,6 +70,12 @@ export default function AppLayout() {
       try {
         const ready = await hydrateSessionContext(current);
         if (cancelled) return;
+        // Desktop is staff-only — reject accidental buyer tokens
+        if ((ready as { actor?: string }).actor === "consumer") {
+          clearSession();
+          navigate(routes.login, { replace: true });
+          return;
+        }
         setSessionState(ready);
         setTenantKey(`${ready.business_id || ""}:${ready.branch_id || ""}`);
         if (ready.user.locale === "ur" || ready.user.locale === "en") {

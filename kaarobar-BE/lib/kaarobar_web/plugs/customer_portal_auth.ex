@@ -1,8 +1,8 @@
 defmodule KaarobarWeb.Plugs.CustomerPortalAuth do
   @moduledoc """
   Authenticates Customer Portal sessions (CUS-FR-008).
-  Expects `Authorization: Bearer <session_token>` and `x-business-id`.
-  Sets LOCAL app.customer_id when possible.
+  Expects `Authorization: Bearer <session_token>`.
+  Optional `x-business-id` scopes membership context.
   """
   import Plug.Conn
 
@@ -12,35 +12,45 @@ defmodule KaarobarWeb.Plugs.CustomerPortalAuth do
   def init(opts), do: opts
 
   def call(conn, _opts) do
-    business_id = header(conn, "x-business-id")
     token = bearer_token(conn)
+    business_id = header(conn, "x-business-id")
 
     cond do
-      is_nil(business_id) or business_id == "" ->
-        forbid(conn, "business_required", 400)
-
       is_nil(token) ->
         forbid(conn, "unauthorized", 401)
 
       true ->
         case CustomerPortal.get_account_by_session_token(token) do
-          %{business_id: ^business_id} = account ->
-            set_customer_local(account.customer_id)
-
-            conn
-            |> assign(:portal_account, account)
-            |> assign(:portal_customer_id, account.customer_id)
-            |> assign(:business_id, business_id)
-            |> assign(:owner_id, account.owner_id)
-            |> assign(:customer_id, account.customer_id)
-
-          %{business_id: _} ->
-            forbid(conn, "forbidden_business", 403)
-
           nil ->
             forbid(conn, "unauthorized", 401)
+
+          account ->
+            membership =
+              if is_binary(business_id) do
+                CustomerPortal.membership_for(account, business_id)
+              else
+                nil
+              end
+
+            if is_binary(business_id) and is_nil(membership) do
+              # Soft scope: allow access; controllers may call ensure_membership
+              assign_portal(conn, account, nil, business_id)
+            else
+              if membership, do: set_customer_local(membership.id)
+              assign_portal(conn, account, membership, business_id)
+            end
         end
     end
+  end
+
+  defp assign_portal(conn, account, membership, business_id) do
+    conn
+    |> assign(:portal_account, account)
+    |> assign(:portal_membership, membership)
+    |> assign(:portal_customer_id, membership && membership.id)
+    |> assign(:business_id, business_id)
+    |> assign(:customer_id, membership && membership.id)
+    |> assign(:owner_id, membership && membership.owner_id)
   end
 
   defp set_customer_local(customer_id) when is_binary(customer_id) do

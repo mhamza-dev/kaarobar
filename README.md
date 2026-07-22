@@ -161,19 +161,19 @@ Additional owners: `owner2@` (growth), `owner3@` (starter), `owner4@` (trial) �
 Staff: `manager@` / `cashier@` / `accountant@` / `hr@` / `inventory@kaarobar.local` (and `*2@`, `*3@`, `*4@` per owner).  
 Fresh demo data: `cd kaarobar-BE && mix ecto.reset`
 
-### Customer Portal
+### Buyer marketplace (unified login)
 
-Customers sign in separately from staff (no staff roles). Portal UI lives in the web app.
+Staff and buyers share `/login`. Choose **Sign in as Consumer** (or open `/login?as=consumer`). No separate portal product; legacy `/portal/*` redirects.
 
 | | |
 |--|--|
-| URL | [http://localhost:3000/portal/login](http://localhost:3000/portal/login) |
-| Register | [http://localhost:3000/portal/register](http://localhost:3000/portal/register) (when the business has self-register enabled) |
-| Reset | [http://localhost:3000/portal/reset](http://localhost:3000/portal/reset) |
+| Sign in | [http://localhost:3000/login?as=consumer](http://localhost:3000/login?as=consumer) |
+| Market | [http://localhost:3000/app](http://localhost:3000/app) (buyer discover; store at `/app/market/:id`) |
+| API | `POST /api/v1/auth/login` with `actor: "consumer"` |
 
-Login needs **Business ID** (UUID) + customer **email** + **password**.
+Login needs buyer **email** + **password** (platform-wide identity; no Business ID).
 
-After seeding (`mix ecto.setup` / `mix ecto.reset`), the console prints portal logins for the primary owner’s enriched businesses. Typical demo credentials:
+After seeding (`mix ecto.setup` / `mix ecto.reset`), typical demo credentials:
 
 ```
 Email:    ayesha.customer@kaarobar-demo.pk
@@ -181,10 +181,9 @@ Email:    ayesha.customer@kaarobar-demo.pk
           procurement@hotelsupplies.pk
           raza.traders@kaarobar-demo.pk
 Password: Password@123
-Business ID: printed in the seed summary (owner@kaarobar.local businesses)
 ```
 
-Staff can also enable portal login when creating/editing a customer (**Customer portal login** + **Portal password**), or invite via `POST /api/v1/customers/:id/portal-invite`.
+Staff can attach a customer to a buyer account (invite email → `/login?as=consumer&invite=…`), or provision via customers UI / `POST /api/v1/customers/:id/portal-invite`.
 
 More detail: [docs/crm.md](docs/crm.md).
 
