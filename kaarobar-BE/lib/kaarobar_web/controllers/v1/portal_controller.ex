@@ -2,6 +2,7 @@ defmodule KaarobarWeb.V1.PortalController do
   use KaarobarWeb, :controller
 
   alias Kaarobar.CustomerPortal
+  alias Kaarobar.Profiles
 
   def me(conn, _params) do
     account = conn.assigns.portal_account
@@ -30,6 +31,32 @@ defmodule KaarobarWeb.V1.PortalController do
 
       {:error, cs} ->
         conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(cs.errors)})
+    end
+  end
+
+  def upload_profile_pic(conn, params) do
+    account = conn.assigns.portal_account
+    customer = CustomerPortal.get_profile(account)
+
+    case extract_upload(params) do
+      {:ok, upload} ->
+        case Profiles.upload_customer_pic(customer, upload) do
+          {:ok, updated} -> json(conn, %{data: serialize_customer(updated)})
+          {:error, reason} -> profile_pic_error(conn, reason)
+        end
+
+      {:error, reason} ->
+        profile_pic_error(conn, reason)
+    end
+  end
+
+  def delete_profile_pic(conn, _params) do
+    account = conn.assigns.portal_account
+    customer = CustomerPortal.get_profile(account)
+
+    case Profiles.clear_customer_pic(customer) do
+      {:ok, updated} -> json(conn, %{data: serialize_customer(updated)})
+      {:error, reason} -> profile_pic_error(conn, reason)
     end
   end
 
@@ -107,8 +134,28 @@ defmodule KaarobarWeb.V1.PortalController do
       marketing_opt_in_email: c.marketing_opt_in_email == true,
       marketing_opt_in_sms: c.marketing_opt_in_sms == true,
       marketing_opt_in_whatsapp: c.marketing_opt_in_whatsapp == true,
-      khata_enabled: c.khata_enabled == true
+      khata_enabled: c.khata_enabled == true,
+      profile_pic_url: Profiles.profile_pic_url(c)
     }
+  end
+
+  defp extract_upload(%{"file" => %Plug.Upload{} = upload}), do: {:ok, upload}
+  defp extract_upload(%{"image" => %Plug.Upload{} = upload}), do: {:ok, upload}
+  defp extract_upload(%{"profile_pic" => %Plug.Upload{} = upload}), do: {:ok, upload}
+  defp extract_upload(_), do: {:error, :missing_file}
+
+  defp profile_pic_error(conn, reason) do
+    error =
+      case reason do
+        :missing_file -> "missing_file"
+        :invalid_upload -> "invalid_upload"
+        :unsupported_type -> "unsupported_type"
+        :too_large -> "too_large"
+        :empty -> "empty"
+        other -> inspect(other)
+      end
+
+    conn |> put_status(:unprocessable_entity) |> json(%{error: error})
   end
 
   defp serialize_sale(s) do

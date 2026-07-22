@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, getSession, setSession } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
+import ProfilePicEditor from "@/components/app/ProfilePicEditor";
 import {
   Field,
   PageHeader,
@@ -18,6 +19,7 @@ type ProfileUser = {
   name: string;
   phone?: string | null;
   locale?: Locale;
+  profile_pic_url?: string | null;
 };
 
 export default function ProfilePage() {
@@ -30,7 +32,24 @@ export default function ProfilePage() {
     locale: "en" as Locale,
     password: "",
   });
+  const [picUrl, setPicUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const syncSessionUser = useCallback((u: ProfileUser) => {
+    const session = getSession();
+    if (!session) return;
+    setSession({
+      ...session,
+      user: {
+        ...session.user,
+        name: u.name,
+        email: u.email,
+        phone: u.phone,
+        locale: u.locale === "ur" ? "ur" : "en",
+        profile_pic_url: u.profile_pic_url ?? null,
+      },
+    });
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -43,11 +62,13 @@ export default function ProfilePage() {
         locale: u.locale === "ur" ? "ur" : "en",
         password: "",
       });
+      setPicUrl(u.profile_pic_url || null);
+      syncSessionUser(u);
       if (u.locale === "ur" || u.locale === "en") setLocale(u.locale);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("profile.loadError"));
     }
-  }, [setLocale, t, toast]);
+  }, [setLocale, syncSessionUser, t, toast]);
 
   useEffect(() => {
     load();
@@ -69,19 +90,7 @@ export default function ProfilePage() {
         body: JSON.stringify(body),
       });
 
-      const session = getSession();
-      if (session) {
-        setSession({
-          ...session,
-          user: {
-            ...session.user,
-            name: res.user.name,
-            email: res.user.email,
-            phone: res.user.phone,
-            locale: res.user.locale === "ur" ? "ur" : "en",
-          },
-        });
-      }
+      syncSessionUser({ ...res.user, profile_pic_url: picUrl });
       setLocale(res.user.locale === "ur" ? "ur" : "en");
       setForm((f) => ({ ...f, password: "" }));
       toast.success(t("profile.saved"));
@@ -99,6 +108,27 @@ export default function ProfilePage() {
         title={t("profile.title")}
         description={t("profile.description")}
       />
+
+      <SurfaceCard className="p-5">
+        <ProfilePicEditor
+          url={picUrl}
+          name={form.name}
+          uploadPath="/auth/me/profile-pic"
+          urlFromResponse={(body) =>
+            (body as { user?: ProfileUser })?.user?.profile_pic_url
+          }
+          onChange={(next) => {
+            setPicUrl(next);
+            const session = getSession();
+            if (session) {
+              setSession({
+                ...session,
+                user: { ...session.user, profile_pic_url: next },
+              });
+            }
+          }}
+        />
+      </SurfaceCard>
 
       <SurfaceCard className="p-5">
         <form onSubmit={onSubmit} className="space-y-4">

@@ -21,6 +21,7 @@ defmodule Kaarobar.Schemas.Customer do
     field :marketing_opt_in_sms, :boolean, default: false
     field :marketing_opt_in_whatsapp, :boolean, default: false
     field :portal_enabled, :boolean, default: false
+    field :profile_pic_key, :string
 
     belongs_to :business, Kaarobar.Schemas.Business
     belongs_to :owner, Kaarobar.Schemas.User

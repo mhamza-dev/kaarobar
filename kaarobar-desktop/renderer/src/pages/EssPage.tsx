@@ -1,12 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, getSession } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
+import ProfilePicEditor from "@/components/app/ProfilePicEditor";
 import { PageHeader, SurfaceCard, TabBar, fieldClass } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 
 type EssData = {
-  employee?: { id: string; name?: string; employee_code?: string } | null;
+  employee?: {
+    id: string;
+    name?: string;
+    employee_code?: string;
+    profile_pic_url?: string | null;
+  } | null;
   open_attendance?: { id: string; clock_in?: string } | null;
   attendance?: {
     id: string;
@@ -140,6 +146,28 @@ export default function EssPage() {
 
       {loading ? (
         <p className="text-sm text-body">{t("common.loading")}</p>
+      ) : null}
+
+      {!loading && emp ? (
+        <SurfaceCard className="p-5">
+          <ProfilePicEditor
+            url={emp.profile_pic_url}
+            name={emp.name}
+            uploadPath="/ess/me/profile-pic"
+            urlFromResponse={(body) =>
+              (body as { data?: { profile_pic_url?: string | null } })?.data
+                ?.profile_pic_url
+            }
+            onChange={(next) =>
+              setData((d) =>
+                d?.employee
+                  ? { ...d, employee: { ...d.employee, profile_pic_url: next } }
+                  : d,
+              )
+            }
+            label="Your employee photo"
+          />
+        </SurfaceCard>
       ) : null}
 
       {!loading && tab === "clock" ? (

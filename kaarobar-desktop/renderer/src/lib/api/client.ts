@@ -10,6 +10,7 @@ export type StoredSession = {
     name: string;
     phone?: string | null;
     locale?: "en" | "ur";
+    profile_pic_url?: string | null;
   };
   business_id?: string;
   branch_id?: string;

@@ -8,10 +8,13 @@ import {
   Plus,
   Search,
   Trash2,
+  UserRoundPlus,
   Wallet,
+  X,
 } from "lucide-react";
 import { api, getSession } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
+import Modal from "@/components/modals/Modal";
 import { StatusBadge, fieldClass } from "@/components/app/ui";
 import SaleReceiptModal, { type ReceiptSale } from "@/components/app/SaleReceiptModal";
 import { useToast } from "@/components/ui/Toast";
@@ -112,6 +115,7 @@ export default function PosPage() {
   const [newCustomerName, setNewCustomerName] = useState("");
   const [newCustomerPhone, setNewCustomerPhone] = useState("");
   const [showNewCustomer, setShowNewCustomer] = useState(false);
+  const [customerModalOpen, setCustomerModalOpen] = useState(false);
   const [pendingProduct, setPendingProduct] = useState<Product | null>(null);
   const [pickedVariant, setPickedVariant] = useState("");
   const [pickedModifiers, setPickedModifiers] = useState<string[]>([]);
@@ -140,14 +144,12 @@ export default function PosPage() {
   const selectedCustomer = customers.find((c) => c.id === customerId) || null;
   const filteredCustomers = useMemo(() => {
     const q = customerQuery.trim().toLowerCase();
-    if (!q) return customers.slice(0, 8);
-    return customers
-      .filter(
-        (c) =>
-          c.name.toLowerCase().includes(q) ||
-          (c.phone || "").toLowerCase().includes(q)
-      )
-      .slice(0, 8);
+    if (!q) return customers;
+    return customers.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        (c.phone || "").toLowerCase().includes(q)
+    );
   }, [customers, customerQuery]);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -312,6 +314,8 @@ export default function PosPage() {
       setCustomers((prev) => [...prev, res.data].sort((a, b) => a.name.localeCompare(b.name)));
       setCustomerId(res.data.id);
       setShowNewCustomer(false);
+      setCustomerModalOpen(false);
+      setCustomerQuery("");
       setNewCustomerName("");
       setNewCustomerPhone("");
       toast.success(t("pos.customerCreatedKhata"));
@@ -666,6 +670,17 @@ export default function PosPage() {
                 />
               </label>
               <label className="text-xs text-muted">
+                Coupon
+                <input
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                  className={`${fieldClass} mt-1`}
+                  placeholder="CODE"
+                />
+              </label>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="text-xs text-muted">
                 {t("pos.taxOptional")}
                 <input
                   value={taxInput}
@@ -682,140 +697,156 @@ export default function PosPage() {
             </div>
           </div>
 
-          <div className="mt-3 space-y-2 border-t border-border pt-3">
-            <label className="block text-xs font-semibold text-heading">
+          <div className="mt-3 space-y-3 border-t border-border pt-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
               {t("pos.customerKhata")}
-              <input
-                className={`${fieldClass} mt-1`}
-                placeholder={t("pos.searchCustomer")}
-                value={customerQuery}
-                onChange={(e) => setCustomerQuery(e.target.value)}
-              />
-            </label>
-            <div className="flex flex-wrap gap-1">
-              {filteredCustomers.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => setCustomerId(c.id)}
-                  className={`rounded-md border px-2 py-1 text-xs ${
-                    customerId === c.id
-                      ? "border-brand bg-brand-light text-brand"
-                      : "border-border text-body"
-                  }`}
-                >
-                  {c.name}
-                  {c.khata_enabled ? " · khata" : ""}
-                </button>
-              ))}
-            </div>
+            </p>
             {selectedCustomer ? (
-              <div className="flex flex-wrap items-center gap-2 text-xs text-body">
-                <span>
-                  {t("pos.attached")}:{" "}
-                  <strong className="text-heading">{selectedCustomer.name}</strong>
-                  {" · "}
-                  {selectedCustomer.loyalty_points ?? 0} {t("customers.points")}
-                </span>
-                {!selectedCustomer.khata_enabled ? (
-                  <Button size="sm" variant="secondary" onClick={() => void enableKhata()}>
-                    {t("pos.startKhata")}
+              <div className="rounded-xl border border-border bg-bg-tertiary/60 p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-heading">{selectedCustomer.name}</p>
+                    <p className="mt-0.5 text-xs text-body">
+                      {selectedCustomer.phone || "No phone"}
+                      {" · "}
+                      {selectedCustomer.loyalty_points ?? 0} {t("customers.points")}
+                      {selectedCustomer.khata_enabled ? " · Khata" : ""}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="rounded-md p-1 text-muted hover:bg-card hover:text-heading"
+                    aria-label={t("pos.clear")}
+                    onClick={() => {
+                      setCustomerId("");
+                      setLoyaltyRedeem("");
+                      setCouponCode("");
+                      if (payFocus === "khata") setPayMethod("cash");
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setCustomerQuery("");
+                      setShowNewCustomer(false);
+                      setCustomerModalOpen(true);
+                    }}
+                  >
+                    {t("pos.changeCustomer")}
                   </Button>
-                ) : null}
-                <label className="flex items-center gap-1">
-                  {t("pos.redeemPts")}
-                  <input
-                    className="w-16 rounded border border-border px-1 py-0.5"
-                    value={loyaltyRedeem}
-                    onChange={(e) => setLoyaltyRedeem(e.target.value)}
-                    placeholder="0"
-                  />
-                </label>
-                <label className="flex items-center gap-1">
-                  Coupon
-                  <input
-                    className="w-24 rounded border border-border px-1 py-0.5 uppercase"
-                    value={couponCode}
-                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                    placeholder="CODE"
-                  />
-                </label>
-                <button
-                  type="button"
-                  className="text-muted underline"
-                  onClick={() => {
-                    setCustomerId("");
-                    setLoyaltyRedeem("");
-                    setCouponCode("");
-                  }}
-                >
-                  {t("pos.clear")}
-                </button>
-              </div>
-            ) : null}
-            {showNewCustomer ? (
-              <div className="space-y-2 rounded-md border border-border p-2">
-                <input
-                  className={fieldClass}
-                  placeholder="Name"
-                  value={newCustomerName}
-                  onChange={(e) => setNewCustomerName(e.target.value)}
-                />
-                <input
-                  className={fieldClass}
-                  placeholder="Phone"
-                  value={newCustomerPhone}
-                  onChange={(e) => setNewCustomerPhone(e.target.value)}
-                />
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={() => void createCustomerQuick()} disabled={busy}>
-                    {t("pos.createStartKhata")}
-                  </Button>
-                  <Button size="sm" variant="secondary" onClick={() => setShowNewCustomer(false)}>
-                    {t("common.cancel")}
-                  </Button>
+                  {!selectedCustomer.khata_enabled ? (
+                    <Button size="sm" variant="secondary" onClick={() => void enableKhata()}>
+                      {t("pos.startKhata")}
+                    </Button>
+                  ) : null}
+                  <label className="ml-auto flex items-center gap-1.5 text-xs text-body">
+                    {t("pos.redeemPts")}
+                    <input
+                      className="w-16 rounded-md border border-border bg-card px-2 py-1 text-heading"
+                      value={loyaltyRedeem}
+                      onChange={(e) => setLoyaltyRedeem(e.target.value)}
+                      placeholder="0"
+                      inputMode="numeric"
+                    />
+                  </label>
                 </div>
               </div>
             ) : (
-              <Button size="sm" variant="secondary" onClick={() => setShowNewCustomer(true)}>
-                <BookUser className="mr-1 h-3.5 w-3.5" />
-                {t("pos.newCustomer")}
+              <Button
+                variant="outline"
+                className="w-full justify-center py-2.5"
+                onClick={() => {
+                  setCustomerQuery("");
+                  setShowNewCustomer(false);
+                  setCustomerModalOpen(true);
+                }}
+              >
+                <UserRoundPlus className="mr-2 h-4 w-4" />
+                {t("pos.attachCustomer")}
               </Button>
             )}
           </div>
 
-          <div className="mt-4 grid grid-cols-4 gap-2">
-            {(
-              [
-                ["cash", "Cash", Banknote, payCash, setPayCash],
-                ["card", "Card", CreditCard, payCard, setPayCard],
-                ["wallet", "Wallet", Wallet, payWallet, setPayWallet],
-                ["khata", "Khata", BookUser, payKhata, setPayKhata],
-              ] as const
-            ).map(([method, label, Icon, value, setter]) => (
-              <button
-                key={method}
-                type="button"
-                onClick={() => setPayMethod(method)}
-                className={`rounded-md border px-2 py-3 text-center transition ${payFocus === method
-                  ? "border-brand bg-brand-light text-brand"
-                  : "border-border bg-card text-body hover:border-brand/40"
-                  }`}
-              >
-                <Icon className="mx-auto h-4 w-4" />
-                <span className="mt-1 block text-xs font-semibold">{label}</span>
-                <input
-                  value={value}
-                  onChange={(e) => {
-                    setPayFocus(method);
-                    setter(e.target.value);
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                  className="mt-2 w-full rounded-md border border-border bg-white px-1.5 py-1 text-center text-xs text-heading outline-none focus:border-brand"
-                  inputMode="decimal"
-                />
-              </button>
-            ))}
+          <div className="mt-4 space-y-3 border-t border-border pt-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+              {t("pos.paymentMethod")}
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {(
+                [
+                  ["cash", t("pos.cash"), Banknote],
+                  ["card", t("pos.card"), CreditCard],
+                  ["wallet", t("pos.wallet"), Wallet],
+                  ["khata", t("pos.khata"), BookUser],
+                ] as const
+              ).map(([method, label, Icon]) => {
+                const active = payFocus === method;
+                const khataLocked = method === "khata" && !selectedCustomer;
+                return (
+                  <button
+                    key={method}
+                    type="button"
+                    disabled={khataLocked}
+                    title={khataLocked ? t("pos.khataNeedsCustomer") : undefined}
+                    onClick={() => setPayMethod(method)}
+                    className={`flex items-center gap-2.5 rounded-xl border px-3 py-3 text-left transition ${
+                      active
+                        ? "border-brand bg-brand text-white shadow-sm"
+                        : khataLocked
+                          ? "cursor-not-allowed border-border bg-bg-tertiary text-muted opacity-60"
+                          : "border-border bg-card text-heading hover:border-brand/40 hover:bg-brand-light/40"
+                    }`}
+                  >
+                    <span
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                        active ? "bg-white/20" : "bg-bg-tertiary"
+                      }`}
+                    >
+                      <Icon className={`h-4 w-4 ${active ? "text-white" : "text-brand"}`} />
+                    </span>
+                    <span className="text-sm font-semibold">{label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <label className="block text-xs font-medium text-body">
+              {t("pos.amountPaid")} ·{" "}
+              <span className="text-heading">
+                {payFocus === "cash"
+                  ? t("pos.cash")
+                  : payFocus === "card"
+                    ? t("pos.card")
+                    : payFocus === "wallet"
+                      ? t("pos.wallet")
+                      : t("pos.khata")}
+              </span>
+              <input
+                value={
+                  payFocus === "cash"
+                    ? payCash
+                    : payFocus === "card"
+                      ? payCard
+                      : payFocus === "wallet"
+                        ? payWallet
+                        : payKhata
+                }
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (payFocus === "cash") setPayCash(v);
+                  else if (payFocus === "card") setPayCard(v);
+                  else if (payFocus === "wallet") setPayWallet(v);
+                  else setPayKhata(v);
+                }}
+                className={`${fieldClass} mt-1.5 text-base font-semibold tabular-nums`}
+                inputMode="decimal"
+                placeholder={money(total)}
+              />
+            </label>
           </div>
 
           <Button
@@ -828,6 +859,114 @@ export default function PosPage() {
           </Button>
         </div>
       </aside>
+
+      <Modal
+        isOpen={customerModalOpen}
+        onClose={() => {
+          setCustomerModalOpen(false);
+          setShowNewCustomer(false);
+        }}
+        title={t("pos.selectCustomerTitle")}
+        description={t("pos.selectCustomerDesc")}
+        size="md"
+        footer={
+          <div className="flex justify-between gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowNewCustomer((v) => !v)}
+            >
+              <BookUser className="mr-1.5 h-4 w-4" />
+              {t("pos.newCustomer")}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCustomerModalOpen(false);
+                setShowNewCustomer(false);
+              }}
+            >
+              {t("common.cancel")}
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+            <input
+              className={`${fieldClass} pl-9`}
+              placeholder={t("pos.searchCustomer")}
+              value={customerQuery}
+              onChange={(e) => setCustomerQuery(e.target.value)}
+              autoFocus
+            />
+          </div>
+
+          {showNewCustomer ? (
+            <div className="space-y-2 rounded-xl border border-border bg-bg-tertiary/50 p-3">
+              <input
+                className={fieldClass}
+                placeholder="Name"
+                value={newCustomerName}
+                onChange={(e) => setNewCustomerName(e.target.value)}
+              />
+              <input
+                className={fieldClass}
+                placeholder="Phone"
+                value={newCustomerPhone}
+                onChange={(e) => setNewCustomerPhone(e.target.value)}
+              />
+              <Button size="sm" onClick={() => void createCustomerQuick()} loading={busy}>
+                {t("pos.createStartKhata")}
+              </Button>
+            </div>
+          ) : null}
+
+          <div className="max-h-72 space-y-1 overflow-y-auto rounded-xl border border-border">
+            {filteredCustomers.length === 0 ? (
+              <p className="px-3 py-6 text-center text-sm text-body">
+                {t("pos.noCustomersFound")}
+              </p>
+            ) : (
+              filteredCustomers.map((c) => {
+                const selected = customerId === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => {
+                      setCustomerId(c.id);
+                      setCustomerModalOpen(false);
+                      setCustomerQuery("");
+                      setShowNewCustomer(false);
+                    }}
+                    className={`flex w-full items-center justify-between gap-3 border-b border-border/60 px-3 py-2.5 text-left last:border-b-0 ${
+                      selected
+                        ? "bg-brand-light text-brand"
+                        : "bg-card text-heading hover:bg-bg-tertiary"
+                    }`}
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-semibold">{c.name}</span>
+                      <span className="block text-xs text-body">
+                        {c.phone || "—"}
+                        {c.khata_enabled ? " · Khata" : ""}
+                        {" · "}
+                        {c.loyalty_points ?? 0} pts
+                      </span>
+                    </span>
+                    {selected ? (
+                      <span className="shrink-0 text-xs font-bold uppercase tracking-wide">
+                        {t("pos.attached")}
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      </Modal>
 
       {pendingProduct ? (
         <div className="fixed inset-0 z-[80] flex items-end justify-center bg-overlay p-4 sm:items-center">

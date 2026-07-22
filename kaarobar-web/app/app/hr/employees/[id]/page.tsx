@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { api } from "@/lib/api/client";
 import { routes } from "@/lib/navigation";
 import { DetailFieldGrid, DetailSection, DetailShell } from "@/components/app/DetailShell";
+import ProfilePicEditor from "@/components/app/ProfilePicEditor";
 
 type Employee = {
   id: string;
@@ -20,6 +21,7 @@ type Employee = {
   overtime_rate?: string;
   branch_id?: string;
   user_id?: string | null;
+  profile_pic_url?: string | null;
 };
 
 export default function EmployeeDetailPage() {
@@ -64,21 +66,37 @@ export default function EmployeeDetailPage() {
       error={error}
     >
       {employee ? (
-        <DetailSection title="Employment">
-          <DetailFieldGrid
-            fields={[
-              { label: "Code", value: employee.employee_code },
-              { label: "Position", value: employee.position || "—" },
-              { label: "Join date", value: employee.join_date || "—" },
-              { label: "Basic salary", value: `Rs ${employee.basic_salary}` },
-              { label: "Overtime rate", value: employee.overtime_rate || "—" },
-              { label: "Phone", value: employee.phone || "—" },
-              { label: "CNIC", value: employee.cnic || "—" },
-              { label: "Bank IBAN", value: employee.bank_iban || "—" },
-              { label: "Portal login", value: employee.user_id ? "Linked" : "Not linked" },
-            ]}
-          />
-        </DetailSection>
+        <>
+          <DetailSection title="Photo">
+            <ProfilePicEditor
+              url={employee.profile_pic_url}
+              name={employee.name}
+              uploadPath={`/employees/${employee.id}/profile-pic`}
+              urlFromResponse={(body) =>
+                (body as { data?: Employee })?.data?.profile_pic_url
+              }
+              onChange={(next) =>
+                setEmployee((e) => (e ? { ...e, profile_pic_url: next } : e))
+              }
+              label="Employee photo"
+            />
+          </DetailSection>
+          <DetailSection title="Employment">
+            <DetailFieldGrid
+              fields={[
+                { label: "Code", value: employee.employee_code },
+                { label: "Position", value: employee.position || "—" },
+                { label: "Join date", value: employee.join_date || "—" },
+                { label: "Basic salary", value: `Rs ${employee.basic_salary}` },
+                { label: "Overtime rate", value: employee.overtime_rate || "—" },
+                { label: "Phone", value: employee.phone || "—" },
+                { label: "CNIC", value: employee.cnic || "—" },
+                { label: "Bank IBAN", value: employee.bank_iban || "—" },
+                { label: "Portal login", value: employee.user_id ? "Linked" : "Not linked" },
+              ]}
+            />
+          </DetailSection>
+        </>
       ) : null}
     </DetailShell>
   );

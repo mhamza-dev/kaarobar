@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { api } from "@/lib/api/client";
 import { routes } from "@/lib/navigation";
 import { DetailFieldGrid, DetailSection, DetailShell } from "@/components/app/DetailShell";
+import ProfilePicEditor from "@/components/app/ProfilePicEditor";
 import type { Customer } from "@/lib/customers";
 
 type LedgerEntry = {
@@ -16,6 +17,7 @@ type LedgerEntry = {
 
 export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>();
+  // id from hash router
   const [customer, setCustomer] = useState<(Customer & { balance?: string }) | null>(null);
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +62,20 @@ export default function CustomerDetailPage() {
     >
       {customer ? (
         <>
+          <DetailSection title="Photo">
+            <ProfilePicEditor
+              url={customer.profile_pic_url}
+              name={customer.name}
+              uploadPath={`/customers/${customer.id}/profile-pic`}
+              urlFromResponse={(body) =>
+                (body as { data?: Customer })?.data?.profile_pic_url
+              }
+              onChange={(next) =>
+                setCustomer((c) => (c ? { ...c, profile_pic_url: next } : c))
+              }
+              label="Customer photo"
+            />
+          </DetailSection>
           <DetailSection title="Profile">
             <DetailFieldGrid
               fields={[
@@ -97,10 +113,10 @@ export default function CustomerDetailPage() {
                 </thead>
                 <tbody>
                   {ledger.map((e, i) => (
-                    <tr key={`${e.reference}-${i}`} className="border-b border-border/60">
-                      <td className="py-2 pr-2 text-body">{String(e.date).slice(0, 10)}</td>
-                      <td className="py-2 pr-2 font-medium text-heading">{e.reference}</td>
-                      <td className="py-2 pr-2 text-body">{e.description}</td>
+                    <tr key={`${e.reference}-${i}`} className="border-b border-border/50">
+                      <td className="py-2 pr-2 whitespace-nowrap">{e.date}</td>
+                      <td className="py-2 pr-2 font-mono text-xs">{e.reference}</td>
+                      <td className="py-2 pr-2">{e.description}</td>
                       <td className="py-2 pr-2 text-right tabular-nums">{e.debit}</td>
                       <td className="py-2 text-right tabular-nums">{e.credit}</td>
                     </tr>
@@ -108,7 +124,7 @@ export default function CustomerDetailPage() {
                 </tbody>
               </table>
               {ledger.length === 0 ? (
-                <p className="py-6 text-center text-sm text-body">No ledger entries yet.</p>
+                <p className="py-4 text-sm text-body">No ledger entries yet.</p>
               ) : null}
             </div>
           </DetailSection>

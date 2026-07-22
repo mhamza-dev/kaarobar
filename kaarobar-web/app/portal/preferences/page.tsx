@@ -4,6 +4,16 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getPortalSession, portalApi } from "@/lib/portal-api";
 import Button from "@/components/ui/Button";
+import ProfilePicEditor from "@/components/app/ProfilePicEditor";
+
+type PortalCustomer = {
+  name: string;
+  phone?: string | null;
+  marketing_opt_in_email: boolean;
+  marketing_opt_in_sms: boolean;
+  marketing_opt_in_whatsapp: boolean;
+  profile_pic_url?: string | null;
+};
 
 export default function PortalPreferencesPage() {
   const router = useRouter();
@@ -12,6 +22,7 @@ export default function PortalPreferencesPage() {
   const [emailOpt, setEmailOpt] = useState(false);
   const [smsOpt, setSmsOpt] = useState(false);
   const [waOpt, setWaOpt] = useState(false);
+  const [picUrl, setPicUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -20,17 +31,7 @@ export default function PortalPreferencesPage() {
       router.replace("/portal/login");
       return;
     }
-    void portalApi<{
-      data: {
-        customer: {
-          name: string;
-          phone?: string | null;
-          marketing_opt_in_email: boolean;
-          marketing_opt_in_sms: boolean;
-          marketing_opt_in_whatsapp: boolean;
-        };
-      };
-    }>("/portal/me")
+    void portalApi<{ data: { customer: PortalCustomer } }>("/portal/me")
       .then((res) => {
         const c = res.data.customer;
         setName(c.name || "");
@@ -38,6 +39,7 @@ export default function PortalPreferencesPage() {
         setEmailOpt(c.marketing_opt_in_email);
         setSmsOpt(c.marketing_opt_in_sms);
         setWaOpt(c.marketing_opt_in_whatsapp);
+        setPicUrl(c.profile_pic_url || null);
       })
       .catch(() => router.replace("/portal/login"));
   }, [router]);
@@ -69,6 +71,21 @@ export default function PortalPreferencesPage() {
     <div className="mx-auto max-w-lg space-y-4">
       <h1 className="text-2xl font-bold text-heading">Preferences</h1>
       {message ? <p className="text-sm text-body">{message}</p> : null}
+
+      <div className="rounded-xl border border-border bg-white p-6">
+        <ProfilePicEditor
+          url={picUrl}
+          name={name}
+          uploadPath="/portal/me/profile-pic"
+          request={portalApi}
+          urlFromResponse={(body) =>
+            (body as { data?: PortalCustomer })?.data?.profile_pic_url
+          }
+          onChange={setPicUrl}
+          label="Your photo"
+        />
+      </div>
+
       <form onSubmit={save} className="grid gap-3 rounded-xl border border-border bg-white p-6">
         <label className="text-sm font-medium text-heading">
           Name

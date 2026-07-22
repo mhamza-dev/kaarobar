@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { api, getSession } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
@@ -12,6 +13,7 @@ import {
 } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
+import { detailRoutes } from "@/lib/navigation";
 
 type Tab = "stock" | "products" | "suppliers" | "pos" | "transfers" | "adjust";
 type ModalKind = "product" | "supplier" | "po" | null;
@@ -144,6 +146,7 @@ type Transfer = {
 export default function InventoryPage() {
   const t = useT();
   const toast = useToast();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("stock");
   const [modal, setModal] = useState<ModalKind>(null);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
@@ -856,14 +859,19 @@ export default function InventoryPage() {
             getSearchText={(p) =>
               `${p.supplier_name ?? ""} ${p.supplier_id} ${p.status}`
             }
+            onRowClick={(p) => navigate(detailRoutes.purchaseOrder(p.id))}
             columns={[
               {
                 id: "supplier",
                 header: "Supplier",
                 cell: (p) => (
-                  <span className="font-medium">
+                  <Link
+                    to={detailRoutes.purchaseOrder(p.id)}
+                    className="font-medium text-brand underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     {p.supplier_name || p.supplier_id.slice(0, 8)}
-                  </span>
+                  </Link>
                 ),
               },
               {

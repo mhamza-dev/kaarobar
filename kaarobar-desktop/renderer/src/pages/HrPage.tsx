@@ -453,9 +453,12 @@ export default function HrPage() {
             <SurfaceCard key={run.id} className="space-y-3 p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="text-heading">
-                  <strong>
+                  <Link
+                    to={detailRoutes.payroll(run.id)}
+                    className="font-semibold text-brand underline"
+                  >
                     {run.period_start} → {run.period_end}
-                  </strong>{" "}
+                  </Link>{" "}
                   <span className="text-body">· {run.status}</span>
                   {run.journal_entry_id ? (
                     <span className="text-body"> · posted to ledger</span>

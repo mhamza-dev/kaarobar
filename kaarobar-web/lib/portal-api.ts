@@ -40,21 +40,25 @@ export async function portalApi<T>(
   session?: PortalSession | null
 ): Promise<T> {
   const current = session === undefined ? getPortalSession() : session;
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...(options.headers as Record<string, string>),
-  };
+  const headers = new Headers(options.headers);
+  const isFormData =
+    typeof FormData !== "undefined" && options.body instanceof FormData;
+  if (!isFormData && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
   if (current?.access_token) {
-    headers.Authorization = `Bearer ${current.access_token}`;
+    headers.set("Authorization", `Bearer ${current.access_token}`);
   }
   if (current?.business_id) {
-    headers["x-business-id"] = current.business_id;
+    headers.set("x-business-id", current.business_id);
   }
 
   const res = await fetch(`${API_URL}${path}`, { ...options, headers });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(body.error || res.statusText || "request_failed");
+    throw new Error(
+      (body as { error?: string }).error || res.statusText || "request_failed",
+    );
   }
   return body as T;
 }

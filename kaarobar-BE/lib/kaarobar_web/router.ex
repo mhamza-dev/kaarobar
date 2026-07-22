@@ -81,6 +81,8 @@ defmodule KaarobarWeb.Router do
     post "/portal/auth/logout", PortalAuthController, :logout
     get "/portal/me", PortalController, :me
     patch "/portal/me", PortalController, :update_profile
+    post "/portal/me/profile-pic", PortalController, :upload_profile_pic
+    delete "/portal/me/profile-pic", PortalController, :delete_profile_pic
     get "/portal/orders", PortalController, :orders
     get "/portal/orders/:id", PortalController, :show_order
     get "/portal/loyalty", PortalController, :loyalty
@@ -95,6 +97,8 @@ defmodule KaarobarWeb.Router do
 
     get "/auth/me", AuthController, :me
     patch "/auth/me", AuthController, :update_me
+    post "/auth/me/profile-pic", AuthController, :upload_profile_pic
+    delete "/auth/me/profile-pic", AuthController, :delete_profile_pic
     post "/auth/mfa/setup", AuthController, :mfa_setup
     post "/auth/mfa/confirm", AuthController, :mfa_confirm
 
@@ -229,6 +233,8 @@ defmodule KaarobarWeb.Router do
     post "/customers", ArApController, :create_customer
     get "/customers/:id", ArApController, :show_customer
     patch "/customers/:id", ArApController, :update_customer
+    post "/customers/:id/profile-pic", ArApController, :upload_customer_profile_pic
+    delete "/customers/:id/profile-pic", ArApController, :delete_customer_profile_pic
     post "/customers/:id/loyalty", ArApController, :adjust_loyalty
     post "/customers/:id/portal-invite", ArApController, :invite_portal
     get "/customers/:id/ledger", ArApController, :customer_ledger
@@ -280,6 +286,8 @@ defmodule KaarobarWeb.Router do
     get "/employees/:id", EmployeeController, :show
     post "/employees", EmployeeController, :create
     patch "/employees/:id", EmployeeController, :update
+    post "/employees/:id/profile-pic", EmployeeController, :upload_profile_pic
+    delete "/employees/:id/profile-pic", EmployeeController, :delete_profile_pic
 
     get "/attendance", AttendanceController, :index
 
@@ -309,6 +317,8 @@ defmodule KaarobarWeb.Router do
     pipe_through [:api, :authenticated, :employee_self_roles]
 
     get "/ess/me", EssController, :me
+    post "/ess/me/profile-pic", EssController, :upload_profile_pic
+    delete "/ess/me/profile-pic", EssController, :delete_profile_pic
     post "/attendance/clock-in", AttendanceController, :clock_in
     post "/attendance/:id/clock-out", AttendanceController, :clock_out
     post "/leave", LeaveController, :create

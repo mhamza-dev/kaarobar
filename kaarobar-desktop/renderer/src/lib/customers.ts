@@ -12,7 +12,13 @@ export type Customer = {
   company_name?: string | null;
   credit_limit?: string | null;
   loyalty_points?: number;
+  loyalty_tier_id?: string | null;
   khata_enabled?: boolean;
+  marketing_opt_in_email?: boolean;
+  marketing_opt_in_sms?: boolean;
+  marketing_opt_in_whatsapp?: boolean;
+  portal_enabled?: boolean;
+  profile_pic_url?: string | null;
   user_id?: string | null;
   balance?: string | null;
 };

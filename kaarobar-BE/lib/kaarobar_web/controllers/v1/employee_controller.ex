@@ -3,6 +3,7 @@ defmodule KaarobarWeb.V1.EmployeeController do
 
   alias Kaarobar.Guardian
   alias Kaarobar.Hr
+  alias Kaarobar.Profiles
 
   def index(conn, _params) do
     user = Guardian.Plug.current_resource(conn)
@@ -53,6 +54,44 @@ defmodule KaarobarWeb.V1.EmployeeController do
     end
   end
 
+  def upload_profile_pic(conn, %{"id" => id} = params) do
+    user = Guardian.Plug.current_resource(conn)
+    owner_id = conn.assigns[:owner_id] || user.id
+
+    case Hr.get_employee(id, owner_id) do
+      nil ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      emp ->
+        case extract_upload(params) do
+          {:ok, upload} ->
+            case Profiles.upload_employee_pic(emp, upload) do
+              {:ok, updated} -> json(conn, %{data: serialize(updated)})
+              {:error, reason} -> profile_pic_error(conn, reason)
+            end
+
+          {:error, reason} ->
+            profile_pic_error(conn, reason)
+        end
+    end
+  end
+
+  def delete_profile_pic(conn, %{"id" => id}) do
+    user = Guardian.Plug.current_resource(conn)
+    owner_id = conn.assigns[:owner_id] || user.id
+
+    case Hr.get_employee(id, owner_id) do
+      nil ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      emp ->
+        case Profiles.clear_employee_pic(emp) do
+          {:ok, updated} -> json(conn, %{data: serialize(updated)})
+          {:error, reason} -> profile_pic_error(conn, reason)
+        end
+    end
+  end
+
   def serialize(emp) do
     %{
       id: emp.id,
@@ -69,7 +108,27 @@ defmodule KaarobarWeb.V1.EmployeeController do
       overtime_rate: to_string(emp.overtime_rate || "1.5"),
       user_id: emp.user_id,
       branch_id: emp.branch_id,
-      business_id: emp.business_id
+      business_id: emp.business_id,
+      profile_pic_url: Profiles.profile_pic_url(emp)
     }
+  end
+
+  defp extract_upload(%{"file" => %Plug.Upload{} = upload}), do: {:ok, upload}
+  defp extract_upload(%{"image" => %Plug.Upload{} = upload}), do: {:ok, upload}
+  defp extract_upload(%{"profile_pic" => %Plug.Upload{} = upload}), do: {:ok, upload}
+  defp extract_upload(_), do: {:error, :missing_file}
+
+  defp profile_pic_error(conn, reason) do
+    error =
+      case reason do
+        :missing_file -> "missing_file"
+        :invalid_upload -> "invalid_upload"
+        :unsupported_type -> "unsupported_type"
+        :too_large -> "too_large"
+        :empty -> "empty"
+        other -> inspect(other)
+      end
+
+    conn |> put_status(:unprocessable_entity) |> json(%{error: error})
   end
 end

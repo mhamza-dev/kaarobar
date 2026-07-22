@@ -5,6 +5,7 @@ defmodule KaarobarWeb.V1.ArApController do
 
   alias Kaarobar.Accounting
   alias Kaarobar.Guardian
+  alias Kaarobar.Profiles
   alias Kaarobar.Repo
   alias Kaarobar.Schemas.Customer
 
@@ -79,6 +80,44 @@ defmodule KaarobarWeb.V1.ArApController do
 
           {:error, cs} ->
             conn |> put_status(:unprocessable_entity) |> json(%{error: customer_error(cs)})
+        end
+    end
+  end
+
+  def upload_customer_profile_pic(conn, %{"id" => id} = params) do
+    business_id = conn.assigns[:business_id]
+    owner_id = conn.assigns[:owner_id]
+
+    case Repo.get_by(Customer, id: id, business_id: business_id, owner_id: owner_id) do
+      nil ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      customer ->
+        case extract_upload(params) do
+          {:ok, upload} ->
+            case Profiles.upload_customer_pic(customer, upload) do
+              {:ok, updated} -> json(conn, %{data: serialize_customer(updated)})
+              {:error, reason} -> profile_pic_error(conn, reason)
+            end
+
+          {:error, reason} ->
+            profile_pic_error(conn, reason)
+        end
+    end
+  end
+
+  def delete_customer_profile_pic(conn, %{"id" => id}) do
+    business_id = conn.assigns[:business_id]
+    owner_id = conn.assigns[:owner_id]
+
+    case Repo.get_by(Customer, id: id, business_id: business_id, owner_id: owner_id) do
+      nil ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      customer ->
+        case Profiles.clear_customer_pic(customer) do
+          {:ok, updated} -> json(conn, %{data: serialize_customer(updated)})
+          {:error, reason} -> profile_pic_error(conn, reason)
         end
     end
   end
@@ -203,8 +242,28 @@ defmodule KaarobarWeb.V1.ArApController do
       marketing_opt_in_sms: Map.get(c, :marketing_opt_in_sms) == true,
       marketing_opt_in_whatsapp: Map.get(c, :marketing_opt_in_whatsapp) == true,
       portal_enabled: Map.get(c, :portal_enabled) == true,
-      user_id: c.user_id
+      user_id: c.user_id,
+      profile_pic_url: Profiles.profile_pic_url(c)
     }
+  end
+
+  defp extract_upload(%{"file" => %Plug.Upload{} = upload}), do: {:ok, upload}
+  defp extract_upload(%{"image" => %Plug.Upload{} = upload}), do: {:ok, upload}
+  defp extract_upload(%{"profile_pic" => %Plug.Upload{} = upload}), do: {:ok, upload}
+  defp extract_upload(_), do: {:error, :missing_file}
+
+  defp profile_pic_error(conn, reason) do
+    error =
+      case reason do
+        :missing_file -> "missing_file"
+        :invalid_upload -> "invalid_upload"
+        :unsupported_type -> "unsupported_type"
+        :too_large -> "too_large"
+        :empty -> "empty"
+        other -> inspect(other)
+      end
+
+    conn |> put_status(:unprocessable_entity) |> json(%{error: error})
   end
 
   defp customer_error(cs) do
@@ -430,7 +489,7 @@ defmodule KaarobarWeb.V1.ArApController do
     end
   end
 
-  defp serialize_ap(b, with_payments \\ false) do
+  defp serialize_ap(b, with_payments) do
     base = %{
       id: b.id,
       bill_number: b.bill_number,

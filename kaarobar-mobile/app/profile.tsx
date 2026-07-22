@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { router, Stack } from "expo-router";
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,6 +10,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { api, colors, getSession, setSession } from "../lib/api";
 import { getLocale, loadLocale, setLocale, t, type Locale } from "../lib/i18n";
 import { useToast } from "../components/Toast";
@@ -26,6 +28,7 @@ export default function ProfileScreen() {
   const [busy, setBusy] = useState(false);
   const [tick, setTick] = useState(0);
   const [prefs, setPrefs] = useState<NotificationPrefs | null>(null);
+  const [picUrl, setPicUrl] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -51,6 +54,7 @@ export default function ProfileScreen() {
             email: string;
             phone?: string | null;
             locale?: Locale;
+            profile_pic_url?: string | null;
           };
         }>("/auth/me");
         const locale = res.user.locale === "ur" ? "ur" : "en";
@@ -61,6 +65,7 @@ export default function ProfileScreen() {
           locale,
           password: "",
         });
+        setPicUrl(res.user.profile_pic_url || null);
         await setLocale(locale);
         try {
           const prefRes = await api<{ data: NotificationPrefs }>("/notification-preferences");
@@ -74,6 +79,67 @@ export default function ProfileScreen() {
       }
     })();
   }, [refresh]);
+
+
+  async function pickAndUploadPhoto() {
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+    });
+    if (res.canceled || !res.assets[0]) return;
+    const asset = res.assets[0];
+    setBusy(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", {
+        uri: asset.uri,
+        name: asset.fileName || "profile.jpg",
+        type: asset.mimeType || "image/jpeg",
+      } as unknown as Blob);
+      const body = await api<{ user: { profile_pic_url?: string | null } }>(
+        "/auth/me/profile-pic",
+        { method: "POST", body: fd },
+      );
+      const next = body.user.profile_pic_url || null;
+      setPicUrl(next);
+      const session = await getSession();
+      if (session) {
+        await setSession({
+          ...session,
+          user: { ...session.user, profile_pic_url: next },
+        });
+      }
+      toast.success("Photo updated");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removePhoto() {
+    setBusy(true);
+    try {
+      const body = await api<{ user: { profile_pic_url?: string | null } }>(
+        "/auth/me/profile-pic",
+        { method: "DELETE" },
+      );
+      const next = body.user.profile_pic_url || null;
+      setPicUrl(next);
+      const session = await getSession();
+      if (session) {
+        await setSession({
+          ...session,
+          user: { ...session.user, profile_pic_url: next },
+        });
+      }
+      toast.success("Photo removed");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Remove failed");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function savePrefs(next: NotificationPrefs) {
     setPrefs(next);
@@ -130,6 +196,7 @@ export default function ProfileScreen() {
             email: res.user.email,
             phone: res.user.phone,
             locale: res.user.locale === "ur" ? "ur" : "en",
+            profile_pic_url: picUrl,
           },
         });
       }
@@ -155,6 +222,30 @@ export default function ProfileScreen() {
         <Text style={styles.eyebrow}>{t("profile.eyebrow")}</Text>
         <Text style={styles.title}>{t("profile.title")}</Text>
         <Text style={styles.sub}>{t("profile.description")}</Text>
+
+        <View style={styles.photoRow}>
+          {picUrl ? (
+            <Image source={{ uri: picUrl }} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, styles.avatarFallback]}>
+              <Text style={styles.avatarText}>
+                {(form.name || "?").trim().slice(0, 1).toUpperCase()}
+              </Text>
+            </View>
+          )}
+          <View style={{ flex: 1, gap: 8 }}>
+            <Pressable style={styles.secondaryBtn} onPress={pickAndUploadPhoto} disabled={busy}>
+              <Text style={styles.secondaryBtnText}>
+                {picUrl ? "Change photo" : "Upload photo"}
+              </Text>
+            </Pressable>
+            {picUrl ? (
+              <Pressable style={styles.secondaryBtn} onPress={removePhoto} disabled={busy}>
+                <Text style={styles.secondaryBtnText}>Remove photo</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
 
         <Text style={styles.label}>{t("profile.name")}</Text>
         <TextInput
@@ -248,6 +339,24 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bgPrimary },
   content: { padding: 20, paddingBottom: 40 },
+  photoRow: { flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 8 },
+  avatar: { width: 72, height: 72, borderRadius: 14 },
+  avatarFallback: {
+    backgroundColor: colors.brand,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarText: { color: colors.white, fontWeight: "800", fontSize: 24 },
+  secondaryBtn: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: colors.card,
+  },
+  secondaryBtnText: { color: colors.heading, fontWeight: "700", textAlign: "center" },
+
   eyebrow: {
     color: colors.brand,
     fontSize: 12,

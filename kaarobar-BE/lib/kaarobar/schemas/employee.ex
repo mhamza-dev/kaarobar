@@ -17,6 +17,7 @@ defmodule Kaarobar.Schemas.Employee do
     field :cnic, :string
     field :bank_iban, :string
     field :overtime_rate, :decimal, default: Decimal.new("1.5")
+    field :profile_pic_key, :string
 
     belongs_to :user, Kaarobar.Schemas.User
     belongs_to :business, Kaarobar.Schemas.Business

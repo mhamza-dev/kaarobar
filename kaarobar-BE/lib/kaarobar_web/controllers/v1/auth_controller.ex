@@ -135,6 +135,33 @@ defmodule KaarobarWeb.V1.AuthController do
     end
   end
 
+  def upload_profile_pic(conn, params) do
+    user = Guardian.Plug.current_resource(conn)
+
+    case extract_upload(params) do
+      {:ok, upload} ->
+        case Kaarobar.Profiles.upload_user_pic(user, upload) do
+          {:ok, updated} ->
+            json(conn, %{user: serialize_user(updated)})
+
+          {:error, reason} ->
+            profile_pic_error(conn, reason)
+        end
+
+      {:error, reason} ->
+        profile_pic_error(conn, reason)
+    end
+  end
+
+  def delete_profile_pic(conn, _params) do
+    user = Guardian.Plug.current_resource(conn)
+
+    case Kaarobar.Profiles.clear_user_pic(user) do
+      {:ok, updated} -> json(conn, %{user: serialize_user(updated)})
+      {:error, reason} -> profile_pic_error(conn, reason)
+    end
+  end
+
   def mfa_setup(conn, _params) do
     user = Guardian.Plug.current_resource(conn)
 
@@ -215,8 +242,28 @@ defmodule KaarobarWeb.V1.AuthController do
       phone: user.phone,
       locale: user.locale || "en",
       mfa_required: user.mfa_required,
-      mfa_enabled: Accounts.mfa_enabled?(user)
+      mfa_enabled: Accounts.mfa_enabled?(user),
+      profile_pic_url: Kaarobar.Profiles.profile_pic_url(user)
     }
+  end
+
+  defp extract_upload(%{"file" => %Plug.Upload{} = upload}), do: {:ok, upload}
+  defp extract_upload(%{"image" => %Plug.Upload{} = upload}), do: {:ok, upload}
+  defp extract_upload(%{"profile_pic" => %Plug.Upload{} = upload}), do: {:ok, upload}
+  defp extract_upload(_), do: {:error, :missing_file}
+
+  defp profile_pic_error(conn, reason) do
+    {status, error} =
+      case reason do
+        :missing_file -> {:unprocessable_entity, "missing_file"}
+        :invalid_upload -> {:unprocessable_entity, "invalid_upload"}
+        :unsupported_type -> {:unprocessable_entity, "unsupported_type"}
+        :too_large -> {:unprocessable_entity, "too_large"}
+        :empty -> {:unprocessable_entity, "empty"}
+        other -> {:unprocessable_entity, inspect(other)}
+      end
+
+    conn |> put_status(status) |> json(%{error: error})
   end
 
   defp maybe_put(map, params, key) do

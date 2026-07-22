@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { router } from "expo-router";
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,6 +10,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { api, colors, getSession, type Session } from "../lib/api";
 import { canAccessRoute } from "../lib/rbac";
 import SegmentedTabs from "../components/SegmentedTabs";
@@ -16,7 +18,7 @@ import SegmentedTabs from "../components/SegmentedTabs";
 type Tab = "clock" | "leave" | "payslips";
 
 type EssData = {
-  employee: { id: string; name: string; employee_code: string; position?: string };
+  employee: { id: string; name: string; employee_code: string; position?: string; profile_pic_url?: string | null };
   open_attendance?: { id: string; date: string; clock_in: string } | null;
   attendance: { id: string; date: string; clock_in?: string; clock_out?: string }[];
   leave: {
@@ -77,6 +79,36 @@ export default function EssScreen() {
       await load();
     })();
   }, [load]);
+
+
+  async function pickEmployeePhoto() {
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+    });
+    if (res.canceled || !res.assets[0]) return;
+    const asset = res.assets[0];
+    setBusy(true);
+    setMessage(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", {
+        uri: asset.uri,
+        name: asset.fileName || "employee.jpg",
+        type: asset.mimeType || "image/jpeg",
+      } as unknown as Blob);
+      const body = await api<{ data: EssData["employee"] }>("/ess/me/profile-pic", {
+        method: "POST",
+        body: fd,
+      });
+      setData((d) => (d ? { ...d, employee: { ...d.employee, ...body.data } } : d));
+      setMessage("Photo updated");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function clockIn() {
     if (!session?.branch_id) {
@@ -151,6 +183,21 @@ export default function EssScreen() {
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
       <Text style={styles.title}>Staff tools</Text>
       <Text style={styles.hint}>
+
+      {data?.employee ? (
+        <View style={[styles.card, { marginBottom: 12, flexDirection: "row", alignItems: "center", gap: 12 }]}>
+          {data.employee.profile_pic_url ? (
+            <Image source={{ uri: data.employee.profile_pic_url }} style={{ width: 56, height: 56, borderRadius: 12 }} />
+          ) : (
+            <View style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: colors.brand, alignItems: "center", justifyContent: "center" }}>
+              <Text style={{ color: colors.white, fontWeight: "800" }}>{(data.employee.name || "?").slice(0, 1)}</Text>
+            </View>
+          )}
+          <Pressable style={[styles.btn, { flex: 1, marginTop: 0 }]} onPress={pickEmployeePhoto} disabled={busy}>
+            <Text style={styles.btnText}>{data.employee.profile_pic_url ? "Change photo" : "Upload photo"}</Text>
+          </Pressable>
+        </View>
+      ) : null}
         {data?.employee
           ? `${data.employee.name} · ${data.employee.employee_code}`
           : "Link your login to an employee profile to use ESS."}

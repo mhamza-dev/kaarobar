@@ -18,6 +18,7 @@ defmodule Kaarobar.Schemas.User do
     field :totp_enabled_at, :utc_datetime
     field :mfa_required, :boolean, default: false
     field :confirmed_at, :utc_datetime
+    field :profile_pic_key, :string
 
     has_many :businesses, Kaarobar.Schemas.Business, foreign_key: :owner_id
     has_many :memberships, Kaarobar.Schemas.Membership

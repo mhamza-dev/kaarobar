@@ -271,8 +271,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               href={routes.profile}
               className="flex shrink-0 items-center gap-2.5 rounded-md border border-rail-border bg-card py-1 pl-1 pr-2.5 transition hover:bg-rail-hover sm:pr-3"
             >
-              <span className="flex h-8 w-8 items-center justify-center rounded-md bg-brand text-xs font-bold text-white shadow-brand">
-                {initials}
+              <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-md bg-brand text-xs font-bold text-white shadow-brand">
+                {session.user.profile_pic_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={session.user.profile_pic_url}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  initials
+                )}
               </span>
               <div className="hidden max-w-[148px] leading-tight lg:block">
                 <p className="truncate text-sm font-semibold text-heading">
