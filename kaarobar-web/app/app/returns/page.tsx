@@ -176,6 +176,7 @@ export default function ReturnsPage() {
         eyebrow={t("returns.eyebrow")}
         title={t("pages.returnsTitle")}
         description={t("pages.returnsDesc")}
+        infoKey="page.returns"
       />
 
       <SurfaceCard className="p-5">

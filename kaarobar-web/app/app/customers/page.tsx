@@ -7,6 +7,7 @@ import { api } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
+import ActionMenu from "@/components/ui/ActionMenu";
 import {
   EmptyState,
   Field,
@@ -200,6 +201,7 @@ export default function CustomersPage() {
         eyebrow={t("customers.eyebrow")}
         title={t("pages.customersTitle")}
         description={t("pages.customersDesc")}
+        infoKey="page.customers"
         action={{ label: t("customers.add"), onClick: openCreate }}
         secondaryAction={{
           label: t("nav.marketing"),
@@ -254,27 +256,41 @@ export default function CustomersPage() {
           {
             id: "actions",
             header: "",
+            align: "right",
+            width: 56,
             cell: (c) => (
-              <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => router.push(detailRoutes.customer(c.id))}
-                >
-                  View
-                </Button>
-                <Button size="sm" variant="secondary" onClick={() => openEdit(c)}>
-                  {t("common.edit")}
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => void openLedger(c)}>
-                  {t("customers.ledger")}
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => void toggleKhata(c)}>
-                  {c.khata_enabled ? t("customers.disableKhata") : t("customers.enableKhata")}
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => openLoyalty(c)}>
-                  {t("customers.points")}
-                </Button>
+              <div className="flex justify-end">
+                <ActionMenu
+                  items={[
+                    {
+                      id: "view",
+                      label: "View",
+                      onClick: () => router.push(detailRoutes.customer(c.id)),
+                    },
+                    {
+                      id: "edit",
+                      label: t("common.edit"),
+                      onClick: () => openEdit(c),
+                    },
+                    {
+                      id: "ledger",
+                      label: t("customers.ledger"),
+                      onClick: () => void openLedger(c),
+                    },
+                    {
+                      id: "khata",
+                      label: c.khata_enabled
+                        ? t("customers.disableKhata")
+                        : t("customers.enableKhata"),
+                      onClick: () => void toggleKhata(c),
+                    },
+                    {
+                      id: "points",
+                      label: t("customers.points"),
+                      onClick: () => openLoyalty(c),
+                    },
+                  ]}
+                />
               </div>
             ),
           },
@@ -393,10 +409,25 @@ export default function CustomersPage() {
                 <input
                   className={fieldClass}
                   type={f.type || "text"}
-                  required={f.required}
+                  required={
+                    f.required ||
+                    (f.key === "portal_password" &&
+                      form.portal_enabled &&
+                      !editing?.portal_enabled)
+                  }
+                  minLength={f.type === "password" ? 8 : undefined}
+                  autoComplete={f.type === "password" ? "new-password" : undefined}
+                  placeholder={
+                    f.key === "portal_password" && editing?.portal_enabled
+                      ? t("customers.portalPasswordHint")
+                      : undefined
+                  }
                   value={String(form[f.key] ?? "")}
                   onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
                 />
+                {f.hintKey ? (
+                  <p className="mt-1 text-xs text-muted">{t(f.hintKey)}</p>
+                ) : null}
               </Field>
             )
           )}

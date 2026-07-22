@@ -179,6 +179,7 @@ export default function AppDashboardPage() {
         eyebrow={t("nav.overview")}
         title={t("pages.dashboardTitle")}
         description={t("pages.dashboardDesc")}
+        infoKey="page.dashboard"
         action={{
           label: t("pages.openPos"),
           onClick: () => {

@@ -9,7 +9,9 @@ import Config
 
 config :kaarobar,
   ecto_repos: [Kaarobar.Repo],
-  generators: [timestamp_type: :utc_datetime, binary_id: true]
+  generators: [timestamp_type: :utc_datetime, binary_id: true],
+  # Dev-only HTML routes (see config/dev.exs). Must stay false in test/prod.
+  dev_routes: false
 
 # Configures the endpoint
 config :kaarobar, KaarobarWeb.Endpoint,

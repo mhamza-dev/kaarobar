@@ -217,6 +217,9 @@
     "selectCustomerTitle": "Select customer",
     "selectCustomerDesc": "Search and attach a customer for loyalty or khata.",
     "paymentMethod": "Payment method",
+    "proceedCheckout": "Proceed to checkout",
+    "checkoutTitle": "Checkout",
+    "checkoutDesc": "Choose a payment method and confirm the amount.",
     "amountPaid": "Amount",
     "newCustomer": "New customer",
     "createStartKhata": "Create + start khata",
@@ -233,6 +236,8 @@
     "tillStatus": "Till",
     "tillOpenLabel": "Open",
     "tillClosedLabel": "Closed",
+    "enterOpeningFloat": "Enter opening float to start selling",
+    "floatAmount": "Float Rs {amount}",
     "orderDetail": "Order detail",
     "lines": "{count} lines",
     "discount": "Discount",
@@ -361,6 +366,9 @@
     "optInSms": "SMS marketing opt-in",
     "optInWhatsapp": "WhatsApp marketing opt-in",
     "khataEnabled": "Khata enabled",
+    "portalEnabled": "Customer portal login",
+    "portalPassword": "Portal password",
+    "portalPasswordHint": "Required when enabling portal for a new login. Leave blank on edit to keep the current password.",
     "khataOn": "On",
     "khataOff": "Off",
     "balance": "Balance",
@@ -456,5 +464,13 @@
     "accessDeniedTitle": "Access denied",
     "accessDeniedMessage": "You do not have permission to open this page for the selected business and branch.",
     "goToDashboard": "Go to dashboard"
+  },
+  "help": {
+    "gotIt": "Got it",
+    "aboutThis": "About this screen",
+    "what": "What it does",
+    "how": "How to use",
+    "when": "When to use",
+    "tips": "Tips"
   }
 }

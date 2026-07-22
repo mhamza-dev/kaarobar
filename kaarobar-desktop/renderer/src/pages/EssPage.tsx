@@ -133,7 +133,7 @@ export default function EssPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("nav.ess")} description={hint} />
+      <PageHeader title={t("nav.ess")} description={hint} infoKey="page.ess" />
       <TabBar
         tabs={[
           { id: "clock", label: "Clock" },

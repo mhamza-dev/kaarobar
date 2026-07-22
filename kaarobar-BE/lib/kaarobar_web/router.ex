@@ -5,6 +5,13 @@ defmodule KaarobarWeb.Router do
     plug :accepts, ["json"]
   end
 
+  pipeline :browser do
+    plug :accepts, ["html"]
+    plug :fetch_session
+    plug :protect_from_forgery
+    plug :put_secure_browser_headers
+  end
+
   pipeline :authenticated do
     plug KaarobarWeb.Auth.Pipeline
     plug KaarobarWeb.Plugs.TenantScope
@@ -323,4 +330,14 @@ defmodule KaarobarWeb.Router do
     post "/attendance/:id/clock-out", AttendanceController, :clock_out
     post "/leave", LeaveController, :create
   end
+
+  # Compile-time gate: only compiled into the router when :dev_routes is true (config/dev.exs).
+  if Application.compile_env(:kaarobar, :dev_routes, false) do
+    scope "/dev", KaarobarWeb do
+      pipe_through :browser
+
+      get "/creds", DevCredsController, :index
+    end
+  end
 end
+

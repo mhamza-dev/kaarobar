@@ -112,23 +112,25 @@ defmodule Kaarobar.CustomerPortal do
 
               nil ->
                 password = password || random_password()
-                token = random_token()
 
-                case %CustomerAccount{}
-                     |> CustomerAccount.registration_changeset(%{
-                       email: String.downcase(customer.email),
-                       password: password,
-                       customer_id: customer.id,
-                       owner_id: owner_id,
-                       business_id: business_id,
-                       email_verified: false,
-                       email_verify_token_hash: hash_token(token)
-                     })
-                     |> Repo.insert() do
-                  {:ok, account} ->
-                    _ = customer |> Customer.changeset(%{portal_enabled: true}) |> Repo.update()
+                case staff_provision_login(customer, %{
+                       "portal_password" => password,
+                       "portal_enabled" => true
+                     }) do
+                  {:ok, _customer, pwd} ->
+                    account = Repo.get_by!(CustomerAccount, customer_id: customer.id)
+                    token = random_token()
+
+                    _ =
+                      account
+                      |> CustomerAccount.changeset(%{
+                        email_verified: false,
+                        email_verify_token_hash: hash_token(token)
+                      })
+                      |> Repo.update()
+
                     _ = deliver_verify_email(account, token)
-                    {:ok, account, password}
+                    {:ok, account, pwd}
 
                   error ->
                     error
@@ -136,6 +138,120 @@ defmodule Kaarobar.CustomerPortal do
             end
         end
     end
+  end
+
+  @doc """
+  Staff creates or updates a customer portal login (separate from staff users).
+
+  - Requires customer email
+  - `portal_password` creates a new account or resets an existing password
+  - `portal_enabled: false` disables portal access without deleting the account
+  """
+  def staff_provision_login(%Customer{} = customer, attrs) do
+    attrs = stringify_keys(attrs)
+    password = blank_to_nil(attrs["portal_password"] || attrs["password"])
+    enable? = parse_bool(attrs["portal_enabled"], default: !is_nil(password))
+
+    account = Repo.get_by(CustomerAccount, customer_id: customer.id)
+    email = customer.email && String.trim(customer.email)
+
+    cond do
+      enable? == false and is_nil(password) ->
+        case customer |> Customer.changeset(%{portal_enabled: false}) |> Repo.update() do
+          {:ok, updated} -> {:ok, updated, nil}
+          error -> error
+        end
+
+      not is_binary(email) or email == "" ->
+        {:error, :email_required}
+
+      is_nil(account) and is_nil(password) ->
+        {:error, :password_required}
+
+      is_nil(account) ->
+        case %CustomerAccount{}
+             |> CustomerAccount.registration_changeset(%{
+               email: String.downcase(email),
+               password: password,
+               customer_id: customer.id,
+               owner_id: customer.owner_id,
+               business_id: customer.business_id,
+               email_verified: true,
+               status: "active"
+             })
+             |> Repo.insert() do
+          {:ok, _account} ->
+            {:ok, updated} =
+              customer |> Customer.changeset(%{portal_enabled: true}) |> Repo.update()
+
+            {:ok, updated, password}
+
+          {:error, %Ecto.Changeset{} = cs} ->
+            if email_taken?(cs), do: {:error, :already_registered}, else: {:error, cs}
+
+          error ->
+            error
+        end
+
+      is_binary(password) ->
+        status = if enable? == false, do: "disabled", else: "active"
+
+        case account
+             |> CustomerAccount.password_changeset(%{password: password})
+             |> then(fn cs ->
+               cs
+               |> Ecto.Changeset.put_change(:status, status)
+             end)
+             |> Repo.update() do
+          {:ok, _account} ->
+            {:ok, updated} =
+              customer
+              |> Customer.changeset(%{portal_enabled: enable? != false})
+              |> Repo.update()
+
+            {:ok, updated, password}
+
+          error ->
+            error
+        end
+
+      true ->
+        status = if enable?, do: "active", else: "disabled"
+
+        _ =
+          account
+          |> CustomerAccount.changeset(%{status: status})
+          |> Repo.update()
+
+        case customer
+             |> Customer.changeset(%{portal_enabled: enable? == true})
+             |> Repo.update() do
+          {:ok, updated} -> {:ok, updated, nil}
+          error -> error
+        end
+    end
+  end
+
+  defp blank_to_nil(nil), do: nil
+  defp blank_to_nil(""), do: nil
+  defp blank_to_nil(v) when is_binary(v), do: if(String.trim(v) == "", do: nil, else: v)
+  defp blank_to_nil(_), do: nil
+
+  defp parse_bool(nil, default: default), do: default
+  defp parse_bool(true, _), do: true
+  defp parse_bool(false, _), do: false
+  defp parse_bool("true", _), do: true
+  defp parse_bool("false", _), do: false
+  defp parse_bool(1, _), do: true
+  defp parse_bool(0, _), do: false
+  defp parse_bool(_, default: default), do: default
+
+  defp email_taken?(%Ecto.Changeset{errors: errors}) do
+    Enum.any?(errors, fn
+      {:email, {_, opts}} -> opts[:constraint] == :unique
+      {:customer_id, {_, opts}} -> opts[:constraint] == :unique
+      _ -> false
+    end)
   end
 
   def authenticate(business_id, email, password) do

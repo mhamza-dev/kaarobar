@@ -42,6 +42,7 @@ export default function SalesListPage() {
         eyebrow="Cashier"
         title="Sales"
         description="Recent completed sales for this branch."
+        infoKey="page.sales"
         secondaryAction={{ label: "Open POS", onClick: () => router.push(routes.pos) }}
       />
       <SurfaceCard className="p-0">

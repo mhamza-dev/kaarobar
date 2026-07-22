@@ -5,6 +5,7 @@ import { api } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
+import ActionMenu from "@/components/ui/ActionMenu";
 import { EmptyState, Field, PageHeader, TabBar, fieldClass } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
@@ -248,15 +249,15 @@ export default function AccountingPage() {
     }
   }
 
-  const tabs: { id: Tab; label: string }[] = [
-    { id: "tb", label: "Trial balance" },
-    { id: "pl", label: "P&L" },
-    { id: "bs", label: "Balance sheet" },
-    { id: "gl", label: "General ledger" },
-    { id: "journals", label: "Journals" },
-    { id: "coa", label: "Chart of accounts" },
-    { id: "ar", label: "AR aging" },
-    { id: "ap", label: "AP aging" },
+  const tabs: { id: Tab; label: string; infoKey?: string }[] = [
+    { id: "tb", label: "Trial balance", infoKey: "tab.accounting.tb" },
+    { id: "pl", label: "P&L", infoKey: "tab.accounting.pl" },
+    { id: "bs", label: "Balance sheet", infoKey: "tab.accounting.bs" },
+    { id: "gl", label: "General ledger", infoKey: "tab.accounting.gl" },
+    { id: "journals", label: "Journals", infoKey: "tab.accounting.journals" },
+    { id: "coa", label: "Chart of accounts", infoKey: "tab.accounting.coa" },
+    { id: "ar", label: "AR aging", infoKey: "tab.accounting.ar" },
+    { id: "ap", label: "AP aging", infoKey: "tab.accounting.ap" },
   ];
 
   return (
@@ -265,6 +266,7 @@ export default function AccountingPage() {
         eyebrow={t("accounting.eyebrow")}
         title={t("pages.accountingTitle")}
         description={t("pages.accountingDesc")}
+        infoKey="page.accounting"
         action={
           tab === "journals"
             ? { label: t("accounting.postJournal"), onClick: () => setJeModal(true) }
@@ -341,18 +343,19 @@ export default function AccountingPage() {
               id: "actions",
               header: "",
               align: "right",
-              width: 88,
+              width: 56,
               cell: (a) => (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openEditAccount(a);
-                  }}
-                >
-                  Edit
-                </Button>
+                <div className="flex justify-end">
+                  <ActionMenu
+                    items={[
+                      {
+                        id: "edit",
+                        label: "Edit",
+                        onClick: () => openEditAccount(a),
+                      },
+                    ]}
+                  />
+                </div>
               ),
             },
           ]}

@@ -13,7 +13,7 @@ Kaarobar is multi-tenant SaaS. Owner → business → branch isn’t an aftertho
 3. **HR & Payroll** — Attendance, leave, payroll, ESS
 4. **CRM (baseline)** — Email/in-app campaigns, audience filters, loyalty points
 5. **Platform** — Plan limits, LemonSqueezy hooks, FBR hooks, push/email, en/ur
-6. **Roadmap** — Customer Portal, coupons/tiers, Helpdesk, Public API, BI (Should)
+6. **Roadmap** — Helpdesk · Public API · BI · appointments · production FBR adapter · full billing portal
 
 ## Goals
 
@@ -40,10 +40,11 @@ Kaarobar is multi-tenant SaaS. Owner → business → branch isn’t an aftertho
 - Platform subscription plan limits + LemonSqueezy webhook/checkout
 - CRM campaigns as-built (email/in-app; audiences all/khata/min_points)
 - Push + in-app + email notifications; English + Urdu
+- **Customer Portal** — customer login (separate from staff), orders, loyalty, khata/AR
 
 ## Roadmap (Should — not Must-complete)
 
-Customer Portal · coupons/loyalty tiers/consent · Helpdesk · Public API/webhooks · BI · appointments · production FBR adapter · full billing portal
+Helpdesk · Public API/webhooks · BI · appointments · production FBR adapter · full billing portal
 
 ## Not in the first release
 
@@ -160,7 +161,34 @@ Additional owners: `owner2@` (growth), `owner3@` (starter), `owner4@` (trial) �
 Staff: `manager@` / `cashier@` / `accountant@` / `hr@` / `inventory@kaarobar.local` (and `*2@`, `*3@`, `*4@` per owner).  
 Fresh demo data: `cd kaarobar-BE && mix ecto.reset`
 
-Module docs: [Tenancy](docs/tenancy.md) · [POS](docs/pos.md) · [Returns / tills / procurement](docs/returns-tills-procurement.md) · [Accounting](docs/accounting.md) · [HR & payroll](docs/hr-payroll.md) · [Platform / reporting / integrations](docs/platform.md) — web, mobile, and desktop share `/api/v1`; accounting on web + API; HR includes web + mobile ESS; platform covers reports, billing, FBR, notifications, and offline sync.
+### Customer Portal
+
+Customers sign in separately from staff (no staff roles). Portal UI lives in the web app.
+
+| | |
+|--|--|
+| URL | [http://localhost:3000/portal/login](http://localhost:3000/portal/login) |
+| Register | [http://localhost:3000/portal/register](http://localhost:3000/portal/register) (when the business has self-register enabled) |
+| Reset | [http://localhost:3000/portal/reset](http://localhost:3000/portal/reset) |
+
+Login needs **Business ID** (UUID) + customer **email** + **password**.
+
+After seeding (`mix ecto.setup` / `mix ecto.reset`), the console prints portal logins for the primary owner’s enriched businesses. Typical demo credentials:
+
+```
+Email:    ayesha.customer@kaarobar-demo.pk
+          admin@neighborhoodclinic.pk
+          procurement@hotelsupplies.pk
+          raza.traders@kaarobar-demo.pk
+Password: Password@123
+Business ID: printed in the seed summary (owner@kaarobar.local businesses)
+```
+
+Staff can also enable portal login when creating/editing a customer (**Customer portal login** + **Portal password**), or invite via `POST /api/v1/customers/:id/portal-invite`.
+
+More detail: [docs/crm.md](docs/crm.md).
+
+Module docs: [Tenancy](docs/tenancy.md) · [POS](docs/pos.md) · [Returns / tills / procurement](docs/returns-tills-procurement.md) · [Accounting](docs/accounting.md) · [HR & payroll](docs/hr-payroll.md) · [Platform / reporting / integrations](docs/platform.md) · [CRM & Customer Portal](docs/crm.md) — web, mobile, and desktop share `/api/v1`; accounting on web + API; HR includes web + mobile ESS; platform covers reports, billing, FBR, notifications, and offline sync.
 
 ## Non-functional highlights (SRS §9)
 
@@ -178,7 +206,7 @@ Module docs: [Tenancy](docs/tenancy.md) · [POS](docs/pos.md) · [Returns / till
 - [ADR 001 — PostgreSQL multi-tenancy](docs/adr/001-postgres-multi-tenancy.md)
 - [Architecture & module map](docs/architecture.md)
 - [Requirement ID index](docs/requirements-index.md)
-- [Tenancy](docs/tenancy.md) · [POS](docs/pos.md) · [Returns / tills / procurement](docs/returns-tills-procurement.md) · [Accounting](docs/accounting.md) · [HR & payroll](docs/hr-payroll.md) · [Platform](docs/platform.md)
+- [Tenancy](docs/tenancy.md) · [POS](docs/pos.md) · [Returns / tills / procurement](docs/returns-tills-procurement.md) · [Accounting](docs/accounting.md) · [HR & payroll](docs/hr-payroll.md) · [Platform](docs/platform.md) · [CRM & Customer Portal](docs/crm.md)
 
 ## Compliance note
 

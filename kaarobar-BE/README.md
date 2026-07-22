@@ -39,6 +39,8 @@ mix phx.server          # http://localhost:4000
 Demo seed: `owner@kaarobar.local` / `Password@123` (also `owner2@`–`owner4@`; staff `manager@` / `cashier@` / … and `*2@`–`*4@`)
 Fresh data: `mix ecto.reset`
 
+Dev-only credential browser (owners / staff / customer portal accounts from the DB): [http://localhost:4000/dev/creds](http://localhost:4000/dev/creds) — enabled only when `config :kaarobar, dev_routes: true` (dev.exs).
+
 ## Uploads / S3
 
 Dev serves files from `priv/static/uploads` at `/uploads/...`.

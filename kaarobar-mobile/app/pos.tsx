@@ -13,6 +13,7 @@ import { api, colors, getSession, type Session } from "../lib/api";
 import { uuid } from "../lib/uuid";
 import { t } from "../lib/i18n";
 import { canAccessRoute } from "../lib/rbac";
+import { BarcodeScannerModal } from "../components/BarcodeScannerModal";
 
 type Product = {
   id: string;
@@ -158,12 +159,13 @@ export default function PosScreen() {
   }
 
   function setQty(productId: string, quantity: number) {
-    if (quantity <= 0) {
+    if (!Number.isFinite(quantity) || quantity <= 0) {
       setCart((prev) => prev.filter((l) => l.product.id !== productId));
       return;
     }
+    const next = Math.min(Math.max(Math.floor(quantity), 1), 99_999);
     setCart((prev) =>
-      prev.map((l) => (l.product.id === productId ? { ...l, quantity } : l))
+      prev.map((l) => (l.product.id === productId ? { ...l, quantity: next } : l))
     );
   }
 
@@ -377,7 +379,23 @@ export default function PosScreen() {
                 >
                   <Text style={styles.qtyBtnText}>−</Text>
                 </Pressable>
-                <Text style={styles.qty}>{l.quantity}</Text>
+                <TextInput
+                  style={styles.qtyInput}
+                  value={String(l.quantity)}
+                  keyboardType="number-pad"
+                  selectTextOnFocus
+                  onChangeText={(raw) => {
+                    const digits = raw.replace(/\D/g, "");
+                    if (digits === "") return;
+                    const n = Number.parseInt(digits, 10);
+                    if (Number.isFinite(n) && n > 0) {
+                      setQty(l.product.id, Math.min(n, 99999));
+                    }
+                  }}
+                  onBlur={() => {
+                    if (l.quantity <= 0) setQty(l.product.id, 0);
+                  }}
+                />
                 <Pressable
                   style={styles.qtyBtn}
                   onPress={() => setQty(l.product.id, l.quantity + 1)}
@@ -630,6 +648,19 @@ const styles = StyleSheet.create({
   },
   qtyBtnText: { fontSize: 18, color: colors.heading },
   qty: { width: 28, textAlign: "center", color: colors.heading, fontWeight: "700" },
+  qtyInput: {
+    width: 52,
+    height: 36,
+    textAlign: "center",
+    color: colors.heading,
+    fontWeight: "700",
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+    backgroundColor: colors.card,
+  },
   lineTotal: { marginLeft: "auto", fontWeight: "700", color: colors.heading },
   totals: { marginTop: 8, marginBottom: 8 },
   total: { fontSize: 22, fontWeight: "800", color: colors.heading, marginTop: 4 },

@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { usePathname } from "next/navigation";
 
 import Navbar from "@/components/layout/Navbar";
@@ -23,8 +23,23 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
     pathname.startsWith("/app") ||
     pathname.startsWith("/portal");
 
+  const isAppShell = pathname.startsWith("/app");
   const showNavbar = !hideLayout;
   const showFooter = !hideLayout && !user;
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const { body } = document;
+    if (isAppShell) {
+      root.classList.add("h-dvh", "overflow-hidden");
+      body.classList.add("h-dvh", "overflow-hidden");
+      return () => {
+        root.classList.remove("h-dvh", "overflow-hidden");
+        body.classList.remove("h-dvh", "overflow-hidden");
+      };
+    }
+    return undefined;
+  }, [isAppShell]);
 
   return (
     <LocaleProvider>
@@ -32,9 +47,9 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
         {showNavbar && <Navbar />}
         <main
           className={
-            pathname.startsWith("/app")
+            isAppShell
               ? "flex h-dvh min-h-0 flex-1 flex-col overflow-hidden"
-              : "flex-1"
+              : "min-h-0 flex-1"
           }
         >
           {children}

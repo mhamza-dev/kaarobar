@@ -78,6 +78,7 @@ export default function NotificationsPage() {
       <PageHeader
         title={t("pages.notificationsTitle")}
         description={t("pages.notificationsDesc")}
+        infoKey="page.notifications"
         action={
           unread > 0
             ? {

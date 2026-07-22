@@ -198,7 +198,7 @@ export default function AppLayout() {
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-bg-primary text-heading lg:flex-row">
-      <aside className="relative z-30 hidden min-h-screen w-[248px] shrink-0 flex-col overflow-hidden border-r border-rail-border bg-rail lg:flex">
+      <aside className="relative z-30 hidden h-full min-h-0 w-[248px] shrink-0 flex-col overflow-hidden border-r border-rail-border bg-rail lg:flex">
         <div className="flex shrink-0 items-center gap-3 border-b border-rail-border px-5 py-4">
           <KaarobarLogo size={40} className="shrink-0 shadow-brand rounded-[9px]" />
           <div>

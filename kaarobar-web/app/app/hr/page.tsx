@@ -7,6 +7,7 @@ import { api, getSession } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
+import ActionMenu from "@/components/ui/ActionMenu";
 import {
   EmptyState,
   Field,
@@ -274,11 +275,11 @@ export default function HrPage() {
     }
   }
 
-  const tabs: { id: Tab; label: string }[] = [
-    { id: "employees", label: t("hr.tabs.employees") },
-    { id: "attendance", label: t("hr.tabs.attendance") },
-    { id: "leave", label: t("hr.tabs.leave") },
-    { id: "payroll", label: t("hr.tabs.payroll") },
+  const tabs: { id: Tab; label: string; infoKey?: string }[] = [
+    { id: "employees", label: t("hr.tabs.employees"), infoKey: "tab.hr.employees" },
+    { id: "attendance", label: t("hr.tabs.attendance"), infoKey: "tab.hr.attendance" },
+    { id: "leave", label: t("hr.tabs.leave"), infoKey: "tab.hr.leave" },
+    { id: "payroll", label: t("hr.tabs.payroll"), infoKey: "tab.hr.payroll" },
   ];
 
   return (
@@ -287,6 +288,7 @@ export default function HrPage() {
         eyebrow={t("hr.eyebrow")}
         title={t("pages.hrTitle")}
         description={t("pages.hrDesc")}
+        infoKey="page.hr"
         action={
           tab === "employees"
             ? { label: t("hr.addEmployee"), onClick: openNewEmployee }
@@ -355,23 +357,23 @@ export default function HrPage() {
               id: "actions",
               header: "",
               align: "right",
-              width: 160,
+              width: 56,
               cell: (e) => (
-                <div className="flex justify-end gap-2" onClick={(ev) => ev.stopPropagation()}>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => router.push(detailRoutes.employee(e.id))}
-                  >
-                    View
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => openEditEmployee(e)}
-                  >
-                    Edit
-                  </Button>
+                <div className="flex justify-end">
+                  <ActionMenu
+                    items={[
+                      {
+                        id: "view",
+                        label: "View",
+                        onClick: () => router.push(detailRoutes.employee(e.id)),
+                      },
+                      {
+                        id: "edit",
+                        label: "Edit",
+                        onClick: () => openEditEmployee(e),
+                      },
+                    ]}
+                  />
                 </div>
               ),
             },

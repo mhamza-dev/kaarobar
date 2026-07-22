@@ -39,9 +39,18 @@ defmodule KaarobarWeb.V1.ArApController do
 
     case %Customer{} |> Customer.changeset(attrs) |> Repo.insert() do
       {:ok, c} ->
-        conn
-        |> put_status(:created)
-        |> json(%{data: serialize_customer(c)})
+        case maybe_provision_portal(c, params) do
+          {:ok, customer, portal_meta} ->
+            conn
+            |> put_status(:created)
+            |> json(%{data: Map.merge(serialize_customer(customer), portal_meta)})
+
+          {:error, reason} ->
+            # Customer was created; surface portal error clearly
+            conn
+            |> put_status(:unprocessable_entity)
+            |> json(%{error: portal_error(reason), data: serialize_customer(c)})
+        end
 
       {:error, cs} ->
         conn |> put_status(:unprocessable_entity) |> json(%{error: customer_error(cs)})
@@ -76,7 +85,15 @@ defmodule KaarobarWeb.V1.ArApController do
       c ->
         case c |> Customer.changeset(customer_attrs(params)) |> Repo.update() do
           {:ok, updated} ->
-            json(conn, %{data: serialize_customer(updated)})
+            case maybe_provision_portal(updated, params) do
+              {:ok, customer, portal_meta} ->
+                json(conn, %{data: Map.merge(serialize_customer(customer), portal_meta)})
+
+              {:error, reason} ->
+                conn
+                |> put_status(:unprocessable_entity)
+                |> json(%{error: portal_error(reason), data: serialize_customer(updated)})
+            end
 
           {:error, cs} ->
             conn |> put_status(:unprocessable_entity) |> json(%{error: customer_error(cs)})
@@ -179,11 +196,12 @@ defmodule KaarobarWeb.V1.ArApController do
     end
   end
 
-  def invite_portal(conn, %{"id" => id}) do
+  def invite_portal(conn, %{"id" => id} = params) do
     business_id = conn.assigns[:business_id]
     owner_id = conn.assigns[:owner_id]
+    password = params["portal_password"] || params["password"]
 
-    case Kaarobar.CustomerPortal.invite_from_customer(id, business_id, owner_id) do
+    case Kaarobar.CustomerPortal.invite_from_customer(id, business_id, owner_id, password) do
       {:ok, account, temp_password} ->
         json(conn, %{
           data: %{
@@ -199,10 +217,44 @@ defmodule KaarobarWeb.V1.ArApController do
       {:error, :already_registered} ->
         conn |> put_status(:unprocessable_entity) |> json(%{error: "already_registered"})
 
+      {:error, :email_required} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: "email_required"})
+
+      {:error, :password_required} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: "password_required"})
+
       {:error, reason} ->
         conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
     end
   end
+
+  defp maybe_provision_portal(customer, params) do
+    wants_portal? =
+      Map.has_key?(params, "portal_password") or
+        Map.has_key?(params, "password") or
+        Map.has_key?(params, "portal_enabled")
+
+    if wants_portal? do
+      case Kaarobar.CustomerPortal.staff_provision_login(customer, params) do
+        {:ok, updated, password} when is_binary(password) ->
+          {:ok, updated, %{portal_temporary_password: password}}
+
+        {:ok, updated, _} ->
+          {:ok, updated, %{}}
+
+        {:error, reason} ->
+          {:error, reason}
+      end
+    else
+      {:ok, customer, %{}}
+    end
+  end
+
+  defp portal_error(:email_required), do: "portal_requires_email"
+  defp portal_error(:password_required), do: "portal_requires_password"
+  defp portal_error(:already_registered), do: "portal_already_registered"
+  defp portal_error(%Ecto.Changeset{} = cs), do: customer_error(cs)
+  defp portal_error(other), do: inspect(other)
 
   defp customer_attrs(params) do
     %{}

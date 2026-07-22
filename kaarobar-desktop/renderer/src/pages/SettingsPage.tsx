@@ -158,11 +158,26 @@ export default function SettingsPage() {
     });
   }
 
-  const tabs: { key: SettingsTab; label: string; ownerOnly?: boolean }[] = [
-    { key: "notifications", label: "Notifications" },
-    { key: "subscriptions", label: "Subscriptions", ownerOnly: true },
-    { key: "integrations", label: "Integrations", ownerOnly: true },
-    { key: "roles", label: "Roles", ownerOnly: true },
+  const tabs: {
+    key: SettingsTab;
+    label: string;
+    ownerOnly?: boolean;
+    infoKey: string;
+  }[] = [
+    { key: "notifications", label: "Notifications", infoKey: "tab.settings.notifications" },
+    {
+      key: "subscriptions",
+      label: "Subscriptions",
+      ownerOnly: true,
+      infoKey: "tab.settings.subscriptions",
+    },
+    {
+      key: "integrations",
+      label: "Integrations",
+      ownerOnly: true,
+      infoKey: "tab.settings.integrations",
+    },
+    { key: "roles", label: "Roles", ownerOnly: true, infoKey: "tab.settings.roles" },
   ];
 
   return (
@@ -171,12 +186,13 @@ export default function SettingsPage() {
         eyebrow={t("common.workspace")}
         title={t("pages.settingsTitle")}
         description={t("pages.settingsDesc")}
+        infoKey="page.settings"
       />
 
       <TabBar
         tabs={tabs
           .filter((item) => !item.ownerOnly || isOwner)
-          .map((item) => ({ id: item.key, label: item.label }))}
+          .map((item) => ({ id: item.key, label: item.label, infoKey: item.infoKey }))}
         value={tab}
         onChange={setTab}
         aria-label="Settings sections"

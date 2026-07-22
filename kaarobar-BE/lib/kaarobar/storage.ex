@@ -13,7 +13,12 @@ defmodule Kaarobar.Storage do
   end
 
   def url(key) when is_binary(key) and key != "" do
-    adapter().url(key)
+    # Allow absolute URLs in seeds / demos (Unsplash, Picsum, CDN).
+    if String.starts_with?(key, "http://") or String.starts_with?(key, "https://") do
+      key
+    else
+      adapter().url(key)
+    end
   end
 
   def url(_), do: nil

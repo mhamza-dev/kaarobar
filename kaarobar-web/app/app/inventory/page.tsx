@@ -7,6 +7,7 @@ import { api, getSession } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
+import ActionMenu from "@/components/ui/ActionMenu";
 import {
   Field,
   PageHeader,
@@ -517,13 +518,13 @@ export default function InventoryPage() {
     }
   }
 
-  const tabs: { id: Tab; label: string }[] = [
-    { id: "stock", label: t("inventory.tabs.stock") },
-    { id: "products", label: t("inventory.tabs.products") },
-    { id: "suppliers", label: t("inventory.tabs.suppliers") },
-    { id: "pos", label: t("inventory.tabs.pos") },
-    { id: "transfers", label: t("inventory.tabs.transfers") },
-    { id: "adjust", label: t("common.update") },
+  const tabs: { id: Tab; label: string; infoKey?: string }[] = [
+    { id: "stock", label: t("inventory.tabs.stock"), infoKey: "tab.inventory.stock" },
+    { id: "products", label: t("inventory.tabs.products"), infoKey: "tab.inventory.products" },
+    { id: "suppliers", label: t("inventory.tabs.suppliers"), infoKey: "tab.inventory.suppliers" },
+    { id: "pos", label: t("inventory.tabs.pos"), infoKey: "tab.inventory.pos" },
+    { id: "transfers", label: t("inventory.tabs.transfers"), infoKey: "tab.inventory.transfers" },
+    { id: "adjust", label: t("common.update"), infoKey: "tab.inventory.adjust" },
   ];
 
   const headerAction =
@@ -541,6 +542,7 @@ export default function InventoryPage() {
         eyebrow={t("inventory.eyebrow")}
         title={t("pages.inventoryTitle")}
         description={t("pages.inventoryDesc")}
+        infoKey="page.inventory"
         action={headerAction}
       />
 
@@ -672,23 +674,23 @@ export default function InventoryPage() {
               id: "actions",
               header: "",
               align: "right",
-              width: 160,
+              width: 56,
               cell: (p) => (
-                <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => router.push(detailRoutes.product(p.id))}
-                  >
-                    View
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => openEditProduct(p)}
-                  >
-                    Edit
-                  </Button>
+                <div className="flex justify-end">
+                  <ActionMenu
+                    items={[
+                      {
+                        id: "view",
+                        label: "View",
+                        onClick: () => router.push(detailRoutes.product(p.id)),
+                      },
+                      {
+                        id: "edit",
+                        label: "Edit",
+                        onClick: () => openEditProduct(p),
+                      },
+                    ]}
+                  />
                 </div>
               ),
             },
@@ -811,23 +813,23 @@ export default function InventoryPage() {
               id: "actions",
               header: "",
               align: "right",
-              width: 160,
+              width: 56,
               cell: (s) => (
-                <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => router.push(detailRoutes.supplier(s.id))}
-                  >
-                    View
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => openEditSupplier(s)}
-                  >
-                    Edit
-                  </Button>
+                <div className="flex justify-end">
+                  <ActionMenu
+                    items={[
+                      {
+                        id: "view",
+                        label: "View",
+                        onClick: () => router.push(detailRoutes.supplier(s.id)),
+                      },
+                      {
+                        id: "edit",
+                        label: "Edit",
+                        onClick: () => openEditSupplier(s),
+                      },
+                    ]}
+                  />
                 </div>
               ),
             },

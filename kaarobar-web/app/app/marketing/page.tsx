@@ -7,6 +7,7 @@ import { api } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
+import ActionMenu from "@/components/ui/ActionMenu";
 import { Field, PageHeader, SurfaceCard, TabBar, fieldClass } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
@@ -281,11 +282,11 @@ export default function MarketingPage() {
     }
   }
 
-  const tabs: { id: Tab; label: string }[] = [
-    { id: "campaigns", label: "Campaigns" },
-    { id: "segments", label: "Segments" },
-    { id: "coupons", label: "Coupons" },
-    { id: "tiers", label: "Loyalty tiers" },
+  const tabs: { id: Tab; label: string; infoKey?: string }[] = [
+    { id: "campaigns", label: "Campaigns", infoKey: "tab.marketing.campaigns" },
+    { id: "segments", label: "Segments", infoKey: "tab.marketing.segments" },
+    { id: "coupons", label: "Coupons", infoKey: "tab.marketing.coupons" },
+    { id: "tiers", label: "Loyalty tiers", infoKey: "tab.marketing.tiers" },
   ];
 
   return (
@@ -294,6 +295,7 @@ export default function MarketingPage() {
         eyebrow={t("marketing.eyebrow")}
         title={t("pages.marketingTitle")}
         description={t("pages.marketingDesc")}
+        infoKey="page.marketing"
         action={
           tab === "campaigns"
             ? { label: t("marketing.newCampaign"), onClick: () => setModal(true) }
@@ -368,20 +370,26 @@ export default function MarketingPage() {
               {
                 id: "actions",
                 header: "",
+                align: "right",
+                width: 56,
                 cell: (c) => (
-                  <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => router.push(detailRoutes.campaign(c.id))}
-                    >
-                      {t("marketing.detail")}
-                    </Button>
-                    {c.status === "Draft" ? (
-                      <Button size="sm" loading={busy} onClick={() => void sendCampaign(c)}>
-                        {t("marketing.send")}
-                      </Button>
-                    ) : null}
+                  <div className="flex justify-end">
+                    <ActionMenu
+                      items={[
+                        {
+                          id: "detail",
+                          label: t("marketing.detail"),
+                          onClick: () => router.push(detailRoutes.campaign(c.id)),
+                        },
+                        {
+                          id: "send",
+                          label: t("marketing.send"),
+                          onClick: () => void sendCampaign(c),
+                          hidden: c.status !== "Draft",
+                          disabled: busy,
+                        },
+                      ]}
+                    />
                   </div>
                 ),
               },

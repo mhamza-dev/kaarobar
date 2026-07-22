@@ -105,6 +105,7 @@ export default function ProfilePage() {
         eyebrow={t("profile.eyebrow")}
         title={t("profile.title")}
         description={t("profile.description")}
+        infoKey="page.profile"
       />
 
       <SurfaceCard className="p-5">

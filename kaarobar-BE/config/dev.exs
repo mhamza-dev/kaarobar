@@ -49,7 +49,8 @@ config :kaarobar, KaarobarWeb.Endpoint,
 # configured to run both http and https servers on
 # different ports.
 
-config :kaarobar, dev_routes: false
+# Enables /dev/* browser pages (e.g. seed credentials). Never enable outside Mix.env() == :dev.
+config :kaarobar, dev_routes: true
 
 # Do not include metadata nor timestamps in development logs
 config :logger, :console, format: "[$level] $message\n"

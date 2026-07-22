@@ -5,6 +5,7 @@ import { api } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
+import ActionMenu from "@/components/ui/ActionMenu";
 import { Field, PageHeader, SurfaceCard, fieldClass } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
@@ -134,6 +135,7 @@ export default function MarketingPage() {
         eyebrow={t("marketing.eyebrow")}
         title={t("pages.marketingTitle")}
         description={t("pages.marketingDesc")}
+        infoKey="page.marketing"
         action={{ label: t("marketing.newCampaign"), onClick: () => setModal(true) }}
         secondaryAction={{
           label: t("nav.customers"),
@@ -182,16 +184,26 @@ export default function MarketingPage() {
           {
             id: "actions",
             header: "",
+            align: "right",
+            width: 56,
             cell: (c) => (
-              <div className="flex gap-2">
-                <Button size="sm" variant="secondary" onClick={() => void openDetail(c)}>
-                  {t("marketing.detail")}
-                </Button>
-                {c.status === "Draft" ? (
-                  <Button size="sm" loading={busy} onClick={() => void sendCampaign(c)}>
-                    {t("marketing.send")}
-                  </Button>
-                ) : null}
+              <div className="flex justify-end">
+                <ActionMenu
+                  items={[
+                    {
+                      id: "detail",
+                      label: t("marketing.detail"),
+                      onClick: () => void openDetail(c),
+                    },
+                    {
+                      id: "send",
+                      label: t("marketing.send"),
+                      onClick: () => void sendCampaign(c),
+                      hidden: c.status !== "Draft",
+                      disabled: busy,
+                    },
+                  ]}
+                />
               </div>
             ),
           },

@@ -2,12 +2,15 @@
 
 import type { ReactNode } from "react";
 import Button from "@/components/ui/Button";
+import InfoButton from "@/components/ui/InfoButton";
 import Tabs, { type TabItem } from "@/components/ui/Tabs";
 
 type PageHeaderProps = {
   eyebrow?: string;
   title: string;
   description?: string;
+  /** Help topic id, e.g. `page.inventory` — shows (i) next to the title */
+  infoKey?: string;
   action?: {
     label: string;
     onClick: () => void;
@@ -22,6 +25,7 @@ export function PageHeader({
   eyebrow = "Workspace",
   title,
   description,
+  infoKey,
   action,
   secondaryAction,
 }: PageHeaderProps) {
@@ -31,7 +35,10 @@ export function PageHeader({
         <span className="inline-flex rounded-md bg-brand-soft px-3 py-1 text-xs font-semibold tracking-wide text-brand">
           {eyebrow}
         </span>
-        <h1 className="mt-3 text-3xl font-bold tracking-tight text-heading">{title}</h1>
+        <div className="mt-3 flex items-center gap-2.5">
+          <h1 className="text-3xl font-bold tracking-tight text-heading">{title}</h1>
+          {infoKey ? <InfoButton topicId={infoKey} size="md" /> : null}
+        </div>
         {description ? (
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-body">{description}</p>
         ) : null}

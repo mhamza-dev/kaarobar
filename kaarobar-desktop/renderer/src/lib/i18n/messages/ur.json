@@ -217,6 +217,9 @@
     "selectCustomerTitle": "گاہک منتخب کریں",
     "selectCustomerDesc": "لائلٹی یا کھاتہ کے لیے گاہک تلاش کر کے منسلک کریں۔",
     "paymentMethod": "ادائیگی کا طریقہ",
+    "proceedCheckout": "چیک آؤٹ جاری رکھیں",
+    "checkoutTitle": "چیک آؤٹ",
+    "checkoutDesc": "ادائیگی کا طریقہ منتخب کریں اور رقم کی تصدیق کریں۔",
     "amountPaid": "رقم",
     "newCustomer": "نیا گاہک",
     "createStartKhata": "بنائیں + کھاتہ شروع",
@@ -233,6 +236,8 @@
     "tillStatus": "ٹل",
     "tillOpenLabel": "کھلا",
     "tillClosedLabel": "بند",
+    "enterOpeningFloat": "فروخت شروع کرنے کے لیے ابتدائی فلوٹ درج کریں",
+    "floatAmount": "فلوٹ روپے {amount}",
     "orderDetail": "آرڈر تفصیل",
     "lines": "{count} قطاریں",
     "discount": "رعایت",
@@ -358,6 +363,9 @@
     "userId": "منسلک صارف آئی ڈی",
     "khata": "کھاتہ",
     "khataEnabled": "کھاتہ فعال",
+    "portalEnabled": "کسٹمر پورٹل لاگ اِن",
+    "portalPassword": "پورٹل پاس ورڈ",
+    "portalPasswordHint": "نیا پورٹل لاگ اِن چالو کرتے وقت ضروری۔ موجودہ پاس ورڈ رکھنے کے لیے ایڈٹ پر خالی چھوڑیں۔",
     "khataOn": "آن",
     "khataOff": "آف",
     "balance": "بیلنس",
@@ -453,5 +461,13 @@
     "accessDeniedTitle": "رسائی منع ہے",
     "accessDeniedMessage": "منتخب کاروبار اور برانچ کے لیے آپ کو یہ صفحہ کھولنے کی اجازت نہیں ہے۔",
     "goToDashboard": "ڈیش بورڈ پر جائیں"
+  },
+  "help": {
+    "gotIt": "سمجھ گیا",
+    "aboutThis": "اس اسکرین کے بارے میں",
+    "what": "یہ کیا کرتا ہے",
+    "how": "استعمال کا طریقہ",
+    "when": "کب استعمال کریں",
+    "tips": "تجاویز"
   }
 }

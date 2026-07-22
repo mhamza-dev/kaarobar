@@ -35,6 +35,12 @@ export type CustomerForm = {
   credit_limit: string;
   user_id: string;
   khata_enabled: boolean;
+  marketing_opt_in_email: boolean;
+  marketing_opt_in_sms: boolean;
+  marketing_opt_in_whatsapp: boolean;
+  portal_enabled: boolean;
+  /** Set/reset customer portal login password (never returned from API). */
+  portal_password: string;
 };
 
 export const emptyCustomerForm = (): CustomerForm => ({
@@ -49,6 +55,11 @@ export const emptyCustomerForm = (): CustomerForm => ({
   credit_limit: "",
   user_id: "",
   khata_enabled: true,
+  marketing_opt_in_email: false,
+  marketing_opt_in_sms: false,
+  marketing_opt_in_whatsapp: false,
+  portal_enabled: false,
+  portal_password: "",
 });
 
 export function customerToForm(c: Customer): CustomerForm {
@@ -64,11 +75,16 @@ export function customerToForm(c: Customer): CustomerForm {
     credit_limit: c.credit_limit || "",
     user_id: c.user_id || "",
     khata_enabled: c.khata_enabled === true,
+    marketing_opt_in_email: c.marketing_opt_in_email === true,
+    marketing_opt_in_sms: c.marketing_opt_in_sms === true,
+    marketing_opt_in_whatsapp: c.marketing_opt_in_whatsapp === true,
+    portal_enabled: c.portal_enabled === true,
+    portal_password: "",
   };
 }
 
 export function customerPayload(form: CustomerForm) {
-  return {
+  const payload: Record<string, unknown> = {
     name: form.name.trim(),
     phone: form.phone.trim() || null,
     email: form.email.trim() || null,
@@ -80,7 +96,14 @@ export function customerPayload(form: CustomerForm) {
     credit_limit: form.credit_limit.trim() || null,
     user_id: form.user_id.trim() || null,
     khata_enabled: form.khata_enabled,
+    marketing_opt_in_email: form.marketing_opt_in_email,
+    marketing_opt_in_sms: form.marketing_opt_in_sms,
+    marketing_opt_in_whatsapp: form.marketing_opt_in_whatsapp,
+    portal_enabled: form.portal_enabled,
   };
+  const pwd = form.portal_password.trim();
+  if (pwd) payload.portal_password = pwd;
+  return payload;
 }
 
 export function customerSearchText(c: Customer) {
@@ -91,7 +114,8 @@ export const CUSTOMER_FORM_FIELDS: {
   key: keyof CustomerForm;
   labelKey: string;
   required?: boolean;
-  type?: "text" | "email" | "textarea" | "checkbox";
+  type?: "text" | "email" | "password" | "textarea" | "checkbox";
+  hintKey?: string;
 }[] = [
   { key: "name", labelKey: "common.name", required: true },
   { key: "company_name", labelKey: "customers.company" },
@@ -104,4 +128,14 @@ export const CUSTOMER_FORM_FIELDS: {
   { key: "user_id", labelKey: "customers.userId" },
   { key: "notes", labelKey: "customers.notes", type: "textarea" },
   { key: "khata_enabled", labelKey: "customers.khataEnabled", type: "checkbox" },
+  { key: "portal_enabled", labelKey: "customers.portalEnabled", type: "checkbox" },
+  {
+    key: "portal_password",
+    labelKey: "customers.portalPassword",
+    type: "password",
+    hintKey: "customers.portalPasswordHint",
+  },
+  { key: "marketing_opt_in_email", labelKey: "customers.optInEmail", type: "checkbox" },
+  { key: "marketing_opt_in_sms", labelKey: "customers.optInSms", type: "checkbox" },
+  { key: "marketing_opt_in_whatsapp", labelKey: "customers.optInWhatsapp", type: "checkbox" },
 ];

@@ -57,6 +57,7 @@ export default function ReportsPage() {
         eyebrow={t("reports.eyebrow")}
         title={t("pages.reportsTitle")}
         description={t("pages.reportsDesc")}
+        infoKey="page.reports"
       />
 
       {branch ? (
