@@ -10,6 +10,8 @@ import PosPage from "@/pages/PosPage";
 import ReturnsPage from "@/pages/ReturnsPage";
 import InventoryPage from "@/pages/InventoryPage";
 import AccountingPage from "@/pages/AccountingPage";
+import CustomersPage from "@/pages/CustomersPage";
+import MarketingPage from "@/pages/MarketingPage";
 import HrPage from "@/pages/HrPage";
 import ReportsPage from "@/pages/ReportsPage";
 import NotificationsPage from "@/pages/NotificationsPage";
@@ -31,8 +33,10 @@ export default function App() {
                 <Route index element={<DashboardPage />} />
                 <Route path="pos" element={<PosPage />} />
                 <Route path="returns" element={<ReturnsPage />} />
+                <Route path="customers" element={<CustomersPage />} />
                 <Route path="inventory" element={<InventoryPage />} />
                 <Route path="accounting" element={<AccountingPage />} />
+                <Route path="marketing" element={<MarketingPage />} />
                 <Route path="hr" element={<HrPage />} />
                 <Route path="reports" element={<ReportsPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />

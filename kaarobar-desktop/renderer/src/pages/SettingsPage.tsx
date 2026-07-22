@@ -1,3 +1,4 @@
+
 import { useCallback, useEffect, useState } from "react";
 import { api, getSession, setSession } from "@/lib/api/client";
 import { PageHeader, SurfaceCard } from "@/components/app/ui";
@@ -20,15 +21,24 @@ type Usage = {
   checkout_url?: string | null;
 };
 
-type Business = { id: string; name: string; fbr_tier1?: boolean };
+type Business = {
+  id: string;
+  name: string;
+  fbr_tier1?: boolean;
+  loyalty_earn_per_amount?: string;
+  loyalty_points_per_earn?: number;
+  loyalty_redeem_value?: string;
+};
 type RoleSettings = Record<string, Record<string, boolean>>;
 type SettingsTab = "subscriptions" | "integrations" | "roles" | "notifications";
-const MANAGED_ROLES = ["owner", "admin", "employee"] as const;
+const MANAGED_ROLES = ["owner", "admin", "employee", "marketing"] as const;
 const MANAGED_BUNDLES = [
   "pos",
   "pos_approve",
   "inventory",
   "accounting",
+  "customers",
+  "marketing",
   "hr",
   "leave_approve",
   "payroll_approve",
@@ -91,6 +101,23 @@ export default function SettingsPage() {
       await load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.updateFailed"));
+    }
+  }
+
+  async function saveLoyalty(b: Business) {
+    try {
+      await api(`/businesses/${b.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          loyalty_earn_per_amount: b.loyalty_earn_per_amount || "100",
+          loyalty_points_per_earn: Number(b.loyalty_points_per_earn || 1),
+          loyalty_redeem_value: b.loyalty_redeem_value || "1.00",
+        }),
+      });
+      toast.success(t("settings.loyaltySaved"));
+      await load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("common.saveFailed"));
     }
   }
 
@@ -204,31 +231,102 @@ export default function SettingsPage() {
       ) : null}
 
       {tab === "integrations" && isOwner ? (
-        <SurfaceCard className="flex flex-col p-5">
-          <h2 className="shrink-0 font-semibold text-heading">{t("settings.fbrTitle")}</h2>
-          <p className="mt-1 shrink-0 text-sm text-body">{t("settings.fbrDesc")}</p>
-          <ul className="mt-4 max-h-[min(28rem,50vh)] space-y-0 overflow-y-auto">
+        <div className="space-y-4">
+          <SurfaceCard className="flex flex-col p-5">
+            <h2 className="shrink-0 font-semibold text-heading">{t("settings.fbrTitle")}</h2>
+            <p className="mt-1 shrink-0 text-sm text-body">{t("settings.fbrDesc")}</p>
+            <ul className="mt-4 max-h-[min(28rem,50vh)] space-y-0 overflow-y-auto">
+              {businesses.map((b) => (
+                <li
+                  key={b.id}
+                  className="flex flex-wrap items-center justify-between gap-2 border-t border-border py-3 first:border-t-0"
+                >
+                  <span className="font-medium text-heading">{b.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => toggleFbr(b)}
+                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                      b.fbr_tier1
+                        ? "bg-brand text-brand-foreground"
+                        : "border border-border text-heading hover:bg-bg-hover"
+                    }`}
+                  >
+                    {b.fbr_tier1 ? t("common.enabled") : t("common.disabled")}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </SurfaceCard>
+
+          <SurfaceCard className="space-y-3 p-5">
+            <h2 className="font-semibold text-heading">{t("settings.loyaltyTitle")}</h2>
+            <p className="text-sm text-body">{t("settings.loyaltyDesc")}</p>
             {businesses.map((b) => (
-              <li
-                key={b.id}
-                className="flex flex-wrap items-center justify-between gap-2 border-t border-border py-3 first:border-t-0"
+              <div
+                key={`loyalty-${b.id}`}
+                className="grid gap-2 border-t border-border pt-3 sm:grid-cols-4"
               >
-                <span className="font-medium text-heading">{b.name}</span>
+                <span className="font-medium text-heading sm:col-span-4">{b.name}</span>
+                <label className="text-xs text-body">
+                  {t("settings.loyaltyEarnPerAmount")}
+                  <input
+                    className="mt-1 w-full rounded border border-border px-2 py-1 text-sm"
+                    value={b.loyalty_earn_per_amount || "100"}
+                    onChange={(e) =>
+                      setBusinesses((prev) =>
+                        prev.map((x) =>
+                          x.id === b.id
+                            ? { ...x, loyalty_earn_per_amount: e.target.value }
+                            : x
+                        )
+                      )
+                    }
+                  />
+                </label>
+                <label className="text-xs text-body">
+                  {t("settings.loyaltyPointsPerEarn")}
+                  <input
+                    className="mt-1 w-full rounded border border-border px-2 py-1 text-sm"
+                    type="number"
+                    value={b.loyalty_points_per_earn ?? 1}
+                    onChange={(e) =>
+                      setBusinesses((prev) =>
+                        prev.map((x) =>
+                          x.id === b.id
+                            ? { ...x, loyalty_points_per_earn: Number(e.target.value) }
+                            : x
+                        )
+                      )
+                    }
+                  />
+                </label>
+                <label className="text-xs text-body">
+                  {t("settings.loyaltyRedeemValue")}
+                  <input
+                    className="mt-1 w-full rounded border border-border px-2 py-1 text-sm"
+                    value={b.loyalty_redeem_value || "1.00"}
+                    onChange={(e) =>
+                      setBusinesses((prev) =>
+                        prev.map((x) =>
+                          x.id === b.id
+                            ? { ...x, loyalty_redeem_value: e.target.value }
+                            : x
+                        )
+                      )
+                    }
+                  />
+                </label>
                 <button
                   type="button"
-                  onClick={() => toggleFbr(b)}
-                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                    b.fbr_tier1
-                      ? "bg-brand text-brand-foreground"
-                      : "border border-border text-heading hover:bg-bg-hover"
-                  }`}
+                  onClick={() => void saveLoyalty(b)}
+                  className="self-end rounded-md bg-brand px-3 py-2 text-sm font-semibold text-brand-foreground"
                 >
-                  {b.fbr_tier1 ? t("common.enabled") : t("common.disabled")}
+                  {t("common.save")}
                 </button>
-              </li>
+              </div>
             ))}
-          </ul>
-        </SurfaceCard>
+          </SurfaceCard>
+        </div>
       ) : null}
 
       {tab === "roles" && isOwner ? (

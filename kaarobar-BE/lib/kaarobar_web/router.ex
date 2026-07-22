@@ -30,6 +30,10 @@ defmodule KaarobarWeb.Router do
     plug KaarobarWeb.Plugs.Authorize, bundle: :customers
   end
 
+  pipeline :marketing_roles do
+    plug KaarobarWeb.Plugs.Authorize, bundle: :marketing
+  end
+
   pipeline :hr_roles do
     plug KaarobarWeb.Plugs.Authorize, bundle: :hr
   end
@@ -197,7 +201,17 @@ defmodule KaarobarWeb.Router do
     post "/customers", ArApController, :create_customer
     get "/customers/:id", ArApController, :show_customer
     patch "/customers/:id", ArApController, :update_customer
+    post "/customers/:id/loyalty", ArApController, :adjust_loyalty
     get "/customers/:id/ledger", ArApController, :customer_ledger
+  end
+
+  scope "/api/v1", KaarobarWeb.V1 do
+    pipe_through [:api, :authenticated, :marketing_roles]
+
+    get "/crm/campaigns", CrmController, :index
+    post "/crm/campaigns", CrmController, :create
+    get "/crm/campaigns/:id", CrmController, :show
+    post "/crm/campaigns/:id/send", CrmController, :send
   end
 
   scope "/api/v1", KaarobarWeb.V1 do

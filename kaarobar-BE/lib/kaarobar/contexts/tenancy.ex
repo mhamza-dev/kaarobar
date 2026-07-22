@@ -66,7 +66,15 @@ defmodule Kaarobar.Tenancy do
              action: "business.update",
              entity_type: "business",
              entity_id: business.id,
-             metadata: Map.take(attrs, [:name, :industry, :tax_jurisdiction, :fbr_tier1])
+             metadata: Map.take(attrs, [
+               :name,
+               :industry,
+               :tax_jurisdiction,
+               :fbr_tier1,
+               :loyalty_earn_per_amount,
+               :loyalty_points_per_earn,
+               :loyalty_redeem_value
+             ])
            }) do
       {:ok, updated}
     end

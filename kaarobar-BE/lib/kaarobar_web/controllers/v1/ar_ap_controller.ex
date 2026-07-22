@@ -17,7 +17,10 @@ defmodule KaarobarWeb.V1.ArApController do
       |> where([c], c.business_id == ^business_id and c.owner_id == ^owner_id)
       |> order_by([c], asc: c.name)
       |> Repo.all()
-      |> Enum.map(&serialize_customer/1)
+      |> Enum.map(fn c ->
+        balance = Accounting.customer_balance(c.id, business_id, owner_id)
+        Map.merge(serialize_customer(c), %{balance: to_string(balance)})
+      end)
 
     json(conn, %{data: data})
   end
@@ -26,23 +29,21 @@ defmodule KaarobarWeb.V1.ArApController do
     business_id = conn.assigns[:business_id]
     owner_id = conn.assigns[:owner_id]
 
-    case %Customer{}
-         |> Customer.changeset(%{
-           name: params["name"],
-           phone: params["phone"],
-           email: params["email"],
-           khata_enabled: params["khata_enabled"] == true || params["khata_enabled"] == "true",
-           business_id: business_id,
-           owner_id: owner_id
-         })
-         |> Repo.insert() do
+    attrs =
+      customer_attrs(params)
+      |> Map.merge(%{
+        "business_id" => business_id,
+        "owner_id" => owner_id
+      })
+
+    case %Customer{} |> Customer.changeset(attrs) |> Repo.insert() do
       {:ok, c} ->
         conn
         |> put_status(:created)
         |> json(%{data: serialize_customer(c)})
 
       {:error, cs} ->
-        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(cs.errors)})
+        conn |> put_status(:unprocessable_entity) |> json(%{error: customer_error(cs)})
     end
   end
 
@@ -56,7 +57,10 @@ defmodule KaarobarWeb.V1.ArApController do
 
       c ->
         balance = Accounting.customer_balance(c.id, business_id, owner_id)
-        json(conn, %{data: Map.merge(serialize_customer(c), %{balance: balance})})
+
+        json(conn, %{
+          data: Map.merge(serialize_customer(c), %{balance: to_string(balance)})
+        })
     end
   end
 
@@ -69,20 +73,48 @@ defmodule KaarobarWeb.V1.ArApController do
         conn |> put_status(:not_found) |> json(%{error: "not_found"})
 
       c ->
-        attrs =
-          %{}
-          |> maybe_put(params, "name")
-          |> maybe_put(params, "phone")
-          |> maybe_put(params, "email")
-          |> maybe_put_bool(params, "khata_enabled")
-
-        case c |> Customer.changeset(attrs) |> Repo.update() do
+        case c |> Customer.changeset(customer_attrs(params)) |> Repo.update() do
           {:ok, updated} ->
             json(conn, %{data: serialize_customer(updated)})
 
           {:error, cs} ->
-            conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(cs.errors)})
+            conn |> put_status(:unprocessable_entity) |> json(%{error: customer_error(cs)})
         end
+    end
+  end
+
+  def adjust_loyalty(conn, %{"id" => id} = params) do
+    user = Guardian.Plug.current_resource(conn)
+    business_id = conn.assigns[:business_id]
+    owner_id = conn.assigns[:owner_id]
+
+    delta =
+      case params["delta"] do
+        d when is_integer(d) -> d
+        d when is_binary(d) -> String.to_integer(d)
+        _ -> nil
+      end
+
+    if is_nil(delta) do
+      conn |> put_status(:unprocessable_entity) |> json(%{error: "delta_required"})
+    else
+      case Kaarobar.Loyalty.adjust_points(
+             id,
+             business_id,
+             owner_id,
+             user.id,
+             delta,
+             params["reason"]
+           ) do
+        {:ok, c} ->
+          json(conn, %{data: serialize_customer(c)})
+
+        {:error, :not_found} ->
+          conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+        {:error, cs} ->
+          conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(cs)})
+      end
     end
   end
 
@@ -97,8 +129,30 @@ defmodule KaarobarWeb.V1.ArApController do
       c ->
         entries = Accounting.customer_ledger(c.id, business_id, owner_id)
         balance = Accounting.customer_balance(c.id, business_id, owner_id)
-        json(conn, %{data: %{customer: serialize_customer(c), balance: balance, entries: entries}})
+
+        json(conn, %{
+          data: %{
+            customer: serialize_customer(c),
+            balance: to_string(balance),
+            entries: entries
+          }
+        })
     end
+  end
+
+  defp customer_attrs(params) do
+    %{}
+    |> maybe_put(params, "name")
+    |> maybe_put(params, "phone")
+    |> maybe_put(params, "email")
+    |> maybe_put(params, "address")
+    |> maybe_put(params, "notes")
+    |> maybe_put(params, "cnic")
+    |> maybe_put(params, "ntn")
+    |> maybe_put(params, "company_name")
+    |> maybe_put(params, "credit_limit")
+    |> maybe_put(params, "user_id")
+    |> maybe_put_bool(params, "khata_enabled")
   end
 
   defp serialize_customer(c) do
@@ -107,8 +161,24 @@ defmodule KaarobarWeb.V1.ArApController do
       name: c.name,
       phone: c.phone,
       email: c.email,
-      khata_enabled: c.khata_enabled == true
+      address: c.address,
+      notes: c.notes,
+      cnic: c.cnic,
+      ntn: c.ntn,
+      company_name: c.company_name,
+      credit_limit: c.credit_limit && to_string(c.credit_limit),
+      loyalty_points: c.loyalty_points || 0,
+      khata_enabled: c.khata_enabled == true,
+      user_id: c.user_id
     }
+  end
+
+  defp customer_error(cs) do
+    if Keyword.has_key?(cs.errors, :phone) do
+      "phone_already_exists"
+    else
+      inspect(cs.errors)
+    end
   end
 
   defp maybe_put(map, params, key) do
@@ -140,6 +210,7 @@ defmodule KaarobarWeb.V1.ArApController do
         %{
           id: i.id,
           invoice_number: i.invoice_number,
+          customer_id: i.customer_id,
           customer_name: i.customer && i.customer.name,
           total_amount: to_string(i.total_amount),
           balance_due: to_string(i.balance_due),

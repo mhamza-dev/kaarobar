@@ -187,6 +187,8 @@ export default function DashboardScreen() {
 
   const links = [
     { href: "/pos", title: t("nav.pos"), subtitle: t("pages.posTitle") },
+    { href: "/customers", title: t("nav.customers"), subtitle: t("pages.customersTitle") },
+    { href: "/marketing", title: t("nav.marketing"), subtitle: t("pages.marketingTitle") },
     { href: "/returns", title: t("nav.returns"), subtitle: t("pages.returnsTitle") },
     { href: "/inventory", title: t("nav.inventory"), subtitle: t("pages.inventoryTitle") },
     {
@@ -206,6 +208,8 @@ export default function DashboardScreen() {
     { href: "/profile", title: t("nav.profile"), subtitle: t("profile.description") },
   ].filter((item) => {
     if (item.href === "/pos" || item.href === "/returns") return canAccess(session, "pos");
+    if (item.href === "/customers") return canAccess(session, "customers");
+    if (item.href === "/marketing") return canAccess(session, "marketing");
     if (item.href === "/inventory") return canAccess(session, "inventory");
     if (item.href === "/leave") return canAccess(session, "leave_approve");
     if (item.href === "/ess") return canAccess(session, "employee_self");

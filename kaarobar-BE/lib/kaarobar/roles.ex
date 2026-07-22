@@ -11,13 +11,15 @@ defmodule Kaarobar.Roles do
     inventory_manager
     accountant
     hr_manager
+    marketing
     employee
   )
 
   @role_aliases %{
     "manager" => "branch_manager",
     "inventory_clerk" => "inventory_manager",
-    "hr" => "hr_manager"
+    "hr" => "hr_manager",
+    "marketer" => "marketing"
   }
 
   @mfa_default_roles ~w(owner accountant)
@@ -35,6 +37,7 @@ defmodule Kaarobar.Roles do
     reports
     notifications
     settings
+    marketing
     employee_self
     any_staff
   )a
@@ -45,15 +48,14 @@ defmodule Kaarobar.Roles do
     pos_approve: ~w(owner admin),
     inventory: ~w(owner admin branch_manager inventory_manager employee),
     accounting: ~w(owner admin accountant),
-    customers: ~w(owner admin accountant branch_manager cashier employee),
+    customers: ~w(owner admin accountant branch_manager cashier employee marketing),
     hr: ~w(owner admin hr_manager branch_manager),
     leave_approve: ~w(owner admin hr_manager),
     payroll_approve: ~w(owner admin accountant),
     reports: ~w(owner admin branch_manager accountant),
     notifications: @roles,
-    # Owner-only business controls (subscriptions / integrations / role matrix)
     settings: ~w(owner),
-    # Staff self-service (clock / leave / payslips) — Admin & Employees (incl. cashiers); not owners
+    marketing: ~w(owner admin hr_manager marketing),
     employee_self: ~w(admin employee cashier),
     any_staff: @roles
   }
@@ -88,7 +90,6 @@ defmodule Kaarobar.Roles do
 
   def requires_mfa_by_default?(_), do: false
 
-  # Permission bundles used by Authorize plug.
   def bundle(bundle) when is_atom(bundle), do: Map.get(@bundle_defaults, bundle, [])
 
   def bundle_allowed?(bundle, role, overrides \\ %{})

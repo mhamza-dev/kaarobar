@@ -68,6 +68,7 @@ type Customer = {
   name: string;
   phone?: string | null;
   khata_enabled?: boolean;
+  loyalty_points?: number;
 };
 
 function money(n: number) {
@@ -107,6 +108,7 @@ export default function PosPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [customerId, setCustomerId] = useState("");
   const [customerQuery, setCustomerQuery] = useState("");
+  const [loyaltyRedeem, setLoyaltyRedeem] = useState("");
   const [newCustomerName, setNewCustomerName] = useState("");
   const [newCustomerPhone, setNewCustomerPhone] = useState("");
   const [showNewCustomer, setShowNewCustomer] = useState(false);
@@ -312,7 +314,7 @@ export default function PosPage() {
       setShowNewCustomer(false);
       setNewCustomerName("");
       setNewCustomerPhone("");
-      toast.success("Customer created · khata started");
+      toast.success(t("pos.customerCreatedKhata"));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.error"));
     } finally {
@@ -395,11 +397,11 @@ export default function PosPage() {
     const khataAmt = payments.find((p) => p.method === "khata")?.amount || 0;
     if (khataAmt > 0) {
       if (!customerId) {
-        toast.warning("Select a customer for khata");
+        toast.warning(t("pos.selectCustomerKhata"));
         return;
       }
       if (!selectedCustomer?.khata_enabled) {
-        toast.warning("Enable khata for this customer first");
+        toast.warning(t("pos.enableKhataFirst"));
         return;
       }
     }
@@ -413,6 +415,7 @@ export default function PosPage() {
           client_txn_id,
           till_id: till?.id,
           customer_id: customerId || undefined,
+          loyalty_redeem_points: loyaltyRedeem ? Number(loyaltyRedeem) : undefined,
           items: cart.map((l) => ({
             product_id: l.product.id,
             quantity: l.quantity,
@@ -425,6 +428,7 @@ export default function PosPage() {
         }),
       });
       setCart([]);
+      setLoyaltyRedeem("");
       setLastInvoice(res.data.invoice_number);
       setReceipt(res.data);
       toast.success(`${t("pos.saleComplete")} · ${res.data.invoice_number}`);
@@ -678,10 +682,10 @@ export default function PosPage() {
 
           <div className="mt-3 space-y-2 border-t border-border pt-3">
             <label className="block text-xs font-semibold text-heading">
-              Customer / khata
+              {t("pos.customerKhata")}
               <input
                 className={`${fieldClass} mt-1`}
-                placeholder="Search customer…"
+                placeholder={t("pos.searchCustomer")}
                 value={customerQuery}
                 onChange={(e) => setCustomerQuery(e.target.value)}
               />
@@ -706,19 +710,34 @@ export default function PosPage() {
             {selectedCustomer ? (
               <div className="flex flex-wrap items-center gap-2 text-xs text-body">
                 <span>
-                  Attached: <strong className="text-heading">{selectedCustomer.name}</strong>
+                  {t("pos.attached")}:{" "}
+                  <strong className="text-heading">{selectedCustomer.name}</strong>
+                  {" · "}
+                  {selectedCustomer.loyalty_points ?? 0} {t("customers.points")}
                 </span>
                 {!selectedCustomer.khata_enabled ? (
                   <Button size="sm" variant="secondary" onClick={() => void enableKhata()}>
-                    Start khata
+                    {t("pos.startKhata")}
                   </Button>
                 ) : null}
+                <label className="flex items-center gap-1">
+                  {t("pos.redeemPts")}
+                  <input
+                    className="w-16 rounded border border-border px-1 py-0.5"
+                    value={loyaltyRedeem}
+                    onChange={(e) => setLoyaltyRedeem(e.target.value)}
+                    placeholder="0"
+                  />
+                </label>
                 <button
                   type="button"
                   className="text-muted underline"
-                  onClick={() => setCustomerId("")}
+                  onClick={() => {
+                    setCustomerId("");
+                    setLoyaltyRedeem("");
+                  }}
                 >
-                  Clear
+                  {t("pos.clear")}
                 </button>
               </div>
             ) : null}
@@ -738,17 +757,17 @@ export default function PosPage() {
                 />
                 <div className="flex gap-2">
                   <Button size="sm" onClick={() => void createCustomerQuick()} disabled={busy}>
-                    Create + start khata
+                    {t("pos.createStartKhata")}
                   </Button>
                   <Button size="sm" variant="secondary" onClick={() => setShowNewCustomer(false)}>
-                    Cancel
+                    {t("common.cancel")}
                   </Button>
                 </div>
               </div>
             ) : (
               <Button size="sm" variant="secondary" onClick={() => setShowNewCustomer(true)}>
                 <BookUser className="mr-1 h-3.5 w-3.5" />
-                New customer
+                {t("pos.newCustomer")}
               </Button>
             )}
           </div>

@@ -9,13 +9,13 @@ const BUNDLES: Record<string, readonly string[]> = {
   pos_approve: ["owner", "admin"],
   inventory: ["owner", "admin", "branch_manager", "inventory_manager", "employee"],
   accounting: ["owner", "admin", "accountant"],
-  customers: ["owner", "admin", "accountant", "branch_manager", "cashier", "employee"],
+  customers: ["owner", "admin", "accountant", "branch_manager", "cashier", "employee", "marketing"],
   hr: ["owner", "admin", "hr_manager", "branch_manager"],
   leave_approve: ["owner", "admin", "hr_manager"],
   payroll_approve: ["owner", "admin", "accountant"],
   reports: ["owner", "admin", "branch_manager", "accountant"],
+  marketing: ["owner", "admin", "hr_manager", "marketing"],
   settings: ["owner"],
-  // Staff tools — Admin & Employees (incl. cashiers); not owners
   employee_self: ["admin", "employee", "cashier"],
   any_staff: [
     "owner",
@@ -25,6 +25,7 @@ const BUNDLES: Record<string, readonly string[]> = {
     "inventory_manager",
     "accountant",
     "hr_manager",
+    "marketing",
     "employee",
   ],
 } as const;
@@ -35,6 +36,8 @@ const ROUTES: Record<string, Bundle> = {
   "/dashboard": "any_staff",
   "/pos": "pos",
   "/returns": "pos",
+  "/customers": "customers",
+  "/marketing": "marketing",
   "/inventory": "inventory",
   "/ess": "employee_self",
   "/profile": "any_staff",

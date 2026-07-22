@@ -394,6 +394,7 @@ defmodule Kaarobar.Notifications do
     "#{base}\n\nDetails: #{payload}\n"
   end
 
+  def human_title("crm.campaign"), do: "Marketing campaign"
   def human_title("leave_request"), do: "Leave request submitted"
   def human_title("leave.approved"), do: "Leave approved"
   def human_title("leave.rejected"), do: "Leave rejected"

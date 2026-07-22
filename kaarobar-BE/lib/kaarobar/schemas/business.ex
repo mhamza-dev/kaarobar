@@ -14,6 +14,9 @@ defmodule Kaarobar.Schemas.Business do
     field :subscription_plan, :string, default: "trial"
     field :fbr_tier1, :boolean, default: false
     field :is_active, :boolean, default: true
+    field :loyalty_earn_per_amount, :decimal, default: Decimal.new("100")
+    field :loyalty_points_per_earn, :integer, default: 1
+    field :loyalty_redeem_value, :decimal, default: Decimal.new("1.00")
 
     belongs_to :owner, Kaarobar.Schemas.User
     has_many :branches, Kaarobar.Schemas.Branch
@@ -35,10 +38,16 @@ defmodule Kaarobar.Schemas.Business do
       :subscription_plan,
       :fbr_tier1,
       :is_active,
+      :loyalty_earn_per_amount,
+      :loyalty_points_per_earn,
+      :loyalty_redeem_value,
       :owner_id
     ])
     |> validate_required([:name, :owner_id])
     |> maybe_validate_industry()
+    |> validate_number(:loyalty_earn_per_amount, greater_than: 0)
+    |> validate_number(:loyalty_points_per_earn, greater_than: 0)
+    |> validate_number(:loyalty_redeem_value, greater_than: 0)
     |> foreign_key_constraint(:owner_id)
   end
 

@@ -9,11 +9,18 @@ defmodule Kaarobar.Schemas.Customer do
     field :name, :string
     field :phone, :string
     field :email, :string
+    field :address, :string
+    field :notes, :string
+    field :credit_limit, :decimal
+    field :cnic, :string
+    field :ntn, :string
+    field :company_name, :string
     field :loyalty_points, :integer, default: 0
     field :khata_enabled, :boolean, default: false
 
     belongs_to :business, Kaarobar.Schemas.Business
     belongs_to :owner, Kaarobar.Schemas.User
+    belongs_to :user, Kaarobar.Schemas.User
 
     timestamps(type: :utc_datetime)
   end
@@ -24,13 +31,34 @@ defmodule Kaarobar.Schemas.Customer do
       :name,
       :phone,
       :email,
+      :address,
+      :notes,
+      :credit_limit,
+      :cnic,
+      :ntn,
+      :company_name,
       :loyalty_points,
       :khata_enabled,
       :business_id,
-      :owner_id
+      :owner_id,
+      :user_id
     ])
+    |> update_change(:phone, &blank_to_nil/1)
+    |> update_change(:email, &blank_to_nil/1)
+    |> update_change(:address, &blank_to_nil/1)
+    |> update_change(:notes, &blank_to_nil/1)
+    |> update_change(:cnic, &blank_to_nil/1)
+    |> update_change(:ntn, &blank_to_nil/1)
+    |> update_change(:company_name, &blank_to_nil/1)
     |> validate_required([:name, :business_id, :owner_id])
     |> foreign_key_constraint(:business_id)
     |> foreign_key_constraint(:owner_id)
+    |> foreign_key_constraint(:user_id)
+    |> unique_constraint([:business_id, :phone], name: :customers_business_id_phone_index)
   end
+
+  defp blank_to_nil(nil), do: nil
+  defp blank_to_nil(""), do: nil
+  defp blank_to_nil(v) when is_binary(v), do: String.trim(v) |> then(fn s -> if s == "", do: nil, else: s end)
+  defp blank_to_nil(v), do: v
 end

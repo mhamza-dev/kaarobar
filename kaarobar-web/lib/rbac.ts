@@ -5,6 +5,7 @@ const ROLE_ALIASES: Record<string, string> = {
   manager: "branch_manager",
   inventory_clerk: "inventory_manager",
   hr: "hr_manager",
+  marketer: "marketing",
 };
 
 /** Bundles owners must never auto-inherit (staff self-service only). */
@@ -16,11 +17,12 @@ const BUNDLES: Record<string, readonly string[]> = {
   pos_approve: ["owner", "admin"],
   inventory: ["owner", "admin", "branch_manager", "inventory_manager", "employee"],
   accounting: ["owner", "admin", "accountant"],
-  customers: ["owner", "admin", "accountant", "branch_manager", "cashier", "employee"],
+  customers: ["owner", "admin", "accountant", "branch_manager", "cashier", "employee", "marketing"],
   hr: ["owner", "admin", "hr_manager", "branch_manager"],
   leave_approve: ["owner", "admin", "hr_manager"],
   payroll_approve: ["owner", "admin", "accountant"],
   reports: ["owner", "admin", "branch_manager", "accountant"],
+  marketing: ["owner", "admin", "hr_manager", "marketing"],
   settings: ["owner"],
   notifications: [
     "owner",
@@ -30,9 +32,9 @@ const BUNDLES: Record<string, readonly string[]> = {
     "inventory_manager",
     "accountant",
     "hr_manager",
+    "marketing",
     "employee",
   ],
-  // Staff tools — Admin & Employees (incl. cashiers); not owners
   employee_self: ["admin", "employee", "cashier"],
   any_staff: [
     "owner",
@@ -42,6 +44,7 @@ const BUNDLES: Record<string, readonly string[]> = {
     "inventory_manager",
     "accountant",
     "hr_manager",
+    "marketing",
     "employee",
   ],
 } as const;
@@ -52,8 +55,10 @@ const ROUTE_BUNDLES: Record<string, Bundle> = {
   "/app": "any_staff",
   "/app/pos": "pos",
   "/app/returns": "pos",
+  "/app/customers": "customers",
   "/app/inventory": "inventory",
   "/app/accounting": "accounting",
+  "/app/marketing": "marketing",
   "/app/hr": "hr",
   "/app/reports": "reports",
   "/app/notifications": "notifications",

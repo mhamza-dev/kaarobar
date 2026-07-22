@@ -41,6 +41,8 @@ defmodule Kaarobar.Pos do
           with {:ok, branch} <- fetch_branch(branch_id, business_id, owner_id),
                {:ok, priced_items} <- resolve_line_items(branch_id, business_id, owner_id, attrs),
                {:ok, money} <- compute_totals(priced_items, attrs),
+               {:ok, money, redeem_points} <-
+                 apply_loyalty_redeem(business_id, owner_id, attrs, money),
                :ok <- validate_discount_limit(branch, money.discount_amount, attrs),
                {:ok, payments} <-
                  normalize_payments(attrs[:payments] || attrs["payments"] || [], money.total_amount),
@@ -54,7 +56,7 @@ defmodule Kaarobar.Pos do
               priced_items,
               money,
               payments,
-              Map.put(attrs, :customer_id, customer_id)
+              Map.merge(attrs, %{customer_id: customer_id, loyalty_redeem_points: redeem_points})
             )
           end
       end
@@ -126,6 +128,9 @@ defmodule Kaarobar.Pos do
     |> Multi.run(:low_stock, fn _repo, _ ->
       maybe_notify_low_stock_after_sale(branch.id, business_id, owner_id, priced_items)
     end)
+    |> Multi.run(:loyalty, fn _repo, %{sale: sale} ->
+      apply_sale_loyalty(sale, business_id, attrs)
+    end)
     |> Repo.transaction()
     |> case do
       {:ok, %{sale: sale, khata_ar: inv}} ->
@@ -182,12 +187,99 @@ defmodule Kaarobar.Pos do
                business_id: business_id,
                owner_id: owner_id
              ) do
-          %Kaarobar.Schemas.Customer{} = c -> {:ok, c.id}
           nil -> {:error, :customer_not_found}
+          c -> {:ok, c.id}
         end
 
       true ->
         {:ok, nil}
+    end
+  end
+
+  defp apply_loyalty_redeem(business_id, owner_id, attrs, money) do
+    raw = attrs[:loyalty_redeem_points] || attrs["loyalty_redeem_points"] || 0
+
+    points =
+      cond do
+        is_integer(raw) -> raw
+        is_binary(raw) and raw != "" -> String.to_integer(raw)
+        true -> 0
+      end
+
+    customer_id = attrs[:customer_id] || attrs["customer_id"]
+
+    cond do
+      points <= 0 ->
+        {:ok, money, 0}
+
+      not is_binary(customer_id) or customer_id == "" ->
+        {:error, :customer_required_for_loyalty}
+
+      true ->
+        business = Repo.get!(Kaarobar.Schemas.Business, business_id)
+
+        customer =
+          Repo.get_by(Kaarobar.Schemas.Customer,
+            id: customer_id,
+            business_id: business_id,
+            owner_id: owner_id
+          )
+
+        cond do
+          is_nil(customer) ->
+            {:error, :customer_not_found}
+
+          points > (customer.loyalty_points || 0) ->
+            {:error, :insufficient_loyalty_points}
+
+          true ->
+            discount = Kaarobar.Loyalty.redeem_discount(points, business)
+            discount = Decimal.min(discount, money.total_amount)
+            new_total = Decimal.sub(money.total_amount, discount) |> max_dec(Decimal.new(0)) |> Decimal.round(2)
+
+            new_money = %{
+              money
+              | discount_amount: Decimal.add(money.discount_amount, discount) |> Decimal.round(2),
+                total_amount: new_total
+            }
+
+            # Recompute points actually used from discount applied
+            redeem_value = Kaarobar.Loyalty.rates(business).redeem_value
+
+            used =
+              if Decimal.compare(redeem_value, 0) == :gt do
+                discount
+                |> Decimal.div(redeem_value)
+                |> Decimal.round(0, :floor)
+                |> Decimal.to_integer()
+              else
+                0
+              end
+
+            {:ok, new_money, min(used, points)}
+        end
+    end
+  rescue
+    ArgumentError -> {:error, :invalid_loyalty_points}
+  end
+
+  defp apply_sale_loyalty(sale, business_id, attrs) do
+    redeem = attrs[:loyalty_redeem_points] || attrs["loyalty_redeem_points"] || 0
+    redeem = if is_integer(redeem), do: redeem, else: 0
+
+    case sale.customer_id do
+      nil ->
+        {:ok, :skipped}
+
+      customer_id ->
+        business = Repo.get!(Kaarobar.Schemas.Business, business_id)
+        customer = Repo.get!(Kaarobar.Schemas.Customer, customer_id)
+        earned = Kaarobar.Loyalty.earn_points(business, sale.total_amount)
+        new_points = max((customer.loyalty_points || 0) - redeem + earned, 0)
+
+        customer
+        |> Kaarobar.Schemas.Customer.changeset(%{loyalty_points: new_points})
+        |> Repo.update()
     end
   end
 

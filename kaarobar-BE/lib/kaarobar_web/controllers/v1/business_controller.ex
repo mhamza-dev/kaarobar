@@ -86,7 +86,10 @@ defmodule KaarobarWeb.V1.BusinessController do
       tax_jurisdiction: b.tax_jurisdiction,
       subscription_plan: b.subscription_plan,
       fbr_tier1: b.fbr_tier1,
-      is_active: b.is_active
+      is_active: b.is_active,
+      loyalty_earn_per_amount: to_string(b.loyalty_earn_per_amount || 100),
+      loyalty_points_per_earn: b.loyalty_points_per_earn || 1,
+      loyalty_redeem_value: to_string(b.loyalty_redeem_value || 1)
     }
   end
 
