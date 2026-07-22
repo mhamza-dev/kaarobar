@@ -4,6 +4,7 @@ import NextLink from "next/link";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 
+import KaarobarLogo from "@/components/brand/KaarobarLogo";
 import Link from "@/components/ui/Link";
 import {
   companyNav,
@@ -21,9 +22,7 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 border-b border-border/50 glass">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
         <NextLink href={routes.home} className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-md bg-brand-gradient text-lg font-bold text-white shadow-brand">
-            K
-          </div>
+          <KaarobarLogo size={44} className="shrink-0 shadow-brand rounded-[10px]" />
 
           <div>
             <h1 className="text-xl font-bold text-heading">Kaarobar</h1>

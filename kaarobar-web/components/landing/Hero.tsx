@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "@/components/ui/Link";
+import KaarobarLogo from "@/components/brand/KaarobarLogo";
 import {
   ArrowRight,
   Building2,
@@ -26,6 +27,14 @@ export default function Hero() {
 
       <div className="relative mx-auto flex max-w-7xl flex-col items-center px-6 pb-24 pt-20 lg:flex-row lg:gap-20 lg:pt-32">
         <div className="flex-1 animate-rise">
+          <div className="mb-6 flex items-center gap-3">
+            <KaarobarLogo size={52} className="shrink-0 rounded-[12px] shadow-brand" />
+            <div>
+              <p className="text-xl font-bold tracking-tight text-heading">Kaarobar</p>
+              <p className="text-xs text-body">POS · Accounting · Payroll</p>
+            </div>
+          </div>
+
           <div className="inline-flex items-center gap-2 rounded-md border border-brand/20 bg-brand-soft/80 px-4 py-2 text-sm font-medium text-brand backdrop-blur-sm">
             <Building2 className="h-4 w-4" />
             Built for owners with more than one shop

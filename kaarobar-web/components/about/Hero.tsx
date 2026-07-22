@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "@/components/ui/Link";
+import KaarobarLogo from "@/components/brand/KaarobarLogo";
 import { ArrowRight, Sparkles } from "lucide-react";
 
 import { routes } from "@/lib/navigation";
@@ -11,6 +12,9 @@ export default function AboutHero() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,#2563eb10,transparent_65%)]" />
 
       <div className="relative mx-auto max-w-6xl px-6 text-center">
+        <div className="mb-8 flex justify-center">
+          <KaarobarLogo size={64} className="rounded-[14px] shadow-brand" />
+        </div>
         <div className="inline-flex items-center gap-2 rounded-md bg-brand-soft px-4 py-2 text-sm font-semibold text-brand">
           <Sparkles size={16} />
           About Kaarobar

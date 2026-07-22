@@ -3,6 +3,7 @@
 import { ArrowRight } from "lucide-react";
 
 import Link from "@/components/ui/Link";
+import KaarobarLogo from "@/components/brand/KaarobarLogo";
 import { routes } from "@/lib/navigation";
 
 export default function CTA() {
@@ -11,6 +12,9 @@ export default function CTA() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,#ffffff20,transparent_70%)]" />
 
       <div className="relative mx-auto max-w-5xl px-6 text-center">
+        <div className="mb-6 flex justify-center">
+          <KaarobarLogo size={56} className="rounded-[12px] ring-2 ring-white/20" />
+        </div>
         <span className="rounded-md bg-white/10 px-4 py-2 text-sm font-semibold text-white backdrop-blur">
           Prefer to talk it through?
         </span>

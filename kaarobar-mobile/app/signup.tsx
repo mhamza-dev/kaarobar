@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { api, colors, hydrateSessionContext, setSession } from "../lib/api";
+import KaarobarLogo from "../components/KaarobarLogo";
 
 export default function SignupScreen() {
   const [name, setName] = useState("");
@@ -53,6 +54,13 @@ export default function SignupScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.brandRow}>
+        <KaarobarLogo size={48} />
+        <View>
+          <Text style={styles.brandTitle}>Kaarobar</Text>
+          <Text style={styles.brandSub}>Create your owner account</Text>
+        </View>
+      </View>
       <Text style={styles.title}>Create account</Text>
       <Text style={styles.hint}>Create your owner account and first business.</Text>
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -93,6 +101,9 @@ export default function SignupScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 24, backgroundColor: colors.bgPrimary, justifyContent: "center" },
+  brandRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 24 },
+  brandTitle: { fontSize: 18, fontWeight: "800", color: colors.heading },
+  brandSub: { fontSize: 12, color: colors.body, marginTop: 2 },
   title: { fontSize: 28, fontWeight: "800", color: colors.heading },
   hint: { marginTop: 8, marginBottom: 20, color: colors.body },
   error: {

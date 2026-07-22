@@ -2,15 +2,18 @@
 
 POS, accounting, and payroll for owners who run more than one business—and often more than one branch in each.
 
-Internal planning reference: **KRB-SRS-001** (ISO/IEC/IEEE 29148:2018). Stack choices in this repo differ from the original draft where noted (PostgreSQL + Elixir/Phoenix instead of MongoDB + NestJS).
+Internal planning reference: **[KRB-SRS-003](docs/srs/KRB-SRS-003.md)** v3.1 Production Baseline (ISO/IEC/IEEE 29148:2018; supersedes KRB-SRS-002). Stack: Elixir/Phoenix + PostgreSQL + Oban.
 
 Kaarobar is multi-tenant SaaS. Owner → business → branch isn’t an afterthought—it’s how the product is structured.
 
 ## What it covers
 
-1. **Point of Sale** — Fast sales, returns, and stock at the branch, including offline desktop tills
+1. **Point of Sale** — Fast sales, returns, khata, loyalty points, offline desktop tills
 2. **Accounting** — Real double-entry books under the POS (not a cash notebook)
-3. **HR & Payroll** — Attendance, leave, and payroll that posts into the same ledger
+3. **HR & Payroll** — Attendance, leave, payroll, ESS
+4. **CRM (baseline)** — Email/in-app campaigns, audience filters, loyalty points
+5. **Platform** — Plan limits, LemonSqueezy hooks, FBR hooks, push/email, en/ur
+6. **Roadmap** — Customer Portal, coupons/tiers, Helpdesk, Public API, BI (Should)
 
 ## Goals
 
@@ -21,26 +24,35 @@ Kaarobar is multi-tenant SaaS. Owner → business → branch isn’t an aftertho
 | G3 | Branches that can work alone, with the owner still in control (including offline POS) |
 | G4 | Pakistan-ready (FBR Tier-1 + configurable tax) |
 | G5 | Keep early operating cost low (shared DB, modular monolith) |
+| G6 | Customer engagement & retention |
+| G7 | Platform extensibility via API |
 
-## In scope for the first release
+## In scope for the first release (production baseline)
 
-- Owner / Business / Branch management
-- Roles: Owner, Branch Manager, Cashier, Inventory Manager, Accountant, HR Manager, Employee
-- POS: sales, discounts, returns, tills/shifts, receipts (web + offline desktop)
+- Owner / Business / Branch management with industry presets
+- Roles: Owner, Admin, Branch Manager, Cashier, Inventory Manager, Accountant, HR Manager, Marketing, Employee
+- POS: sales, discounts, returns, tills/shifts, receipts (web + offline desktop), **khata**, **loyalty points**
 - Inventory: catalog, branch stock, transfers, purchase orders, goods receipts
 - Accounting: chart of accounts, journals (auto + manual), GL, trial balance, P&L, balance sheet, AR/AP
-- Pakistan sales tax defaults + FBR Tier-1 reporting
-- HR: employees, attendance (POS/mobile), leave, payroll into the ledger
-- Owner dashboards and reports
-- Platform subscription billing (LemonSqueezy)
+- Pakistan sales tax defaults + FBR Tier-1 **hooks** (async/mock; production adapter later)
+- HR: employees, attendance (POS/mobile), leave, payroll into the ledger, ESS
+- Owner dashboards, RBAC-filtered navigation, and reports
+- Platform subscription plan limits + LemonSqueezy webhook/checkout
+- CRM campaigns as-built (email/in-app; audiences all/khata/min_points)
+- Push + in-app + email notifications; English + Urdu
+
+## Roadmap (Should — not Must-complete)
+
+Customer Portal · coupons/loyalty tiers/consent · Helpdesk · Public API/webhooks · BI · appointments · production FBR adapter · full billing portal
 
 ## Not in the first release
 
-Customer-facing online shop, full manufacturing/BOM, biometric clocks, multi-currency group consolidation, non-Pakistan payroll e-filing automation, loyalty/CRM marketing tools.
+Customer-facing e-commerce storefront, full manufacturing/MRP, biometric clocks, multi-currency group consolidation, non-Pakistan payroll e-filing automation, fixed-asset management.
 
-## Actors (SRS §2.2)
+## Actors (SRS §2.3)
 
-Business Owner · Branch Manager · Cashier · Inventory Manager · Accountant · HR Manager · Employee · Platform Admin
+Business Owner · Admin · Branch Manager · Cashier · Inventory Manager · Accountant · HR Manager · Marketing · Employee · Platform Admin  
+(Roadmap: Support Agent · Customer Portal · Service Staff)
 
 ## Repository layout
 
@@ -117,9 +129,12 @@ Desktop POS keeps a local catalog and stock, queues sales with a `client_txn_id`
 |-------|-------|
 | Brand | `#1d4ed8` Deep Sapphire |
 | Accent | `#0f766e` Teal |
+| Logo tile | `#2d6df6` (modular K icon SVG) |
 | Background | `#f4f7fb` |
 | Heading | `#0f172a` |
 | Sidebar | `#0b1220` |
+
+Brand assets: [`docs/brand/`](docs/brand/) · `KaarobarLogo` in web/desktop · Expo/Electron use `assets/icon.png`.
 
 ## Quick start
 
@@ -157,6 +172,9 @@ Module docs: [Tenancy](docs/tenancy.md) · [POS](docs/pos.md) · [Returns / till
 
 ## Documentation
 
+- [AGENTS.md](AGENTS.md) — Cursor/agent instructions (SRS authority + ISO engineering rules)
+- [Brand assets](docs/brand/) — Kaarobar modular-K SVG / PNG
+- [KRB-SRS-003 — Software Requirements Specification v3.1 Production Baseline](docs/srs/KRB-SRS-003.md) ([v2.0 archive](docs/srs/KRB-SRS-002.md))
 - [ADR 001 — PostgreSQL multi-tenancy](docs/adr/001-postgres-multi-tenancy.md)
 - [Architecture & module map](docs/architecture.md)
 - [Requirement ID index](docs/requirements-index.md)

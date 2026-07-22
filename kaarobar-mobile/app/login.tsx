@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { api, colors, hydrateSessionContext, setSession } from "../lib/api";
 import { setLocale, t, type Locale } from "../lib/i18n";
+import KaarobarLogo from "../components/KaarobarLogo";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("owner@kaarobar.local");
@@ -61,6 +62,13 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.brandRow}>
+        <KaarobarLogo size={48} />
+        <View>
+          <Text style={styles.brandTitle}>{t("common.appName")}</Text>
+          <Text style={styles.brandSub}>{t("common.pointOfSale")}</Text>
+        </View>
+      </View>
       <Text style={styles.title}>{t("auth.signInTitle")}</Text>
       <Text style={styles.hint}>{t("auth.signInSub")}</Text>
 
@@ -117,6 +125,9 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 24, backgroundColor: colors.bgPrimary, justifyContent: "center" },
+  brandRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 20 },
+  brandTitle: { fontSize: 20, fontWeight: "800", color: colors.heading },
+  brandSub: { fontSize: 12, color: colors.muted, marginTop: 2 },
   title: { fontSize: 28, fontWeight: "800", color: colors.heading },
   hint: { marginTop: 8, marginBottom: 20, color: colors.body },
   error: {

@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react";
 import NextLink from "next/link";
 
 import Link from "@/components/ui/Link";
+import KaarobarLogo from "@/components/brand/KaarobarLogo";
 import { solutions, solutionHref } from "@/lib/solutions";
 import { routes } from "@/lib/navigation";
 
@@ -14,6 +15,9 @@ export default function SolutionsHub() {
 
       <div className="relative mx-auto max-w-6xl px-6">
         <div className="mx-auto max-w-3xl text-center">
+          <div className="mb-6 flex justify-center">
+            <KaarobarLogo size={56} className="rounded-[12px] shadow-brand" />
+          </div>
           <span className="rounded-md bg-brand-soft px-4 py-2 text-sm font-semibold text-brand">
             Solutions
           </span>

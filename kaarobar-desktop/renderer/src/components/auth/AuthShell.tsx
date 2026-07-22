@@ -9,6 +9,7 @@ import {
 
 import { routes } from "@/lib/navigation";
 import LanguageSwitcher from "@/components/app/LanguageSwitcher";
+import KaarobarLogo from "@/components/brand/KaarobarLogo";
 import { useT } from "@/lib/i18n";
 
 const highlights = [
@@ -55,11 +56,14 @@ export default function AuthShell({
             <ArrowLeft size={16} />
             {t("common.back")}
           </Link>
-          <div className="mt-10">
-            <p className="text-2xl font-bold text-white">{t("common.appName")}</p>
-            <p className="mt-1 text-xs text-sidebar-muted">
-              {t("common.pointOfSale")}
-            </p>
+          <div className="mt-10 flex items-center gap-3">
+            <KaarobarLogo size={48} className="shrink-0 rounded-[11px] shadow-brand" />
+            <div>
+              <p className="text-2xl font-bold text-white">{t("common.appName")}</p>
+              <p className="mt-0.5 text-xs text-sidebar-muted">
+                {t("common.pointOfSale")}
+              </p>
+            </div>
           </div>
           <div className="mt-10 rounded-md border border-white/10 bg-white/5 p-5 backdrop-blur">
             <div className="inline-flex items-center gap-2 rounded-md bg-brand/30 px-3 py-1 text-xs font-semibold text-brand-muted">
@@ -97,8 +101,9 @@ export default function AuthShell({
       <main className="flex flex-col justify-center bg-bg-primary px-6 py-12 sm:px-10">
         <div className="mx-auto w-full max-w-md">
           <div className="mb-6 flex items-center justify-between gap-3">
-            <Link to={routes.login} className="text-sm font-semibold text-brand lg:hidden">
-              ← {t("common.appName")}
+            <Link to={routes.login} className="inline-flex items-center gap-2 text-sm font-semibold text-brand lg:hidden">
+              <KaarobarLogo size={28} className="rounded-[6px]" />
+              {t("common.appName")}
             </Link>
             <LanguageSwitcher compact className="ms-auto" />
           </div>

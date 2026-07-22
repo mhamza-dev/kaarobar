@@ -1,0 +1,18 @@
+---
+description: Kaarobar project non-negotiables — SRS authority, stack, tenant/money safety
+alwaysApply: true
+---
+
+# Kaarobar — always apply
+
+Before implementing, read **[`AGENTS.md`](AGENTS.md)** and the authoritative SRS **[`docs/srs/KRB-SRS-003.md`](docs/srs/KRB-SRS-003.md) v3.1 Production Baseline**. Requirement index: [`docs/requirements-index.md`](docs/requirements-index.md).
+
+## Non-negotiables
+
+1. **SRS is the contract** — Cite requirement IDs. **Must** = production baseline (shipped). Portal / Helpdesk / Public API / coupons / appointments are **Should** unless Product promotes them. Do not invent Out-of-Scope features.
+2. **Stack** — Backend is **Elixir/Phoenix + PostgreSQL + Oban**, not NestJS/Mongo/BullMQ. Clients: Next.js, Expo, Electron.
+3. **Tenant isolation** — Every tenant data path scopes by `owner_id` / `business_id` / `branch_id`. Roles use code names (`marketing`, not `marketing_manager`).
+4. **Money integrity** — Posted journals are immutable (reversals only). Stock updates are atomic deltas. Offline sales use idempotent `client_txn_id`.
+5. **Traceability** — Name satisfied SRS IDs in tests/PR notes; update `docs/` when behavior changes. Keep diffs focused.
+
+If code and SRS conflict, ask the human — do not silently diverge.

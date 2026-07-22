@@ -79,9 +79,12 @@ body {
 
 .brand { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--rail-border); }
 .brand-mark {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 40px; height: 40px; border-radius: 8px; background: var(--brand); color: #fff;
-  font-size: 12px; font-weight: 800; box-shadow: var(--shadow-brand);
+  display: block; width: 40px; height: 40px; border-radius: 8px;
+  box-shadow: var(--shadow-brand); object-fit: cover;
+}
+.auth-logo {
+  display: block; width: 56px; height: 56px; border-radius: 12px;
+  margin-bottom: 16px; box-shadow: var(--shadow-brand); object-fit: cover;
 }
 .brand-title { margin: 0; font-size: 14px; font-weight: 700; color: var(--heading); }
 .brand-sub { margin: 2px 0 0; font-size: 12px; color: var(--rail-muted); }

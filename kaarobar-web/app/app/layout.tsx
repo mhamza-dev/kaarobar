@@ -25,6 +25,7 @@ import { clearSession, getSession, hydrateSessionContext, type StoredSession } f
 import { canAccessBundle, canAccessPath } from "@/lib/rbac";
 import TenantSwitcher from "@/components/app/TenantSwitcher";
 import LanguageSwitcher from "@/components/app/LanguageSwitcher";
+import KaarobarLogo from "@/components/brand/KaarobarLogo";
 import Button from "@/components/ui/Button";
 import { useI18n } from "@/lib/i18n";
 import { useUnreadNotifications } from "@/lib/hooks/useUnreadNotifications";
@@ -197,9 +198,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-bg-primary text-heading lg:flex-row">
       <aside className="relative z-30 hidden min-h-screen w-[248px] shrink-0 flex-col overflow-hidden border-r border-rail-border bg-rail lg:flex">
         <div className="flex shrink-0 items-center gap-3 border-b border-rail-border px-5 py-4">
-          <span className="flex h-10 w-10 items-center justify-center rounded-md bg-brand text-sm font-bold text-white shadow-brand">
-            K
-          </span>
+          <KaarobarLogo size={40} className="shrink-0 shadow-brand rounded-[9px]" />
           <div>
             <p className="text-sm font-bold tracking-tight text-heading">
               {t("common.appName")}
@@ -237,9 +236,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             >
               {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-brand text-xs font-bold text-white shadow-brand lg:hidden">
-              K
-            </span>
+            <KaarobarLogo size={36} className="shrink-0 shadow-brand rounded-[8px] lg:hidden" />
             <div className="min-w-0 border-l border-rail-border pl-3 lg:border-l-0 lg:pl-0">
               <p className="mb-0.5 hidden text-[10px] font-bold uppercase tracking-[0.14em] text-rail-muted lg:block">
                 {t("common.workspace")}

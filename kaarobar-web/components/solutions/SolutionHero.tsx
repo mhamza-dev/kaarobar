@@ -3,6 +3,7 @@
 import { ArrowRight } from "lucide-react";
 
 import Link from "@/components/ui/Link";
+import KaarobarLogo from "@/components/brand/KaarobarLogo";
 import type { Solution } from "@/lib/solutions";
 import { routes } from "@/lib/navigation";
 
@@ -16,6 +17,9 @@ export default function SolutionHero({ solution }: SolutionHeroProps) {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,#2563eb12,transparent_65%)]" />
 
       <div className="relative mx-auto max-w-6xl px-6">
+        <div className="mb-6">
+          <KaarobarLogo size={48} className="rounded-[11px] shadow-brand" />
+        </div>
         <p className="text-sm font-semibold text-brand">
           <Link href={routes.solutions} variant="link" className="!p-0">
             Solutions

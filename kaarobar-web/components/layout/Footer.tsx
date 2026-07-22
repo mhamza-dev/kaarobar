@@ -11,6 +11,7 @@ import {
 } from "react-icons/fa";
 import { FaXTwitter } from "react-icons/fa6";
 
+import KaarobarLogo from "@/components/brand/KaarobarLogo";
 import {
   companyLinks,
   legalLinks,
@@ -34,9 +35,7 @@ export default function Footer() {
         <div className="grid gap-14 lg:grid-cols-12">
           <div className="lg:col-span-5">
             <Link href={routes.home} className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-md bg-brand text-2xl font-bold">
-                K
-              </div>
+              <KaarobarLogo size={56} className="shrink-0 rounded-[12px]" />
 
               <div>
                 <h2 className="text-2xl font-bold text-white">Kaarobar</h2>

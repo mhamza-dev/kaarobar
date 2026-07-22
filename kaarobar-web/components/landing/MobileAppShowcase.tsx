@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "@/components/ui/Link";
+import KaarobarLogo from "@/components/brand/KaarobarLogo";
 import {
   ArrowRight,
   BarChart3,
@@ -86,11 +87,14 @@ export default function MobileAppShowcase() {
           <div className="mx-auto w-full max-w-sm rounded-[2rem] border border-border bg-sidebar p-4 shadow-2xl">
             <div className="rounded-[1.5rem] bg-bg-primary p-5">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-brand">
-                    Kaarobar
-                  </p>
-                  <p className="mt-1 text-lg font-bold text-heading">Owner alerts</p>
+                <div className="flex items-center gap-3">
+                  <KaarobarLogo size={36} className="rounded-[8px]" />
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-brand">
+                      Kaarobar
+                    </p>
+                    <p className="mt-1 text-lg font-bold text-heading">Owner alerts</p>
+                  </div>
                 </div>
                 <FileText className="text-brand" size={22} />
               </div>

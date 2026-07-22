@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "@/components/ui/Link";
+import KaarobarLogo from "@/components/brand/KaarobarLogo";
 import { ArrowRight, Headphones, MessageCircle } from "lucide-react";
 
 export default function Hero() {
@@ -11,6 +12,9 @@ export default function Hero() {
       <div className="relative mx-auto max-w-7xl px-6">
         <div className="grid items-center gap-20 lg:grid-cols-2">
           <div>
+            <div className="mb-6">
+              <KaarobarLogo size={52} className="rounded-[12px] shadow-brand" />
+            </div>
             <span className="rounded-md bg-brand-soft px-4 py-2 text-sm font-semibold text-brand">
               Contact
             </span>

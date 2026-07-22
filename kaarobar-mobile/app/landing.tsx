@@ -1,12 +1,16 @@
 import { Link } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { colors } from "../lib/api";
+import KaarobarLogo from "../components/KaarobarLogo";
 
 export default function LandingScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.eyebrow}>More than one shop? This is for you.</Text>
-      <Text style={styles.brand}>Kaarobar</Text>
+      <View style={styles.brandRow}>
+        <KaarobarLogo size={56} />
+        <Text style={styles.brand}>Kaarobar</Text>
+      </View>
       <Text style={styles.subtitle}>
         Run the till, keep proper books, and manage staff across every business
         and branch you own.
@@ -49,11 +53,16 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     marginBottom: 10,
   },
+  brandRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    marginBottom: 12,
+  },
   brand: {
     fontSize: 40,
     fontWeight: "800",
     color: colors.heading,
-    marginBottom: 12,
   },
   subtitle: {
     fontSize: 16,

@@ -20,6 +20,7 @@ import {
 import { canAccess } from "../lib/rbac";
 import { loadLocale, setLocale, t } from "../lib/i18n";
 import { useToast } from "../components/Toast";
+import KaarobarLogo from "../components/KaarobarLogo";
 
 type Dashboard = {
   sales_today: string;
@@ -220,13 +221,15 @@ export default function DashboardScreen() {
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
       <Text style={styles.eyebrow}>{t("nav.overview")}</Text>
       <View style={styles.brandRow}>
-        <View style={styles.brandMark}>
-          <Text style={styles.brandMarkText}>K</Text>
+        <KaarobarLogo size={40} />
+        <View>
+          <Text style={styles.brandTitle}>{t("common.appName")}</Text>
+          <Text style={styles.brandSub}>{t("common.pointOfSale")}</Text>
         </View>
-        <Text style={styles.hello}>{t("common.appName")}</Text>
       </View>
+      <Text style={styles.hello}>{session.user.name}</Text>
       <Text style={styles.hint}>
-        {session.user.name} · {t("pages.dashboardDesc")}
+        {t("pages.dashboardDesc")}
       </Text>
       <Text style={styles.section}>{t("tenant.business")}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -328,15 +331,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   brandRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 6 },
-  brandMark: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: colors.brand,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  brandMarkText: { color: colors.white, fontWeight: "800", fontSize: 16 },
+  brandTitle: { fontSize: 18, fontWeight: "800", color: colors.heading },
+  brandSub: { fontSize: 12, color: colors.muted, marginTop: 2 },
   hello: { fontSize: 26, fontWeight: "800", color: colors.heading },
   hint: { marginBottom: 16, color: colors.body, lineHeight: 22 },
   error: { color: colors.danger, marginBottom: 12 },
