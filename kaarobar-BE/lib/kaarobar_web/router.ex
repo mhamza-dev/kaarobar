@@ -54,6 +54,10 @@ defmodule KaarobarWeb.Router do
     plug KaarobarWeb.Plugs.Authorize, bundle: :employee_self
   end
 
+  pipeline :customer_portal do
+    plug KaarobarWeb.Plugs.CustomerPortalAuth
+  end
+
   scope "/api/v1", KaarobarWeb.V1 do
     pipe_through :api
 
@@ -62,6 +66,28 @@ defmodule KaarobarWeb.Router do
     post "/auth/login", AuthController, :login
     post "/auth/mfa/verify", AuthController, :verify_mfa
     post "/billing/webhook", BillingController, :webhook
+
+    # Customer Portal auth (CUS-FR) — unauthenticated
+    post "/portal/auth/register", PortalAuthController, :register
+    post "/portal/auth/login", PortalAuthController, :login
+    post "/portal/auth/verify-email", PortalAuthController, :verify_email
+    post "/portal/auth/request-reset", PortalAuthController, :request_reset
+    post "/portal/auth/reset-password", PortalAuthController, :reset_password
+  end
+
+  scope "/api/v1", KaarobarWeb.V1 do
+    pipe_through [:api, :customer_portal]
+
+    post "/portal/auth/logout", PortalAuthController, :logout
+    get "/portal/me", PortalController, :me
+    patch "/portal/me", PortalController, :update_profile
+    get "/portal/orders", PortalController, :orders
+    get "/portal/orders/:id", PortalController, :show_order
+    get "/portal/loyalty", PortalController, :loyalty
+    get "/portal/ar", PortalController, :ar
+    post "/portal/ar/pay", PortalController, :pay_ar
+    get "/portal/bookings", PortalController, :bookings
+    post "/portal/sessions/revoke", PortalController, :revoke_sessions
   end
 
   scope "/api/v1", KaarobarWeb.V1 do
@@ -185,10 +211,12 @@ defmodule KaarobarWeb.Router do
     post "/journals/:id/reverse", JournalController, :reverse
 
     get "/ar/invoices", ArApController, :list_ar
+    get "/ar/invoices/:id", ArApController, :show_ar
     post "/ar/invoices", ArApController, :create_ar
     post "/ar/invoices/:id/pay", ArApController, :pay_ar
     get "/ar/aging", ArApController, :ar_aging
     get "/ap/bills", ArApController, :list_ap
+    get "/ap/bills/:id", ArApController, :show_ap
     post "/ap/bills", ArApController, :create_ap
     post "/ap/bills/:id/pay", ArApController, :pay_ap
     get "/ap/aging", ArApController, :ap_aging
@@ -202,6 +230,7 @@ defmodule KaarobarWeb.Router do
     get "/customers/:id", ArApController, :show_customer
     patch "/customers/:id", ArApController, :update_customer
     post "/customers/:id/loyalty", ArApController, :adjust_loyalty
+    post "/customers/:id/portal-invite", ArApController, :invite_portal
     get "/customers/:id/ledger", ArApController, :customer_ledger
   end
 
@@ -210,8 +239,24 @@ defmodule KaarobarWeb.Router do
 
     get "/crm/campaigns", CrmController, :index
     post "/crm/campaigns", CrmController, :create
+    post "/crm/campaigns/preview", CrmController, :preview
     get "/crm/campaigns/:id", CrmController, :show
     post "/crm/campaigns/:id/send", CrmController, :send
+
+    get "/crm/segments", CrmController, :list_segments
+    post "/crm/segments", CrmController, :create_segment
+    patch "/crm/segments/:id", CrmController, :update_segment
+    delete "/crm/segments/:id", CrmController, :delete_segment
+
+    get "/crm/coupons", CrmController, :list_coupons
+    post "/crm/coupons", CrmController, :create_coupon
+    patch "/crm/coupons/:id", CrmController, :update_coupon
+    post "/crm/coupons/validate", CrmController, :validate_coupon
+
+    get "/crm/loyalty-tiers", CrmController, :list_tiers
+    post "/crm/loyalty-tiers", CrmController, :create_tier
+    patch "/crm/loyalty-tiers/:id", CrmController, :update_tier
+    delete "/crm/loyalty-tiers/:id", CrmController, :delete_tier
   end
 
   scope "/api/v1", KaarobarWeb.V1 do

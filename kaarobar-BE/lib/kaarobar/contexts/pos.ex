@@ -43,6 +43,8 @@ defmodule Kaarobar.Pos do
                {:ok, money} <- compute_totals(priced_items, attrs),
                {:ok, money, redeem_points} <-
                  apply_loyalty_redeem(business_id, owner_id, attrs, money),
+               {:ok, money, coupon, coupon_discount} <-
+                 apply_coupon(business_id, owner_id, attrs, money),
                :ok <- validate_discount_limit(branch, money.discount_amount, attrs),
                {:ok, payments} <-
                  normalize_payments(attrs[:payments] || attrs["payments"] || [], money.total_amount),
@@ -56,7 +58,12 @@ defmodule Kaarobar.Pos do
               priced_items,
               money,
               payments,
-              Map.merge(attrs, %{customer_id: customer_id, loyalty_redeem_points: redeem_points})
+              Map.merge(attrs, %{
+                customer_id: customer_id,
+                loyalty_redeem_points: redeem_points,
+                applied_coupon: coupon,
+                coupon_discount: coupon_discount
+              })
             )
           end
       end
@@ -130,6 +137,9 @@ defmodule Kaarobar.Pos do
     end)
     |> Multi.run(:loyalty, fn _repo, %{sale: sale} ->
       apply_sale_loyalty(sale, business_id, attrs)
+    end)
+    |> Multi.run(:coupon_redemption, fn _repo, %{sale: sale} ->
+      maybe_record_coupon(sale, attrs)
     end)
     |> Repo.transaction()
     |> case do
@@ -233,7 +243,7 @@ defmodule Kaarobar.Pos do
             {:error, :insufficient_loyalty_points}
 
           true ->
-            discount = Kaarobar.Loyalty.redeem_discount(points, business)
+            discount = Kaarobar.Loyalty.redeem_discount(points, business, customer)
             discount = Decimal.min(discount, money.total_amount)
             new_total = Decimal.sub(money.total_amount, discount) |> max_dec(Decimal.new(0)) |> Decimal.round(2)
 
@@ -244,7 +254,7 @@ defmodule Kaarobar.Pos do
             }
 
             # Recompute points actually used from discount applied
-            redeem_value = Kaarobar.Loyalty.rates(business).redeem_value
+            redeem_value = Kaarobar.Loyalty.rates(business, customer).redeem_value
 
             used =
               if Decimal.compare(redeem_value, 0) == :gt do
@@ -274,12 +284,67 @@ defmodule Kaarobar.Pos do
       customer_id ->
         business = Repo.get!(Kaarobar.Schemas.Business, business_id)
         customer = Repo.get!(Kaarobar.Schemas.Customer, customer_id)
-        earned = Kaarobar.Loyalty.earn_points(business, sale.total_amount)
+        earned = Kaarobar.Loyalty.earn_points(business, sale.total_amount, customer)
         new_points = max((customer.loyalty_points || 0) - redeem + earned, 0)
 
-        customer
-        |> Kaarobar.Schemas.Customer.changeset(%{loyalty_points: new_points})
-        |> Repo.update()
+        case customer
+             |> Kaarobar.Schemas.Customer.changeset(%{loyalty_points: new_points})
+             |> Repo.update() do
+          {:ok, updated} ->
+            {:ok, Kaarobar.Loyalty.maybe_recompute_tier(updated, business_id, sale.owner_id)}
+
+          error ->
+            error
+        end
+    end
+  end
+
+  # POS-FR-019 — apply coupon at checkout
+  defp apply_coupon(business_id, owner_id, attrs, money) do
+    code = attrs[:coupon_code] || attrs["coupon_code"]
+
+    if not is_binary(code) or String.trim(code) == "" do
+      {:ok, money, nil, Decimal.new(0)}
+    else
+      other_discount? = Decimal.compare(money.discount_amount, 0) == :gt
+
+      case Kaarobar.Coupons.validate_and_quote(code, business_id, owner_id, money.total_amount,
+             allow_with_other_discounts: not other_discount?
+           ) do
+        {:ok, coupon, discount} ->
+          new_total =
+            Decimal.sub(money.total_amount, discount) |> max_dec(Decimal.new(0)) |> Decimal.round(2)
+
+          new_money = %{
+            money
+            | discount_amount: Decimal.add(money.discount_amount, discount) |> Decimal.round(2),
+              total_amount: new_total
+          }
+
+          {:ok, new_money, coupon, discount}
+
+        {:error, reason} ->
+          {:error, {:coupon_invalid, reason}}
+      end
+    end
+  end
+
+  defp maybe_record_coupon(sale, attrs) do
+    coupon = attrs[:applied_coupon] || attrs["applied_coupon"]
+    discount = attrs[:coupon_discount] || attrs["coupon_discount"] || Decimal.new(0)
+
+    if is_nil(coupon) or Decimal.compare(to_dec(discount), 0) != :gt do
+      {:ok, :skipped}
+    else
+      case Kaarobar.Coupons.record_redemption(
+             coupon,
+             sale.id,
+             sale.customer_id,
+             to_dec(discount)
+           ) do
+        {:ok, redemption} -> {:ok, redemption}
+        {:error, reason} -> {:error, reason}
+      end
     end
   end
 

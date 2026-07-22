@@ -109,6 +109,7 @@ export default function PosPage() {
   const [customerId, setCustomerId] = useState("");
   const [customerQuery, setCustomerQuery] = useState("");
   const [loyaltyRedeem, setLoyaltyRedeem] = useState("");
+  const [couponCode, setCouponCode] = useState("");
   const [newCustomerName, setNewCustomerName] = useState("");
   const [newCustomerPhone, setNewCustomerPhone] = useState("");
   const [showNewCustomer, setShowNewCustomer] = useState(false);
@@ -416,6 +417,7 @@ export default function PosPage() {
           till_id: till?.id,
           customer_id: customerId || undefined,
           loyalty_redeem_points: loyaltyRedeem ? Number(loyaltyRedeem) : undefined,
+          coupon_code: couponCode.trim() || undefined,
           items: cart.map((l) => ({
             product_id: l.product.id,
             quantity: l.quantity,
@@ -429,6 +431,7 @@ export default function PosPage() {
       });
       setCart([]);
       setLoyaltyRedeem("");
+      setCouponCode("");
       setLastInvoice(res.data.invoice_number);
       setReceipt(res.data);
       toast.success(`${t("pos.saleComplete")} · ${res.data.invoice_number}`);
@@ -663,6 +666,17 @@ export default function PosPage() {
                   placeholder="0"
                 />
               </label>
+              <label className="text-xs text-muted">
+                Coupon
+                <input
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                  className={`${fieldClass} mt-1`}
+                  placeholder="CODE"
+                />
+              </label>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
               <label className="text-xs text-muted">
                 {t("pos.taxOptional")}
                 <input

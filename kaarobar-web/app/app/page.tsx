@@ -60,6 +60,21 @@ export default function AppDashboardPage() {
   }, [load]);
 
   const session = getSession();
+  const roles = (session?.memberships || [])
+    .filter((m) => !session?.business_id || m.business_id === session.business_id)
+    .flatMap((m) => m.roles || []);
+  const roleFocus = roles.includes("owner")
+    ? "owner"
+    : roles.includes("marketing")
+      ? "marketing"
+      : roles.includes("cashier")
+        ? "cashier"
+        : roles.includes("accountant")
+          ? "accountant"
+          : roles.includes("hr_manager")
+            ? "hr"
+            : "staff";
+
   const links = [
     {
       href: routes.pos,
@@ -67,32 +82,96 @@ export default function AppDashboardPage() {
       subtitle: t("dashboard.openPosSub"),
       icon: ShoppingCart,
       primary: true,
+      show: ["owner", "cashier", "staff"],
+    },
+    {
+      href: routes.marketing,
+      title: t("nav.marketing"),
+      subtitle: "Campaigns, segments, coupons",
+      icon: TrendingUp,
+      show: ["owner", "marketing"],
     },
     {
       href: routes.inventory,
       title: t("nav.inventory"),
       subtitle: t("dashboard.inventorySub"),
       icon: Boxes,
+      show: ["owner", "staff"],
     },
     {
       href: routes.returns,
       title: t("nav.returns"),
       subtitle: t("dashboard.returnsSub"),
       icon: CheckCircle2,
+      show: ["owner", "cashier", "staff"],
+    },
+    {
+      href: routes.accounting,
+      title: t("nav.accounting"),
+      subtitle: "Journals, AR/AP, statements",
+      icon: Banknote,
+      show: ["owner", "accountant"],
+    },
+    {
+      href: routes.hr,
+      title: t("nav.hr"),
+      subtitle: "Attendance, leave, payroll",
+      icon: CheckCircle2,
+      show: ["owner", "hr"],
     },
     {
       href: routes.reports,
       title: t("nav.reports"),
       subtitle: t("dashboard.reportsSub"),
       icon: TrendingUp,
+      show: ["owner", "accountant", "staff"],
+    },
+    {
+      href: routes.customers,
+      title: t("nav.customers"),
+      subtitle: "Khata, loyalty, consent",
+      icon: ShoppingCart,
+      show: ["owner", "marketing", "cashier"],
     },
   ].filter((item) => {
+    if (!item.show.includes(roleFocus) && roleFocus !== "owner") {
+      // still allow RBAC-gated links below
+    }
     if (item.href === routes.pos) return canAccessBundle(session, "pos");
     if (item.href === routes.inventory) return canAccessBundle(session, "inventory");
     if (item.href === routes.returns) return canAccessBundle(session, "pos");
     if (item.href === routes.reports) return canAccessBundle(session, "reports");
+    if (item.href === routes.marketing) return canAccessBundle(session, "marketing");
+    if (item.href === routes.accounting) return canAccessBundle(session, "accounting");
+    if (item.href === routes.hr) return canAccessBundle(session, "hr");
+    if (item.href === routes.customers) return canAccessBundle(session, "customers");
     return true;
   });
+
+  const roleWidgets =
+    roleFocus === "marketing"
+      ? [
+          { label: "Open marketing", href: routes.marketing, body: "Send campaigns & manage coupons" },
+          { label: "Customers", href: routes.customers, body: "Consent & loyalty points" },
+        ]
+      : roleFocus === "cashier"
+        ? [
+            { label: "Open POS", href: routes.pos, body: "Take sales, apply coupons" },
+            { label: "Returns", href: routes.returns, body: "Process returns" },
+          ]
+        : roleFocus === "accountant"
+          ? [
+              { label: "Accounting", href: routes.accounting, body: "Books & statements" },
+              { label: "Reports", href: routes.reports, body: "P&L and trial balance" },
+            ]
+          : roleFocus === "hr"
+            ? [
+                { label: "HR & payroll", href: routes.hr, body: "Attendance and payslips" },
+              ]
+            : [
+                { label: "Sales today", href: routes.reports, body: dashboard?.sales_today ?? "—" },
+                { label: "Low stock", href: routes.inventory, body: String(dashboard?.low_stock_count ?? "—") },
+              ];
 
   return (
     <div className="space-y-8">
@@ -138,6 +217,27 @@ export default function AppDashboardPage() {
           icon={<CheckCircle2 className="h-5 w-5" />}
         />
       </div>
+
+      <SurfaceCard className="p-5">
+        <h2 className="text-lg font-bold text-heading">
+          For you · {roleFocus}
+        </h2>
+        <p className="mt-1 text-sm text-body">
+          Role-focused shortcuts (TEN-FR-013).
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {roleWidgets.map((w) => (
+            <Link
+              key={w.href + w.label}
+              href={w.href}
+              className="rounded-md border border-border bg-card-muted p-4 transition hover:border-brand/30"
+            >
+              <p className="font-semibold text-heading">{w.label}</p>
+              <p className="mt-1 text-sm text-body">{w.body}</p>
+            </Link>
+          ))}
+        </div>
+      </SurfaceCard>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <SurfaceCard className="p-5 lg:col-span-2">

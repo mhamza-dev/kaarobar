@@ -1146,6 +1146,22 @@ defmodule Kaarobar.Accounting do
     |> Repo.all()
   end
 
+  def get_ar_invoice(id, business_id, owner_id) do
+    from(i in Kaarobar.Schemas.ArInvoice,
+      where: i.id == ^id and i.business_id == ^business_id and i.owner_id == ^owner_id,
+      preload: [:customer, :payments, :sale]
+    )
+    |> Repo.one()
+  end
+
+  def get_ap_bill(id, business_id, owner_id) do
+    from(b in Kaarobar.Schemas.ApBill,
+      where: b.id == ^id and b.business_id == ^business_id and b.owner_id == ^owner_id,
+      preload: [:supplier, :payments]
+    )
+    |> Repo.one()
+  end
+
   def list_ap_bills(business_id, owner_id) do
     from(b in Kaarobar.Schemas.ApBill,
       where: b.business_id == ^business_id and b.owner_id == ^owner_id,

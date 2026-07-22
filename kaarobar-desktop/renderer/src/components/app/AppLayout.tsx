@@ -6,6 +6,7 @@ import {
   Boxes,
   ClipboardList,
   ContactRound,
+  FileText,
   LayoutDashboard,
   LogOut,
   Megaphone,
@@ -31,6 +32,7 @@ import { useUnreadNotifications } from "@/lib/hooks/useUnreadNotifications";
 const icons = {
   layout: LayoutDashboard,
   pos: ShoppingCart,
+  sales: FileText,
   returns: Receipt,
   inventory: Boxes,
   customers: ContactRound,

@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { api } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
@@ -8,6 +10,7 @@ import DataTable from "@/components/ui/DataTable";
 import { EmptyState, Field, PageHeader, TabBar, fieldClass } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
+import { detailRoutes } from "@/lib/navigation";
 
 type Tab = "coa" | "journals" | "tb" | "pl" | "bs" | "gl" | "ar" | "ap";
 
@@ -60,6 +63,7 @@ type AgingRow = {
 export default function AccountingPage() {
   const t = useT();
   const toast = useToast();
+  const router = useRouter();
   const [tab, setTab] = useState<Tab>("tb");
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [journals, setJournals] = useState<Journal[]>([]);
@@ -374,7 +378,13 @@ export default function AccountingPage() {
               <div key={j.id} className="rounded-md border border-border bg-card p-4 text-sm">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="text-heading">
-                    <strong>{j.date}</strong> · {j.description}{" "}
+                    <Link
+                      href={detailRoutes.journal(j.id)}
+                      className="font-semibold text-brand underline"
+                    >
+                      <strong className="text-heading no-underline">{j.date}</strong>
+                    </Link>{" "}
+                    · {j.description}{" "}
                     <span className="text-body">({j.source_type})</span>
                   </div>
                   {j.is_locked && j.source_type !== "reversal" ? (
@@ -450,27 +460,86 @@ export default function AccountingPage() {
             </a>
             .
           </p>
-          <StatementTable
-            headers={["Invoice", "Customer", "Balance", "Bucket"]}
-            rows={arAging.map((r) => [
-              r.invoice_number || r.id.slice(0, 8),
-              r.customer_name || "—",
-              r.balance_due,
-              r.bucket,
-            ])}
+          <DataTable
+            maxHeight="28rem"
+            searchable
+            searchPlaceholder="Search invoices…"
+            getSearchText={(r) =>
+              `${r.invoice_number || ""} ${r.customer_name || ""} ${r.balance_due} ${r.bucket}`
+            }
+            onRowClick={(r) => router.push(detailRoutes.arInvoice(r.id))}
+            columns={[
+              {
+                id: "invoice",
+                header: "Invoice",
+                cell: (r) => (
+                  <Link
+                    href={detailRoutes.arInvoice(r.id)}
+                    className="font-semibold text-brand underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {r.invoice_number || r.id.slice(0, 8)}
+                  </Link>
+                ),
+              },
+              {
+                id: "customer",
+                header: "Customer",
+                cell: (r) => r.customer_name || "—",
+              },
+              {
+                id: "balance",
+                header: "Balance",
+                cell: (r) => <span className="tabular-nums">{r.balance_due}</span>,
+              },
+              { id: "bucket", header: "Bucket", cell: (r) => r.bucket },
+            ]}
+            data={arAging}
+            rowKey={(r) => r.id}
+            emptyTitle="No open AR invoices"
           />
         </div>
       ) : null}
 
       {tab === "ap" ? (
-        <StatementTable
-          headers={["Bill", "Supplier", "Balance", "Bucket"]}
-          rows={apAging.map((r) => [
-            r.bill_number || r.id.slice(0, 8),
-            r.supplier_name || "—",
-            r.balance_due,
-            r.bucket,
-          ])}
+        <DataTable
+          maxHeight="28rem"
+          searchable
+          searchPlaceholder="Search bills…"
+          getSearchText={(r) =>
+            `${r.bill_number || ""} ${r.supplier_name || ""} ${r.balance_due} ${r.bucket}`
+          }
+          onRowClick={(r) => router.push(detailRoutes.apBill(r.id))}
+          columns={[
+            {
+              id: "bill",
+              header: "Bill",
+              cell: (r) => (
+                <Link
+                  href={detailRoutes.apBill(r.id)}
+                  className="font-semibold text-brand underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {r.bill_number || r.id.slice(0, 8)}
+                </Link>
+              ),
+            },
+            {
+              id: "supplier",
+              header: "Supplier",
+              cell: (r) => r.supplier_name || "—",
+            },
+            {
+              id: "balance",
+              header: "Balance",
+              align: "right",
+              cell: (r) => <span className="tabular-nums">{r.balance_due}</span>,
+            },
+            { id: "bucket", header: "Bucket", cell: (r) => r.bucket },
+          ]}
+          data={apAging}
+          rowKey={(r) => r.id}
+          emptyTitle="No AP bills"
         />
       ) : null}
 

@@ -140,6 +140,31 @@ defmodule KaarobarWeb.V1.ArApController do
     end
   end
 
+  def invite_portal(conn, %{"id" => id}) do
+    business_id = conn.assigns[:business_id]
+    owner_id = conn.assigns[:owner_id]
+
+    case Kaarobar.CustomerPortal.invite_from_customer(id, business_id, owner_id) do
+      {:ok, account, temp_password} ->
+        json(conn, %{
+          data: %{
+            account_id: account.id,
+            email: account.email,
+            temporary_password: temp_password
+          }
+        })
+
+      {:error, :not_found} ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      {:error, :already_registered} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: "already_registered"})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+    end
+  end
+
   defp customer_attrs(params) do
     %{}
     |> maybe_put(params, "name")
@@ -153,6 +178,10 @@ defmodule KaarobarWeb.V1.ArApController do
     |> maybe_put(params, "credit_limit")
     |> maybe_put(params, "user_id")
     |> maybe_put_bool(params, "khata_enabled")
+    |> maybe_put_bool(params, "marketing_opt_in_email")
+    |> maybe_put_bool(params, "marketing_opt_in_sms")
+    |> maybe_put_bool(params, "marketing_opt_in_whatsapp")
+    |> maybe_put_bool(params, "portal_enabled")
   end
 
   defp serialize_customer(c) do
@@ -168,7 +197,12 @@ defmodule KaarobarWeb.V1.ArApController do
       company_name: c.company_name,
       credit_limit: c.credit_limit && to_string(c.credit_limit),
       loyalty_points: c.loyalty_points || 0,
+      loyalty_tier_id: Map.get(c, :loyalty_tier_id),
       khata_enabled: c.khata_enabled == true,
+      marketing_opt_in_email: Map.get(c, :marketing_opt_in_email) == true,
+      marketing_opt_in_sms: Map.get(c, :marketing_opt_in_sms) == true,
+      marketing_opt_in_whatsapp: Map.get(c, :marketing_opt_in_whatsapp) == true,
+      portal_enabled: Map.get(c, :portal_enabled) == true,
       user_id: c.user_id
     }
   end
@@ -206,20 +240,23 @@ defmodule KaarobarWeb.V1.ArApController do
 
     data =
       Accounting.list_ar_invoices(business_id, owner_id)
-      |> Enum.map(fn i ->
-        %{
-          id: i.id,
-          invoice_number: i.invoice_number,
-          customer_id: i.customer_id,
-          customer_name: i.customer && i.customer.name,
-          total_amount: to_string(i.total_amount),
-          balance_due: to_string(i.balance_due),
-          status: i.status,
-          due_date: i.due_date
-        }
-      end)
+      |> Enum.map(&serialize_ar/1)
 
     json(conn, %{data: data})
+  end
+
+  def show_ar(conn, %{"id" => id}) do
+    user = Guardian.Plug.current_resource(conn)
+    business_id = conn.assigns[:business_id]
+    owner_id = conn.assigns[:owner_id] || user.id
+
+    case Accounting.get_ar_invoice(id, business_id, owner_id) do
+      nil ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      inv ->
+        json(conn, %{data: serialize_ar(inv, true)})
+    end
   end
 
   def create_ar(conn, params) do
@@ -275,19 +312,23 @@ defmodule KaarobarWeb.V1.ArApController do
 
     data =
       Accounting.list_ap_bills(business_id, owner_id)
-      |> Enum.map(fn b ->
-        %{
-          id: b.id,
-          bill_number: b.bill_number,
-          supplier_name: b.supplier && b.supplier.name,
-          total_amount: to_string(b.total_amount),
-          balance_due: to_string(b.balance_due),
-          status: b.status,
-          due_date: b.due_date
-        }
-      end)
+      |> Enum.map(&serialize_ap(&1, false))
 
     json(conn, %{data: data})
+  end
+
+  def show_ap(conn, %{"id" => id}) do
+    user = Guardian.Plug.current_resource(conn)
+    business_id = conn.assigns[:business_id]
+    owner_id = conn.assigns[:owner_id] || user.id
+
+    case Accounting.get_ap_bill(id, business_id, owner_id) do
+      nil ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      bill ->
+        json(conn, %{data: serialize_ap(bill, true)})
+    end
   end
 
   def create_ap(conn, params) do
@@ -342,6 +383,92 @@ defmodule KaarobarWeb.V1.ArApController do
     case Date.from_iso8601(str) do
       {:ok, d} -> d
       _ -> Date.utc_today()
+    end
+  end
+
+  defp serialize_ar(i, with_payments \\ false) do
+    base = %{
+      id: i.id,
+      invoice_number: i.invoice_number,
+      customer_id: i.customer_id,
+      customer_name: i.customer && i.customer.name,
+      sale_id: Map.get(i, :sale_id),
+      invoice_date: i.invoice_date,
+      due_date: i.due_date,
+      subtotal: i.subtotal && to_string(i.subtotal),
+      tax_amount: i.tax_amount && to_string(i.tax_amount),
+      total_amount: to_string(i.total_amount),
+      balance_due: to_string(i.balance_due),
+      status: i.status,
+      notes: i.notes,
+      inserted_at: i.inserted_at
+    }
+
+    if with_payments do
+      payments =
+        case Map.get(i, :payments) do
+          %Ecto.Association.NotLoaded{} -> []
+          list when is_list(list) -> list
+          _ -> []
+        end
+
+      Map.put(
+        base,
+        :payments,
+        Enum.map(payments, fn p ->
+          %{
+            id: p.id,
+            amount: to_string(p.amount),
+            method: p.method,
+            paid_at: p.paid_at,
+            reference: p.reference
+          }
+        end)
+      )
+    else
+      base
+    end
+  end
+
+  defp serialize_ap(b, with_payments \\ false) do
+    base = %{
+      id: b.id,
+      bill_number: b.bill_number,
+      supplier_id: b.supplier_id,
+      supplier_name: b.supplier && b.supplier.name,
+      bill_date: b.bill_date,
+      due_date: b.due_date,
+      total_amount: to_string(b.total_amount),
+      balance_due: to_string(b.balance_due),
+      status: b.status,
+      notes: b.notes,
+      journal_entry_id: b.journal_entry_id,
+      inserted_at: b.inserted_at
+    }
+
+    if with_payments do
+      payments =
+        case Map.get(b, :payments) do
+          %Ecto.Association.NotLoaded{} -> []
+          list when is_list(list) -> list
+          _ -> []
+        end
+
+      Map.put(
+        base,
+        :payments,
+        Enum.map(payments, fn p ->
+          %{
+            id: p.id,
+            amount: to_string(p.amount),
+            method: p.method,
+            paid_at: p.paid_at,
+            reference: p.reference
+          }
+        end)
+      )
+    else
+      base
     end
   end
 end

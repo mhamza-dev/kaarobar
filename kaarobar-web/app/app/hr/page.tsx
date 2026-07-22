@@ -1,6 +1,8 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { api, getSession } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
@@ -15,6 +17,7 @@ import {
 } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
+import { detailRoutes } from "@/lib/navigation";
 import { canAccessBundle } from "@/lib/rbac";
 
 type Tab = "employees" | "attendance" | "leave" | "payroll";
@@ -81,6 +84,7 @@ type PayrollRun = {
 export default function HrPage() {
   const t = useT();
   const toast = useToast();
+  const router = useRouter();
   const session = getSession();
   const canLeaveApprove = canAccessBundle(session, "leave_approve");
   const canPayrollApprove = canAccessBundle(session, "payroll_approve");
@@ -307,13 +311,19 @@ export default function HrPage() {
           getSearchText={(e) =>
             `${e.employee_code} ${e.name} ${e.position ?? ""} ${e.status}`
           }
-          onRowClick={openEditEmployee}
+          onRowClick={(e) => router.push(detailRoutes.employee(e.id))}
           columns={[
             {
               id: "code",
               header: "Code",
               cell: (e) => (
-                <span className="font-medium tabular-nums">{e.employee_code}</span>
+                <Link
+                  href={detailRoutes.employee(e.id)}
+                  className="font-medium tabular-nums text-brand underline"
+                  onClick={(ev) => ev.stopPropagation()}
+                >
+                  {e.employee_code}
+                </Link>
               ),
             },
             {
@@ -345,18 +355,24 @@ export default function HrPage() {
               id: "actions",
               header: "",
               align: "right",
-              width: 88,
+              width: 160,
               cell: (e) => (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={(ev) => {
-                    ev.stopPropagation();
-                    openEditEmployee(e);
-                  }}
-                >
-                  Edit
-                </Button>
+                <div className="flex justify-end gap-2" onClick={(ev) => ev.stopPropagation()}>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => router.push(detailRoutes.employee(e.id))}
+                  >
+                    View
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => openEditEmployee(e)}
+                  >
+                    Edit
+                  </Button>
+                </div>
               ),
             },
           ]}
@@ -453,9 +469,12 @@ export default function HrPage() {
             <SurfaceCard key={run.id} className="space-y-3 p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="text-heading">
-                  <strong>
+                  <Link
+                    href={detailRoutes.payroll(run.id)}
+                    className="font-semibold text-brand underline"
+                  >
                     {run.period_start} → {run.period_end}
-                  </strong>{" "}
+                  </Link>{" "}
                   <span className="text-body">· {run.status}</span>
                   {run.journal_entry_id ? (
                     <span className="text-body"> · posted to ledger</span>

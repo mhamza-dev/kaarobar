@@ -12,6 +12,7 @@ import {
 import { api, colors, getSession, type Session } from "../lib/api";
 import { FormModal } from "../components/FormModal";
 import { BarcodeScannerModal } from "../components/BarcodeScannerModal";
+import SegmentedTabs from "../components/SegmentedTabs";
 import * as ImagePicker from "expo-image-picker";
 import { canAccessRoute } from "../lib/rbac";
 
@@ -352,21 +353,7 @@ export default function InventoryScreen() {
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {message ? <Text style={styles.message}>{message}</Text> : null}
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
-        <View style={styles.tabs}>
-          {tabs.map((t) => (
-            <Pressable
-              key={t.id}
-              style={[styles.tab, tab === t.id && styles.tabActive]}
-              onPress={() => setTab(t.id)}
-            >
-              <Text style={[styles.tabText, tab === t.id && styles.tabTextActive]}>
-                {t.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      </ScrollView>
+      <SegmentedTabs tabs={tabs} value={tab} onChange={setTab} />
 
       {(tab === "products" || tab === "suppliers") && (
         <Pressable
@@ -763,18 +750,6 @@ const styles = StyleSheet.create({
   lead: { color: colors.body, marginBottom: 12, fontSize: 14 },
   error: { color: colors.danger, marginBottom: 8 },
   message: { color: colors.body, marginBottom: 8 },
-  tabs: { flexDirection: "row", gap: 8 },
-  tab: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: colors.card,
-  },
-  tabActive: { backgroundColor: colors.brand, borderColor: colors.brand },
-  tabText: { color: colors.heading, fontWeight: "600" },
-  tabTextActive: { color: colors.white },
   card: {
     backgroundColor: colors.card,
     borderColor: colors.border,

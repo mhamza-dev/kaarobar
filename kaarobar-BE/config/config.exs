@@ -57,7 +57,9 @@ config :kaarobar, Oban,
 config :kaarobar,
   storage_adapter: Kaarobar.Storage.Local,
   public_base_url: "http://localhost:4000",
-  upload_dir: nil
+  upload_dir: nil,
+  sms_adapter: Kaarobar.Messaging.Sms.Mock,
+  whatsapp_adapter: Kaarobar.Messaging.Whatsapp.Mock
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

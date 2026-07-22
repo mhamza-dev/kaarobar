@@ -17,10 +17,15 @@ defmodule Kaarobar.Schemas.Customer do
     field :company_name, :string
     field :loyalty_points, :integer, default: 0
     field :khata_enabled, :boolean, default: false
+    field :marketing_opt_in_email, :boolean, default: false
+    field :marketing_opt_in_sms, :boolean, default: false
+    field :marketing_opt_in_whatsapp, :boolean, default: false
+    field :portal_enabled, :boolean, default: false
 
     belongs_to :business, Kaarobar.Schemas.Business
     belongs_to :owner, Kaarobar.Schemas.User
     belongs_to :user, Kaarobar.Schemas.User
+    belongs_to :loyalty_tier, Kaarobar.Schemas.LoyaltyTier
 
     timestamps(type: :utc_datetime)
   end
@@ -39,6 +44,11 @@ defmodule Kaarobar.Schemas.Customer do
       :company_name,
       :loyalty_points,
       :khata_enabled,
+      :marketing_opt_in_email,
+      :marketing_opt_in_sms,
+      :marketing_opt_in_whatsapp,
+      :portal_enabled,
+      :loyalty_tier_id,
       :business_id,
       :owner_id,
       :user_id
@@ -54,6 +64,7 @@ defmodule Kaarobar.Schemas.Customer do
     |> foreign_key_constraint(:business_id)
     |> foreign_key_constraint(:owner_id)
     |> foreign_key_constraint(:user_id)
+    |> foreign_key_constraint(:loyalty_tier_id)
     |> unique_constraint([:business_id, :phone], name: :customers_business_id_phone_index)
   end
 

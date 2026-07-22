@@ -55,6 +55,7 @@ export const routes = {
   forgotPassword: "/forgot-password",
   app: "/app",
   pos: "/app/pos",
+  sales: "/app/sales",
   returns: "/app/returns",
   inventory: "/app/inventory",
   customers: "/app/customers",
@@ -75,9 +76,26 @@ export const routes = {
   cookies: "/cookie-policy",
 } as const;
 
+/** Detail route helpers for entity pages. */
+export const detailRoutes = {
+  customer: (id: string) => `/app/customers/${id}`,
+  employee: (id: string) => `/app/hr/employees/${id}`,
+  sale: (id: string) => `/app/sales/${id}`,
+  product: (id: string) => `/app/inventory/products/${id}`,
+  supplier: (id: string) => `/app/inventory/suppliers/${id}`,
+  campaign: (id: string) => `/app/marketing/campaigns/${id}`,
+  arInvoice: (id: string) => `/app/accounting/ar/${id}`,
+  apBill: (id: string) => `/app/accounting/ap/${id}`,
+  journal: (id: string) => `/app/accounting/journals/${id}`,
+  saleReturn: (id: string) => `/app/returns/${id}`,
+  payroll: (id: string) => `/app/hr/payroll/${id}`,
+  purchaseOrder: (id: string) => `/app/inventory/purchase-orders/${id}`,
+} as const;
+
 export const appNav = [
   { titleKey: "nav.dashboard", href: "/app", groupKey: "nav.overview", icon: "layout", bundle: "any_staff" },
   { titleKey: "nav.pos", href: "/app/pos", groupKey: "nav.cashier", icon: "pos", bundle: "pos" },
+  { titleKey: "nav.sales", href: "/app/sales", groupKey: "nav.cashier", icon: "sales", bundle: "pos" },
   { titleKey: "nav.returns", href: "/app/returns", groupKey: "nav.cashier", icon: "returns", bundle: "pos" },
   { titleKey: "nav.customers", href: "/app/customers", groupKey: "nav.cashier", icon: "customers", bundle: "customers" },
   { titleKey: "nav.inventory", href: "/app/inventory", groupKey: "nav.catalog", icon: "inventory", bundle: "inventory" },

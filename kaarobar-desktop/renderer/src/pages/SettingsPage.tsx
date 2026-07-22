@@ -1,7 +1,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api, getSession, setSession } from "@/lib/api/client";
-import { PageHeader, SurfaceCard } from "@/components/app/ui";
+import { PageHeader, SurfaceCard, TabBar } from "@/components/app/ui";
 import NotificationPreferencesPanel from "@/components/app/NotificationPreferencesPanel";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
@@ -173,22 +173,14 @@ export default function SettingsPage() {
         description={t("pages.settingsDesc")}
       />
 
-      <div className="flex flex-wrap gap-2 rounded-md border border-border bg-card p-2">
-        {tabs
+      <TabBar
+        tabs={tabs
           .filter((item) => !item.ownerOnly || isOwner)
-          .map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              onClick={() => setTab(item.key)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                tab === item.key ? "bg-brand text-brand-foreground" : "text-body hover:bg-bg-hover"
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
-      </div>
+          .map((item) => ({ id: item.key, label: item.label }))}
+        value={tab}
+        onChange={setTab}
+        aria-label="Settings sections"
+      />
 
       {tab === "notifications" ? <NotificationPreferencesPanel /> : null}
 

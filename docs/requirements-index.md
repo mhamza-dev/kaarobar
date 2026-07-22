@@ -19,8 +19,8 @@ Authoritative SRS: [`docs/srs/KRB-SRS-003.md`](srs/KRB-SRS-003.md) · Archive: [
 | RPT-FR | Reporting & Analytics | §5.7 | Must core; BI Should |
 | ADM-FR | Platform Admin & Billing | §5.8 | Plan limits + LS webhook/checkout Must |
 | NOT-FR | Notifications / i18n / brand | §5.9 | In-app, email, push, en/ur, logo Must |
-| CRM-FR | CRM & Marketing | §5.10 | Campaigns as-built Must; coupons/tiers/consent Should |
-| CUS-FR | Customer Portal | §5.11 | **All Should** (Phase A remaining) |
+| CRM-FR | CRM & Marketing | §5.10 | Campaigns as-built Must; **Phase A:** coupons/tiers/consent/segments/SMS/WA implemented as Should |
+| CUS-FR | Customer Portal | §5.11 | **Phase A Should implemented** (booking deferred to Phase B) |
 | SUP-FR | Helpdesk & Support | §5.12 | **All Should** (Phase B) |
 | API-FR | Public API & Webhooks | §5.13 | **All Should** (Phase B); inbound LS under ADM |
 | FBR-FR | FBR POS Integration | §8.3.4 | Hooks Must; production adapter Should |
@@ -41,7 +41,11 @@ Authoritative SRS: [`docs/srs/KRB-SRS-003.md`](srs/KRB-SRS-003.md) · Archive: [
 
 ## Production baseline Must-count (SRS Appendix A)
 
-Approximately **~85 Must** functional requirements for the honest production baseline (core POS/ACC/HR/CRM-as-built/khata/loyalty). Portal / Helpdesk / Public API / appointments remain Should until Product promotes.
+Approximately **~85 Must** functional requirements for the honest production baseline (core POS/ACC/HR/CRM-as-built/khata/loyalty).
+
+**Phase A remaining (Should — implemented in code, not Must until Product promotes):** Customer Portal (`CUS-FR`, booking deferred), coupons, loyalty tiers, consent, named segments, SMS/WhatsApp adapters, role-home polish. See [`docs/crm.md`](crm.md).
+
+Portal / Helpdesk / Public API / appointments remain Should until Product promotes; Helpdesk / Public API / appointments are still Phase B.
 
 ## Key Must examples (shipped or accepted Partial)
 

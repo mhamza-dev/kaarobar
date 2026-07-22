@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { api, colors, getSession, type Session } from "../lib/api";
 import { canAccessRoute } from "../lib/rbac";
+import SegmentedTabs from "../components/SegmentedTabs";
 
 type Tab = "clock" | "leave" | "payslips";
 
@@ -158,23 +159,15 @@ export default function EssScreen() {
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {message ? <Text style={styles.message}>{message}</Text> : null}
 
-      <View style={styles.tabs}>
-        {(
-          [
-            ["clock", "Clock"],
-            ["leave", "Leave"],
-            ["payslips", "Payslips"],
-          ] as const
-        ).map(([id, label]) => (
-          <Pressable
-            key={id}
-            style={[styles.tab, tab === id && styles.tabActive]}
-            onPress={() => setTab(id)}
-          >
-            <Text style={[styles.tabText, tab === id && styles.tabTextActive]}>{label}</Text>
-          </Pressable>
-        ))}
-      </View>
+      <SegmentedTabs
+        tabs={[
+          { id: "clock", label: "Clock" },
+          { id: "leave", label: "Leave" },
+          { id: "payslips", label: "Payslips" },
+        ]}
+        value={tab}
+        onChange={setTab}
+      />
 
       {tab === "clock" ? (
         <View style={styles.card}>
@@ -290,18 +283,6 @@ const styles = StyleSheet.create({
   hint: { color: colors.body, marginBottom: 16 },
   error: { color: colors.danger, marginBottom: 8 },
   message: { color: colors.body, marginBottom: 8 },
-  tabs: { flexDirection: "row", gap: 8, marginBottom: 16 },
-  tab: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: colors.card,
-  },
-  tabActive: { backgroundColor: colors.brand, borderColor: colors.brand },
-  tabText: { color: colors.heading, fontWeight: "600" },
-  tabTextActive: { color: colors.white },
   card: {
     backgroundColor: colors.card,
     borderRadius: 12,

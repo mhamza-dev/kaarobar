@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { api, getSession } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
@@ -13,6 +14,7 @@ import {
 } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
+import { detailRoutes } from "@/lib/navigation";
 import { canAccessBundle } from "@/lib/rbac";
 
 type Tab = "employees" | "attendance" | "leave" | "payroll";

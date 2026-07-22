@@ -12,7 +12,12 @@ export type Customer = {
   company_name?: string | null;
   credit_limit?: string | null;
   loyalty_points?: number;
+  loyalty_tier_id?: string | null;
   khata_enabled?: boolean;
+  marketing_opt_in_email?: boolean;
+  marketing_opt_in_sms?: boolean;
+  marketing_opt_in_whatsapp?: boolean;
+  portal_enabled?: boolean;
   user_id?: string | null;
   balance?: string | null;
 };
@@ -29,6 +34,9 @@ export type CustomerForm = {
   credit_limit: string;
   user_id: string;
   khata_enabled: boolean;
+  marketing_opt_in_email: boolean;
+  marketing_opt_in_sms: boolean;
+  marketing_opt_in_whatsapp: boolean;
 };
 
 export const emptyCustomerForm = (): CustomerForm => ({
@@ -43,6 +51,9 @@ export const emptyCustomerForm = (): CustomerForm => ({
   credit_limit: "",
   user_id: "",
   khata_enabled: true,
+  marketing_opt_in_email: false,
+  marketing_opt_in_sms: false,
+  marketing_opt_in_whatsapp: false,
 });
 
 export function customerToForm(c: Customer): CustomerForm {
@@ -58,6 +69,9 @@ export function customerToForm(c: Customer): CustomerForm {
     credit_limit: c.credit_limit || "",
     user_id: c.user_id || "",
     khata_enabled: c.khata_enabled === true,
+    marketing_opt_in_email: c.marketing_opt_in_email === true,
+    marketing_opt_in_sms: c.marketing_opt_in_sms === true,
+    marketing_opt_in_whatsapp: c.marketing_opt_in_whatsapp === true,
   };
 }
 
@@ -74,6 +88,9 @@ export function customerPayload(form: CustomerForm) {
     credit_limit: form.credit_limit.trim() || null,
     user_id: form.user_id.trim() || null,
     khata_enabled: form.khata_enabled,
+    marketing_opt_in_email: form.marketing_opt_in_email,
+    marketing_opt_in_sms: form.marketing_opt_in_sms,
+    marketing_opt_in_whatsapp: form.marketing_opt_in_whatsapp,
   };
 }
 
@@ -98,4 +115,7 @@ export const CUSTOMER_FORM_FIELDS: {
   { key: "user_id", labelKey: "customers.userId" },
   { key: "notes", labelKey: "customers.notes", type: "textarea" },
   { key: "khata_enabled", labelKey: "customers.khataEnabled", type: "checkbox" },
+  { key: "marketing_opt_in_email", labelKey: "customers.optInEmail", type: "checkbox" },
+  { key: "marketing_opt_in_sms", labelKey: "customers.optInSms", type: "checkbox" },
+  { key: "marketing_opt_in_whatsapp", labelKey: "customers.optInWhatsapp", type: "checkbox" },
 ];

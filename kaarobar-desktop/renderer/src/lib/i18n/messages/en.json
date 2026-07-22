@@ -62,6 +62,7 @@
     "system": "System",
     "dashboard": "Dashboard",
     "pos": "POS",
+    "sales": "Sales",
     "returns": "Returns",
     "inventory": "Inventory",
     "customers": "Customers",

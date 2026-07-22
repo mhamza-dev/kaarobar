@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { api, getSession } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
@@ -14,6 +16,7 @@ import {
 } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
+import { detailRoutes } from "@/lib/navigation";
 
 type Tab = "stock" | "products" | "suppliers" | "pos" | "transfers" | "adjust";
 type ModalKind = "product" | "supplier" | "po" | null;
@@ -146,6 +149,7 @@ type Transfer = {
 export default function InventoryPage() {
   const t = useT();
   const toast = useToast();
+  const router = useRouter();
   const [tab, setTab] = useState<Tab>("stock");
   const [modal, setModal] = useState<ModalKind>(null);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
@@ -595,7 +599,7 @@ export default function InventoryPage() {
           getSearchText={(p) =>
             `${p.sku} ${p.name} ${p.barcode ?? ""} ${p.brand ?? ""} ${p.product_kind ?? ""}`
           }
-          onRowClick={openEditProduct}
+          onRowClick={(p) => router.push(detailRoutes.product(p.id))}
           columns={[
             {
               id: "thumb",
@@ -620,7 +624,13 @@ export default function InventoryPage() {
               header: "SKU / Barcode",
               cell: (p) => (
                 <div>
-                  <div className="font-medium text-heading">{p.sku}</div>
+                  <Link
+                    href={detailRoutes.product(p.id)}
+                    className="font-medium text-brand underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {p.sku}
+                  </Link>
                   <div className="text-xs tabular-nums text-muted">
                     {p.barcode || "—"}
                   </div>
@@ -662,18 +672,24 @@ export default function InventoryPage() {
               id: "actions",
               header: "",
               align: "right",
-              width: 88,
+              width: 160,
               cell: (p) => (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openEditProduct(p);
-                  }}
-                >
-                  Edit
-                </Button>
+                <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => router.push(detailRoutes.product(p.id))}
+                  >
+                    View
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => openEditProduct(p)}
+                  >
+                    Edit
+                  </Button>
+                </div>
               ),
             },
           ]}
@@ -705,7 +721,7 @@ export default function InventoryPage() {
               .filter(Boolean)
               .join(" ")
           }
-          onRowClick={openEditSupplier}
+          onRowClick={(s) => router.push(detailRoutes.supplier(s.id))}
           columns={[
             {
               id: "name",
@@ -713,7 +729,13 @@ export default function InventoryPage() {
               cell: (s) => (
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-heading">{s.name}</span>
+                    <Link
+                      href={detailRoutes.supplier(s.id)}
+                      className="font-medium text-brand underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {s.name}
+                    </Link>
                     {s.is_preferred ? (
                       <span className="rounded-md bg-brand-soft px-1.5 py-0.5 text-[10px] font-bold text-brand">
                         Preferred
@@ -789,18 +811,24 @@ export default function InventoryPage() {
               id: "actions",
               header: "",
               align: "right",
-              width: 88,
+              width: 160,
               cell: (s) => (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openEditSupplier(s);
-                  }}
-                >
-                  Edit
-                </Button>
+                <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => router.push(detailRoutes.supplier(s.id))}
+                  >
+                    View
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => openEditSupplier(s)}
+                  >
+                    Edit
+                  </Button>
+                </div>
               ),
             },
           ]}
@@ -858,14 +886,19 @@ export default function InventoryPage() {
             getSearchText={(p) =>
               `${p.supplier_name ?? ""} ${p.supplier_id} ${p.status}`
             }
+            onRowClick={(p) => router.push(detailRoutes.purchaseOrder(p.id))}
             columns={[
               {
                 id: "supplier",
                 header: "Supplier",
                 cell: (p) => (
-                  <span className="font-medium">
+                  <Link
+                    href={detailRoutes.purchaseOrder(p.id)}
+                    className="font-medium text-brand underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     {p.supplier_name || p.supplier_id.slice(0, 8)}
-                  </span>
+                  </Link>
                 ),
               },
               {

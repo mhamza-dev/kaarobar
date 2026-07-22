@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { api, getSession } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
@@ -12,6 +14,7 @@ import {
 } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
+import { detailRoutes } from "@/lib/navigation";
 import { canAccessBundle } from "@/lib/rbac";
 
 type SaleItem = {
@@ -52,6 +55,7 @@ type Till = {
 export default function ReturnsPage() {
   const t = useT();
   const toast = useToast();
+  const router = useRouter();
   const canApprove = canAccessBundle(getSession(), "pos_approve");
   const [saleId, setSaleId] = useState("");
   const [sale, setSale] = useState<Sale | null>(null);
@@ -257,7 +261,13 @@ export default function ReturnsPage() {
               >
                 <div>
                   <div className="flex items-center gap-2">
-                    <span>Rs {r.refund_amount} · {r.refund_method}</span>
+                    <Link
+                      href={detailRoutes.saleReturn(r.id)}
+                      className="font-semibold text-brand underline"
+                    >
+                      Rs {r.refund_amount}
+                    </Link>
+                    <span>· {r.refund_method}</span>
                     <StatusBadge tone="warning">{r.status}</StatusBadge>
                   </div>
                   <div className="text-body">{r.reason || "No reason"}</div>
@@ -295,6 +305,7 @@ export default function ReturnsPage() {
           getSearchText={(r) =>
             `${r.status} ${r.refund_amount} ${r.refund_method} ${r.sale_id} ${r.reason ?? ""}`
           }
+          onRowClick={(r) => router.push(detailRoutes.saleReturn(r.id))}
           columns={[
             {
               id: "status",
@@ -302,9 +313,9 @@ export default function ReturnsPage() {
               cell: (r) => (
                 <StatusBadge
                   tone={
-                    r.status === "approved"
+                    r.status === "approved" || r.status === "Approved"
                       ? "success"
-                      : r.status === "rejected"
+                      : r.status === "rejected" || r.status === "Rejected"
                         ? "danger"
                         : "warning"
                   }
@@ -318,7 +329,13 @@ export default function ReturnsPage() {
               header: "Amount",
               align: "right",
               cell: (r) => (
-                <span className="tabular-nums font-medium">{r.refund_amount}</span>
+                <Link
+                  href={detailRoutes.saleReturn(r.id)}
+                  className="tabular-nums font-medium text-brand underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {r.refund_amount}
+                </Link>
               ),
             },
             { id: "method", header: "Method", cell: (r) => r.refund_method },
@@ -326,7 +343,13 @@ export default function ReturnsPage() {
               id: "sale",
               header: "Sale",
               cell: (r) => (
-                <span className="font-mono text-xs">{r.sale_id.slice(0, 8)}…</span>
+                <Link
+                  href={detailRoutes.sale(r.sale_id)}
+                  className="font-mono text-xs text-brand underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {r.sale_id.slice(0, 8)}…
+                </Link>
               ),
             },
           ]}

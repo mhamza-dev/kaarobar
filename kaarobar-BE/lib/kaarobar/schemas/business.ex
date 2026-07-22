@@ -17,6 +17,8 @@ defmodule Kaarobar.Schemas.Business do
     field :loyalty_earn_per_amount, :decimal, default: Decimal.new("100")
     field :loyalty_points_per_earn, :integer, default: 1
     field :loyalty_redeem_value, :decimal, default: Decimal.new("1.00")
+    field :portal_self_register, :boolean, default: false
+    field :portal_invite_from_sale, :boolean, default: true
 
     belongs_to :owner, Kaarobar.Schemas.User
     has_many :branches, Kaarobar.Schemas.Branch
@@ -41,6 +43,8 @@ defmodule Kaarobar.Schemas.Business do
       :loyalty_earn_per_amount,
       :loyalty_points_per_earn,
       :loyalty_redeem_value,
+      :portal_self_register,
+      :portal_invite_from_sale,
       :owner_id
     ])
     |> validate_required([:name, :owner_id])

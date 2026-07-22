@@ -1,6 +1,6 @@
 
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
@@ -14,6 +14,7 @@ import {
 } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
+import { detailRoutes } from "@/lib/navigation";
 import {
   type Customer,
   type CustomerForm,
@@ -36,6 +37,7 @@ type LedgerEntry = {
 export default function CustomersPage() {
   const t = useT();
   const toast = useToast();
+  const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [busy, setBusy] = useState(false);
   const [modal, setModal] = useState<"create" | "edit" | "loyalty" | null>(null);
@@ -219,7 +221,15 @@ export default function CustomersPage() {
         searchPlaceholder={t("customers.search")}
         getSearchText={customerSearchText}
         columns={[
-          { id: "name", header: t("common.name"), cell: (c) => c.name },
+          {
+            id: "name",
+            header: t("common.name"),
+            cell: (c) => (
+              <Link to={detailRoutes.customer(c.id)} className="font-semibold text-brand underline">
+                {c.name}
+              </Link>
+            ),
+          },
           { id: "company", header: t("customers.company"), cell: (c) => c.company_name || "—" },
           { id: "phone", header: t("customers.phone"), cell: (c) => c.phone || "—" },
           { id: "cnic", header: t("customers.cnic"), cell: (c) => c.cnic || "—" },
@@ -243,7 +253,14 @@ export default function CustomersPage() {
             id: "actions",
             header: "",
             cell: (c) => (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => navigate(detailRoutes.customer(c.id))}
+                >
+                  View
+                </Button>
                 <Button size="sm" variant="secondary" onClick={() => openEdit(c)}>
                   {t("common.edit")}
                 </Button>
@@ -262,6 +279,7 @@ export default function CustomersPage() {
         ]}
         data={customers}
         rowKey={(c) => c.id}
+        onRowClick={(c) => navigate(detailRoutes.customer(c.id))}
         emptyTitle={t("customers.emptyTitle")}
         emptyBody={t("customers.emptyBody")}
       />

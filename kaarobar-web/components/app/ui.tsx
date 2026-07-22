@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import Button from "@/components/ui/Button";
+import Tabs, { type TabItem } from "@/components/ui/Tabs";
 
 type PageHeaderProps = {
   eyebrow?: string;
@@ -51,32 +52,31 @@ export function PageHeader({
   );
 }
 
+/** Page section tabs — underline style (preferred). */
 export function TabBar<T extends string>({
   tabs,
   value,
   onChange,
+  variant = "underline",
+  "aria-label": ariaLabel,
+  className,
 }: {
-  tabs: { id: T; label: string }[];
+  tabs: TabItem<T>[];
   value: T;
   onChange: (id: T) => void;
+  variant?: "underline" | "pills";
+  "aria-label"?: string;
+  className?: string;
 }) {
   return (
-    <div className="inline-flex flex-wrap gap-1 rounded-md bg-bg-tertiary p-1.5">
-      {tabs.map((t) => (
-        <button
-          key={t.id}
-          type="button"
-          onClick={() => onChange(t.id)}
-          className={`rounded-md px-4 py-2 text-sm font-semibold transition ${
-            value === t.id
-              ? "bg-card text-heading shadow-sm"
-              : "text-body hover:text-heading"
-          }`}
-        >
-          {t.label}
-        </button>
-      ))}
-    </div>
+    <Tabs
+      tabs={tabs}
+      value={value}
+      onChange={onChange}
+      variant={variant}
+      aria-label={ariaLabel}
+      className={className}
+    />
   );
 }
 
