@@ -22,6 +22,10 @@ defmodule Kaarobar.Schemas.Business do
     field :marketplace_enabled, :boolean, default: false
     field :marketplace_slug, :string
     field :messaging_wallet_balance, :decimal, default: Decimal.new("0")
+    field :tagline, :string
+    field :logo_key, :string
+    field :primary_color, :string
+    field :marketplace_description, :string
 
     belongs_to :owner, Kaarobar.Schemas.User
     belongs_to :online_branch, Kaarobar.Schemas.Branch
@@ -52,12 +56,22 @@ defmodule Kaarobar.Schemas.Business do
       :marketplace_enabled,
       :marketplace_slug,
       :messaging_wallet_balance,
+      :tagline,
+      :logo_key,
+      :primary_color,
+      :marketplace_description,
       :online_branch_id,
       :owner_id
     ])
     |> update_change(:marketplace_slug, &blank_to_nil/1)
+    |> update_change(:tagline, &blank_to_nil_text/1)
+    |> update_change(:marketplace_description, &blank_to_nil_text/1)
+    |> update_change(:primary_color, &normalize_color/1)
     |> validate_required([:name, :owner_id])
     |> maybe_validate_industry()
+    |> validate_primary_color()
+    |> validate_length(:tagline, max: 160)
+    |> validate_length(:marketplace_description, max: 2000)
     |> validate_number(:loyalty_earn_per_amount, greater_than: 0)
     |> validate_number(:loyalty_points_per_earn, greater_than: 0)
     |> validate_number(:loyalty_redeem_value, greater_than: 0)
@@ -73,6 +87,39 @@ defmodule Kaarobar.Schemas.Business do
     if s == "", do: nil, else: String.downcase(s)
   end
   defp blank_to_nil(v), do: v
+
+  defp blank_to_nil_text(nil), do: nil
+  defp blank_to_nil_text(""), do: nil
+  defp blank_to_nil_text(v) when is_binary(v) do
+    s = String.trim(v)
+    if s == "", do: nil, else: s
+  end
+  defp blank_to_nil_text(v), do: v
+
+  defp normalize_color(nil), do: nil
+  defp normalize_color(""), do: nil
+  defp normalize_color(v) when is_binary(v) do
+    s = String.trim(v)
+    if s == "", do: nil, else: String.upcase(s)
+  end
+  defp normalize_color(v), do: v
+
+  defp validate_primary_color(changeset) do
+    case get_change(changeset, :primary_color) || get_field(changeset, :primary_color) do
+      nil ->
+        changeset
+
+      color when is_binary(color) ->
+        if Regex.match?(~r/^#([0-9A-F]{3}|[0-9A-F]{6})$/i, color) do
+          changeset
+        else
+          add_error(changeset, :primary_color, "must be a hex color like #RGB or #RRGGBB")
+        end
+
+      _ ->
+        add_error(changeset, :primary_color, "must be a hex color like #RGB or #RRGGBB")
+    end
+  end
 
   defp maybe_validate_industry(changeset) do
     case get_field(changeset, :industry) do

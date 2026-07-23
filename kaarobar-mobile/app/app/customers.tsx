@@ -230,16 +230,20 @@ export default function CustomersScreen() {
             Khata {c.khata_enabled ? "On" : "Off"} · Balance {c.balance || "0"}
           </Text>
           <View style={styles.rowWrap}>
-            <Pressable
-              style={styles.chip}
-              onPress={() => {
-                setEditingId(c.id);
-                setForm(customerToForm(c));
-                setShowForm(true);
-              }}
-            >
-              <Text style={styles.chipText}>{t("common.edit")}</Text>
-            </Pressable>
+            {c.portal_linked ? (
+              <Text style={styles.portalBadge}>Portal signed up</Text>
+            ) : (
+              <Pressable
+                style={styles.chip}
+                onPress={() => {
+                  setEditingId(c.id);
+                  setForm(customerToForm(c));
+                  setShowForm(true);
+                }}
+              >
+                <Text style={styles.chipText}>{t("common.edit")}</Text>
+              </Pressable>
+            )}
             <Pressable style={styles.chip} onPress={() => void toggleKhata(c)}>
               <Text style={styles.chipText}>{c.khata_enabled ? t("customers.disableKhata") : t("customers.enableKhata")}</Text>
             </Pressable>
@@ -327,5 +331,12 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   chipText: { color: colors.heading, fontSize: 12, fontWeight: "600" },
+  portalBadge: {
+    color: colors.brand,
+    fontSize: 12,
+    fontWeight: "700",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
   link: { color: colors.brand, marginTop: 8, fontWeight: "600" },
 });

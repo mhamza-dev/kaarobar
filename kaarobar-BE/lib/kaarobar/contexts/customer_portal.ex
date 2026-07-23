@@ -661,7 +661,7 @@ defmodule Kaarobar.CustomerPortal do
         bid when is_binary(bid) ->
           case membership_for(account, bid) do
             nil -> []
-            c -> [c]
+            c -> [Repo.preload(c, :business)]
           end
 
         _ ->
@@ -678,6 +678,7 @@ defmodule Kaarobar.CustomerPortal do
 
       %{
         business_id: customer.business_id,
+        business_name: customer.business && customer.business.name,
         customer_id: customer.id,
         balance: to_string(balance)
       }

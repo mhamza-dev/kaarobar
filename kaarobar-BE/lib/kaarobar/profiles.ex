@@ -1,6 +1,6 @@
 defmodule Kaarobar.Profiles do
   @moduledoc """
-  Profile picture upload/clear for users, customers, and employees.
+  Profile picture upload/clear for users, customers, employees, and business logos.
   Reuses Storage (local disk or S3).
   """
 
@@ -8,52 +8,72 @@ defmodule Kaarobar.Profiles do
 
   alias Kaarobar.Repo
   alias Kaarobar.Storage
-  alias Kaarobar.Schemas.{Customer, Employee, User}
+  alias Kaarobar.Schemas.{Business, Customer, Employee, User}
 
   @max_bytes 2_000_000
   @allowed_types ~w(image/jpeg image/jpg image/png image/webp image/gif)
 
-  def profile_pic_url(%{profile_pic_key: key}) when is_binary(key) and key != "" do
-    Storage.url(key)
-  end
+  def profile_pic_url(%{profile_pic_key: key}) when is_binary(key) and key != "",
+    do: Storage.url(key)
 
   def profile_pic_url(_), do: nil
 
-  def upload_user_pic(%User{} = user, upload), do: upload_pic(user, upload, "profiles/users/#{user.id}")
+  def logo_url(%{logo_key: key}) when is_binary(key) and key != "", do: Storage.url(key)
+  def logo_url(_), do: nil
 
-  def clear_user_pic(%User{} = user), do: clear_pic(user)
+  def upload_user_pic(%User{} = user, upload),
+    do: upload_pic(user, upload, "profiles/users/#{user.id}", :profile_pic_key)
+
+  def clear_user_pic(%User{} = user), do: clear_pic(user, :profile_pic_key)
 
   def upload_customer_pic(%Customer{} = customer, upload),
-    do: upload_pic(customer, upload, "profiles/customers/#{customer.business_id}/#{customer.id}")
+    do:
+      upload_pic(
+        customer,
+        upload,
+        "profiles/customers/#{customer.business_id}/#{customer.id}",
+        :profile_pic_key
+      )
 
-  def clear_customer_pic(%Customer{} = customer), do: clear_pic(customer)
+  def clear_customer_pic(%Customer{} = customer), do: clear_pic(customer, :profile_pic_key)
 
   def upload_employee_pic(%Employee{} = employee, upload),
-    do: upload_pic(employee, upload, "profiles/employees/#{employee.business_id}/#{employee.id}")
+    do:
+      upload_pic(
+        employee,
+        upload,
+        "profiles/employees/#{employee.business_id}/#{employee.id}",
+        :profile_pic_key
+      )
 
-  def clear_employee_pic(%Employee{} = employee), do: clear_pic(employee)
+  def clear_employee_pic(%Employee{} = employee), do: clear_pic(employee, :profile_pic_key)
 
-  defp upload_pic(record, %Plug.Upload{} = upload, prefix) do
+  def upload_business_logo(%Business{} = business, upload),
+    do: upload_pic(business, upload, "profiles/businesses/#{business.id}", :logo_key)
+
+  def clear_business_logo(%Business{} = business), do: clear_pic(business, :logo_key)
+
+  defp upload_pic(record, %Plug.Upload{} = upload, prefix, field) do
     with {:ok, binary, content_type} <- read_upload(upload),
          key = Storage.build_key(prefix, upload.filename || "avatar.jpg"),
          {:ok, ^key} <- Storage.put(key, binary, content_type: content_type),
-         :ok <- delete_old(Map.get(record, :profile_pic_key)),
+         :ok <- delete_old(Map.get(record, field)),
          {:ok, updated} <-
            record
-           |> change(%{profile_pic_key: key})
+           |> change(%{field => key})
            |> Repo.update() do
       {:ok, updated}
     end
   end
 
-  defp upload_pic(_record, _upload, _prefix), do: {:error, :invalid_upload}
+  defp upload_pic(_record, _upload, _prefix, _field), do: {:error, :invalid_upload}
 
-  defp clear_pic(record) do
-    key = Map.get(record, :profile_pic_key)
+  defp clear_pic(record, field) do
+    key = Map.get(record, field)
     _ = delete_old(key)
 
     record
-    |> change(%{profile_pic_key: nil})
+    |> change(%{field => nil})
     |> Repo.update()
   end
 

@@ -101,17 +101,28 @@ defmodule KaarobarWeb.V1.ArApController do
         conn |> put_status(:not_found) |> json(%{error: "not_found"})
 
       c ->
-        case c |> Customer.changeset(customer_attrs(params)) |> Repo.update() do
-          {:ok, updated} ->
-            case maybe_provision_portal(updated, params) do
-              {:ok, customer, portal_meta} ->
-                json(conn, %{data: Map.merge(serialize_customer(customer), portal_meta)})
+        attrs = customer_attrs(params)
 
-              {:error, reason} ->
-                conn
-                |> put_status(:unprocessable_entity)
-                |> json(%{error: portal_error(reason), data: serialize_customer(updated)})
-            end
+        with {:ok, attrs} <- attrs_for_customer_update(c, attrs),
+             {:ok, updated} <- c |> Customer.changeset(attrs) |> Repo.update() do
+          case maybe_provision_portal(updated, params) do
+            {:ok, customer, portal_meta} ->
+              json(conn, %{data: Map.merge(serialize_customer(customer), portal_meta)})
+
+            {:error, reason} ->
+              conn
+              |> put_status(:unprocessable_entity)
+              |> json(%{error: portal_error(reason), data: serialize_customer(updated)})
+          end
+        else
+          {:error, :portal_linked} ->
+            conn
+            |> put_status(:unprocessable_entity)
+            |> json(%{
+              error: "portal_linked",
+              message:
+                "This customer signed up on the portal. Name, email, and phone are managed by them — businesses cannot change that identity."
+            })
 
           {:error, cs} ->
             conn |> put_status(:unprocessable_entity) |> json(%{error: customer_error(cs)})
@@ -128,15 +139,21 @@ defmodule KaarobarWeb.V1.ArApController do
         conn |> put_status(:not_found) |> json(%{error: "not_found"})
 
       customer ->
-        case extract_upload(params) do
-          {:ok, upload} ->
-            case Profiles.upload_customer_pic(customer, upload) do
-              {:ok, updated} -> json(conn, %{data: serialize_customer(updated)})
-              {:error, reason} -> profile_pic_error(conn, reason)
-            end
+        if portal_linked?(customer) do
+          conn
+          |> put_status(:unprocessable_entity)
+          |> json(%{error: "portal_linked"})
+        else
+          case extract_upload(params) do
+            {:ok, upload} ->
+              case Profiles.upload_customer_pic(customer, upload) do
+                {:ok, updated} -> json(conn, %{data: serialize_customer(updated)})
+                {:error, reason} -> profile_pic_error(conn, reason)
+              end
 
-          {:error, reason} ->
-            profile_pic_error(conn, reason)
+            {:error, reason} ->
+              profile_pic_error(conn, reason)
+          end
         end
     end
   end
@@ -150,10 +167,47 @@ defmodule KaarobarWeb.V1.ArApController do
         conn |> put_status(:not_found) |> json(%{error: "not_found"})
 
       customer ->
-        case Profiles.clear_customer_pic(customer) do
-          {:ok, updated} -> json(conn, %{data: serialize_customer(updated)})
-          {:error, reason} -> profile_pic_error(conn, reason)
+        if portal_linked?(customer) do
+          conn
+          |> put_status(:unprocessable_entity)
+          |> json(%{error: "portal_linked"})
+        else
+          case Profiles.clear_customer_pic(customer) do
+            {:ok, updated} -> json(conn, %{data: serialize_customer(updated)})
+            {:error, reason} -> profile_pic_error(conn, reason)
+          end
         end
+    end
+  end
+
+  defp portal_linked?(%Customer{customer_account_id: id}) when is_binary(id) and id != "", do: true
+  defp portal_linked?(_), do: false
+
+  # Once on the portal, identity lives on customer_accounts. Staff may still patch
+  # store-scoped membership fields (khata, credit, notes, marketing, etc.).
+  @portal_editable_keys ~w(
+    address notes cnic ntn company_name credit_limit user_id
+    khata_enabled marketing_opt_in_email marketing_opt_in_sms
+    marketing_opt_in_whatsapp portal_enabled
+  )
+
+  defp attrs_for_customer_update(customer, attrs) do
+    if portal_linked?(customer) do
+      business_attrs = Map.take(attrs, @portal_editable_keys)
+
+      cond do
+        business_attrs != %{} ->
+          {:ok, business_attrs}
+
+        map_size(attrs) == 0 ->
+          {:ok, %{}}
+
+        true ->
+          # Request only tried to change portal-owned identity (name/email/phone).
+          {:error, :portal_linked}
+      end
+    else
+      {:ok, attrs}
     end
   end
 

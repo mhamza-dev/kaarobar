@@ -63,13 +63,7 @@ type AgingRow = {
 };
 
 export default function AccountingPage() {
-  const [buyer, setBuyer] = useState(false);
-
-  useEffect(() => {
-    setBuyer(isConsumerSession());
-  }, []);
-
-  if (buyer) {
+  if (isConsumerSession()) {
     return <BuyerAr />;
   }
 

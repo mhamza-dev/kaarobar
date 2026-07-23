@@ -2,6 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
+import {
+  Alert,
+  EmptyState,
+  PageHeader,
+  StatusBadge,
+  SurfaceCard,
+} from "@/components/app/ui";
 
 type Order = {
   id: string;
@@ -13,40 +20,66 @@ type Order = {
   business_name?: string | null;
 };
 
+function statusTone(status: string): "success" | "warning" | "danger" | "info" {
+  const s = status.toLowerCase();
+  if (s === "completed" || s === "ready") return "success";
+  if (s === "cancelled") return "danger";
+  if (s === "placed" || s === "confirmed") return "warning";
+  return "info";
+}
+
 /** Buyer view of `/app/sales`. */
 export default function BuyerOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     void api<{ data: Order[] }>("/portal/orders")
       .then((res) => setOrders(res.data || []))
-      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load"));
+      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load"))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold text-heading">Order history</h1>
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
-      <ul className="divide-y divide-border rounded-xl border border-border bg-white">
-        {orders.length === 0 ? (
-          <li className="p-4 text-sm text-body">No orders yet.</li>
-        ) : (
-          orders.map((o) => (
-            <li key={o.id} className="flex items-center justify-between gap-3 p-4 text-sm">
-              <div>
-                <p className="font-semibold text-heading">{o.invoice_number}</p>
-                <p className="text-body">
-                  {o.business_name ? `${o.business_name} · ` : ""}
-                  {o.inserted_at ? String(o.inserted_at).slice(0, 16) : ""} · {o.status}
-                  {o.source === "online" ? " · online" : ""}
-                </p>
-              </div>
-              <p className="font-bold text-heading">Rs {o.total_amount}</p>
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Marketplace"
+        title="Order history"
+        description="Track pickup orders placed with marketplace stores."
+      />
+      {error ? <Alert tone="error">{error}</Alert> : null}
+      {loading ? (
+        <p className="text-sm text-body">Loading orders…</p>
+      ) : orders.length === 0 ? (
+        <EmptyState
+          title="No orders yet"
+          body="Browse Discover and place your first pickup order."
+        />
+      ) : (
+        <ul className="space-y-3">
+          {orders.map((o) => (
+            <li key={o.id}>
+              <SurfaceCard className="flex flex-wrap items-center justify-between gap-3 p-4">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-semibold text-heading">{o.invoice_number}</p>
+                    <StatusBadge tone={statusTone(o.status)}>{o.status}</StatusBadge>
+                    {o.source === "online" ? (
+                      <StatusBadge tone="info">Online</StatusBadge>
+                    ) : null}
+                  </div>
+                  <p className="mt-1 text-sm text-body">
+                    {o.business_name ? `${o.business_name} · ` : ""}
+                    {o.inserted_at ? new Date(o.inserted_at).toLocaleString() : ""}
+                  </p>
+                </div>
+                <p className="text-lg font-bold text-heading">Rs {o.total_amount}</p>
+              </SurfaceCard>
             </li>
-          ))
-        )}
-      </ul>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

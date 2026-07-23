@@ -13,6 +13,9 @@ export type Customer = {
   credit_limit?: string | null;
   loyalty_points?: number;
   khata_enabled?: boolean;
+  portal_enabled?: boolean;
+  portal_linked?: boolean;
+  customer_account_id?: string | null;
   user_id?: string | null;
   balance?: string | null;
 };

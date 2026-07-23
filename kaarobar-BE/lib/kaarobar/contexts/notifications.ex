@@ -144,6 +144,18 @@ defmodule Kaarobar.Notifications do
     |> Repo.all()
   end
 
+  def list_for_customer_account(account_id, opts \\ []) do
+    limit = Keyword.get(opts, :limit, 50)
+    channel = Keyword.get(opts, :channel, "in_app")
+
+    from(n in Notification,
+      where: n.customer_account_id == ^account_id and n.channel == ^channel,
+      order_by: [desc: n.inserted_at],
+      limit: ^limit
+    )
+    |> Repo.all()
+  end
+
   def unread_count(user_id) do
     from(n in Notification,
       where: n.user_id == ^user_id and n.channel == "in_app" and is_nil(n.read_at),
@@ -152,8 +164,29 @@ defmodule Kaarobar.Notifications do
     |> Repo.one()
   end
 
+  def unread_count_for_customer_account(account_id) do
+    from(n in Notification,
+      where:
+        n.customer_account_id == ^account_id and n.channel == "in_app" and is_nil(n.read_at),
+      select: count(n.id)
+    )
+    |> Repo.one()
+  end
+
   def mark_read(id, user_id) do
     case Repo.get_by(Notification, id: id, user_id: user_id) do
+      nil ->
+        {:error, :not_found}
+
+      n ->
+        n
+        |> Notification.changeset(%{read_at: DateTime.utc_now() |> DateTime.truncate(:second)})
+        |> Repo.update()
+    end
+  end
+
+  def mark_read_for_customer_account(id, account_id) do
+    case Repo.get_by(Notification, id: id, customer_account_id: account_id) do
       nil ->
         {:error, :not_found}
 
@@ -174,6 +207,41 @@ defmodule Kaarobar.Notifications do
       |> Repo.update_all(set: [read_at: now, updated_at: now])
 
     {:ok, count}
+  end
+
+  def mark_all_read_for_customer_account(account_id) do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    {count, _} =
+      from(n in Notification,
+        where:
+          n.customer_account_id == ^account_id and n.channel == "in_app" and is_nil(n.read_at)
+      )
+      |> Repo.update_all(set: [read_at: now, updated_at: now])
+
+    {:ok, count}
+  end
+
+  @doc """
+  Create an in-app notification for a portal customer account (no email/push prefs yet).
+  """
+  def notify_customer_account(account_id, owner_id, type, payload \\ %{}, opts \\ []) do
+    title = Keyword.get(opts, :title) || human_title(type)
+
+    body =
+      Keyword.get(opts, :body) ||
+        Map.get(payload, :message) ||
+        Map.get(payload, "message")
+
+    enqueue(%{
+      customer_account_id: account_id,
+      owner_id: owner_id,
+      type: type,
+      title: title,
+      body: body,
+      payload: payload || %{},
+      channel: "in_app"
+    })
   end
 
   ## —— Preferences ——————————————————————————————————————————————
@@ -299,7 +367,11 @@ defmodule Kaarobar.Notifications do
   end
 
   defp deliver_email(notification) do
-    user = Repo.get(User, notification.user_id)
+    user =
+      cond do
+        is_binary(notification.user_id) -> Repo.get(User, notification.user_id)
+        true -> nil
+      end
 
     if is_nil(user) or is_nil(user.email) do
       {:error, :no_recipient}
@@ -319,20 +391,24 @@ defmodule Kaarobar.Notifications do
   end
 
   defp deliver_push(notification) do
-    tokens = list_device_tokens(notification.user_id)
-
-    if tokens == [] do
+    if is_nil(notification.user_id) do
       {:ok, :no_devices}
     else
-      results =
-        Enum.map(tokens, fn device ->
-          push_expo(device.token, notification)
-        end)
+      tokens = list_device_tokens(notification.user_id)
 
-      if Enum.any?(results, &match?({:ok, _}, &1)) do
-        {:ok, :sent}
+      if tokens == [] do
+        {:ok, :no_devices}
       else
-        {:error, :push_failed}
+        results =
+          Enum.map(tokens, fn device ->
+            push_expo(device.token, notification)
+          end)
+
+        if Enum.any?(results, &match?({:ok, _}, &1)) do
+          {:ok, :sent}
+        else
+          {:error, :push_failed}
+        end
       end
     end
   end
@@ -395,6 +471,9 @@ defmodule Kaarobar.Notifications do
   end
 
   def human_title("crm.campaign"), do: "Marketing campaign"
+  def human_title("order.placed"), do: "Order placed"
+  def human_title("order.status_changed"), do: "Order update"
+  def human_title("order.online_placed"), do: "New online order"
   def human_title("leave_request"), do: "Leave request submitted"
   def human_title("leave.approved"), do: "Leave approved"
   def human_title("leave.rejected"), do: "Leave rejected"

@@ -53,9 +53,11 @@ export default function CustomerDetailPage() {
       title={customer?.name || "Customer"}
       subtitle={customer?.company_name || customer?.email || customer?.phone || undefined}
       status={
-        customer?.khata_enabled
-          ? { label: "Khata on", tone: "success" }
-          : { label: "Khata off", tone: "info" }
+        customer?.portal_linked
+          ? { label: "Portal account", tone: "success" }
+          : customer?.khata_enabled
+            ? { label: "Khata on", tone: "success" }
+            : { label: "Khata off", tone: "info" }
       }
       loading={loading}
       error={error}
@@ -63,18 +65,38 @@ export default function CustomerDetailPage() {
       {customer ? (
         <>
           <DetailSection title="Photo">
-            <ProfilePicEditor
-              url={customer.profile_pic_url}
-              name={customer.name}
-              uploadPath={`/customers/${customer.id}/profile-pic`}
-              urlFromResponse={(body) =>
-                (body as { data?: Customer })?.data?.profile_pic_url
-              }
-              onChange={(next) =>
-                setCustomer((c) => (c ? { ...c, profile_pic_url: next } : c))
-              }
-              label="Customer photo"
-            />
+            {customer.portal_linked ? (
+              <div className="space-y-2">
+                <ProfilePicEditor
+                  url={customer.profile_pic_url}
+                  name={customer.name}
+                  uploadPath={`/customers/${customer.id}/profile-pic`}
+                  urlFromResponse={(body) =>
+                    (body as { data?: Customer })?.data?.profile_pic_url
+                  }
+                  onChange={() => undefined}
+                  label="Customer photo"
+                  readOnly
+                />
+                <p className="text-sm text-body">
+                  This shopper signed up on the portal — name, email, phone, and photo are managed
+                  by them. You can still adjust khata, credit, and loyalty from the customers list.
+                </p>
+              </div>
+            ) : (
+              <ProfilePicEditor
+                url={customer.profile_pic_url}
+                name={customer.name}
+                uploadPath={`/customers/${customer.id}/profile-pic`}
+                urlFromResponse={(body) =>
+                  (body as { data?: Customer })?.data?.profile_pic_url
+                }
+                onChange={(next) =>
+                  setCustomer((c) => (c ? { ...c, profile_pic_url: next } : c))
+                }
+                label="Customer photo"
+              />
+            )}
           </DetailSection>
           <DetailSection title="Profile">
             <DetailFieldGrid

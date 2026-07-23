@@ -105,7 +105,7 @@ defmodule Kaarobar.Pos do
         invoice_number: invoice_number,
         customer_id: attrs[:customer_id] || attrs["customer_id"],
         till_id: attrs[:till_id] || attrs["till_id"],
-        status: "Completed",
+        status: if(source == "online", do: "Placed", else: "Completed"),
         source: source,
         subtotal: money.subtotal,
         tax_amount: money.tax_amount,
@@ -1457,6 +1457,72 @@ defmodule Kaarobar.Pos do
     |> where([s], s.id == ^sale_id and s.owner_id == ^owner_id)
     |> preload([:items, :payments, :returns])
     |> Repo.one()
+  end
+
+  @online_statuses ~w(Placed Confirmed Ready Completed Cancelled)
+  @online_transitions %{
+    "Placed" => ~w(Confirmed Cancelled),
+    "Confirmed" => ~w(Ready Cancelled),
+    "Ready" => ~w(Completed Cancelled),
+    "Completed" => [],
+    "Cancelled" => []
+  }
+
+  def update_online_order_status(sale_id, owner_id, business_id, new_status)
+      when is_binary(new_status) do
+    sale =
+      Sale
+      |> where(
+        [s],
+        s.id == ^sale_id and s.owner_id == ^owner_id and s.business_id == ^business_id and
+          s.source == "online"
+      )
+      |> preload([:customer, :business])
+      |> Repo.one()
+
+    allowed = Map.get(@online_transitions, sale && sale.status, [])
+
+    cond do
+      is_nil(sale) ->
+        {:error, :not_found}
+
+      new_status not in @online_statuses ->
+        {:error, :invalid_status}
+
+      new_status not in allowed ->
+        {:error, :invalid_transition}
+
+      true ->
+        with {:ok, updated} <-
+               sale |> Sale.changeset(%{status: new_status}) |> Repo.update() do
+          updated = Repo.preload(updated, [:customer, :business, :items, :payments])
+          _ = maybe_notify_order_status(updated)
+          {:ok, updated}
+        end
+    end
+  end
+
+  defp maybe_notify_order_status(%Sale{} = sale) do
+    account_id = sale.customer && sale.customer.customer_account_id
+    business_name = (sale.business && sale.business.name) || "Store"
+
+    if is_binary(account_id) do
+      Kaarobar.Notifications.notify_customer_account(
+        account_id,
+        sale.owner_id,
+        "order.status_changed",
+        %{
+          sale_id: sale.id,
+          business_id: sale.business_id,
+          status: sale.status,
+          invoice_number: sale.invoice_number
+        },
+        title: "Order ##{sale.invoice_number} · #{sale.status}",
+        body: "Your order at #{business_name} is now #{sale.status}."
+      )
+    else
+      :ok
+    end
   end
 
   ## —— Helpers ——————————————————————————————————————————————————

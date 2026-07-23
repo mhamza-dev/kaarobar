@@ -37,6 +37,7 @@ import KaarobarLogo from "@/components/brand/KaarobarLogo";
 import Button from "@/components/ui/Button";
 import { useI18n } from "@/lib/i18n";
 import { useUnreadNotifications } from "@/lib/hooks/useUnreadNotifications";
+import { CartProvider, useCartOptional } from "@/lib/cart";
 
 const icons = {
   layout: LayoutDashboard,
@@ -53,6 +54,25 @@ const icons = {
   settings: Settings,
   profile: UserRound,
 } as const;
+
+function NavbarCartLink() {
+  const cart = useCartOptional();
+  const count = cart?.itemCount ?? 0;
+  return (
+    <Link
+      href="/app/checkout"
+      className="relative shrink-0 rounded-md p-2 text-rail-muted transition hover:bg-rail-hover hover:text-heading"
+      aria-label="Cart"
+    >
+      <ShoppingCart className="h-4 w-4" strokeWidth={2} />
+      {count > 0 ? (
+        <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-bold text-white">
+          {count > 99 ? "99+" : count}
+        </span>
+      ) : null}
+    </Link>
+  );
+}
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const rawPathname = usePathname();
@@ -146,11 +166,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   );
 
   const buyerTitle =
-    buyerNav.find(
-      (item) =>
-        pathname === item.href ||
-        (item.href !== "/app" && pathname.startsWith(item.href))
-    )?.title ?? "Marketplace";
+    pathname.startsWith("/app/checkout")
+      ? "Checkout"
+      : buyerNav.find(
+          (item) =>
+            pathname === item.href ||
+            (item.href !== "/app" && pathname.startsWith(item.href))
+        )?.title ?? "Marketplace";
 
   const titleKey =
     visibleNav.find(
@@ -200,7 +222,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <nav className={`flex flex-1 flex-col gap-5 ${compact ? "px-3 py-4" : "px-3 py-5"}`}>
           <div>
             <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.14em] text-rail-muted">
-              Buyer
+              Marketplace
             </p>
             <div className="space-y-1">
               {buyerNav.map((item) => {
@@ -270,6 +292,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
+    <CartProvider>
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-bg-primary text-heading lg:flex-row">
       <aside className="relative z-30 hidden h-full min-h-0 w-[248px] shrink-0 flex-col overflow-hidden border-r border-rail-border bg-rail lg:flex">
         <div className="flex shrink-0 items-center gap-3 border-b border-rail-border px-5 py-4">
@@ -314,7 +337,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <KaarobarLogo size={36} className="shrink-0 shadow-brand rounded-[8px] lg:hidden" />
             <div className="min-w-0 border-l border-rail-border pl-3 lg:border-l-0 lg:pl-0">
               <p className="mb-0.5 hidden text-[10px] font-bold uppercase tracking-[0.14em] text-rail-muted lg:block">
-                {t("common.workspace")}
+                {buyer ? "Marketplace" : t("common.workspace")}
               </p>
               <h1 className="truncate text-sm font-bold tracking-tight text-heading">
                 {buyer ? buyerTitle : t(titleKey)}
@@ -330,7 +353,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="hidden sm:block">
               <LanguageSwitcher compact persistToProfile={!buyer} />
             </div>
-            {!buyer ? (
+            {buyer ? <NavbarCartLink /> : null}
             <Link
               href={routes.notifications}
               className="relative shrink-0 rounded-md p-2 text-rail-muted transition hover:bg-rail-hover hover:text-heading"
@@ -343,7 +366,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </span>
               ) : null}
             </Link>
-            ) : null}
             {!buyer ? (
               <Link
                 href={routes.profile}
@@ -414,5 +436,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </main>
       </div>
     </div>
+    </CartProvider>
   );
 }

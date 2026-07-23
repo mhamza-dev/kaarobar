@@ -37,7 +37,9 @@ export default function NotificationsScreen() {
         router.replace("/landing");
         return;
       }
-      const res = await api<{ data: Note[]; meta?: { unread?: number } }>("/app/notifications");
+      const base =
+        s.actor === "consumer" ? "/portal/notifications" : "/notifications";
+      const res = await api<{ data: Note[]; meta?: { unread?: number } }>(base);
       setItems(res.data || []);
       setUnread(res.meta?.unread ?? (res.data || []).filter((n) => !n.read_at).length);
     } catch (err) {
@@ -51,14 +53,20 @@ export default function NotificationsScreen() {
   useEffect(() => {
     (async () => {
       await loadLocale();
-      await registerForPushNotifications().catch(() => null);
+      const s = await getSession();
+      if (s?.actor !== "consumer") {
+        await registerForPushNotifications().catch(() => null);
+      }
       await load();
     })();
   }, [load]);
 
   async function markRead(id: string) {
     try {
-      await api(`/notifications/${id}/read`, { method: "POST" });
+      const s = await getSession();
+      const base =
+        s?.actor === "consumer" ? "/portal/notifications" : "/notifications";
+      await api(`${base}/${id}/read`, { method: "POST" });
       await load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.error"));
@@ -67,7 +75,10 @@ export default function NotificationsScreen() {
 
   async function markAll() {
     try {
-      await api("/notifications/read-all", { method: "POST" });
+      const s = await getSession();
+      const base =
+        s?.actor === "consumer" ? "/portal/notifications" : "/notifications";
+      await api(`${base}/read-all`, { method: "POST" });
       await load();
       toast.success("All caught up");
     } catch (err) {
@@ -131,8 +142,8 @@ export default function NotificationsScreen() {
           ))
         )}
 
-        <Link href="/app/profile" style={styles.link}>
-          Notification preferences →
+        <Link href="/app/dashboard" style={styles.link}>
+          Back to home →
         </Link>
       </ScrollView>
     </>

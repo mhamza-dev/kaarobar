@@ -18,6 +18,8 @@ type Props = {
   request?: UploadFn;
   size?: "md" | "lg";
   label?: string;
+  /** When true, show photo only (no upload/remove). */
+  readOnly?: boolean;
 };
 
 function initialsFrom(name?: string) {
@@ -40,6 +42,7 @@ export default function ProfilePicEditor({
   request = api,
   size = "lg",
   label = "Profile photo",
+  readOnly = false,
 }: Props) {
   const toast = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -93,39 +96,45 @@ export default function ProfilePicEditor({
       </div>
       <div className="space-y-2">
         <p className="text-sm font-medium text-heading">{label}</p>
-        <p className="text-xs text-muted">JPG, PNG, WebP, or GIF · max 2 MB</p>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            loading={busy}
-            onClick={() => inputRef.current?.click()}
-          >
-            {url ? "Change photo" : "Upload photo"}
-          </Button>
-          {url ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              loading={busy}
-              onClick={() => void remove()}
-            >
-              Remove
-            </Button>
-          ) : null}
-        </div>
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) void upload(file);
-          }}
-        />
+        {readOnly ? (
+          <p className="text-xs text-muted">Managed by the customer on the portal</p>
+        ) : (
+          <>
+            <p className="text-xs text-muted">JPG, PNG, WebP, or GIF · max 2 MB</p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                loading={busy}
+                onClick={() => inputRef.current?.click()}
+              >
+                {url ? "Change photo" : "Upload photo"}
+              </Button>
+              {url ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  loading={busy}
+                  onClick={() => void remove()}
+                >
+                  Remove
+                </Button>
+              ) : null}
+            </div>
+            <input
+              ref={inputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void upload(file);
+              }}
+            />
+          </>
+        )}
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import Button from "@/components/ui/Button";
 import InfoButton from "@/components/ui/InfoButton";
 import Tabs, { type TabItem } from "@/components/ui/Tabs";
@@ -90,13 +90,16 @@ export function TabBar<T extends string>({
 export function SurfaceCard({
   children,
   className = "",
+  style,
 }: {
   children: ReactNode;
   className?: string;
+  style?: CSSProperties;
 }) {
   return (
     <div
       className={`overflow-hidden rounded-md border border-border bg-card shadow-sm ${className}`}
+      style={style}
     >
       {children}
     </div>

@@ -103,6 +103,10 @@ defmodule KaarobarWeb.Router do
     post "/portal/ar/pay", PortalController, :pay_ar
     get "/portal/bookings", PortalController, :bookings
     post "/portal/sessions/revoke", PortalController, :revoke_sessions
+    get "/portal/notifications", PortalController, :notifications
+    get "/portal/notifications/unread-count", PortalController, :notifications_unread
+    post "/portal/notifications/:id/read", PortalController, :notification_read
+    post "/portal/notifications/read-all", PortalController, :notifications_read_all
   end
 
   scope "/api/v1", KaarobarWeb.V1 do
@@ -120,6 +124,8 @@ defmodule KaarobarWeb.Router do
     get "/businesses/:id", BusinessController, :show
     patch "/businesses/:id", BusinessController, :update
     post "/businesses/:id/deactivate", BusinessController, :deactivate
+    post "/businesses/:id/logo", BusinessController, :upload_logo
+    delete "/businesses/:id/logo", BusinessController, :delete_logo
 
     get "/businesses/:business_id/branches", BranchController, :index
     post "/businesses/:business_id/branches", BranchController, :create
@@ -170,6 +176,7 @@ defmodule KaarobarWeb.Router do
     get "/sales", SaleController, :index
     get "/sales/:id", SaleController, :show
     post "/sales", SaleController, :create
+    patch "/sales/:id/status", SaleController, :update_status
     get "/tills", TillController, :index
     get "/tills/current", TillController, :current
     get "/tills/:id", TillController, :show

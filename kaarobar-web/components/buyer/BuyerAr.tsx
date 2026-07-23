@@ -1,28 +1,53 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api } from "@/lib/api/client";
+import { api, getSession } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
+import { useToast } from "@/components/ui/Toast";
+import {
+  Alert,
+  EmptyState,
+  KpiCard,
+  PageHeader,
+  StatusBadge,
+  SurfaceCard,
+} from "@/components/app/ui";
 
 type Invoice = {
   id: string;
   business_id?: string;
+  business_name?: string | null;
   invoice_number: string;
   balance_due: string;
   status: string;
 };
 
+type Balance = {
+  business_id: string;
+  business_name?: string | null;
+  balance: string;
+};
+
 /** Buyer view of `/app/accounting`. */
 export default function BuyerAr() {
-  const [balances, setBalances] = useState<{ business_id: string; balance: string }[]>([]);
+  const toast = useToast();
+  const [balances, setBalances] = useState<Balance[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const memberships = getSession()?.buyer_memberships || [];
+
+  function businessName(id?: string | null) {
+    if (!id) return "Store";
+    return memberships.find((m) => m.business_id === id)?.business_name || id.slice(0, 8) + "…";
+  }
 
   async function load() {
     const res = await api<{
       data: {
-        balances: { business_id: string; balance: string }[];
+        balances: Balance[];
         invoices: Invoice[];
       };
     }>("/portal/ar");
@@ -31,14 +56,14 @@ export default function BuyerAr() {
   }
 
   useEffect(() => {
-    void load().catch((err) =>
-      setMessage(err instanceof Error ? err.message : "Failed to load")
-    );
+    void load()
+      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load"))
+      .finally(() => setLoading(false));
   }, []);
 
   async function pay(invoice: Invoice) {
     setBusy(true);
-    setMessage(null);
+    setError(null);
     try {
       await api("/portal/ar/pay", {
         method: "POST",
@@ -49,48 +74,83 @@ export default function BuyerAr() {
           business_id: invoice.business_id,
         }),
       });
-      setMessage("Payment recorded.");
+      toast.success("Payment recorded");
       await load();
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Payment failed");
+      toast.error(err instanceof Error ? err.message : "Payment failed");
     } finally {
       setBusy(false);
     }
   }
 
+  const openCount = invoices.filter((i) => Number(i.balance_due) > 0).length;
+
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold text-heading">Khata balance</h1>
-      {message ? <p className="text-sm text-body">{message}</p> : null}
-      <ul className="space-y-2">
-        {balances.map((b) => (
-          <li
-            key={b.business_id}
-            className="rounded-xl border border-border bg-white px-4 py-3 text-sm shadow-sm"
-          >
-            Store {b.business_id.slice(0, 8)}… · <strong>Rs {b.balance}</strong>
-          </li>
-        ))}
-      </ul>
-      <ul className="divide-y divide-border rounded-xl border border-border bg-white">
-        {invoices.length === 0 ? (
-          <li className="p-4 text-sm text-body">No open invoices.</li>
-        ) : (
-          invoices.map((inv) => (
-            <li key={inv.id} className="flex items-center justify-between gap-3 p-4 text-sm">
-              <div>
-                <p className="font-semibold text-heading">{inv.invoice_number}</p>
-                <p className="text-body">
-                  Due Rs {inv.balance_due} · {inv.status}
-                </p>
-              </div>
-              <Button size="sm" disabled={busy} onClick={() => void pay(inv)}>
-                Pay
-              </Button>
-            </li>
-          ))
-        )}
-      </ul>
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Marketplace"
+        title="Khata balance"
+        description="View store credit balances and pay open invoices."
+      />
+      {error ? <Alert tone="error">{error}</Alert> : null}
+      {loading ? (
+        <p className="text-sm text-body">Loading balances…</p>
+      ) : (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <KpiCard label="Stores with balance" value={balances.length} />
+            <KpiCard label="Open invoices" value={openCount} tone="warning" />
+          </div>
+          {balances.length === 0 && invoices.length === 0 ? (
+            <EmptyState
+              title="No khata activity"
+              body="Balances appear when a store adds you to khata."
+            />
+          ) : (
+            <>
+              {balances.length > 0 ? (
+                <ul className="grid gap-3 sm:grid-cols-2">
+                  {balances.map((b) => (
+                    <li key={b.business_id}>
+                      <SurfaceCard className="p-4">
+                        <p className="text-sm font-semibold text-heading">
+                          {b.business_name || businessName(b.business_id)}
+                        </p>
+                        <p className="mt-2 text-2xl font-bold text-heading">Rs {b.balance}</p>
+                      </SurfaceCard>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              <ul className="space-y-3">
+                {invoices.length === 0 ? (
+                  <EmptyState title="No open invoices" />
+                ) : (
+                  invoices.map((inv) => (
+                    <li key={inv.id}>
+                      <SurfaceCard className="flex flex-wrap items-center justify-between gap-3 p-4">
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-semibold text-heading">{inv.invoice_number}</p>
+                            <StatusBadge tone="warning">{inv.status}</StatusBadge>
+                          </div>
+                          <p className="mt-1 text-sm text-body">
+                            {inv.business_name || businessName(inv.business_id)} · Due Rs{" "}
+                            {inv.balance_due}
+                          </p>
+                        </div>
+                        <Button size="sm" disabled={busy} onClick={() => void pay(inv)}>
+                          Pay
+                        </Button>
+                      </SurfaceCard>
+                    </li>
+                  ))
+                )}
+              </ul>
+            </>
+          )}
+        </>
+      )}
     </div>
   );
 }

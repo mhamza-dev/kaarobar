@@ -1,7 +1,7 @@
 defmodule KaarobarWeb.V1.BusinessController do
   use KaarobarWeb, :controller
 
-  alias Kaarobar.{Tenancy, Billing}
+  alias Kaarobar.{Guardian, Tenancy, Billing}
 
   def index(conn, params) do
     user = Guardian.Plug.current_resource(conn)
@@ -94,8 +94,59 @@ defmodule KaarobarWeb.V1.BusinessController do
       portal_invite_from_sale: b.portal_invite_from_sale != false,
       marketplace_enabled: b.marketplace_enabled == true,
       marketplace_slug: b.marketplace_slug,
-      online_branch_id: b.online_branch_id
+      online_branch_id: b.online_branch_id,
+      tagline: b.tagline,
+      logo_url: Kaarobar.Profiles.logo_url(b),
+      primary_color: b.primary_color,
+      marketplace_description: b.marketplace_description
     }
+  end
+
+  def upload_logo(conn, %{"id" => id} = params) do
+    user = Guardian.Plug.current_resource(conn)
+    upload = params["logo"] || params["file"]
+
+    with {:ok, business} <- fetch_owned(id, user),
+         {:ok, updated} <- Kaarobar.Profiles.upload_business_logo(business, upload) do
+      json(conn, %{data: serialize(updated)})
+    else
+      {:error, :not_found} ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      {:error, :invalid_upload} ->
+        conn |> put_status(:bad_request) |> json(%{error: "invalid_upload"})
+
+      {:error, :unsupported_type} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: "unsupported_type"})
+
+      {:error, :too_large} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: "too_large"})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+    end
+  end
+
+  def delete_logo(conn, %{"id" => id}) do
+    user = Guardian.Plug.current_resource(conn)
+
+    with {:ok, business} <- fetch_owned(id, user),
+         {:ok, updated} <- Kaarobar.Profiles.clear_business_logo(business) do
+      json(conn, %{data: serialize(updated)})
+    else
+      {:error, :not_found} ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+    end
+  end
+
+  defp fetch_owned(id, user) do
+    case Kaarobar.Tenancy.get_business(id, user.id) do
+      nil -> {:error, :not_found}
+      business -> {:ok, business}
+    end
   end
 
   defp atomize(map) when is_map(map) do

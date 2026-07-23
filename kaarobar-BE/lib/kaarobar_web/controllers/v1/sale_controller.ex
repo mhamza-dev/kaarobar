@@ -57,6 +57,34 @@ defmodule KaarobarWeb.V1.SaleController do
     end
   end
 
+  def update_status(conn, %{"id" => id} = params) do
+    user = Guardian.Plug.current_resource(conn)
+    business_id = conn.assigns[:business_id]
+    owner_id = conn.assigns[:owner_id] || user.id
+    status = params["status"]
+
+    if is_nil(business_id) do
+      conn |> put_status(:bad_request) |> json(%{error: "business_required"})
+    else
+      case Pos.update_online_order_status(id, owner_id, business_id, status) do
+        {:ok, sale} ->
+          json(conn, %{data: serialize_sale(sale)})
+
+        {:error, :not_found} ->
+          conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+        {:error, :invalid_status} ->
+          conn |> put_status(:unprocessable_entity) |> json(%{error: "invalid_status"})
+
+        {:error, :invalid_transition} ->
+          conn |> put_status(:unprocessable_entity) |> json(%{error: "invalid_transition"})
+
+        {:error, reason} ->
+          conn |> put_status(:unprocessable_entity) |> json(%{error: error_reason(reason)})
+      end
+    end
+  end
+
   defp serialize_sale(sale) do
     sale = Kaarobar.Repo.preload(sale, [:items, :payments, :customer])
 

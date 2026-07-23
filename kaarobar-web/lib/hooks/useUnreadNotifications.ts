@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, getSession } from "@/lib/api/client";
+import { api, getSession, isConsumerSession } from "@/lib/api/client";
 
 type UnreadPayload = { data: { unread: number } };
 
@@ -21,12 +21,15 @@ export function useUnreadNotifications(opts?: {
 
   const refresh = useCallback(async () => {
     const session = getSession();
-    if (!session?.access_token || session.actor === "consumer") {
+    if (!session?.access_token) {
       setUnread(0);
       return 0;
     }
     try {
-      const res = await api<UnreadPayload>("/notifications/unread-count");
+      const path = isConsumerSession(session)
+        ? "/portal/notifications/unread-count"
+        : "/notifications/unread-count";
+      const res = await api<UnreadPayload>(path);
       const count = res.data?.unread ?? 0;
 
       if (enableOsToast && outApp.current && count > prev.current && typeof window !== "undefined") {
@@ -52,12 +55,17 @@ export function useUnreadNotifications(opts?: {
 
   useEffect(() => {
     void (async () => {
-      try {
-        const pref = await api<{ data: { push?: boolean } }>(
-          "/notification-preferences"
-        );
-        outApp.current = pref.data?.push !== false;
-      } catch {
+      const session = getSession();
+      if (!isConsumerSession(session)) {
+        try {
+          const pref = await api<{ data: { push?: boolean } }>(
+            "/notification-preferences"
+          );
+          outApp.current = pref.data?.push !== false;
+        } catch {
+          outApp.current = true;
+        }
+      } else {
         outApp.current = true;
       }
       await refresh();

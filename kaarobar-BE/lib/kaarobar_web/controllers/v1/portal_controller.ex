@@ -168,6 +168,48 @@ defmodule KaarobarWeb.V1.PortalController do
     end
   end
 
+  def notifications(conn, _params) do
+    account = conn.assigns.portal_account
+    data = Kaarobar.Notifications.list_for_customer_account(account.id) |> Enum.map(&serialize_notification/1)
+    unread = Kaarobar.Notifications.unread_count_for_customer_account(account.id)
+    json(conn, %{data: data, meta: %{unread: unread}})
+  end
+
+  def notifications_unread(conn, _params) do
+    account = conn.assigns.portal_account
+    unread = Kaarobar.Notifications.unread_count_for_customer_account(account.id)
+    json(conn, %{data: %{unread: unread}})
+  end
+
+  def notification_read(conn, %{"id" => id}) do
+    account = conn.assigns.portal_account
+
+    case Kaarobar.Notifications.mark_read_for_customer_account(id, account.id) do
+      {:ok, n} -> json(conn, %{data: serialize_notification(n)})
+      {:error, :not_found} -> conn |> put_status(:not_found) |> json(%{error: "not_found"})
+    end
+  end
+
+  def notifications_read_all(conn, _params) do
+    account = conn.assigns.portal_account
+    {:ok, count} = Kaarobar.Notifications.mark_all_read_for_customer_account(account.id)
+    json(conn, %{data: %{marked: count, unread: 0}})
+  end
+
+  defp serialize_notification(n) do
+    %{
+      id: n.id,
+      type: n.type,
+      title: n.title,
+      body: n.body,
+      payload: n.payload || %{},
+      status: n.status,
+      read_at: n.read_at,
+      sent_at: n.sent_at,
+      inserted_at: n.inserted_at
+    }
+  end
+
   defp resolve_required_membership(account, business_id) do
     cond do
       not is_binary(business_id) or business_id == "" ->

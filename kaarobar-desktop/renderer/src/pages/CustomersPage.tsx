@@ -252,6 +252,20 @@ export default function CustomersPage() {
             cell: (c) => String(c.loyalty_points ?? 0),
           },
           {
+            id: "portal",
+            header: "Portal",
+            cell: (c) =>
+              c.portal_linked ? (
+                <span className="rounded-md bg-brand-soft px-2 py-0.5 text-xs font-semibold text-brand">
+                  Signed up
+                </span>
+              ) : c.portal_enabled ? (
+                <span className="text-xs text-body">Invited</span>
+              ) : (
+                <span className="text-xs text-muted">—</span>
+              ),
+          },
+          {
             id: "actions",
             header: "",
             align: "right",
@@ -265,11 +279,15 @@ export default function CustomersPage() {
                       label: "View",
                       onClick: () => navigate(detailRoutes.customer(c.id)),
                     },
-                    {
-                      id: "edit",
-                      label: t("common.edit"),
-                      onClick: () => openEdit(c),
-                    },
+                    ...(c.portal_linked
+                      ? []
+                      : [
+                          {
+                            id: "edit",
+                            label: t("common.edit"),
+                            onClick: () => openEdit(c),
+                          },
+                        ]),
                     {
                       id: "ledger",
                       label: t("customers.ledger"),

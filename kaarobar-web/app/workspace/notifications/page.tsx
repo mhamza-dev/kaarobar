@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Search, X } from "lucide-react";
-import { api } from "@/lib/api/client";
+import { api, isConsumerSession } from "@/lib/api/client";
 import { PageHeader, SurfaceCard, fieldClass } from "@/components/app/ui";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
@@ -19,6 +19,10 @@ type Note = {
   inserted_at: string;
 };
 
+function notifBase() {
+  return isConsumerSession() ? "/portal/notifications" : "/notifications";
+}
+
 export default function NotificationsPage() {
   const t = useT();
   const toast = useToast();
@@ -26,10 +30,11 @@ export default function NotificationsPage() {
   const [unread, setUnread] = useState(0);
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
+  const buyer = isConsumerSession();
 
   const load = useCallback(async () => {
     try {
-      const res = await api<{ data: Note[]; meta?: { unread?: number } }>("/notifications");
+      const res = await api<{ data: Note[]; meta?: { unread?: number } }>(notifBase());
       setItems(res.data || []);
       setUnread(res.meta?.unread ?? (res.data || []).filter((n) => !n.read_at).length);
     } catch (err) {
@@ -53,7 +58,7 @@ export default function NotificationsPage() {
 
   async function markRead(id: string) {
     try {
-      await api(`/notifications/${id}/read`, { method: "POST" });
+      await api(`${notifBase()}/${id}/read`, { method: "POST" });
       await load();
       notifyNotificationsChanged();
     } catch (err) {
@@ -64,7 +69,7 @@ export default function NotificationsPage() {
   async function markAllRead() {
     setBusy(true);
     try {
-      await api("/notifications/read-all", { method: "POST" });
+      await api(`${notifBase()}/read-all`, { method: "POST" });
       await load();
       notifyNotificationsChanged();
       toast.success("All notifications marked as read");
@@ -78,9 +83,14 @@ export default function NotificationsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow={buyer ? "Marketplace" : undefined}
         title={t("pages.notificationsTitle")}
-        description={t("pages.notificationsDesc")}
-        infoKey="page.notifications"
+        description={
+          buyer
+            ? "Order updates and messages from stores you shop with."
+            : t("pages.notificationsDesc")
+        }
+        infoKey={buyer ? undefined : "page.notifications"}
         action={
           unread > 0
             ? {

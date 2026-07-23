@@ -17,8 +17,11 @@ Next.js client for Kaarobar SRS **KRB-SRS-001**.
 With API + web running:
 
 1. Sign in: [http://localhost:3000/login?as=consumer](http://localhost:3000/login?as=consumer)
-2. Home `/app` lists stores; order at `/app/market/:id`
-3. Shared routes: `/app/sales` (orders), `/app/customers` (loyalty), `/app/accounting` (khata)
+2. Home `/app` lists branded stores (logo, tagline, industry, accent color); open a store at `/app/market/:id`
+3. Add products from any stores into a persistent multi-store cart → navbar cart → `/app/checkout` → `/app/checkout/pay` (shared pickup contact; one order per store) → orders at `/app/sales`
+4. Catalog and Discover support search / category-industry chips / price filters; staff Inventory → Products uses the same `ListingFilters` toolbar above DataTable
+5. Shared routes: `/app/sales` (orders), `/app/customers` (loyalty), `/app/accounting` (khata), `/app/notifications`
+6. Staff advance online orders on Sales (Placed → Confirmed → Ready → Completed); owners set branding under **Settings → Branding**
 
 Demo seeds (after `mix ecto.setup` / `mix ecto.reset` in `kaarobar-BE`):
 
@@ -27,7 +30,7 @@ Demo seeds (after `mix ecto.setup` / `mix ecto.reset` in `kaarobar-BE`):
 | Password | `Password@123` |
 | Emails | `ayesha.customer@kaarobar-demo.pk`, `admin@neighborhoodclinic.pk`, `procurement@hotelsupplies.pk`, `raza.traders@kaarobar-demo.pk` |
 
-Seeded demo businesses are marketplace-listed. Staff owners can toggle marketplace under **Settings → Integrations**. Online sales appear via `GET /sales?source=online`.
+Seeded demo businesses are marketplace-listed. Staff owners can toggle marketplace under **Settings → Integrations**. Online sales: `GET /sales?source=online`; status: `PATCH /sales/:id/status`.
 
 Staff can attach a customer to a buyer account (invite email → `/login?as=consumer&invite=…`).
 

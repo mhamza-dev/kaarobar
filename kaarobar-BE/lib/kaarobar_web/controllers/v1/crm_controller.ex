@@ -222,14 +222,29 @@ defmodule KaarobarWeb.V1.CrmController do
 
   def preview_template(conn, params) do
     vars = params["variables"] || %{}
+    business_id = conn.assigns.business_id
+
     rendered =
       Crm.render_template(
         params["title_template"] || params["title"],
         params["body_template"] || params["message"],
-        stringify_map(vars)
+        stringify_map(vars),
+        business_id
       )
 
-    json(conn, %{data: Map.put(rendered, :channel, params["channel"] || "email")})
+    biz = Crm.business_template_vars(business_id)
+    logo_url =
+      case Kaarobar.Repo.get(Kaarobar.Schemas.Business, business_id) do
+        nil -> nil
+        b -> Kaarobar.Profiles.logo_url(b)
+      end
+
+    json(conn, %{
+      data:
+        rendered
+        |> Map.put(:channel, params["channel"] || "email")
+        |> Map.put(:branding, Map.put(biz, "logo_url", logo_url))
+    })
   end
 
   def messaging_wallet(conn, _params) do

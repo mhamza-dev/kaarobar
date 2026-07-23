@@ -18,6 +18,8 @@ export type Customer = {
   marketing_opt_in_sms?: boolean;
   marketing_opt_in_whatsapp?: boolean;
   portal_enabled?: boolean;
+  portal_linked?: boolean;
+  customer_account_id?: string | null;
   profile_pic_url?: string | null;
   user_id?: string | null;
   balance?: string | null;

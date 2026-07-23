@@ -1986,6 +1986,58 @@ IO.puts("Seeded sample in-app notifications for demo portal users")
 
 # —— Deep demo data: CRM, AR/AP, PO, portal (primary owner) ————
 
+# Storefront branding for marketplace (logo_key may be absolute URL — Storage.url allows http/s).
+store_logo_pool = [
+  "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=400&fit=crop&auto=format",
+  "https://images.unsplash.com/photo-1556740749-887f6717d7e4?w=400&h=400&fit=crop&auto=format",
+  "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=400&fit=crop&auto=format",
+  "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=400&h=400&fit=crop&auto=format",
+  "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&h=400&fit=crop&auto=format",
+  "https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&h=400&fit=crop&auto=format"
+]
+
+marketplace_branding_for = fn business ->
+  idx = :erlang.phash2(business.id, length(store_logo_pool))
+
+  {tagline, color, description} =
+    case business.industry do
+      "restaurant" ->
+        {"Fresh daily · Dine-in & pickup", "#C2410C",
+         "Neighborhood kitchen serving daily specials. Order ahead for pickup."}
+
+      "pharmacy" ->
+        {"Trusted care nearby", "#0F766E",
+         "OTC essentials and health products. Same-day pickup when listed online."}
+
+      "salon" ->
+        {"Look sharp · Book or walk in", "#7C3AED",
+         "Cuts, color, and care. Browse featured products and place pickup orders."}
+
+      "supermarket" ->
+        {"Everyday essentials", "#1D4ED8",
+         "Groceries and household staples. Order ahead from our online branch."}
+
+      "retail" ->
+        {"Quality you can count on", "#0F766E",
+         "Curated retail selection with marketplace pickup."}
+
+      "wholesale" ->
+        {"Bulk deals for traders", "#B45309",
+         "Wholesale catalog for registered buyers. Pickup from our online branch."}
+
+      _ ->
+        {"Shop with Kaarobar", "#0F766E",
+         "Marketplace-listed storefront with loyalty and pickup orders."}
+    end
+
+  %{
+    tagline: tagline,
+    primary_color: color,
+    marketplace_description: description,
+    logo_key: Enum.at(store_logo_pool, idx)
+  }
+end
+
 seed_crm_and_finance = fn owner, business, branches, products ->
   customers =
     from(c in Customer, where: c.business_id == ^business.id, order_by: [asc: c.name])
@@ -1998,21 +2050,28 @@ seed_crm_and_finance = fn owner, business, branches, products ->
   branch = List.first(branches)
   product = List.first(products)
 
+  branding = marketplace_branding_for.(business)
+
   _ =
     business
-    |> change(%{
-      portal_self_register: true,
-      portal_invite_from_sale: true,
-      marketplace_enabled: true,
-      online_branch_id: branch && branch.id,
-      marketplace_slug:
-        business.name
-        |> String.downcase()
-        |> String.replace(~r/[^a-z0-9]+/, "-")
-        |> String.trim("-")
-        |> then(fn s -> "#{s}-#{String.slice(business.id, 0, 8)}" end)
-    })
+    |> change(
+      Map.merge(branding, %{
+        portal_self_register: true,
+        portal_invite_from_sale: true,
+        marketplace_enabled: true,
+        online_branch_id: branch && branch.id,
+        messaging_wallet_balance: Decimal.new("500.00"),
+        marketplace_slug:
+          business.name
+          |> String.downcase()
+          |> String.replace(~r/[^a-z0-9]+/, "-")
+          |> String.trim("-")
+          |> then(fn s -> "#{s}-#{String.slice(business.id, 0, 8)}" end)
+      })
+    )
     |> Repo.update()
+
+  _ = Kaarobar.Crm.ensure_default_templates(business.id)
 
   existing_tier_names =
     from(t in LoyaltyTier, where: t.business_id == ^business.id, select: t.name)
@@ -2309,6 +2368,41 @@ seed_crm_and_finance = fn owner, business, branches, products ->
         |> change(%{customer_account_id: account.id, portal_enabled: true})
         |> Repo.update()
     end
+
+    # Consumer in-app samples (order + CRM) — account-scoped notifications
+    existing_consumer_types =
+      from(n in Notification,
+        where: n.customer_account_id == ^account.id and n.channel == "in_app",
+        select: n.type
+      )
+      |> Repo.all()
+      |> MapSet.new()
+
+    consumer_notes =
+      [
+        {"order.placed", "Order placed at #{business.name}",
+         "Your demo order was placed successfully. Track status in Orders."},
+        {"order.status_changed", "Order update · Confirmed",
+         "Your order at #{business.name} is now Confirmed."},
+        {"crm.campaign", "#{business.name} special for you",
+         "Hi #{c.name || "there"}, enjoy a limited offer from #{business.name}."}
+      ]
+      |> Enum.reject(fn {type, _, _} -> MapSet.member?(existing_consumer_types, type) end)
+      |> Enum.map(fn {type, title, body} ->
+        %{
+          customer_account_id: account.id,
+          owner_id: owner.id,
+          channel: "in_app",
+          type: type,
+          title: title,
+          body: body,
+          payload: %{business_id: business.id, business_name: business.name},
+          status: "sent",
+          sent_at: seed_now
+        }
+      end)
+
+    _ = bulk_insert!.(Notification, consumer_notes, [])
   end)
 
   :ok
@@ -2416,8 +2510,9 @@ Staff portal logins (primary owner — also mirrored per-owner with suffixes 2/3
 ESS: admin / cashier / employee are linked to HR employee profiles on each owner's first business
      (clock-in, leave, payslips). Owners do not get Staff tools.
 
-Buyer login (/login?as=buyer) — email + password only (no business ID)
-  Marketplace: /app (discover) · /app/market/:id (order)
+Buyer login (/login?as=consumer) — email + password only (no business ID)
+  Marketplace: /app (discover) · /app/market/:id (order) · /app/notifications
+  Enriched stores include branding (logo, tagline, color, description) + sample order/CRM alerts
   #{portal_login_lines}
 
 POS coupons on enriched businesses: WELCOME10 (10%), FLAT100 (Rs 100)

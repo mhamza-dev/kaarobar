@@ -73,7 +73,12 @@ defmodule Kaarobar.Tenancy do
                :fbr_tier1,
                :loyalty_earn_per_amount,
                :loyalty_points_per_earn,
-               :loyalty_redeem_value
+               :loyalty_redeem_value,
+               :tagline,
+               :primary_color,
+               :marketplace_description,
+               :marketplace_enabled,
+               :marketplace_slug
              ])
            }) do
       {:ok, updated}

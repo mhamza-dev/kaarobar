@@ -29,14 +29,17 @@ type Dashboard = {
 };
 
 export default function AppDashboardPage() {
+  if (isConsumerSession()) {
+    return <BuyerMarketDiscover />;
+  }
+
+  return <StaffDashboardPage />;
+}
+
+function StaffDashboardPage() {
   const t = useT();
   const toast = useToast();
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
-  const [buyer, setBuyer] = useState(false);
-
-  useEffect(() => {
-    setBuyer(isConsumerSession());
-  }, []);
 
   const load = useCallback(async () => {
     const current = getSession();
@@ -57,19 +60,13 @@ export default function AppDashboardPage() {
   }, [t, toast]);
 
   useEffect(() => {
-    if (isConsumerSession()) return;
     load();
     function onSession() {
-      setBuyer(isConsumerSession());
       if (!isConsumerSession()) load();
     }
     window.addEventListener("kaarobar:session", onSession);
     return () => window.removeEventListener("kaarobar:session", onSession);
   }, [load]);
-
-  if (buyer) {
-    return <BuyerMarketDiscover />;
-  }
 
   const session = getSession();
   const roles = (session?.memberships || [])

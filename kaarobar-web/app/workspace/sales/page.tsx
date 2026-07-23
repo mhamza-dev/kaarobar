@@ -15,36 +15,59 @@ type SaleRow = {
   invoice_number: string;
   total_amount: string;
   status: string;
+  source?: string;
   customer_name?: string | null;
   inserted_at?: string;
 };
 
+const ONLINE_NEXT: Record<string, string | null> = {
+  Placed: "Confirmed",
+  Confirmed: "Ready",
+  Ready: "Completed",
+};
+
 export default function SalesListPage() {
+  if (isConsumerSession()) {
+    return <BuyerOrders />;
+  }
+
+  return <StaffSalesListPage />;
+}
+
+function StaffSalesListPage() {
   const toast = useToast();
   const router = useRouter();
   const [sales, setSales] = useState<SaleRow[]>([]);
-  const [buyer, setBuyer] = useState(false);
-
-  useEffect(() => {
-    setBuyer(isConsumerSession());
-  }, []);
+  const [source, setSource] = useState<"all" | "online" | "pos">("all");
 
   const load = useCallback(async () => {
     try {
-      const res = await api<{ data: SaleRow[] }>("/sales");
+      const q =
+        source === "all" ? "" : `?source=${encodeURIComponent(source)}`;
+      const res = await api<{ data: SaleRow[] }>(`/sales${q}`);
       setSales(res.data || []);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to load sales");
     }
-  }, [toast]);
+  }, [toast, source]);
 
   useEffect(() => {
-    if (isConsumerSession()) return;
     void load();
   }, [load]);
 
-  if (buyer) {
-    return <BuyerOrders />;
+  async function advanceOnline(sale: SaleRow) {
+    const next = ONLINE_NEXT[sale.status];
+    if (!next) return;
+    try {
+      await api(`/sales/${sale.id}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: next }),
+      });
+      toast.success(`Order ${sale.invoice_number} → ${next}`);
+      await load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Status update failed");
+    }
   }
 
   return (
@@ -52,10 +75,26 @@ export default function SalesListPage() {
       <PageHeader
         eyebrow="Cashier"
         title="Sales"
-        description="Recent completed sales for this branch."
+        description="Recent sales for this branch, including online marketplace orders."
         infoKey="page.sales"
         secondaryAction={{ label: "Open POS", onClick: () => router.push(routes.pos) }}
       />
+      <div className="flex flex-wrap gap-2">
+        {(["all", "online", "pos"] as const).map((s) => (
+          <button
+            key={s}
+            type="button"
+            onClick={() => setSource(s)}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium capitalize ${
+              source === s
+                ? "bg-brand text-brand-foreground"
+                : "border border-border text-heading hover:bg-bg-hover"
+            }`}
+          >
+            {s === "all" ? "All" : s}
+          </button>
+        ))}
+      </div>
       <SurfaceCard className="p-0">
         <DataTable
           searchable
@@ -82,7 +121,32 @@ export default function SalesListPage() {
               cell: (s) => `Rs ${s.total_amount}`,
               align: "right",
             },
-            { id: "status", header: "Status", cell: (s) => s.status },
+            {
+              id: "status",
+              header: "Status",
+              cell: (s) => (
+                <span className="inline-flex flex-wrap items-center gap-2">
+                  <span>{s.status}</span>
+                  {s.source === "online" && ONLINE_NEXT[s.status] ? (
+                    <button
+                      type="button"
+                      className="rounded border border-border px-2 py-0.5 text-xs font-semibold text-brand hover:bg-bg-hover"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void advanceOnline(s);
+                      }}
+                    >
+                      → {ONLINE_NEXT[s.status]}
+                    </button>
+                  ) : null}
+                </span>
+              ),
+            },
+            {
+              id: "source",
+              header: "Source",
+              cell: (s) => s.source || "pos",
+            },
             {
               id: "when",
               header: "When",
@@ -93,7 +157,7 @@ export default function SalesListPage() {
           rowKey={(s) => s.id}
           onRowClick={(s) => router.push(detailRoutes.sale(s.id))}
           emptyTitle="No sales yet"
-          emptyBody="Complete a checkout on the POS to see sales here."
+          emptyBody="Complete a checkout on the POS or receive an online order."
         />
       </SurfaceCard>
     </div>

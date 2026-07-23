@@ -53,9 +53,11 @@ export default function CustomerDetailPage() {
       title={customer?.name || "Customer"}
       subtitle={customer?.company_name || customer?.email || customer?.phone || undefined}
       status={
-        customer?.khata_enabled
-          ? { label: "Khata on", tone: "success" }
-          : { label: "Khata off", tone: "info" }
+        customer?.portal_linked
+          ? { label: "Portal account", tone: "success" }
+          : customer?.khata_enabled
+            ? { label: "Khata on", tone: "success" }
+            : { label: "Khata off", tone: "info" }
       }
       loading={loading}
       error={error}
@@ -74,7 +76,14 @@ export default function CustomerDetailPage() {
                 setCustomer((c) => (c ? { ...c, profile_pic_url: next } : c))
               }
               label="Customer photo"
+              readOnly={!!customer.portal_linked}
             />
+            {customer.portal_linked ? (
+              <p className="mt-2 text-sm text-body">
+                Signed up on the portal — identity (name, email, phone, photo) is managed by the
+                customer. Khata and loyalty can still be adjusted from the list.
+              </p>
+            ) : null}
           </DetailSection>
           <DetailSection title="Profile">
             <DetailFieldGrid

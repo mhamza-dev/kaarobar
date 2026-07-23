@@ -1,0 +1,17 @@
+---
+description: Always update kaarobar-BE seeds.exs after schema or DB changes
+globs: kaarobar-BE/priv/repo/migrations/**/*.exs,kaarobar-BE/lib/kaarobar/schemas/**/*.ex
+alwaysApply: false
+---
+
+# Seeds after schema/DB changes
+
+Whenever you add or change a migration, Ecto schema field, association, or enum used in the DB:
+
+1. Update [`kaarobar-BE/priv/repo/seeds.exs`](kaarobar-BE/priv/repo/seeds.exs) in the **same** PR/change set.
+2. Seed every new persisted field that demo flows need (defaults alone are not enough if the UI/marketplace depends on them).
+3. Prefer idempotent patterns already used in seeds (`insert_all` + existence checks, `change/2` updates).
+4. Absolute `https://` URLs are allowed for `logo_key` / `profile_pic_key` (see `Kaarobar.Storage.url/1`).
+5. After meaningful seed edits, mention `mix ecto.reset` (or re-seed) in the summary so local demos stay fresh.
+
+Do not ship schema-only changes that leave seeds writing incomplete rows for marketplace, portal, CRM, or notifications.

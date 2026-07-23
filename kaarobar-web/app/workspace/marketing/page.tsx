@@ -267,7 +267,7 @@ export default function MarketingPage() {
             channel: tplForm.channel,
             title_template: tplForm.title_template,
             body_template: tplForm.body_template,
-            variables: { name: "Ayesha", business: "Demo Store", points: "120" },
+            variables: { name: "Ayesha", points: "120" },
           }),
         }
       );
@@ -285,7 +285,7 @@ export default function MarketingPage() {
         method: "POST",
         body: JSON.stringify({
           ...tplForm,
-          variables: { name: "Customer", business: "Store", points: "100" },
+          variables: { name: "Customer", points: "100" },
         }),
       });
       setTplForm({ name: "", channel: "email", title_template: "", body_template: "" });

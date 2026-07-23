@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, getSession } from "@/lib/api/client";
@@ -8,6 +8,11 @@ import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
+import ListingFilters, {
+  applyListingFilters,
+  emptyListingFilters,
+  type ListingFilterState,
+} from "@/components/app/ListingFilters";
 import {
   Field,
   PageHeader,
@@ -165,6 +170,9 @@ export default function InventoryPage() {
   const [productForm, setProductForm] = useState(emptyProductForm);
   const [productImage, setProductImage] = useState<File | null>(null);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [productFilters, setProductFilters] = useState<ListingFilterState>(
+    emptyListingFilters()
+  );
   const [supplierForm, setSupplierForm] = useState(emptySupplierForm);
   const [poForm, setPoForm] = useState({
     supplier_id: "",
@@ -536,6 +544,28 @@ export default function InventoryPage() {
           ? { label: t("inventory.newPo"), onClick: () => setModal("po") }
           : undefined;
 
+  const productCategoryOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of products) {
+      if (p.category?.trim()) set.add(p.category.trim());
+    }
+    for (const c of categories) {
+      if (c.name?.trim()) set.add(c.name.trim());
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [products, categories]);
+
+  const filteredProducts = useMemo(
+    () =>
+      applyListingFilters(products, productFilters, {
+        searchText: (p) =>
+          `${p.sku} ${p.name} ${p.barcode ?? ""} ${p.brand ?? ""} ${p.category ?? ""}`,
+        category: (p) => p.category || "",
+        price: (p) => Number(p.price || 0),
+      }),
+    [products, productFilters]
+  );
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -596,10 +626,13 @@ export default function InventoryPage() {
       {tab === "products" ? (
         <DataTable
           maxHeight="28rem"
-          searchable
-          searchPlaceholder="Search products by name, SKU, barcode…"
-          getSearchText={(p) =>
-            `${p.sku} ${p.name} ${p.barcode ?? ""} ${p.brand ?? ""} ${p.product_kind ?? ""}`
+          filters={
+            <ListingFilters
+              value={productFilters}
+              onChange={setProductFilters}
+              categoryOptions={productCategoryOptions}
+              searchPlaceholder="Search products by name, SKU, barcode…"
+            />
           }
           onRowClick={(p) => router.push(detailRoutes.product(p.id))}
           columns={[
@@ -695,7 +728,7 @@ export default function InventoryPage() {
               ),
             },
           ]}
-          data={products}
+          data={filteredProducts}
           rowKey={(p) => p.id}
           emptyTitle="No products"
           emptyBody="Create a product to start stocking inventory."

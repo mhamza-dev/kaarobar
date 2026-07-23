@@ -355,6 +355,18 @@ defmodule Kaarobar.Crm do
       channel == "whatsapp" and not customer.marketing_opt_in_whatsapp ->
         {"skipped_opt_out", nil}
 
+      channel == "in_app" and is_binary(customer.customer_account_id) ->
+        Notifications.notify_customer_account(
+          customer.customer_account_id,
+          owner_id,
+          "crm.campaign",
+          %{campaign_id: campaign.id, message: campaign.message, title: campaign.title},
+          title: campaign.title,
+          body: campaign.message
+        )
+
+        {"notified", customer.customer_account_id}
+
       channel == "in_app" and is_binary(customer.user_id) ->
         Notifications.notify(
           customer.user_id,
@@ -528,14 +540,16 @@ defmodule Kaarobar.Crm do
 
   def ensure_default_templates(business_id) do
     if list_templates(business_id) == [] do
+      biz_vars = business_template_vars(business_id)
+
       defaults = [
         %{
           "name" => "Promo flash",
           "channel" => "email",
           "title_template" => "{{business}} special for you",
           "body_template" =>
-            "Hi {{name}}, enjoy a limited offer from {{business}}. Visit us soon!",
-          "variables" => %{"name" => "Customer", "business" => "Store"}
+            "Hi {{name}}, enjoy a limited offer from {{business}}. {{tagline}} Visit us soon!",
+          "variables" => Map.merge(%{"name" => "Customer"}, biz_vars)
         },
         %{
           "name" => "Loyalty reminder",
@@ -543,7 +557,7 @@ defmodule Kaarobar.Crm do
           "title_template" => "Your points",
           "body_template" =>
             "Hi {{name}}, you have {{points}} loyalty points at {{business}}. Redeem on your next visit!",
-          "variables" => %{"name" => "Customer", "business" => "Store", "points" => "100"}
+          "variables" => Map.merge(%{"name" => "Customer", "points" => "100"}, biz_vars)
         },
         %{
           "name" => "Khata reminder",
@@ -551,7 +565,7 @@ defmodule Kaarobar.Crm do
           "title_template" => "Balance reminder",
           "body_template" =>
             "Assalamualaikum {{name}}, a friendly reminder about your khata with {{business}}.",
-          "variables" => %{"name" => "Customer", "business" => "Store"}
+          "variables" => Map.merge(%{"name" => "Customer"}, biz_vars)
         }
       ]
 
@@ -561,11 +575,30 @@ defmodule Kaarobar.Crm do
     :ok
   end
 
+  def business_template_vars(business_id) when is_binary(business_id) do
+    case Repo.get(Business, business_id) do
+      nil ->
+        %{"business" => "Store", "tagline" => "", "description" => ""}
+
+      b ->
+        %{
+          "business" => b.name || "Store",
+          "tagline" => b.tagline || "",
+          "description" => b.marketplace_description || ""
+        }
+    end
+  end
+
   def render_template(title_t, body_t, vars) when is_map(vars) do
     %{
       title: replace_vars(title_t || "", vars),
       message: replace_vars(body_t || "", vars)
     }
+  end
+
+  def render_template(title_t, body_t, vars, business_id) when is_map(vars) do
+    merged = Map.merge(business_template_vars(business_id), stringify_keys(vars))
+    render_template(title_t, body_t, merged)
   end
 
   defp replace_vars(text, vars) do

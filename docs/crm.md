@@ -24,7 +24,23 @@ Customer flags: `marketing_opt_in_email`, `marketing_opt_in_sms`, `marketing_opt
 
 - Table: `crm_message_templates` (`name`, `channel`, `title_template`, `body_template`, `variables`)
 - CRUD: `/api/v1/crm/templates`; preview: `POST /api/v1/crm/templates/preview`
+- Preview merges live business branding vars: `{{business}}`, `{{tagline}}`, `{{description}}` (plus request `variables`)
 - Defaults seeded per business on first list
+- Channel `in_app` delivers to portal `customer_account_id` when linked (legacy `customers.user_id` still supported)
+
+### Business branding (marketplace + templates)
+
+- Fields on `businesses`: `tagline`, `logo_key`, `primary_color`, `marketplace_description`
+- Owner: `PATCH /businesses/:id`; logo `POST|DELETE /businesses/:id/logo`
+- Public marketplace serialize includes `logo_url`, `tagline`, `primary_color`, `marketplace_description`
+- Settings UI: Branding tab (web + desktop)
+
+### Consumer in-app notifications
+
+- `notifications.customer_account_id` (XOR with `user_id`)
+- Portal: `GET /portal/notifications`, `/unread-count`, `POST …/:id/read`, `POST …/read-all`
+- Types: `order.placed`, `order.status_changed`, `crm.campaign` (+ staff `order.online_placed`)
+- Online sales default status `Placed`; staff `PATCH /sales/:id/status` → Confirmed → Ready → Completed | Cancelled
 
 ### Paid messaging (internal wallet)
 
@@ -43,12 +59,14 @@ Unchanged from prior Phase A notes.
 - Tables: `customer_accounts`, `customer_sessions` (separate from business `users`)
 - **Unified auth:** `POST /api/v1/auth/login|register` with `actor: "business" | "consumer"` (aliases `staff`/`buyer` accepted)
 - Invite accept: `POST /api/v1/auth/buyer/accept-invite` → `/login?as=consumer&invite=…`
-- Self-service APIs (consumer Bearer): `/api/v1/portal/me`, `/orders`, `/loyalty`, `/ar`, …
+- Self-service APIs (consumer Bearer): `/api/v1/portal/me`, `/orders`, `/loyalty`, `/ar`, `/notifications`, …
+- **Portal-linked customers:** once `customers.customer_account_id` is set, staff cannot change identity (`name` / `email` / `phone` / profile pic). `PATCH /customers/:id` only accepts store fields (khata, credit, notes, marketing, etc.). Offline (unlinked) customers remain fully editable.
 
 ## Clients
 
 - **Web:** filesystem `app/workspace/*` rewritten to browser `/app/*`; marketing at `/app/marketing` (campaigns, templates, wallet, segments, coupons, tiers)
-- **Mobile:** Expo routes under `/app/*` (shared business/consumer shells)
+- **Consumer cart:** persistent multi-store cart (localStorage / AsyncStorage); navbar cart → `/app/checkout` review (grouped by store) → `/app/checkout/pay` places one pickup order per store with shared contact notes; branded Discover + store catalog; shared `ListingFilters` on catalog and staff DataTable products
+- **Mobile:** Expo routes under `/app/*` (shared business/consumer shells); same cart/checkout paths
 - **Desktop:** HashRouter `/app/*`, business-only; marketing page mirrors web templates/wallet
 - Actors: login toggle **Business** / **Consumer** (`?as=consumer`)
 

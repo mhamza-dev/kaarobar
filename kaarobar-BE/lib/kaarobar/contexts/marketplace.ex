@@ -104,10 +104,52 @@ defmodule Kaarobar.Marketplace do
         end
 
       case Pos.create_sale(branch_id, business.owner_id, business.id, nil, sale_attrs) do
-        {:ok, sale} -> {:ok, Repo.preload(sale, [:items, :payments, :business, :customer])}
-        error -> error
+        {:ok, sale} ->
+          sale = Repo.preload(sale, [:items, :payments, :business, :customer])
+          _ = notify_order_placed(account, business, sale)
+          {:ok, sale}
+
+        error ->
+          error
       end
     end
+  end
+
+  defp notify_order_placed(account, business, sale) do
+    total = to_string(sale.total_amount)
+
+    _ =
+      Kaarobar.Notifications.notify_customer_account(
+        account.id,
+        business.owner_id,
+        "order.placed",
+        %{
+          sale_id: sale.id,
+          business_id: business.id,
+          business_name: business.name,
+          status: sale.status,
+          total_amount: total
+        },
+        title: "Order placed at #{business.name}",
+        body: "Your order ##{sale.invoice_number} for #{total} was placed successfully."
+      )
+
+    _ =
+      Kaarobar.Notifications.notify(
+        business.owner_id,
+        business.owner_id,
+        "order.online_placed",
+        %{
+          sale_id: sale.id,
+          business_id: business.id,
+          invoice_number: sale.invoice_number,
+          total_amount: total
+        },
+        title: "New online order",
+        body: "Order ##{sale.invoice_number} for #{total} was placed online."
+      )
+
+    :ok
   end
 
   defp online_branch_id(%Business{online_branch_id: id}) when is_binary(id) and id != "",
@@ -134,6 +176,10 @@ defmodule Kaarobar.Marketplace do
       industry: b.industry,
       marketplace_slug: b.marketplace_slug,
       online_branch_id: b.online_branch_id,
+      tagline: b.tagline,
+      logo_url: Kaarobar.Profiles.logo_url(b),
+      primary_color: b.primary_color,
+      marketplace_description: b.marketplace_description,
       loyalty_earn_per_amount: to_string(b.loyalty_earn_per_amount || 100),
       loyalty_points_per_earn: b.loyalty_points_per_earn || 1,
       loyalty_redeem_value: to_string(b.loyalty_redeem_value || 1)
