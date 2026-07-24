@@ -864,16 +864,20 @@ generated_customers =
 
 customer_defs = customer_defs ++ generated_customers
 
-# Beauty verticals (salon industry) are early so primary owners always get hair / makeup / aesthetic.
+# Primary owner gets all 7 industries first (deep demo matrix). Remaining pool
+# fills secondary owners with realistic Pakistan shop names.
 business_pool = [
+  # —— Primary owner (enterprise): one of each industry ——————————
   {"Glow Studio Salon", "salon", false},
-  {"Luxe Makeup Artists", "salon", true},
-  {"Derma Aesthetic Clinic", "salon", false},
   {"Al-Falah Traders", "retail", false},
   {"Noor Mart", "supermarket", true},
-  {"City Pharmacy", "pharmacy", false},
-  {"Spice Route Wholesale", "wholesale", false},
+  {"City Pharmacy", "pharmacy", true},
   {"Karachi Cafe Co", "restaurant", false},
+  {"Spice Route Wholesale", "wholesale", false},
+  {"Neighborhood General", "general", false},
+  # —— Secondary owners ————————————————————————————————————————
+  {"Luxe Makeup Artists", "salon", true},
+  {"Derma Aesthetic Clinic", "salon", false},
   {"Green Valley Grocers", "retail", false},
   {"Pak Hardware Hub", "retail", false},
   {"Sunrise Textiles", "retail", true},
@@ -901,18 +905,17 @@ business_pool = [
   {"Valley Dairy Mart", "retail", false},
   {"Quetta Dry Fruits Co", "wholesale", false},
   {"Liberty Cafe", "restaurant", false},
-  {"Aabpara Medicos", "pharmacy", false},
-  {"Neighborhood General", "general", false}
+  {"Aabpara Medicos", "pharmacy", false}
 ]
 
-# Each owner: 1–6 businesses
+# Each owner: 1–7 businesses (enterprise covers all industries)
 owner_defs = [
   %{
     email: "owner@kaarobar.local",
     name: "Demo Owner",
     phone: "+923001234567",
     plan: "enterprise",
-    business_count: 6,
+    business_count: 7,
     staff_prefix: ""
   },
   %{
@@ -948,6 +951,7 @@ staff_role_defs = [
   {"accountant", "Sana Malik", ["accountant"]},
   {"hr", "Imran Ali", ["hr_manager"]},
   {"inventory", "Nadia Raza", ["inventory_manager"]},
+  {"marketing", "Farah Sheikh", ["marketing"]},
   {"employee", "Ali Worker", ["employee"]}
 ]
 
@@ -1676,7 +1680,8 @@ seed_leave = fn owner, business, employees ->
   cases = [
     {0, "annual", "Pending", "Family event", 7, 8},
     {1, "sick", "Approved", "Fever", -5, -4},
-    {2, "casual", "Rejected", "Personal errand", -10, -10}
+    {2, "casual", "Rejected", "Personal errand", -10, -10},
+    {3, "annual", "Approved", "Umrah leave", 14, 28}
   ]
 
   attrs =
@@ -1704,7 +1709,8 @@ seed_leave = fn owner, business, employees ->
               start_date: Date.add(Date.utc_today(), start_off),
               end_date: Date.add(Date.utc_today(), end_off),
               reason: reason,
-              status: status
+              status: status,
+              approved_by_id: if(status in ["Approved", "Rejected"], do: owner.id)
             }
           ]
         end
@@ -1799,6 +1805,416 @@ seed_branch_sales = fn owner, business, branch, products, cashier ->
       end
     end)
   end
+end
+
+# —— Edge / production-baseline scenarios (returns, tills, transfers, etc.) ——
+
+seed_scenario_pack = fn owner, business, branches, products, employees, cashier ->
+  branch = List.first(branches)
+  second = Enum.at(branches, 1)
+  goods = Enum.filter(products, &(&1.product_kind not in ["service", "combo"]))
+  product = List.first(goods) || List.first(products)
+  cashier = cashier || owner
+
+  customers =
+    from(c in Customer, where: c.business_id == ^business.id, order_by: [asc: c.name])
+    |> Repo.all()
+
+  khata_customer = Enum.find(customers, & &1.khata_enabled)
+  suppliers = from(s in Supplier, where: s.business_id == ^business.id) |> Repo.all()
+
+  # 1) Low / zero stock on a couple of tracked goods
+  if branch && length(goods) >= 2 do
+    Enum.each(Enum.take(goods, 2), fn p ->
+      case Inventory.get_inventory(branch.id, p.id, owner.id, business.id) do
+        %{quantity_on_hand: qty} = inv ->
+          target = if Decimal.compare(qty, Decimal.new("5")) == :gt, do: "2", else: "0"
+          delta = Decimal.sub(Decimal.new(target), qty)
+
+          if Decimal.compare(delta, 0) != :eq do
+            Inventory.adjust_stock(branch.id, owner.id, business.id, owner.id, %{
+              product_id: p.id,
+              quantity_delta: delta,
+              reason_code: "count_correction",
+              notes: "Demo low-stock correction"
+            })
+          else
+            _ = inv
+          end
+
+        _ ->
+          :ok
+      end
+    end)
+
+    # Damage / sample adjustments for realism
+    if product do
+      Inventory.adjust_stock(branch.id, owner.id, business.id, owner.id, %{
+        product_id: product.id,
+        quantity_delta: "-1",
+        reason_code: "damage",
+        notes: "Demo damaged unit"
+      })
+    end
+  end
+
+  # 2) Inactive / terminated employees
+  if length(employees) >= 5 do
+    inactive = Enum.at(employees, 3)
+    terminated = Enum.at(employees, 4)
+
+    if inactive && inactive.status == "active" do
+      _ = inactive |> change(%{status: "inactive"}) |> Repo.update()
+    end
+
+    if terminated && terminated.status == "active" do
+      _ = terminated |> change(%{status: "terminated"}) |> Repo.update()
+    end
+  end
+
+  # 3) Supplier status mix
+  Enum.each(Enum.with_index(Enum.take(suppliers, 4)), fn {s, i} ->
+    status =
+      case rem(i, 4) do
+        0 -> "active"
+        1 -> "pending"
+        2 -> "inactive"
+        3 -> "blocked"
+      end
+
+    if s.status != status do
+      _ = s |> change(%{status: status}) |> Repo.update()
+    end
+  end)
+
+  # Soft-deactivate one secondary branch AFTER till variance demo (keep ≥1 active)
+  # — moved below till close
+  _soft_deactivate_branch = second
+
+  # 5) Khata sale + online sale + discounted/no-tax sale + FBR-tagged sale
+  if branch && product do
+    till =
+      Pos.open_till_for_branch(branch.id) ||
+        case Pos.open_till(branch.id, owner.id, business.id, cashier.id, "8000") do
+          {:ok, t} -> t
+          _ -> nil
+        end
+
+    # Fixed client_txn_id for offline/idempotency demo (replay is a no-op)
+    offline_txn = "00000000-0000-4000-8000-0000000000d1"
+    qty = Decimal.new(1)
+    total = expected_sale_total.(product, branch.id, qty)
+
+    track? = product.track_inventory != false and product.product_kind not in ["service", "combo"]
+    inv = if track?, do: Inventory.get_inventory(branch.id, product.id, owner.id, business.id)
+    can_sell? = if track?, do: inv && Decimal.compare(inv.quantity_on_hand, qty) in [:gt, :eq], else: true
+
+    if can_sell? do
+      # Offline / idempotent sale
+      case Pos.create_sale(branch.id, owner.id, business.id, cashier.id, %{
+             client_txn_id: offline_txn,
+             till_id: till && till.id,
+             items: [%{product_id: product.id, quantity: qty}],
+             payments: [%{method: "cash", amount: total}],
+             notes: "Offline outbox replay demo"
+           }) do
+        {:ok, sale} ->
+          # Replay same client_txn_id (idempotent)
+          _ =
+            Pos.create_sale(branch.id, owner.id, business.id, cashier.id, %{
+              client_txn_id: offline_txn,
+              till_id: till && till.id,
+              items: [%{product_id: product.id, quantity: qty}],
+              payments: [%{method: "cash", amount: total}]
+            })
+
+          # Stamp FBR payload when business is FBR-enabled
+          if business.fbr_tier1 do
+            _ =
+              sale
+              |> change(%{
+                fbr_invoice_no: "FBR-DEMO-#{String.slice(sale.id, 0, 8)}",
+                fbr_qr_payload: "https://fbr.gov.pk/verify/#{String.slice(sale.id, 0, 12)}",
+                fbr_reported_at: seed_now
+              })
+              |> Repo.update()
+          end
+
+        _ ->
+          :ok
+      end
+
+      # Discount + optional zero tax
+      discounted = Decimal.new("50")
+      gross = expected_sale_total.(product, branch.id, qty)
+
+      tax_zero_total =
+        Decimal.sub(gross, discounted)
+        |> then(fn d ->
+          if Decimal.compare(d, 0) == :lt, do: Decimal.new(0), else: d
+        end)
+        |> Decimal.round(2)
+
+      _ =
+        Pos.create_sale(branch.id, owner.id, business.id, cashier.id, %{
+          client_txn_id: Ecto.UUID.generate(),
+          till_id: till && till.id,
+          discount_amount: discounted,
+          tax_amount: Decimal.new(0),
+          items: [%{product_id: product.id, quantity: qty}],
+          payments: [%{method: "card", amount: tax_zero_total}],
+          notes: "Discount + zero tax demo"
+        })
+
+      # Khata (credit) sale
+      if khata_customer do
+        _ =
+          Pos.create_sale(branch.id, owner.id, business.id, cashier.id, %{
+            client_txn_id: Ecto.UUID.generate(),
+            till_id: till && till.id,
+            customer_id: khata_customer.id,
+            items: [%{product_id: product.id, quantity: qty}],
+            payments: [%{method: "khata", amount: total}],
+            notes: "Khata credit sale demo"
+          })
+      end
+
+      # Online marketplace order (card/wallet only, no cashier required)
+      online_total = expected_sale_total.(product, branch.id, qty)
+
+      _ =
+        Pos.create_sale(branch.id, owner.id, business.id, nil, %{
+          client_txn_id: Ecto.UUID.generate(),
+          source: "online",
+          customer_id: List.first(customers) && List.first(customers).id,
+          items: [%{product_id: product.id, quantity: qty}],
+          payments: [%{method: "card", amount: online_total}],
+          notes: "Marketplace online order"
+        })
+    end
+
+    # 6) Returns: pending / approved / rejected
+    recent_sales =
+      from(s in Kaarobar.Schemas.Sale,
+        where: s.branch_id == ^branch.id and s.status == "Completed",
+        order_by: [desc: s.inserted_at],
+        limit: 5,
+        preload: [:items]
+      )
+      |> Repo.all()
+
+    Enum.each(Enum.with_index(recent_sales), fn {sale, i} ->
+      item = List.first(sale.items)
+
+      if item do
+        ret_exists? =
+          from(r in Kaarobar.Schemas.SaleReturn, where: r.sale_id == ^sale.id) |> Repo.exists?()
+
+        unless ret_exists? do
+          case Pos.create_return(sale.id, owner.id, business.id, branch.id, cashier.id, %{
+                 refund_method: "cash",
+                 till_id: till && till.id,
+                 reason: "Demo return #{i + 1}",
+                 items: [%{product_id: item.product_id, quantity: "1"}]
+               }) do
+            {:ok, ret} when rem(i, 3) == 1 ->
+              _ = Pos.approve_return(ret.id, owner.id, owner.id)
+
+            {:ok, ret} when rem(i, 3) == 2 ->
+              _ = Pos.reject_return(ret.id, owner.id, owner.id, "Customer changed mind")
+
+            _ ->
+              :ok
+          end
+        end
+      end
+    end)
+
+    # 7) Close a secondary till with over/short (keep primary branch till open)
+    if second do
+      case Pos.open_till(second.id, owner.id, business.id, cashier.id, "3000") do
+        {:ok, t2} ->
+          # Closing cash intentionally off → over/short
+          _ = Pos.close_till(t2.id, owner.id, "3150")
+
+        _ ->
+          :ok
+      end
+    else
+      # If no second branch, open+close a disposable till on primary
+      case Pos.open_till_for_branch(branch.id) do
+        nil ->
+          case Pos.open_till(branch.id, owner.id, business.id, cashier.id, "2000") do
+            {:ok, t} ->
+              _ = Pos.close_till(t.id, owner.id, "1850")
+
+              # Re-open working till for POS demos
+              _ = Pos.open_till(branch.id, owner.id, business.id, cashier.id, "5000")
+
+            _ ->
+              :ok
+          end
+
+        _open ->
+          :ok
+      end
+    end
+  end
+
+  # Soft-deactivate deferred until end of scenario pack
+  # 8) Stock transfer pending + confirmed (needs 2 branches)
+  if branch && second && product && length(branches) >= 2 do
+    unless from(t in Kaarobar.Schemas.StockTransfer,
+             where: t.business_id == ^business.id and t.status == "pending",
+             limit: 1
+           )
+           |> Repo.exists?() do
+      case Inventory.create_transfer(business.id, owner.id, %{
+             from_branch_id: branch.id,
+             to_branch_id: second.id,
+             notes: "Demo restock transfer",
+             items: [%{product_id: product.id, quantity: "2"}]
+           }) do
+        {:ok, pending} ->
+          # Leave one pending; create+confirm another if stock allows
+          case Inventory.create_transfer(business.id, owner.id, %{
+                 from_branch_id: branch.id,
+                 to_branch_id: second.id,
+                 notes: "Confirmed transfer demo",
+                 items: [%{product_id: product.id, quantity: "1"}]
+               }) do
+            {:ok, conf} ->
+              _ = Inventory.confirm_transfer(conf.id, owner.id)
+
+            _ ->
+              _ = pending
+          end
+
+        _ ->
+          :ok
+      end
+    end
+  end
+
+  # 9) GRN against ordered PO
+  if branch && product do
+    po =
+      from(p in Kaarobar.Schemas.PurchaseOrder,
+        where:
+          p.business_id == ^business.id and p.branch_id == ^branch.id and
+            p.status in ["ordered", "partial"],
+        order_by: [desc: p.inserted_at],
+        limit: 1,
+        preload: [:items]
+      )
+      |> Repo.one()
+
+    if po && po.items != [] do
+      unless from(g in Kaarobar.Schemas.GoodsReceipt,
+               where: g.purchase_order_id == ^po.id,
+               limit: 1
+             )
+             |> Repo.exists?() do
+        item = hd(po.items)
+
+        Inventory.receive_goods(po.id, branch.id, owner.id, business.id, owner.id, %{
+          notes: "Demo goods receipt",
+          items: [
+            %{
+              product_id: item.product_id,
+              quantity_received: item.quantity,
+              quantity_rejected: "0"
+            }
+          ]
+        })
+      end
+    end
+
+    # Cancelled PO
+    suppliers_active = Enum.filter(suppliers, &(&1.status == "active"))
+
+    if suppliers_active != [] do
+      supplier = hd(suppliers_active)
+
+      unless from(p in Kaarobar.Schemas.PurchaseOrder,
+               where: p.business_id == ^business.id and p.status == "cancelled",
+               limit: 1
+             )
+             |> Repo.exists?() do
+        case Inventory.create_purchase_order(business.id, branch.id, owner.id, %{
+               supplier_id: supplier.id,
+               status: "draft",
+               notes: "Will cancel — demo",
+               items: [%{product_id: product.id, quantity: "5", unit_cost: "100"}]
+             }) do
+          {:ok, draft_po} ->
+            _ = draft_po |> change(%{status: "cancelled"}) |> Repo.update()
+
+          _ ->
+            :ok
+        end
+      end
+    end
+  end
+
+  # 10) Reversing journal
+  opening =
+    from(j in Kaarobar.Schemas.JournalEntry,
+      where:
+        j.business_id == ^business.id and j.source_type == "manual" and
+          j.description == "Opening capital",
+      limit: 1
+    )
+    |> Repo.one()
+
+  if opening do
+    already_reversed? =
+      from(j in Kaarobar.Schemas.JournalEntry,
+        where: j.reversed_entry_id == ^opening.id or j.description == "Demo reversing entry",
+        limit: 1
+      )
+      |> Repo.exists?()
+
+    unless already_reversed? do
+      expense = Accounting.get_account_by_code(business.id, "5900") ||
+        Accounting.get_account_by_code(business.id, "5100")
+      cash = Accounting.get_account_by_code(business.id, "1000")
+
+      if expense && cash do
+        case Accounting.create_manual_journal(business.id, owner.id, owner.id, %{
+               description: "Demo reversing entry",
+               date: Date.utc_today(),
+               source_type: "manual",
+               lines: [
+                 %{account_id: expense.id, debit: "500", credit: "0", memo: "Misc expense"},
+                 %{account_id: cash.id, debit: "0", credit: "500", memo: "Cash out"}
+               ]
+             }) do
+          {:ok, je} ->
+            _ = Accounting.reverse_journal(je.id, owner.id, owner.id)
+
+          _ ->
+            :ok
+        end
+      end
+    end
+  end
+
+  # 11) Inactive product for catalog demos
+  if length(products) > 3 do
+    p = Enum.at(products, -1)
+
+    if p && p.is_active != false do
+      _ = p |> change(%{is_active: false}) |> Repo.update()
+    end
+  end
+
+  # Soft-deactivate one secondary branch last (keeps transfers/tills working above)
+  if second && second.is_active != false do
+    _ = second |> change(%{is_active: false}) |> Repo.update()
+  end
+
+  :ok
 end
 
 # —— Allocate businesses across owners ——————————————————————————
@@ -1974,12 +2390,20 @@ owner_summaries =
           seed_leave.(owner, business, employees)
           seed_opening_journal.(owner, business)
 
-          # Sales on every branch for first 3 businesses of each owner
-          if idx < 3 do
-            Enum.each(branches, fn branch ->
-              seed_branch_sales.(owner, business, branch, products, cashier || owner)
-            end)
-          end
+          # Sales on every branch of every business (realistic POS volume)
+          Enum.each(branches, fn branch ->
+            seed_branch_sales.(owner, business, branch, products, cashier || owner)
+          end)
+
+          # Edge scenarios on every business (returns, tills, transfers, etc.)
+          seed_scenario_pack.(
+            owner,
+            business,
+            branches,
+            products,
+            employees,
+            cashier || owner
+          )
 
           IO.puts(
             "  • #{business.name} [#{industry}] — #{length(branches)} branches, #{length(products)} products, #{length(employees)} employees"
@@ -2283,6 +2707,30 @@ seed_crm_and_finance = fn owner, business, branches, products ->
         active: true,
         business_id: business.id,
         owner_id: owner.id
+      },
+      %{
+        code: "EXPIRED50",
+        discount_type: "percent",
+        discount_value: "50",
+        min_cart: "0",
+        usage_limit: 10,
+        stackable: false,
+        active: true,
+        valid_from: DateTime.add(seed_now, -90 * 86_400, :second),
+        valid_to: DateTime.add(seed_now, -1 * 86_400, :second),
+        business_id: business.id,
+        owner_id: owner.id
+      },
+      %{
+        code: "INACTIVE20",
+        discount_type: "percent",
+        discount_value: "20",
+        min_cart: "200",
+        usage_limit: 20,
+        stackable: false,
+        active: false,
+        business_id: business.id,
+        owner_id: owner.id
       }
     ]
     |> Enum.reject(fn c -> MapSet.member?(existing_coupon_codes, c.code) end)
@@ -2308,6 +2756,7 @@ seed_crm_and_finance = fn owner, business, branches, products ->
         audience: "segment",
         segment_id: segment && segment.id,
         channel: "email",
+        status: "Sent",
         coupon_id: coupon && coupon.id,
         business_id: business.id,
         owner_id: owner.id,
@@ -2319,6 +2768,18 @@ seed_crm_and_finance = fn owner, business, branches, products ->
         message: "Use code FLAT100 at checkout for Rs 100 off carts over Rs 1,000.",
         audience: "khata",
         channel: "sms",
+        status: "Draft",
+        business_id: business.id,
+        owner_id: owner.id,
+        created_by_id: owner.id
+      },
+      %{
+        name: "WhatsApp weekend deal",
+        title: "Weekend special",
+        message: "Assalam o Alaikum! Show this message for a free drink with any meal.",
+        audience: "all",
+        channel: "whatsapp",
+        status: "Sent",
         business_id: business.id,
         owner_id: owner.id,
         created_by_id: owner.id
@@ -2388,7 +2849,7 @@ seed_crm_and_finance = fn owner, business, branches, products ->
           _ =
             Accounting.record_ap_payment(bill.id, owner.id, owner.id, %{
               amount: bill.balance_due,
-              method: "bank_transfer"
+              method: "bank"
             })
 
         _ ->
@@ -2521,9 +2982,8 @@ end
 
 Enum.each(owner_summaries, fn %{owner: owner, email: email, businesses: businesses} ->
   if email == "owner@kaarobar.local" do
-    businesses
-    |> Enum.take(3)
-    |> Enum.each(fn
+    # Enrich every industry vertical for the primary owner
+    Enum.each(businesses, fn
       %{business: business, branches: branches, products: products} when branches != [] ->
         seed_crm_and_finance.(owner, business, branches, products)
         IO.puts("  + enriched #{business.name} (CRM / AR-AP / PO / portal)")
@@ -2608,25 +3068,37 @@ Owners
   #{owner_logins}
 
 Staff portal logins (primary owner — also mirrored per-owner with suffixes 2/3/4)
-  admin@kaarobar.local       → Admin (POS, inventory, HR-ish ops, Staff tools)
-  employee@kaarobar.local    → Employee (POS, inventory, Staff tools / ESS)
-  cashier@kaarobar.local     → Cashier (POS, Staff tools / ESS)
+  admin@kaarobar.local       → Admin
+  employee@kaarobar.local    → Employee (ESS / Staff tools)
+  cashier@kaarobar.local     → Cashier (POS)
   manager@kaarobar.local     → Branch manager
   accountant@kaarobar.local  → Accountant
   hr@kaarobar.local          → HR manager
   inventory@kaarobar.local   → Inventory manager
+  marketing@kaarobar.local   → Marketing
 
   #{staff_logins}
 
 ESS: admin / cashier / employee are linked to HR employee profiles on each owner's first business
      (clock-in, leave, payslips). Owners do not get Staff tools.
 
+Scenario coverage (primary owner — all 7 industries)
+  Sales: cash/card/wallet + khata + online + discount/zero-tax + offline idempotent client_txn_id
+  FBR: mock invoice/QR on FBR-enabled businesses
+  Returns: pending / approved / rejected
+  Tills: open working till + closed over/short examples
+  Inventory: low stock, damage adjust, pending+confirmed transfers, GRN, cancelled PO
+  Accounting: opening capital + reversing journal; AR partial/open; AP paid via bank
+  HR: pending/approved/rejected leave; inactive/terminated employees
+  CRM: Sent+Draft campaigns, active/expired/inactive coupons, loyalty tiers, portal buyers
+  Suppliers: active/pending/inactive/blocked mix; inactive product & soft-deactivated branch
+
 Buyer login (/login?as=consumer) — email + password only (no business ID)
   Marketplace: /app (discover) · /app/market/:id (order) · /app/notifications
   Enriched stores include branding (logo, tagline, color, description) + sample order/CRM alerts
   #{portal_login_lines}
 
-POS coupons on enriched businesses: WELCOME10 (10%), FLAT100 (Rs 100)
+POS coupons on enriched businesses: WELCOME10 (10%), FLAT100 (Rs 100), EXPIRED50, INACTIVE20
 
 Counts
   Owners:       #{total_owners}
