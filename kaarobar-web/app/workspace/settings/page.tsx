@@ -2,11 +2,17 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api, getSession, setSession } from "@/lib/api/client";
-import { PageHeader, SurfaceCard, TabBar } from "@/components/app/ui";
+import { PageHeader, SurfaceCard, TabBar, fieldClass } from "@/components/app/ui";
 import NotificationPreferencesPanel from "@/components/app/NotificationPreferencesPanel";
 import BrandColorPicker from "@/components/app/BrandColorPicker";
+import {
+  clearStaffBrandPreview,
+  previewStaffBrand,
+} from "@/components/app/BrandTheme";
+import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
+import type { CSSProperties } from "react";
 
 type Usage = {
   subscription: {
@@ -70,6 +76,8 @@ export default function SettingsPage() {
   const isOwner = (session?.memberships || [])
     .filter((m) => m.business_id === session?.business_id && m.status === "active")
     .some((m) => (m.roles || []).includes("owner"));
+  const activeBusiness =
+    businesses.find((b) => b.id === session?.business_id) || null;
 
   const load = useCallback(async () => {
     try {
@@ -95,6 +103,10 @@ export default function SettingsPage() {
     if (isOwner) void load();
     else setTab("notifications");
   }, [isOwner, load]);
+
+  useEffect(() => {
+    return () => clearStaffBrandPreview();
+  }, []);
 
   async function toggleFbr(b: Business) {
     try {
@@ -159,6 +171,8 @@ export default function SettingsPage() {
         }),
       });
       toast.success("Branding saved");
+      clearStaffBrandPreview();
+      window.dispatchEvent(new Event("kaarobar:branding"));
       await load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.saveFailed"));
@@ -465,30 +479,41 @@ export default function SettingsPage() {
 
       {tab === "branding" && isOwner ? (
         <div className="space-y-4">
-          {businesses.map((b) => (
-            <SurfaceCard key={`brand-${b.id}`} className="space-y-4 p-5">
+          {!activeBusiness ? (
+            <SurfaceCard className="p-5">
+              <p className="text-sm text-body">
+                Switch to a business workspace to edit its branding.
+              </p>
+            </SurfaceCard>
+          ) : (
+            <SurfaceCard className="space-y-4 p-5">
               <div className="flex flex-wrap items-start gap-4">
                 <div
                   className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-card-muted"
                   style={
-                    b.primary_color
-                      ? { boxShadow: `inset 0 0 0 2px ${b.primary_color}` }
+                    activeBusiness.primary_color
+                      ? { boxShadow: `inset 0 0 0 2px ${activeBusiness.primary_color}` }
                       : undefined
                   }
                 >
-                  {b.logo_url ? (
+                  {activeBusiness.logo_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={b.logo_url} alt="" className="h-full w-full object-cover" />
+                    <img
+                      src={activeBusiness.logo_url}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
                   ) : (
                     <span className="text-2xl font-bold text-heading">
-                      {(b.name || "?").slice(0, 1).toUpperCase()}
+                      {(activeBusiness.name || "?").slice(0, 1).toUpperCase()}
                     </span>
                   )}
                 </div>
                 <div className="min-w-0 flex-1 space-y-3">
-                  <h2 className="font-semibold text-heading">{b.name}</h2>
+                  <h2 className="font-semibold text-heading">{activeBusiness.name}</h2>
                   <p className="text-sm text-body">
-                    Store branding appears on the marketplace and in marketing template previews.
+                    Store branding sets marketplace look and the in-app UI scheme
+                    (buttons, focus rings, nav) for this business.
                   </p>
                   <div className="flex flex-wrap gap-2">
                     <label className="cursor-pointer rounded-md border border-border px-3 py-1.5 text-sm font-medium text-heading hover:bg-bg-hover">
@@ -499,15 +524,15 @@ export default function SettingsPage() {
                         className="hidden"
                         onChange={(e) => {
                           const file = e.target.files?.[0];
-                          if (file) void uploadLogo(b, file);
+                          if (file) void uploadLogo(activeBusiness, file);
                           e.target.value = "";
                         }}
                       />
                     </label>
-                    {b.logo_url ? (
+                    {activeBusiness.logo_url ? (
                       <button
                         type="button"
-                        onClick={() => void clearLogo(b)}
+                        onClick={() => void clearLogo(activeBusiness)}
                         className="rounded-md border border-border px-3 py-1.5 text-sm text-body hover:bg-bg-hover"
                       >
                         Remove logo
@@ -521,10 +546,14 @@ export default function SettingsPage() {
                   Business name
                   <input
                     className="mt-1 w-full rounded border border-border px-2 py-1.5 text-sm text-heading"
-                    value={b.name}
+                    value={activeBusiness.name}
                     onChange={(e) =>
                       setBusinesses((prev) =>
-                        prev.map((x) => (x.id === b.id ? { ...x, name: e.target.value } : x))
+                        prev.map((x) =>
+                          x.id === activeBusiness.id
+                            ? { ...x, name: e.target.value }
+                            : x
+                        )
                       )
                     }
                   />
@@ -533,30 +562,82 @@ export default function SettingsPage() {
                   Tagline
                   <input
                     className="mt-1 w-full rounded border border-border px-2 py-1.5 text-sm text-heading"
-                    value={b.tagline || ""}
+                    value={activeBusiness.tagline || ""}
                     placeholder="Fresh daily · Est. 2012"
                     onChange={(e) =>
                       setBusinesses((prev) =>
                         prev.map((x) =>
-                          x.id === b.id ? { ...x, tagline: e.target.value } : x
+                          x.id === activeBusiness.id
+                            ? { ...x, tagline: e.target.value }
+                            : x
                         )
                       )
                     }
                   />
                 </label>
                 <div className="text-xs text-body sm:col-span-2">
-                  <span className="font-medium text-heading">Brand color</span>
-                  <div className="mt-1.5">
+                  <span className="mb-1.5 block font-medium text-heading">Brand color</span>
+                  <div className="space-y-4">
                     <BrandColorPicker
-                      value={b.primary_color}
-                      onChange={(hex) =>
+                      value={activeBusiness.primary_color}
+                      onChange={(hex) => {
                         setBusinesses((prev) =>
                           prev.map((x) =>
-                            x.id === b.id ? { ...x, primary_color: hex } : x
+                            x.id === activeBusiness.id
+                              ? { ...x, primary_color: hex }
+                              : x
                           )
-                        )
-                      }
+                        );
+                        previewStaffBrand(activeBusiness.id, hex);
+                      }}
                     />
+                    <div
+                      className="flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-border bg-bg-secondary/60 p-4"
+                      style={
+                        activeBusiness.primary_color
+                          ? ({
+                              ["--brand" as string]: activeBusiness.primary_color,
+                              ["--color-brand" as string]:
+                                activeBusiness.primary_color,
+                            } as CSSProperties)
+                          : undefined
+                      }
+                    >
+                      <span className="w-full text-[11px] font-bold uppercase tracking-wide text-muted">
+                        Live preview
+                      </span>
+                      <button
+                        type="button"
+                        className="rounded-md px-4 py-2 text-sm font-semibold text-white shadow-sm"
+                        style={{
+                          backgroundColor:
+                            activeBusiness.primary_color || "#1D4ED8",
+                        }}
+                      >
+                        Primary button
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-md px-3 py-1.5 text-xs font-semibold text-white"
+                        style={{
+                          backgroundColor:
+                            activeBusiness.primary_color || "#1D4ED8",
+                        }}
+                      >
+                        Nav sample
+                      </button>
+                      <input
+                        className={`${fieldClass} max-w-[12rem]`}
+                        style={{
+                          borderColor: activeBusiness.primary_color || undefined,
+                          boxShadow: activeBusiness.primary_color
+                            ? `0 0 0 2px ${activeBusiness.primary_color}33`
+                            : undefined,
+                        }}
+                        placeholder="Focus me"
+                        readOnly
+                      />
+                    </div>
                   </div>
                 </div>
                 <label className="text-xs text-body sm:col-span-2">
@@ -564,12 +645,12 @@ export default function SettingsPage() {
                   <textarea
                     className="mt-1 w-full rounded border border-border px-2 py-1.5 text-sm text-heading"
                     rows={3}
-                    value={b.marketplace_description || ""}
+                    value={activeBusiness.marketplace_description || ""}
                     placeholder="What shoppers should know about your store…"
                     onChange={(e) =>
                       setBusinesses((prev) =>
                         prev.map((x) =>
-                          x.id === b.id
+                          x.id === activeBusiness.id
                             ? { ...x, marketplace_description: e.target.value }
                             : x
                         )
@@ -578,15 +659,18 @@ export default function SettingsPage() {
                   />
                 </label>
               </div>
-              <button
+              <Button
                 type="button"
-                onClick={() => void saveBranding(b)}
-                className="rounded-md bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground"
+                onClick={() => void saveBranding(activeBusiness)}
+                style={{
+                  backgroundColor: activeBusiness.primary_color || undefined,
+                  borderColor: activeBusiness.primary_color || undefined,
+                }}
               >
                 Save branding
-              </button>
+              </Button>
             </SurfaceCard>
-          ))}
+          )}
         </div>
       ) : null}
 

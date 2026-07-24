@@ -1,0 +1,35 @@
+---
+description: Always add PageHeader/TabBar info icons and EN/UR translations for new UI surfaces
+alwaysApply: true
+---
+
+# Help (i) icons + translations
+
+When you add or materially change a **page**, **tab**, or major buyer/staff surface in `kaarobar-web` (and desktop mirrors where applicable):
+
+## Info icon (required)
+
+1. Pass `infoKey` on `PageHeader` and on each `TabBar` / `Tabs` item.
+2. Add a matching topic in **both** [`kaarobar-web/lib/help/en.ts`](kaarobar-web/lib/help/en.ts) and [`kaarobar-web/lib/help/ur.ts`](kaarobar-web/lib/help/ur.ts).
+3. For staff features also used on desktop, mirror the same keys in [`kaarobar-desktop/renderer/src/lib/help/en.ts`](kaarobar-desktop/renderer/src/lib/help/en.ts) and `ur.ts`.
+4. Key naming: `page.<area>` for pages, `tab.<area>.<tab>` for tabs (e.g. `page.market.discover`, `tab.settings.branding`).
+5. Topic shape: `title`, `summary`, `what`, `how[]`, `when`, optional `tips[]`.
+6. If `infoKey` is set but the catalog entry is missing, the (i) icon **does not render** — always ship catalog + wire-up together.
+
+Example:
+
+```tsx
+<PageHeader title={t("pages.fooTitle")} description={t("pages.fooDesc")} infoKey="page.foo" />
+```
+
+## Translations (required)
+
+1. Add user-visible strings to [`kaarobar-web/lib/i18n/messages/en.json`](kaarobar-web/lib/i18n/messages/en.json) and [`ur.json`](kaarobar-web/lib/i18n/messages/ur.json).
+2. Prefer `useT()` / `t("…")` over hardcoded English in UI chrome (titles, descriptions, empty states, primary CTAs).
+3. Use `t("key", { count: n })` for interpolated strings.
+
+## Do not skip
+
+- New Settings / Marketing / Inventory tabs
+- New consumer marketplace routes (Discover, catalog, checkout, etc.)
+- Replacing a hardcoded title with i18n without adding `infoKey` when the surface is a full page/tab

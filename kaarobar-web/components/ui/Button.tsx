@@ -77,7 +77,7 @@ const Button = ({
   const variantClasses = {
     primary: `
       bg-brand
-      text-white
+      text-brand-foreground
       shadow-brand
       hover:bg-brand-hover
       focus:ring-brand-soft

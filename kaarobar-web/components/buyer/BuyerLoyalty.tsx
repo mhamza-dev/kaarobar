@@ -10,6 +10,7 @@ import {
   StatusBadge,
   SurfaceCard,
 } from "@/components/app/ui";
+import { useT } from "@/lib/i18n";
 
 type LoyaltyRow = {
   business_id: string;
@@ -21,6 +22,7 @@ type LoyaltyRow = {
 
 /** Buyer view of `/app/customers`. */
 export default function BuyerLoyalty() {
+  const t = useT();
   const [rows, setRows] = useState<LoyaltyRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,9 +39,10 @@ export default function BuyerLoyalty() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Marketplace"
-        title="Loyalty"
-        description="Points and tiers across stores you shop with."
+        eyebrow={t("marketplace.eyebrow")}
+        title={t("pages.buyerLoyaltyTitle")}
+        description={t("pages.buyerLoyaltyDesc")}
+        infoKey="page.buyer.loyalty"
       />
       {error ? <Alert tone="error">{error}</Alert> : null}
       {loading ? (

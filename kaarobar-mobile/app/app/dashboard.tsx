@@ -22,6 +22,7 @@ import { canAccess } from "../../lib/rbac";
 import { loadLocale, setLocale, t } from "../../lib/i18n";
 import { useToast } from "../../components/Toast";
 import KaarobarLogo from "../../components/KaarobarLogo";
+import { useBrandTheme } from "../../lib/BrandThemeContext";
 import BuyerDiscover from "../../components/BuyerDiscover";
 
 type Dashboard = {
@@ -36,6 +37,7 @@ type Branch = { id: string; name: string };
 
 export default function DashboardScreen() {
   const toast = useToast();
+  const { palette, refreshStaffBrand } = useBrandTheme();
   const [session, setLocal] = useState<Session | null>(null);
   const [dash, setDash] = useState<Dashboard | null>(null);
   const [businesses, setBusinesses] = useState<Business[]>([]);
@@ -67,6 +69,7 @@ export default function DashboardScreen() {
     next = await hydrateSessionContext(next);
     await setSession(next);
     setLocal(next);
+    refreshStaffBrand();
 
     if (canAccess(next, "reports")) {
       try {
@@ -124,6 +127,7 @@ export default function DashboardScreen() {
     const next = { ...session, business_id, branch_id: undefined };
     await setSession(next);
     setLocal(next);
+    refreshStaffBrand();
     try {
       const br = await api<{ data: Branch[] }>(
         `/businesses/${business_id}/branches`,
@@ -229,7 +233,7 @@ export default function DashboardScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-      <Text style={styles.eyebrow}>{t("nav.overview")}</Text>
+      <Text style={[styles.eyebrow, { color: palette.brand }]}>{t("nav.overview")}</Text>
       <View style={styles.brandRow}>
         <KaarobarLogo size={40} />
         <View>
@@ -249,14 +253,17 @@ export default function DashboardScreen() {
               key={b.id}
               style={[
                 styles.chip,
-                session.business_id === b.id && styles.chipActive,
+                session.business_id === b.id && {
+                  backgroundColor: palette.brand,
+                  borderColor: palette.brand,
+                },
               ]}
               onPress={() => selectBusiness(b.id)}
             >
               <Text
                 style={[
                   styles.chipText,
-                  session.business_id === b.id && styles.chipTextActive,
+                  session.business_id === b.id && { color: palette.brandForeground },
                 ]}
               >
                 {b.name}
@@ -272,13 +279,19 @@ export default function DashboardScreen() {
           {branches.map((b) => (
             <Pressable
               key={b.id}
-              style={[styles.chip, session.branch_id === b.id && styles.chipActive]}
+              style={[
+                styles.chip,
+                session.branch_id === b.id && {
+                  backgroundColor: palette.brand,
+                  borderColor: palette.brand,
+                },
+              ]}
               onPress={() => selectBranch(b.id)}
             >
               <Text
                 style={[
                   styles.chipText,
-                  session.branch_id === b.id && styles.chipTextActive,
+                  session.branch_id === b.id && { color: palette.brandForeground },
                 ]}
               >
                 {b.name}
@@ -304,9 +317,18 @@ export default function DashboardScreen() {
 
       {links.map((item) => (
         <Link key={item.href} href={item.href} asChild>
-          <Pressable style={styles.navCard}>
-            <Text style={styles.navTitle}>{item.title}</Text>
-            <Text style={styles.navSub}>{item.subtitle}</Text>
+          <Pressable style={[styles.navCard, { backgroundColor: palette.brand }]}>
+            <Text style={[styles.navTitle, { color: palette.brandForeground }]}>
+              {item.title}
+            </Text>
+            <Text
+              style={[
+                styles.navSub,
+                { color: palette.brandForeground, opacity: 0.75 },
+              ]}
+            >
+              {item.subtitle}
+            </Text>
           </Pressable>
         </Link>
       ))}
@@ -318,7 +340,7 @@ export default function DashboardScreen() {
           router.replace("/landing");
         }}
       >
-        <Text style={styles.logoutText}>{t("common.signOut")}</Text>
+        <Text style={[styles.logoutText, { color: palette.brand }]}>{t("common.signOut")}</Text>
       </Pressable>
     </ScrollView>
   );
@@ -333,7 +355,6 @@ const styles = StyleSheet.create({
   },
   container: { flex: 1, padding: 24, backgroundColor: colors.bgPrimary },
   eyebrow: {
-    color: colors.brand,
     fontWeight: "700",
     fontSize: 11,
     letterSpacing: 1.2,
@@ -384,13 +405,12 @@ const styles = StyleSheet.create({
   },
   navCard: {
     marginTop: 12,
-    backgroundColor: colors.brand,
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,
   },
-  navTitle: { color: colors.white, fontWeight: "800", fontSize: 16 },
-  navSub: { color: "#bfdbfe", marginTop: 2, fontSize: 13 },
+  navTitle: { fontWeight: "800", fontSize: 16 },
+  navSub: { marginTop: 2, fontSize: 13 },
   logout: { marginTop: 16, paddingVertical: 12 },
-  logoutText: { textAlign: "center", color: colors.muted, fontWeight: "600" },
+  logoutText: { textAlign: "center", fontWeight: "600" },
 });

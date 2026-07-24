@@ -419,7 +419,7 @@ export default function MarketingPage() {
 
   const tabs: { id: Tab; label: string; infoKey?: string }[] = [
     { id: "campaigns", label: "Campaigns", infoKey: "tab.marketing.campaigns" },
-    { id: "templates", label: "Templates" },
+    { id: "templates", label: "Templates", infoKey: "tab.marketing.templates" },
     { id: "segments", label: "Segments", infoKey: "tab.marketing.segments" },
     { id: "coupons", label: "Coupons", infoKey: "tab.marketing.coupons" },
     { id: "tiers", label: "Loyalty tiers", infoKey: "tab.marketing.tiers" },

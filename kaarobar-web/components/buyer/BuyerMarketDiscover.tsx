@@ -14,6 +14,8 @@ import ListingFilters, {
   emptyListingFilters,
   type ListingFilterState,
 } from "@/components/app/ListingFilters";
+import { BrandThemeScope } from "@/components/app/BrandTheme";
+import { useT } from "@/lib/i18n";
 
 type Biz = {
   id: string;
@@ -28,6 +30,7 @@ type Biz = {
 
 /** Buyer home — discover marketplace stores (`/app` when actor=consumer). */
 export default function BuyerMarketDiscover() {
+  const t = useT();
   const [filters, setFilters] = useState<ListingFilterState>(emptyListingFilters());
   const [businesses, setBusinesses] = useState<Biz[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -72,9 +75,10 @@ export default function BuyerMarketDiscover() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Marketplace"
-        title="Discover stores"
-        description="Browse branded Kaarobar businesses and place pickup orders."
+        eyebrow={t("marketplace.eyebrow")}
+        title={t("pages.discoverTitle")}
+        description={t("pages.discoverDesc")}
+        infoKey="page.market.discover"
       />
       <ListingFilters
         value={filters}
@@ -102,6 +106,7 @@ export default function BuyerMarketDiscover() {
             const accent = b.primary_color || undefined;
             return (
               <li key={b.id}>
+                <BrandThemeScope primaryColor={accent}>
                 <Link
                   href={`/app/market/${b.marketplace_slug || b.id}`}
                   className="block h-full transition hover:-translate-y-0.5"
@@ -167,6 +172,7 @@ export default function BuyerMarketDiscover() {
                     </div>
                   </SurfaceCard>
                 </Link>
+                </BrandThemeScope>
               </li>
             );
           })}

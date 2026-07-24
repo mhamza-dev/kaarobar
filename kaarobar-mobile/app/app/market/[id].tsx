@@ -14,6 +14,7 @@ import {
 import { api, colors, getSession, isConsumerSession } from "../../../lib/api";
 import { useCart } from "../../../lib/cart";
 import { useToast } from "../../../components/Toast";
+import { brandPaletteFromPrimary } from "../../../lib/brandTheme";
 import {
   applyListingFilters,
   emptyListingFilters,
@@ -125,22 +126,23 @@ export default function MarketStoreScreen() {
     }));
   }
 
+  const accent = business?.primary_color || undefined;
+  const storeCartCount = business ? storeCount(business.id) : 0;
+  const palette = brandPaletteFromPrimary(accent);
+
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={colors.brand} />
+        <ActivityIndicator color={palette.brand} />
       </View>
     );
   }
-
-  const accent = business?.primary_color || undefined;
-  const storeCartCount = business ? storeCount(business.id) : 0;
 
   return (
     <View style={styles.container}>
       <Link href="/app/dashboard" asChild>
         <Pressable>
-          <Text style={styles.back}>← All stores</Text>
+          <Text style={[styles.back, { color: palette.brand }]}>← All stores</Text>
         </Pressable>
       </Link>
 
@@ -180,8 +182,10 @@ export default function MarketStoreScreen() {
         ) : null}
         {storeCartCount > 0 ? (
           <Link href="/app/checkout" asChild>
-            <Pressable style={styles.viewCart}>
-              <Text style={styles.viewCartText}>View cart ({storeCartCount})</Text>
+            <Pressable style={[styles.viewCart, { backgroundColor: palette.brand }]}>
+              <Text style={[styles.viewCartText, { color: palette.brandForeground }]}>
+                View cart ({storeCartCount})
+              </Text>
             </Pressable>
           </Link>
         ) : null}
@@ -190,7 +194,7 @@ export default function MarketStoreScreen() {
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       <TextInput
-        style={styles.search}
+        style={[styles.search, { borderColor: colors.border }]}
         placeholder="Search products…"
         placeholderTextColor={colors.muted}
         value={filters.search}
@@ -202,10 +206,20 @@ export default function MarketStoreScreen() {
           return (
             <Pressable
               key={cat}
-              style={[styles.chip, on && styles.chipOn]}
+              style={[
+                styles.chip,
+                on && { backgroundColor: palette.brand, borderColor: palette.brand },
+              ]}
               onPress={() => toggleCategory(cat)}
             >
-              <Text style={[styles.chipText, on && styles.chipTextOn]}>{cat}</Text>
+              <Text
+                style={[
+                  styles.chipText,
+                  on && { color: palette.brandForeground },
+                ]}
+              >
+                {cat}
+              </Text>
             </Pressable>
           );
         })}
@@ -254,8 +268,11 @@ export default function MarketStoreScreen() {
               ) : null}
               <Text style={styles.productPrice}>Rs {item.price || "0.00"}</Text>
             </View>
-            <Pressable style={styles.addBtn} onPress={() => handleAdd(item)}>
-              <Text style={styles.addText}>Add</Text>
+            <Pressable
+              style={[styles.addBtn, { backgroundColor: palette.brand }]}
+              onPress={() => handleAdd(item)}
+            >
+              <Text style={[styles.addText, { color: palette.brandForeground }]}>Add</Text>
             </Pressable>
           </View>
         )}
@@ -272,7 +289,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgPrimary,
   },
   container: { flex: 1, backgroundColor: colors.bgPrimary, padding: 16 },
-  back: { color: colors.brand, fontWeight: "700", marginBottom: 8 },
+  back: { fontWeight: "700", marginBottom: 8 },
   brandHeader: {
     backgroundColor: colors.card,
     borderRadius: 14,
@@ -307,12 +324,11 @@ const styles = StyleSheet.create({
   sub: { color: colors.body, marginTop: 2 },
   desc: { color: colors.body, fontSize: 13 },
   viewCart: {
-    backgroundColor: colors.brand,
     borderRadius: 10,
     paddingVertical: 10,
     alignItems: "center",
   },
-  viewCartText: { color: colors.white, fontWeight: "700" },
+  viewCartText: { fontWeight: "700" },
   error: { color: colors.danger, marginBottom: 8 },
   search: {
     borderWidth: 1,
@@ -334,9 +350,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
     backgroundColor: colors.card,
   },
-  chipOn: { backgroundColor: colors.brand, borderColor: colors.brand },
   chipText: { fontSize: 12, fontWeight: "700", color: colors.heading },
-  chipTextOn: { color: colors.white },
   priceRow: { flexDirection: "row", gap: 8 },
   priceInput: { flex: 1 },
   empty: { color: colors.body, marginTop: 12 },
@@ -368,10 +382,9 @@ const styles = StyleSheet.create({
   productDesc: { marginTop: 2, fontSize: 12, color: colors.body },
   productPrice: { marginTop: 4, fontWeight: "800", color: colors.heading },
   addBtn: {
-    backgroundColor: colors.brand,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
-  addText: { color: colors.white, fontWeight: "700", fontSize: 13 },
+  addText: { fontWeight: "700", fontSize: 13 },
 });

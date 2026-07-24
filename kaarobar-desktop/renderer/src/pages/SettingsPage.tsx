@@ -66,6 +66,8 @@ export default function SettingsPage() {
   const isOwner = (session?.memberships || [])
     .filter((m) => m.business_id === session?.business_id && m.status === "active")
     .some((m) => (m.roles || []).includes("owner"));
+  const activeBusiness =
+    businesses.find((b) => b.id === session?.business_id) || null;
 
   const load = useCallback(async () => {
     try {
@@ -390,20 +392,30 @@ export default function SettingsPage() {
 
       {tab === "branding" && isOwner ? (
         <div className="space-y-4">
-          {businesses.map((b) => (
-            <SurfaceCard key={`brand-${b.id}`} className="space-y-4 p-5">
+          {!activeBusiness ? (
+            <SurfaceCard className="p-5">
+              <p className="text-sm text-body">
+                Switch to a business workspace to edit its branding.
+              </p>
+            </SurfaceCard>
+          ) : (
+            <SurfaceCard className="space-y-4 p-5">
               <div className="flex flex-wrap items-start gap-4">
                 <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-card-muted">
-                  {b.logo_url ? (
-                    <img src={b.logo_url} alt="" className="h-full w-full object-cover" />
+                  {activeBusiness.logo_url ? (
+                    <img
+                      src={activeBusiness.logo_url}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
                   ) : (
                     <span className="text-2xl font-bold text-heading">
-                      {(b.name || "?").slice(0, 1).toUpperCase()}
+                      {(activeBusiness.name || "?").slice(0, 1).toUpperCase()}
                     </span>
                   )}
                 </div>
                 <div className="min-w-0 flex-1 space-y-2">
-                  <h2 className="font-semibold text-heading">{b.name}</h2>
+                  <h2 className="font-semibold text-heading">{activeBusiness.name}</h2>
                   <p className="text-sm text-body">
                     Used on the customer marketplace and marketing templates.
                   </p>
@@ -416,15 +428,15 @@ export default function SettingsPage() {
                         className="hidden"
                         onChange={(e) => {
                           const file = e.target.files?.[0];
-                          if (file) void uploadLogo(b, file);
+                          if (file) void uploadLogo(activeBusiness, file);
                           e.target.value = "";
                         }}
                       />
                     </label>
-                    {b.logo_url ? (
+                    {activeBusiness.logo_url ? (
                       <button
                         type="button"
-                        onClick={() => void clearLogo(b)}
+                        onClick={() => void clearLogo(activeBusiness)}
                         className="rounded-md border border-border px-3 py-1.5 text-sm text-body"
                       >
                         Remove logo
@@ -438,10 +450,14 @@ export default function SettingsPage() {
                   Business name
                   <input
                     className="mt-1 w-full rounded border border-border px-2 py-1.5 text-sm"
-                    value={b.name}
+                    value={activeBusiness.name}
                     onChange={(e) =>
                       setBusinesses((prev) =>
-                        prev.map((x) => (x.id === b.id ? { ...x, name: e.target.value } : x))
+                        prev.map((x) =>
+                          x.id === activeBusiness.id
+                            ? { ...x, name: e.target.value }
+                            : x
+                        )
                       )
                     }
                   />
@@ -450,41 +466,43 @@ export default function SettingsPage() {
                   Tagline
                   <input
                     className="mt-1 w-full rounded border border-border px-2 py-1.5 text-sm"
-                    value={b.tagline || ""}
+                    value={activeBusiness.tagline || ""}
                     onChange={(e) =>
                       setBusinesses((prev) =>
                         prev.map((x) =>
-                          x.id === b.id ? { ...x, tagline: e.target.value } : x
+                          x.id === activeBusiness.id
+                            ? { ...x, tagline: e.target.value }
+                            : x
                         )
                       )
                     }
                   />
                 </label>
                 <div className="text-xs text-body sm:col-span-2">
-                  <span className="font-medium text-heading">Brand color</span>
-                  <div className="mt-1.5">
-                    <BrandColorPicker
-                      value={b.primary_color}
-                      onChange={(hex) =>
-                        setBusinesses((prev) =>
-                          prev.map((x) =>
-                            x.id === b.id ? { ...x, primary_color: hex } : x
-                          )
+                  <span className="mb-1.5 block font-medium text-heading">Brand color</span>
+                  <BrandColorPicker
+                    value={activeBusiness.primary_color}
+                    onChange={(hex) =>
+                      setBusinesses((prev) =>
+                        prev.map((x) =>
+                          x.id === activeBusiness.id
+                            ? { ...x, primary_color: hex }
+                            : x
                         )
-                      }
-                    />
-                  </div>
+                      )
+                    }
+                  />
                 </div>
                 <label className="text-xs text-body sm:col-span-2">
                   Marketplace description
                   <textarea
                     className="mt-1 w-full rounded border border-border px-2 py-1.5 text-sm"
                     rows={3}
-                    value={b.marketplace_description || ""}
+                    value={activeBusiness.marketplace_description || ""}
                     onChange={(e) =>
                       setBusinesses((prev) =>
                         prev.map((x) =>
-                          x.id === b.id
+                          x.id === activeBusiness.id
                             ? { ...x, marketplace_description: e.target.value }
                             : x
                         )
@@ -495,13 +513,13 @@ export default function SettingsPage() {
               </div>
               <button
                 type="button"
-                onClick={() => void saveBranding(b)}
+                onClick={() => void saveBranding(activeBusiness)}
                 className="rounded-md bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground"
               >
                 Save branding
               </button>
             </SurfaceCard>
-          ))}
+          )}
         </div>
       ) : null}
 

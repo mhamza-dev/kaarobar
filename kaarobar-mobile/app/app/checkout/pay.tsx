@@ -12,10 +12,17 @@ import { api, colors, getSession } from "../../../../lib/api";
 import { useCart } from "../../../../lib/cart";
 import { useToast } from "../../../../components/Toast";
 import BuyerNav from "../../../../components/BuyerNav";
+import { brandPaletteFromPrimary } from "../../../../lib/brandTheme";
+import { useBrandPalette } from "../../../../lib/BrandThemeContext";
 
 export default function CheckoutPayScreen() {
   const toast = useToast();
   const { stores, subtotal, clear, clearStore } = useCart();
+  const staffBrand = useBrandPalette();
+  const storePalette =
+    stores.length === 1
+      ? brandPaletteFromPrimary(stores[0].branding?.primaryColor)
+      : staffBrand;
   const [contactName, setContactName] = useState("");
   const [phone, setPhone] = useState("");
   const [pickupNotes, setPickupNotes] = useState("");
@@ -166,30 +173,37 @@ export default function CheckoutPayScreen() {
         {(["card", "wallet"] as const).map((m) => (
           <Pressable
             key={m}
-            style={[styles.payBtn, payMethod === m && styles.payOn]}
+            style={[styles.payBtn, payMethod === m && { backgroundColor: storePalette.brand, borderColor: storePalette.brand }]}
             onPress={() => setPayMethod(m)}
           >
-            <Text style={[styles.payText, payMethod === m && styles.payTextOn]}>{m}</Text>
+            <Text
+              style={[
+                styles.payText,
+                payMethod === m && { color: storePalette.brandForeground },
+              ]}
+            >
+              {m}
+            </Text>
           </Pressable>
         ))}
       </View>
 
       <Pressable
-        style={[styles.cta, busy && { opacity: 0.5 }]}
+        style={[styles.cta, { backgroundColor: storePalette.brand }, busy && { opacity: 0.5 }]}
         disabled={busy}
         onPress={() => void placeOrder()}
       >
         {busy ? (
-          <ActivityIndicator color={colors.white} />
+          <ActivityIndicator color={storePalette.brandForeground} />
         ) : (
-          <Text style={styles.ctaText}>
+          <Text style={[styles.ctaText, { color: storePalette.brandForeground }]}>
             {stores.length > 1 ? `Place ${stores.length} orders` : "Place order"}
           </Text>
         )}
       </Pressable>
       <Link href="/app/checkout" asChild>
         <Pressable>
-          <Text style={styles.back}>← Back to cart</Text>
+          <Text style={[styles.back, { color: storePalette.brand }]}>← Back to cart</Text>
         </Pressable>
       </Link>
     </View>
@@ -238,15 +252,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
-  payOn: { backgroundColor: colors.brand, borderColor: colors.brand },
   payText: { color: colors.heading, textTransform: "capitalize", fontWeight: "600" },
-  payTextOn: { color: colors.white },
   cta: {
-    backgroundColor: colors.brand,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",
   },
-  ctaText: { color: colors.white, fontWeight: "700" },
-  back: { color: colors.brand, fontWeight: "700", marginTop: 14, textAlign: "center" },
+  ctaText: { fontWeight: "700" },
+  back: { fontWeight: "700", marginTop: 14, textAlign: "center" },
 });

@@ -83,14 +83,14 @@ export default function NotificationsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow={buyer ? "Marketplace" : undefined}
+        eyebrow={buyer ? t("marketplace.eyebrow") : undefined}
         title={t("pages.notificationsTitle")}
         description={
           buyer
-            ? "Order updates and messages from stores you shop with."
+            ? t("pages.buyerNotificationsDesc")
             : t("pages.notificationsDesc")
         }
-        infoKey={buyer ? undefined : "page.notifications"}
+        infoKey={buyer ? "page.buyer.notifications" : "page.notifications"}
         action={
           unread > 0
             ? {

@@ -9,6 +9,7 @@ import {
   StatusBadge,
   SurfaceCard,
 } from "@/components/app/ui";
+import { useT } from "@/lib/i18n";
 
 type Order = {
   id: string;
@@ -30,6 +31,7 @@ function statusTone(status: string): "success" | "warning" | "danger" | "info" {
 
 /** Buyer view of `/app/sales`. */
 export default function BuyerOrders() {
+  const t = useT();
   const [orders, setOrders] = useState<Order[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,9 +46,10 @@ export default function BuyerOrders() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Marketplace"
-        title="Order history"
-        description="Track pickup orders placed with marketplace stores."
+        eyebrow={t("marketplace.eyebrow")}
+        title={t("pages.buyerOrdersTitle")}
+        description={t("pages.buyerOrdersDesc")}
+        infoKey="page.buyer.orders"
       />
       {error ? <Alert tone="error">{error}</Alert> : null}
       {loading ? (

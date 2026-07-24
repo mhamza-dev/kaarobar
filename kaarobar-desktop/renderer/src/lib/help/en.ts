@@ -456,6 +456,30 @@ const en: HelpCatalog = {
     when: "When hiring, promoting, or tightening security.",
     tips: ["Least privilege: give each role only the bundles they need."],
   },
+  "tab.settings.branding": {
+    title: "Store branding",
+    summary: "Logo, colors, and marketplace listing for your business.",
+    what: "Controls how your store looks in Discover/catalog and remaps the in-app UI scheme (buttons, focus rings, nav) from primary color.",
+    how: [
+      "Upload a logo and pick a primary brand color.",
+      "Add tagline and marketplace description.",
+      "Save branding, then preview Discover or shop as a consumer.",
+    ],
+    when: "Before going live on the marketplace or refreshing brand look.",
+    tips: ["Owner access is required. Saving branding updates the staff workspace theme immediately."],
+  },
+  "tab.marketing.templates": {
+    title: "Message templates",
+    summary: "Reusable CRM message bodies with variables.",
+    what: "Saved templates for campaigns and previews (business name, tagline, etc.).",
+    how: [
+      "Create or edit a template with placeholders.",
+      "Preview with sample business variables.",
+      "Select the template when composing a campaign.",
+    ],
+    when: "When standardizing promotional or transactional messages.",
+    tips: ["Keep templates short for SMS/WhatsApp channels."],
+  },
 };
 
 export default en;

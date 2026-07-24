@@ -38,6 +38,7 @@ import Button from "@/components/ui/Button";
 import { useI18n } from "@/lib/i18n";
 import { useUnreadNotifications } from "@/lib/hooks/useUnreadNotifications";
 import { CartProvider, useCartOptional } from "@/lib/cart";
+import { StaffBrandProvider } from "@/components/app/BrandTheme";
 
 const icons = {
   layout: LayoutDashboard,
@@ -236,12 +237,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     href={item.href}
                     className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition ${
                       active
-                        ? "bg-brand text-white shadow-sm"
+                        ? "bg-brand text-brand-foreground shadow-sm"
                         : "text-rail-foreground hover:bg-rail-hover"
                     }`}
                   >
                     <Icon
-                      className={`h-4 w-4 shrink-0 ${active ? "text-white" : "text-rail-muted"}`}
+                      className={`h-4 w-4 shrink-0 ${active ? "text-brand-foreground" : "text-rail-muted"}`}
                       strokeWidth={2}
                     />
                     {item.title}
@@ -272,12 +273,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     key={item.href}
                     href={item.href}
                     className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition ${active
-                      ? "bg-brand text-white shadow-sm"
+                      ? "bg-brand text-brand-foreground shadow-sm"
                       : "text-rail-foreground hover:bg-rail-hover"
                       }`}
                   >
                     <Icon
-                      className={`h-4 w-4 shrink-0 ${active ? "text-white" : "text-rail-muted"}`}
+                      className={`h-4 w-4 shrink-0 ${active ? "text-brand-foreground" : "text-rail-muted"}`}
                       strokeWidth={2}
                     />
                     {t(item.titleKey)}
@@ -293,6 +294,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <CartProvider>
+    <StaffBrandProvider businessId={buyer ? null : session.business_id}>
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-bg-primary text-heading lg:flex-row">
       <aside className="relative z-30 hidden h-full min-h-0 w-[248px] shrink-0 flex-col overflow-hidden border-r border-rail-border bg-rail lg:flex">
         <div className="flex shrink-0 items-center gap-3 border-b border-rail-border px-5 py-4">
@@ -436,6 +438,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </main>
       </div>
     </div>
+    </StaffBrandProvider>
     </CartProvider>
   );
 }

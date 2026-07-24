@@ -7,6 +7,8 @@ import { Minus, Plus, Trash2 } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import Button from "@/components/ui/Button";
 import { EmptyState, PageHeader, SurfaceCard } from "@/components/app/ui";
+import { BrandThemeScope } from "@/components/app/BrandTheme";
+import { useT } from "@/lib/i18n";
 
 function money(n: number) {
   return n.toFixed(2);
@@ -14,6 +16,7 @@ function money(n: number) {
 
 export default function CheckoutReviewPage() {
   const router = useRouter();
+  const t = useT();
   const { stores, itemCount, subtotal, setQty, removeItem, clearStore } = useCart();
 
   useEffect(() => {
@@ -25,8 +28,8 @@ export default function CheckoutReviewPage() {
   if (stores.length === 0) {
     return (
       <EmptyState
-        title="Your cart is empty"
-        body="Browse stores on Discover and add products to get started."
+        title={t("marketplace.emptyCartTitle")}
+        body={t("marketplace.emptyCartBody")}
       />
     );
   }
@@ -39,135 +42,142 @@ export default function CheckoutReviewPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <PageHeader
-        eyebrow="Checkout"
-        title="Review cart"
-        description={`${storeLabel} · ${itemCount} item${itemCount === 1 ? "" : "s"}`}
+        eyebrow={t("marketplace.checkoutEyebrow")}
+        title={t("pages.checkoutReviewTitle")}
+        description={`${storeLabel} · ${itemCount} · ${t("pages.checkoutReviewDesc")}`}
+        infoKey="page.checkout.review"
       />
 
       {stores.map((store) => {
         const accent = store.branding?.primaryColor || undefined;
         const storeTotal = store.lines.reduce((s, l) => s + l.quantity * l.price, 0);
         return (
-          <SurfaceCard
-            key={store.businessId}
-            className="overflow-hidden p-0"
-            style={accent ? { borderTopWidth: 3, borderTopColor: accent } : undefined}
-          >
-            <div className="flex items-center gap-3 border-b border-border bg-bg-secondary/50 px-4 py-3">
-              <div
-                className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-card text-sm font-bold text-heading"
-                style={accent ? { backgroundColor: `${accent}18` } : undefined}
-              >
-                {store.branding?.logoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={store.branding.logoUrl} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  store.businessName.slice(0, 1).toUpperCase()
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold text-heading">{store.businessName}</p>
-                {store.branding?.tagline ? (
-                  <p className="truncate text-xs text-muted">{store.branding.tagline}</p>
-                ) : null}
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <Link href={`/app/market/${store.businessId}`}>
-                  <Button variant="ghost" size="sm">
-                    Shop
-                  </Button>
-                </Link>
-                <button
-                  type="button"
-                  className="text-xs font-medium text-muted hover:text-danger"
-                  onClick={() => clearStore(store.businessId)}
+          <BrandThemeScope key={store.businessId} primaryColor={accent}>
+            <SurfaceCard
+              className="overflow-hidden p-0"
+              style={accent ? { borderTopWidth: 3, borderTopColor: accent } : undefined}
+            >
+              <div className="flex items-center gap-3 border-b border-border bg-bg-secondary/50 px-4 py-3">
+                <div
+                  className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-card text-sm font-bold text-heading"
+                  style={accent ? { backgroundColor: `${accent}18` } : undefined}
                 >
-                  Clear
-                </button>
+                  {store.branding?.logoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={store.branding.logoUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    store.businessName.slice(0, 1).toUpperCase()
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold text-heading">{store.businessName}</p>
+                  {store.branding?.tagline ? (
+                    <p className="truncate text-xs text-muted">{store.branding.tagline}</p>
+                  ) : null}
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <Link href={`/app/market/${store.businessId}`}>
+                    <Button variant="ghost" size="sm">
+                      Shop
+                    </Button>
+                  </Link>
+                  <button
+                    type="button"
+                    className="text-xs font-medium text-muted hover:text-danger"
+                    onClick={() => clearStore(store.businessId)}
+                  >
+                    Clear
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <ul className="divide-y divide-border">
-              {store.lines.map((line) => (
-                <li key={line.productId} className="flex gap-3 p-4">
-                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md border border-border bg-card-muted">
-                    {line.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={line.imageUrl} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-[10px] text-muted">
-                        No img
-                      </div>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-heading">{line.name}</p>
-                    {line.category ? (
-                      <p className="text-xs text-muted">{line.category}</p>
-                    ) : null}
-                    <p className="mt-1 text-sm font-bold text-heading">
-                      Rs {money(line.price)} each
-                    </p>
-                    <div className="mt-2 flex items-center gap-2">
-                      <button
-                        type="button"
-                        className="flex h-8 w-8 items-center justify-center rounded-md border border-border"
-                        onClick={() =>
-                          setQty(store.businessId, line.productId, line.quantity - 1)
-                        }
-                        aria-label="Decrease"
-                      >
-                        <Minus className="h-3.5 w-3.5" />
-                      </button>
-                      <span className="w-8 text-center text-sm font-bold">{line.quantity}</span>
-                      <button
-                        type="button"
-                        className="flex h-8 w-8 items-center justify-center rounded-md border border-border"
-                        onClick={() =>
-                          setQty(store.businessId, line.productId, line.quantity + 1)
-                        }
-                        aria-label="Increase"
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        className="ml-auto rounded-md p-2 text-muted hover:bg-bg-hover hover:text-danger"
-                        onClick={() => removeItem(store.businessId, line.productId)}
-                        aria-label="Remove"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+              <ul className="divide-y divide-border">
+                {store.lines.map((line) => (
+                  <li key={line.productId} className="flex gap-3 p-4">
+                    <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md border border-border bg-card-muted">
+                      {line.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={line.imageUrl} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-[10px] text-muted">
+                          No img
+                        </div>
+                      )}
                     </div>
-                  </div>
-                  <p className="shrink-0 text-sm font-bold text-heading">
-                    Rs {money(line.quantity * line.price)}
-                  </p>
-                </li>
-              ))}
-            </ul>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-heading">{line.name}</p>
+                      {line.category ? (
+                        <p className="text-xs text-muted">{line.category}</p>
+                      ) : null}
+                      <p className="mt-1 text-sm font-bold text-heading">
+                        Rs {money(line.price)} each
+                      </p>
+                      <div className="mt-2 flex items-center gap-2">
+                        <button
+                          type="button"
+                          className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-brand hover:bg-brand-soft"
+                          onClick={() =>
+                            setQty(store.businessId, line.productId, line.quantity - 1)
+                          }
+                          aria-label="Decrease"
+                        >
+                          <Minus className="h-3.5 w-3.5" />
+                        </button>
+                        <span className="w-8 text-center text-sm font-bold">{line.quantity}</span>
+                        <button
+                          type="button"
+                          className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-brand hover:bg-brand-soft"
+                          onClick={() =>
+                            setQty(store.businessId, line.productId, line.quantity + 1)
+                          }
+                          aria-label="Increase"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          className="ml-auto rounded-md p-2 text-muted hover:bg-bg-hover hover:text-danger"
+                          onClick={() => removeItem(store.businessId, line.productId)}
+                          aria-label="Remove"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                    <p className="shrink-0 text-sm font-bold text-heading">
+                      Rs {money(line.quantity * line.price)}
+                    </p>
+                  </li>
+                ))}
+              </ul>
 
-            <div className="flex items-center justify-between border-t border-border px-4 py-3">
-              <span className="text-sm font-semibold text-heading">Store subtotal</span>
-              <span className="font-bold text-heading">Rs {money(storeTotal)}</span>
-            </div>
-          </SurfaceCard>
+              <div className="flex items-center justify-between border-t border-border px-4 py-3">
+                <span className="text-sm font-semibold text-heading">
+                  {t("marketplace.storeSubtotal")}
+                </span>
+                <span className="font-bold text-heading">Rs {money(storeTotal)}</span>
+              </div>
+            </SurfaceCard>
+          </BrandThemeScope>
         );
       })}
 
       <SurfaceCard className="flex items-center justify-between p-4">
-        <span className="font-semibold text-heading">Grand total</span>
+        <span className="font-semibold text-heading">{t("marketplace.grandTotal")}</span>
         <span className="text-lg font-bold text-heading">Rs {money(subtotal)}</span>
       </SurfaceCard>
 
-      <div className="flex flex-wrap gap-3">
+      <BrandThemeScope
+        primaryColor={stores.length === 1 ? stores[0].branding?.primaryColor : null}
+        className="flex flex-wrap gap-3"
+      >
         <Link href="/app">
-          <Button variant="secondary">Keep shopping</Button>
+          <Button variant="secondary">{t("marketplace.keepShopping")}</Button>
         </Link>
         <Button className="flex-1 sm:flex-none" onClick={() => router.push("/app/checkout/pay")}>
-          Continue
+          {t("marketplace.continue")}
         </Button>
-      </div>
+      </BrandThemeScope>
     </div>
   );
 }

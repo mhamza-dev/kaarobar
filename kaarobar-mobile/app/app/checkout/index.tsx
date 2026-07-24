@@ -4,6 +4,8 @@ import { FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native
 import { colors } from "../../../lib/api";
 import { useCart, type CartStore } from "../../../lib/cart";
 import BuyerNav from "../../../components/BuyerNav";
+import { brandPaletteFromPrimary } from "../../../lib/brandTheme";
+import { useBrandPalette } from "../../../lib/BrandThemeContext";
 
 function StoreSection({
   store,
@@ -83,6 +85,11 @@ function StoreSection({
 
 export default function CheckoutReviewScreen() {
   const { stores, itemCount, subtotal, setQty, removeItem, clearStore } = useCart();
+  const staffBrand = useBrandPalette();
+  const footerPalette =
+    stores.length === 1
+      ? brandPaletteFromPrimary(stores[0].branding?.primaryColor)
+      : staffBrand;
 
   useEffect(() => {
     if (stores.length === 0) {
@@ -128,8 +135,13 @@ export default function CheckoutReviewScreen() {
         ListFooterComponent={
           <View style={styles.footer}>
             <Text style={styles.total}>Grand total · Rs {subtotal.toFixed(2)}</Text>
-            <Pressable style={styles.cta} onPress={() => router.push("/app/checkout/pay")}>
-              <Text style={styles.ctaText}>Continue</Text>
+            <Pressable
+              style={[styles.cta, { backgroundColor: footerPalette.brand }]}
+              onPress={() => router.push("/app/checkout/pay")}
+            >
+              <Text style={[styles.ctaText, { color: footerPalette.brandForeground }]}>
+                Continue
+              </Text>
             </Pressable>
           </View>
         }
@@ -185,10 +197,9 @@ const styles = StyleSheet.create({
   footer: { paddingTop: 8, gap: 10 },
   total: { fontWeight: "800", fontSize: 16, color: colors.heading },
   cta: {
-    backgroundColor: colors.brand,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",
   },
-  ctaText: { color: colors.white, fontWeight: "700" },
+  ctaText: { fontWeight: "700" },
 });

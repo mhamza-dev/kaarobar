@@ -19,6 +19,8 @@ import ListingFilters, {
   emptyListingFilters,
   type ListingFilterState,
 } from "@/components/app/ListingFilters";
+import { BrandThemeScope } from "@/components/app/BrandTheme";
+import { useT } from "@/lib/i18n";
 
 type Product = {
   id: string;
@@ -49,6 +51,7 @@ export default function MarketplaceStorePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const toast = useToast();
+  const t = useT();
   const { addItem, storeCount } = useCart();
   const id = params.id;
   const [business, setBusiness] = useState<StoreBiz | null>(null);
@@ -123,10 +126,10 @@ export default function MarketplaceStorePage() {
   const storeCartCount = business ? storeCount(business.id) : 0;
 
   return (
-    <div className="space-y-6">
+    <BrandThemeScope primaryColor={accent} className="space-y-6">
       <div>
         <Link href="/app" className="text-sm font-medium text-brand hover:underline">
-          ← All stores
+          {t("marketplace.allStores")}
         </Link>
         <div
           className="mt-3 overflow-hidden rounded-md border border-border bg-card"
@@ -156,12 +159,13 @@ export default function MarketplaceStorePage() {
               </div>
               <div className="min-w-0 flex-1">
                 <PageHeader
-                  eyebrow={business?.industry || "Marketplace"}
-                  title={business?.name || "Store"}
+                  eyebrow={business?.industry || t("marketplace.eyebrow")}
+                  title={business?.name || t("pages.catalogTitle")}
                   description={
                     business?.tagline ||
-                    "Pickup / order-ahead · add items to your cart"
+                    t("pages.catalogDesc")
                   }
+                  infoKey="page.market.catalog"
                 />
                 {business?.marketplace_description ? (
                   <p className="mt-2 max-w-2xl text-sm text-body">
@@ -173,7 +177,7 @@ export default function MarketplaceStorePage() {
                 <Link href="/app/checkout">
                   <Button className="gap-2">
                     <ShoppingCart className="h-4 w-4" />
-                    View cart ({storeCartCount})
+                    {t("marketplace.viewCart", { count: storeCartCount })}
                   </Button>
                 </Link>
               ) : null}
@@ -234,6 +238,6 @@ export default function MarketplaceStorePage() {
           ))}
         </div>
       )}
-    </div>
+    </BrandThemeScope>
   );
 }

@@ -2,6 +2,7 @@ import { Link, usePathname, router } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { colors, clearSession } from "../lib/api";
 import { useCartOptional } from "../lib/cart";
+import { useBrandPalette } from "../lib/BrandThemeContext";
 
 const LINKS = [
   { href: "/app/dashboard", label: "Discover" },
@@ -15,6 +16,7 @@ const LINKS = [
 export default function BuyerNav() {
   const pathname = usePathname();
   const cart = useCartOptional();
+  const brand = useBrandPalette();
   const count = cart?.itemCount ?? 0;
 
   async function signOut() {
@@ -30,8 +32,10 @@ export default function BuyerNav() {
           <Pressable style={styles.cartBtn}>
             <Text style={styles.cartLabel}>Cart</Text>
             {count > 0 ? (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{count > 99 ? "99+" : count}</Text>
+              <View style={[styles.badge, { backgroundColor: brand.brand }]}>
+                <Text style={[styles.badgeText, { color: brand.brandForeground }]}>
+                  {count > 99 ? "99+" : count}
+                </Text>
               </View>
             ) : null}
           </Pressable>
@@ -44,8 +48,19 @@ export default function BuyerNav() {
             (item.href !== "/app/dashboard" && pathname.startsWith(item.href));
           return (
             <Link key={item.href} href={item.href} asChild>
-              <Pressable style={[styles.tab, active && styles.tabOn]}>
-                <Text style={[styles.tabText, active && styles.tabTextOn]} numberOfLines={1}>
+              <Pressable
+                style={[
+                  styles.tab,
+                  active && { backgroundColor: brand.brand },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.tabText,
+                    active && { color: brand.brandForeground },
+                  ]}
+                  numberOfLines={1}
+                >
                   {item.label}
                 </Text>
               </Pressable>
@@ -54,7 +69,7 @@ export default function BuyerNav() {
         })}
       </View>
       <Pressable onPress={signOut} style={styles.signOutBtn}>
-        <Text style={styles.signOut}>Sign out</Text>
+        <Text style={[styles.signOut, { color: brand.brand }]}>Sign out</Text>
       </Pressable>
     </View>
   );
@@ -94,11 +109,10 @@ const styles = StyleSheet.create({
     height: 18,
     borderRadius: 9,
     paddingHorizontal: 4,
-    backgroundColor: colors.brand,
     alignItems: "center",
     justifyContent: "center",
   },
-  badgeText: { color: colors.white, fontSize: 10, fontWeight: "800" },
+  badgeText: { fontSize: 10, fontWeight: "800" },
   row: {
     flexDirection: "row",
     backgroundColor: colors.card,
@@ -115,11 +129,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     alignItems: "center",
   },
-  tabOn: {
-    backgroundColor: colors.brand,
-  },
   tabText: { color: colors.body, fontWeight: "700", fontSize: 11 },
-  tabTextOn: { color: colors.white },
   signOutBtn: { alignSelf: "flex-end" },
-  signOut: { color: colors.brand, fontWeight: "700", fontSize: 13 },
+  signOut: { fontWeight: "700", fontSize: 13 },
 });

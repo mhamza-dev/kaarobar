@@ -153,6 +153,18 @@ product_image_by_sku = %{
     "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600&h=600&fit=crop&auto=format",
   "SVC-NAIL" =>
     "https://images.unsplash.com/photo-1604654894610-df63bc536371?w=600&h=600&fit=crop&auto=format",
+  "MU-BRIDAL" =>
+    "https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=600&h=600&fit=crop&auto=format",
+  "MU-PARTY" =>
+    "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=600&h=600&fit=crop&auto=format",
+  "AES-HYDRA" =>
+    "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600&h=600&fit=crop&auto=format",
+  "AES-LASER-FACE" =>
+    "https://images.unsplash.com/photo-1515377905703-c4788e51af15?w=600&h=600&fit=crop&auto=format",
+  "PKG-BRIDE-FULL" =>
+    "https://images.unsplash.com/photo-1519741497674-611481863552?w=600&h=600&fit=crop&auto=format",
+  "PKG-GLOW" =>
+    "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600&h=600&fit=crop&auto=format",
   "CTN-01" =>
     "https://images.unsplash.com/photo-1607344645866-009c320b63e0?w=600&h=600&fit=crop&auto=format",
   "CTN-02" =>
@@ -435,68 +447,8 @@ industry_extras = %{
         product_kind: "goods"
       }
     end),
-  "salon" => [
-    %{
-      sku: "SVC-CUT",
-      barcode: "8904001100012",
-      name: "Haircut",
-      category: "Hair",
-      price: "800",
-      qty: "0",
-      product_kind: "service",
-      duration_minutes: 30,
-      track_inventory: false
-    },
-    %{
-      sku: "SVC-COLOR",
-      barcode: "8904001100029",
-      name: "Hair Color",
-      category: "Hair",
-      price: "3500",
-      qty: "0",
-      product_kind: "service",
-      duration_minutes: 90,
-      track_inventory: false
-    },
-    %{
-      sku: "SVC-NAIL",
-      barcode: "8904001100036",
-      name: "Manicure",
-      category: "Nails",
-      price: "1200",
-      qty: "0",
-      product_kind: "service",
-      duration_minutes: 45,
-      track_inventory: false
-    }
-  ] ++
-    Enum.map(1..10, fn i ->
-      %{
-        sku: "SVC-X#{String.pad_leading("#{i}", 2, "0")}",
-        barcode: "89040011#{String.pad_leading("#{100 + i}", 4, "0")}",
-        name: Enum.at(
-          [
-            "Beard Trim",
-            "Hair Wash & Blow",
-            "Facial Classic",
-            "Facial Gold",
-            "Pedicure",
-            "Eyebrow Threading",
-            "Head Massage",
-            "Keratin Treatment",
-            "Bridal Makeup Trial",
-            "Kids Haircut"
-          ],
-          i - 1
-        ),
-        category: Enum.at(["Hair", "Skin", "Nails", "Spa"], rem(i, 4)),
-        price: "#{900 + i * 250}",
-        qty: "0",
-        product_kind: "service",
-        duration_minutes: 20 + i * 10,
-        track_inventory: false
-      }
-    end),
+  "salon" => [],
+  # Beauty catalogs are built below (hair / makeup / aesthetic) — not mixed with grocery base.
   "wholesale" => [
     %{
       sku: "CTN-01",
@@ -542,6 +494,133 @@ industry_extras = %{
       }
     end)
 }
+
+# —— Beauty vertical catalogs (salon industry: hair / makeup / aesthetic) ———
+
+svc = fn sku, barcode, name, category, price, mins ->
+  %{
+    sku: sku,
+    barcode: barcode,
+    name: name,
+    category: category,
+    price: price,
+    qty: "0",
+    product_kind: "service",
+    duration_minutes: mins,
+    track_inventory: false,
+    unit: "session"
+  }
+end
+
+pkg = fn sku, barcode, name, category, price, mins ->
+  %{
+    sku: sku,
+    barcode: barcode,
+    name: name,
+    category: category,
+    price: price,
+    qty: "0",
+    product_kind: "combo",
+    duration_minutes: mins,
+    track_inventory: false,
+    unit: "session"
+  }
+end
+
+deal = fn sku, barcode, name, price, mins ->
+  %{
+    sku: sku,
+    barcode: barcode,
+    name: name,
+    category: "Deals",
+    price: price,
+    qty: "0",
+    product_kind: "combo",
+    duration_minutes: mins,
+    track_inventory: false,
+    unit: "session",
+    attributes: %{"deal" => true}
+  }
+end
+
+hair_salon_catalog = [
+  svc.("SVC-CUT", "8904001100012", "Haircut", "Hair", "800", 30),
+  svc.("SVC-COLOR", "8904001100029", "Hair Color", "Hair", "3500", 90),
+  svc.("SVC-NAIL", "8904001100036", "Manicure", "Nails", "1200", 45),
+  svc.("SVC-BEARD", "8904001100043", "Beard Trim", "Hair", "500", 20),
+  svc.("SVC-BLOW", "8904001100050", "Wash & Blow Dry", "Hair", "1200", 40),
+  svc.("SVC-KERATIN", "8904001100067", "Keratin Treatment", "Hair", "8500", 150),
+  svc.("SVC-HIGHLIGHT", "8904001100074", "Highlights / Balayage", "Hair", "6500", 120),
+  svc.("SVC-PEDI", "8904001100081", "Pedicure", "Nails", "1500", 50),
+  svc.("SVC-THREAD", "8904001100098", "Eyebrow Threading", "Skin", "400", 15),
+  svc.("SVC-FACE", "8904001100104", "Classic Facial", "Skin", "2500", 60),
+  svc.("SVC-KIDS", "8904001100111", "Kids Haircut", "Hair", "600", 25),
+  svc.("SVC-MASSAGE", "8904001100128", "Head & Shoulder Massage", "Skin", "1800", 35),
+  pkg.("PKG-GLOW", "8904001200019", "Glow Package (Cut + Facial + Brow)", "Packages", "4200", 120),
+  pkg.("PKG-BRIDE-HAIR", "8904001200026", "Bridal Hair Trail Package", "Packages", "12000", 180),
+  pkg.("PKG-NAIL-DAY", "8904001200033", "Nail Day (Mani + Pedi)", "Packages", "2400", 90),
+  deal.("DEAL-WEEKDAY", "8904001300016", "Weekday Cut Deal (20% off)", "640", 30),
+  deal.("DEAL-COMBO", "8904001300023", "Cut + Beard Combo Deal", "1100", 45),
+  deal.("DEAL-STUDENT", "8904001300030", "Student Haircut Deal", "550", 25)
+]
+
+makeup_artist_catalog = [
+  svc.("MU-BRIDAL", "8904101100019", "Bridal Makeup", "Makeup", "25000", 180),
+  svc.("MU-PARTY", "8904101100026", "Party / Event Makeup", "Makeup", "8000", 90),
+  svc.("MU-ENGAGE", "8904101100033", "Engagement Makeup", "Makeup", "15000", 120),
+  svc.("MU-NATURAL", "8904101100040", "Natural Soft Glam", "Makeup", "5500", 60),
+  svc.("MU-HD", "8904101100057", "HD / Camera Makeup", "Makeup", "10000", 90),
+  svc.("MU-TRIAL", "8904101100064", "Makeup Trial Session", "Makeup", "4000", 75),
+  svc.("MU-AIRBRUSH", "8904101100071", "Airbrush Makeup", "Makeup", "18000", 100),
+  svc.("MU-GROOM", "8904101100088", "Groom Soft Touch", "Makeup", "3500", 40),
+  svc.("MU-LASH", "8904101100095", "Lash Application", "Makeup", "2500", 30),
+  svc.("MU-HAIR-UP", "8904101100101", "Hair Styling / Updo", "Hair", "6000", 60),
+  svc.("MU-SARI-DRAPE", "8904101100118", "Sari / Dupatta Draping", "Makeup", "2000", 25),
+  pkg.("PKG-BRIDE-FULL", "8904101200016", "Full Bridal Package (MU + Hair + Trial)", "Packages", "38000", 360),
+  pkg.("PKG-WALIMA", "8904101200023", "Walima Glam Package", "Packages", "22000", 150),
+  pkg.("PKG-FAMILY", "8904101200030", "Family Makeup Package (3 guests)", "Packages", "18000", 180),
+  deal.("DEAL-OFFPEAK", "8904101300013", "Off-peak Soft Glam Deal", "4500", 60),
+  deal.("DEAL-TRIAL-BUNDLE", "8904101300020", "Trial + Party Makeup Deal", "11000", 150),
+  deal.("DEAL-SISTERS", "8904101300037", "Sisters Duo Makeup Deal", "14000", 120)
+]
+
+aesthetic_clinic_catalog = [
+  svc.("AES-CONSULT", "8904201100016", "Skin Consultation", "Aesthetic", "1500", 30),
+  svc.("AES-CLEAN", "8904201100023", "Deep Cleansing Facial", "Skin", "3500", 60),
+  svc.("AES-CHEM", "8904201100030", "Chemical Peel (mild)", "Aesthetic", "6500", 45),
+  svc.("AES-HYDRA", "8904201100047", "Hydrafacial", "Aesthetic", "9000", 60),
+  svc.("AES-MICRONEEDLE", "8904201100054", "Microneedling Session", "Aesthetic", "12000", 75),
+  svc.("AES-LASER-FACE", "8904201100061", "Laser Hair Reduction — Face", "Aesthetic", "8000", 40),
+  svc.("AES-LASER-FULL", "8904201100078", "Laser Hair Reduction — Full Body", "Aesthetic", "35000", 120),
+  svc.("AES-PRP", "8904201100085", "PRP Hair / Skin Session", "Aesthetic", "15000", 60),
+  svc.("AES-BOTOX", "8904201100092", "Botox Unit Session", "Aesthetic", "18000", 45),
+  svc.("AES-FILLER", "8904201100108", "Dermal Filler Session", "Aesthetic", "25000", 50),
+  svc.("AES-ACNE", "8904201100115", "Acne Treatment Session", "Skin", "5000", 40),
+  svc.("AES-WHITENING", "8904201100122", "Skin Whitening Facial", "Skin", "7000", 70),
+  pkg.("PKG-SKIN-RESET", "8904201200013", "Skin Reset Package (3 sessions)", "Packages", "22000", 180),
+  pkg.("PKG-LASER-6", "8904201200020", "Laser Face Package (6 sessions)", "Packages", "40000", 240),
+  pkg.("PKG-BRIDE-SKIN", "8904201200037", "Bridal Skin Prep Package", "Packages", "55000", 300),
+  deal.("DEAL-FIRST-VISIT", "8904201300010", "First Visit Facial Deal", "2800", 60),
+  deal.("DEAL-PEEL", "8904201300027", "Peel + Consultation Deal", "7200", 70),
+  deal.("DEAL-LASER-INTRO", "8904201300034", "Intro Laser Face Deal", "6500", 40)
+]
+
+beauty_catalog_for = fn business_name ->
+  name = business_name |> to_string() |> String.downcase()
+
+  cond do
+    String.contains?(name, "makeup") or String.contains?(name, "bridal glam") or
+        String.contains?(name, "glam studio") ->
+      makeup_artist_catalog
+
+    String.contains?(name, "aesthetic") or String.contains?(name, "derma") or
+        String.contains?(name, "skin clinic") or String.contains?(name, "laser") ->
+      aesthetic_clinic_catalog
+
+    true ->
+      hair_salon_catalog
+  end
+end
 
 cities = [
   "Lahore",
@@ -785,7 +864,11 @@ generated_customers =
 
 customer_defs = customer_defs ++ generated_customers
 
+# Beauty verticals (salon industry) are early so primary owners always get hair / makeup / aesthetic.
 business_pool = [
+  {"Glow Studio Salon", "salon", false},
+  {"Luxe Makeup Artists", "salon", true},
+  {"Derma Aesthetic Clinic", "salon", false},
   {"Al-Falah Traders", "retail", false},
   {"Noor Mart", "supermarket", true},
   {"City Pharmacy", "pharmacy", false},
@@ -812,11 +895,12 @@ business_pool = [
   {"Khyber Wholesale Depot", "wholesale", false},
   {"Saffron Kitchen", "restaurant", false},
   {"Pearl Electronics", "retail", false},
+  {"Bridal Glam Studio", "salon", false},
+  {"Style Lab Beauty", "salon", true},
+  {"Laser Skin Clinic", "salon", false},
   {"Valley Dairy Mart", "retail", false},
   {"Quetta Dry Fruits Co", "wholesale", false},
   {"Liberty Cafe", "restaurant", false},
-  {"Glow Studio Salon", "salon", false},
-  {"Style Lab Beauty", "salon", true},
   {"Aabpara Medicos", "pharmacy", false},
   {"Neighborhood General", "general", false}
 ]
@@ -981,8 +1065,11 @@ ensure_membership = fn actor, business, user, roles, branch_id ->
   end
 end
 
-catalog_for = fn industry ->
-  base_catalog ++ Map.get(industry_extras, industry, [])
+catalog_for = fn industry, business_name ->
+  case industry do
+    "salon" -> beauty_catalog_for.(business_name)
+    _ -> base_catalog ++ Map.get(industry_extras, industry, [])
+  end
 end
 
 seed_products = fn owner, business, branches, catalog ->
@@ -1003,6 +1090,7 @@ seed_products = fn owner, business, branches, catalog ->
         product_kind: Map.get(p, :product_kind, "goods"),
         track_inventory: Map.get(p, :track_inventory, true),
         duration_minutes: Map.get(p, :duration_minutes),
+        attributes: Map.get(p, :attributes, %{}),
         unit: Map.get(p, :unit, "pcs"),
         tax_rate: "0.18",
         is_active: true,
@@ -1102,7 +1190,8 @@ seed_products = fn owner, business, branches, catalog ->
             end
 
           track? =
-            Map.get(p, :track_inventory, true) != false and Map.get(p, :product_kind) != "service"
+            Map.get(p, :track_inventory, true) != false and
+              Map.get(p, :product_kind) not in ["service", "combo"]
 
           is =
             if not track? or MapSet.member?(existing_inv, {product.id, branch.id}) do
@@ -1687,9 +1776,17 @@ seed_branch_sales = fn owner, business, branch, products, cashier ->
     Enum.each(1..12, fn i ->
       product = Enum.at(products, rem(i + :erlang.phash2(branch.id), length(products)))
       qty = Decimal.new(1 + rem(i, 3))
-      inv = Inventory.get_inventory(branch.id, product.id, owner.id, business.id)
+      track? = product.track_inventory != false and product.product_kind not in ["service", "combo"]
+      inv = if track?, do: Inventory.get_inventory(branch.id, product.id, owner.id, business.id)
 
-      if inv && Decimal.compare(inv.quantity_on_hand, qty) in [:gt, :eq] do
+      can_sell? =
+        if track? do
+          inv && Decimal.compare(inv.quantity_on_hand, qty) in [:gt, :eq]
+        else
+          true
+        end
+
+      if can_sell? do
         total = expected_sale_total.(product, branch.id, qty)
         method = Enum.at(["cash", "card", "wallet"], rem(i, 3))
 
@@ -1857,7 +1954,7 @@ owner_summaries =
             end
           end)
 
-          catalog = catalog_for.(industry)
+          catalog = catalog_for.(industry, business.name)
           products = seed_products.(owner, business, branches, catalog)
           seed_suppliers.(owner, business)
           seed_customers.(owner, business)
@@ -1998,6 +2095,7 @@ store_logo_pool = [
 
 marketplace_branding_for = fn business ->
   idx = :erlang.phash2(business.id, length(store_logo_pool))
+  name_l = business.name |> to_string() |> String.downcase()
 
   {tagline, color, description} =
     case business.industry do
@@ -2010,8 +2108,21 @@ marketplace_branding_for = fn business ->
          "OTC essentials and health products. Same-day pickup when listed online."}
 
       "salon" ->
-        {"Look sharp · Book or walk in", "#7C3AED",
-         "Cuts, color, and care. Browse featured products and place pickup orders."}
+        cond do
+          String.contains?(name_l, "makeup") or String.contains?(name_l, "bridal glam") or
+              String.contains?(name_l, "glam studio") ->
+            {"Bridal & event glam", "#C2185B",
+             "Professional makeup, bridal packages, and event deals. Book online, visit the studio."}
+
+          String.contains?(name_l, "aesthetic") or String.contains?(name_l, "derma") or
+              String.contains?(name_l, "skin clinic") or String.contains?(name_l, "laser") ->
+            {"Skin science, personal care", "#00897B",
+             "Aesthetic treatments, laser packages, and skin deals. Consult online then visit the clinic."}
+
+          true ->
+            {"Look sharp · Book or walk in", "#7C3AED",
+             "Hair, nails, facials, and salon packages. Pay online and visit the salon."}
+        end
 
       "supermarket" ->
         {"Everyday essentials", "#1D4ED8",

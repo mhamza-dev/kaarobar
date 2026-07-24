@@ -12,6 +12,7 @@ import {
   StatusBadge,
   SurfaceCard,
 } from "@/components/app/ui";
+import { useT } from "@/lib/i18n";
 
 type Invoice = {
   id: string;
@@ -31,6 +32,7 @@ type Balance = {
 /** Buyer view of `/app/accounting`. */
 export default function BuyerAr() {
   const toast = useToast();
+  const t = useT();
   const [balances, setBalances] = useState<Balance[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [busy, setBusy] = useState(false);
@@ -88,9 +90,10 @@ export default function BuyerAr() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Marketplace"
-        title="Khata balance"
-        description="View store credit balances and pay open invoices."
+        eyebrow={t("marketplace.eyebrow")}
+        title={t("pages.buyerArTitle")}
+        description={t("pages.buyerArDesc")}
+        infoKey="page.buyer.ar"
       />
       {error ? <Alert tone="error">{error}</Alert> : null}
       {loading ? (

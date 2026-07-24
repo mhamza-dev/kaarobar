@@ -14,6 +14,8 @@ import {
   SurfaceCard,
   fieldClass,
 } from "@/components/app/ui";
+import { BrandThemeScope } from "@/components/app/BrandTheme";
+import { useT } from "@/lib/i18n";
 
 function money(n: number) {
   return n.toFixed(2);
@@ -22,6 +24,7 @@ function money(n: number) {
 export default function CheckoutPayPage() {
   const router = useRouter();
   const toast = useToast();
+  const t = useT();
   const { stores, subtotal, clear, clearStore } = useCart();
   const session = getSession();
 
@@ -48,7 +51,7 @@ export default function CheckoutPayPage() {
 
   if (stores.length === 0) {
     return (
-      <EmptyState title="Your cart is empty" body="Add products from a store first." />
+      <EmptyState title={t("marketplace.emptyCartTitle")} body={t("marketplace.emptyCartBody")} />
     );
   }
 
@@ -131,15 +134,19 @@ export default function CheckoutPayPage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg space-y-6">
+    <BrandThemeScope
+      primaryColor={stores.length === 1 ? stores[0].branding?.primaryColor : null}
+      className="mx-auto max-w-lg space-y-6"
+    >
       <PageHeader
-        eyebrow="Checkout"
-        title="Contact & payment"
+        eyebrow={t("marketplace.checkoutEyebrow")}
+        title={t("pages.checkoutPayTitle")}
         description={
           stores.length === 1
-            ? `Pickup from ${stores[0].businessName} · Rs ${money(subtotal)}`
-            : `${stores.length} store pickups · Rs ${money(subtotal)}`
+            ? `${stores[0].businessName} · Rs ${money(subtotal)}`
+            : `${stores.length} · Rs ${money(subtotal)} · ${t("pages.checkoutPayDesc")}`
         }
+        infoKey="page.checkout.pay"
       />
 
       {stores.length > 1 ? (
@@ -168,7 +175,7 @@ export default function CheckoutPayPage() {
 
       <SurfaceCard className="space-y-4 p-5">
         <p className="text-xs font-bold uppercase tracking-wide text-muted">
-          Pickup contact
+          {t("marketplace.pickupContact")}
         </p>
         <label className="block text-sm text-body">
           Name
@@ -190,7 +197,7 @@ export default function CheckoutPayPage() {
           />
         </label>
         <label className="block text-sm text-body">
-          Pickup notes
+          {t("marketplace.pickupNotes")}
           <textarea
             className={`${fieldClass} mt-1`}
             rows={3}
@@ -202,7 +209,7 @@ export default function CheckoutPayPage() {
 
         <div>
           <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted">
-            Payment
+            {t("marketplace.payment")}
           </p>
           <div className="flex gap-2">
             {(["card", "wallet"] as const).map((m) => (
@@ -231,7 +238,9 @@ export default function CheckoutPayPage() {
         </div>
 
         <Button className="w-full" disabled={busy} loading={busy} onClick={() => void placeOrder()}>
-          {stores.length > 1 ? `Place ${stores.length} orders` : "Place order"}
+          {stores.length > 1
+            ? t("marketplace.placeOrders", { count: stores.length })
+            : t("marketplace.placeOrder")}
         </Button>
         <Link
           href="/app/checkout"
@@ -240,6 +249,6 @@ export default function CheckoutPayPage() {
           ← Back to cart
         </Link>
       </SurfaceCard>
-    </div>
+    </BrandThemeScope>
   );
 }

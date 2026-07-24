@@ -1,5 +1,6 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { colors } from "../lib/api";
+import { useBrandPalette } from "../lib/BrandThemeContext";
 
 export type MobileTabItem<T extends string = string> = {
   id: T;
@@ -18,6 +19,7 @@ export default function SegmentedTabs<T extends string>({
   value,
   onChange,
 }: Props<T>) {
+  const brand = useBrandPalette();
   return (
     <ScrollView
       horizontal
@@ -33,10 +35,15 @@ export default function SegmentedTabs<T extends string>({
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
             onPress={() => onChange(tab.id)}
-            style={[styles.tab, active && styles.tabActive]}
+            style={styles.tab}
           >
             <Text style={[styles.label, active && styles.labelActive]}>{tab.label}</Text>
-            <View style={[styles.indicator, active && styles.indicatorActive]} />
+            <View
+              style={[
+                styles.indicator,
+                active && { backgroundColor: brand.brand },
+              ]}
+            />
           </Pressable>
         );
       })}
@@ -60,7 +67,6 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     position: "relative",
   },
-  tabActive: {},
   label: {
     fontSize: 14,
     fontWeight: "600",
@@ -78,8 +84,5 @@ const styles = StyleSheet.create({
     height: 2,
     borderRadius: 2,
     backgroundColor: "transparent",
-  },
-  indicatorActive: {
-    backgroundColor: colors.brand || "#2d6df6",
   },
 });
