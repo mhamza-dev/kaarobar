@@ -130,9 +130,27 @@ export async function api<T>(
 
   const res = await fetch(`${API_URL}${path}`, { ...init, headers });
   const text = await res.text();
-  const body = text ? JSON.parse(text) : null;
+  let body: unknown = null;
+  if (text) {
+    try {
+      body = JSON.parse(text);
+    } catch {
+      body = text;
+    }
+  }
   if (!res.ok) {
-    throw new Error(body?.error || body?.message || `Request failed (${res.status})`);
+    const payload =
+      body && typeof body === "object" ? (body as Record<string, unknown>) : null;
+    const apiError =
+      (typeof payload?.error === "string" && payload.error) ||
+      (typeof payload?.message === "string" && payload.message);
+    if (apiError) throw new Error(apiError);
+    if (typeof body === "string" && body.trim().startsWith("<")) {
+      throw new Error(
+        `Server returned HTML instead of JSON (${res.status}). Check EXPO_PUBLIC_API_URL.`
+      );
+    }
+    throw new Error(`Request failed (${res.status})`);
   }
   return body as T;
 }
