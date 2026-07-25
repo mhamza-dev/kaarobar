@@ -40,7 +40,6 @@ export type Session = {
     email: string;
     name: string;
     phone?: string | null;
-    locale?: "en" | "ur";
     profile_pic_url?: string | null;
   };
   account?: {

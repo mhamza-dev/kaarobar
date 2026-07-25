@@ -170,16 +170,15 @@ const en: HelpCatalog = {
   },
   "page.profile": {
     title: "Your Profile",
-    summary: "Personal name, phone, language, password, and photo.",
+    summary: "Personal name, phone, password, and photo.",
     what: "Updates your user account—not full business settings.",
     how: [
       "Change display name and phone.",
-      "Choose English or Urdu (Urdu enables RTL layout).",
       "Set a new password only when you need to change it.",
       "Upload a profile photo when available.",
     ],
     when: "On first login setup or when updating personal details.",
-    tips: ["Language preference is saved for this device/session."],
+    tips: ["Change language from the sidebar language control."],
   },
   "page.ess": {
     title: "Staff Tools (ESS)",

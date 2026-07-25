@@ -2546,7 +2546,6 @@ if ($("profile-form")) {
       const body = {
         name: $("profile-name").value.trim(),
         phone: $("profile-phone").value.trim(),
-        locale: $("profile-locale").value,
       };
       const pw = $("profile-password").value.trim();
       if (pw) body.password = pw;
@@ -2563,8 +2562,6 @@ if ($("profile-form")) {
           },
         });
       }
-      window.KaarobarI18n?.setLocale(res.user.locale === "ur" ? "ur" : "en");
-      applyChromeI18n();
       $("profile-password").value = "";
       notify(t("profile.saved"), "success");
       if ($("user-name")) $("user-name").textContent = res.user.name;
@@ -2774,7 +2771,6 @@ async function loadProfile() {
     $("profile-name").value = u.name || "";
     $("profile-email").value = u.email || "";
     $("profile-phone").value = u.phone || "";
-    $("profile-locale").value = u.locale === "ur" ? "ur" : "en";
     $("profile-password").value = "";
     $("profile-msg").textContent = "";
   } catch (err) {
@@ -2797,10 +2793,6 @@ async function boot() {
   }
 
   session = getSession();
-  if (session?.user?.locale === "ur" || session?.user?.locale === "en") {
-    window.KaarobarI18n?.setLocale(session.user.locale);
-    applyChromeI18n();
-  }
   if (session?.access_token) {
     try {
       await hydrateTenant(session);

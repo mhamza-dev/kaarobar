@@ -11,7 +11,6 @@ defmodule Kaarobar.Schemas.User do
     field :password, :string, virtual: true
     field :name, :string
     field :phone, :string
-    field :locale, :string, default: "en"
     field :status, :string, default: "active"
     field :is_platform_admin, :boolean, default: false
     field :totp_secret, :string
@@ -34,7 +33,6 @@ defmodule Kaarobar.Schemas.User do
       :password,
       :name,
       :phone,
-      :locale,
       :status,
       :is_platform_admin,
       :totp_secret,
@@ -43,7 +41,6 @@ defmodule Kaarobar.Schemas.User do
       :confirmed_at
     ])
     |> validate_required([:email, :name])
-    |> validate_inclusion(:locale, ~w(en ur))
     |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/, message: "must have the @ sign and no spaces")
     |> validate_length(:email, max: 160)
     |> validate_length(:password, min: 8, max: 72)
@@ -53,9 +50,8 @@ defmodule Kaarobar.Schemas.User do
 
   def registration_changeset(user, attrs) do
     user
-    |> cast(attrs, [:email, :password, :name, :phone, :locale])
+    |> cast(attrs, [:email, :password, :name, :phone])
     |> validate_required([:email, :password, :name])
-    |> validate_inclusion(:locale, ~w(en ur))
     |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/, message: "must have the @ sign and no spaces")
     |> validate_length(:email, max: 160)
     |> validate_length(:password, min: 8, max: 72)
@@ -66,9 +62,8 @@ defmodule Kaarobar.Schemas.User do
 
   def profile_changeset(user, attrs) do
     user
-    |> cast(attrs, [:name, :phone, :locale, :password])
+    |> cast(attrs, [:name, :phone, :password])
     |> validate_required([:name])
-    |> validate_inclusion(:locale, ~w(en ur))
     |> validate_length(:name, min: 2, max: 120)
     |> validate_length(:phone, max: 32)
     |> validate_length(:password, min: 8, max: 72)

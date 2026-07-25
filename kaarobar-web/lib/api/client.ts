@@ -18,7 +18,6 @@ export type StoredSession = {
     email: string;
     name: string;
     phone?: string | null;
-    locale?: "en" | "ur";
     profile_pic_url?: string | null;
   };
   /** Buyer account (when actor=consumer) */

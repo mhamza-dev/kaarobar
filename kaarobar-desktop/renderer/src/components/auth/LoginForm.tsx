@@ -10,7 +10,7 @@ import OptionSelector from "@/components/ui/OptionSelector";
 import { authMethodOptions } from "@/components/auth/auth-method-options";
 import { loginSchema } from "@/lib/validations/auth";
 import { api, hydrateSessionContext, setSession } from "@/lib/api/client";
-import { useI18n, type Locale } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/components/ui/Toast";
 
 interface LoginFormValues {
@@ -23,7 +23,7 @@ interface LoginFormValues {
 
 const LoginForm = (): React.ReactElement => {
   const navigate = useNavigate();
-  const { t, setLocale } = useI18n();
+  const { t } = useI18n();
   const toast = useToast();
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -49,7 +49,6 @@ const LoginForm = (): React.ReactElement => {
           email: string;
           name: string;
           phone?: string | null;
-          locale?: Locale;
         };
       }>("/auth/login", {
         method: "POST",
@@ -67,9 +66,6 @@ const LoginForm = (): React.ReactElement => {
         user: result.user,
       };
       setSession(base);
-      if (result.user.locale === "ur" || result.user.locale === "en") {
-        setLocale(result.user.locale);
-      }
       const hydrated = await hydrateSessionContext(base);
       setSession(hydrated);
       navigate("/app");

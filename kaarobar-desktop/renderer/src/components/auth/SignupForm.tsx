@@ -18,7 +18,6 @@ import PrivacyPolicyModal from "@/components/modals/PrivacyPolicyModal";
 import { authMethodOptions } from "@/components/auth/auth-method-options";
 import { signupSchema } from "@/lib/validations/auth";
 import { api, hydrateSessionContext, setSession } from "@/lib/api/client";
-import { useI18n, type Locale } from "@/lib/i18n";
 
 interface SignupFormValues {
   signupMethod: "email" | "phone";
@@ -33,7 +32,6 @@ interface SignupFormValues {
 
 const SignupForm = (): React.ReactElement => {
   const navigate = useNavigate();
-  const { setLocale } = useI18n();
   const [termsModal, setTermsModal] = useState(false);
   const [privacyModal, setPrivacyModal] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -63,7 +61,6 @@ const SignupForm = (): React.ReactElement => {
           email: string;
           name: string;
           phone?: string | null;
-          locale?: Locale;
         };
       }>(
         "/auth/register",
@@ -87,9 +84,6 @@ const SignupForm = (): React.ReactElement => {
         user: result.user,
       };
       setSession(base);
-      if (result.user.locale === "ur" || result.user.locale === "en") {
-        setLocale(result.user.locale);
-      }
       const hydrated = await hydrateSessionContext(base);
       setSession(hydrated);
       navigate("/app");

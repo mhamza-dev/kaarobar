@@ -19,7 +19,7 @@ import {
   type Session,
 } from "../../lib/api";
 import { canAccess } from "../../lib/rbac";
-import { loadLocale, setLocale, t } from "../../lib/i18n";
+import { getLocale, loadLocale, setLocale, t, type Locale } from "../../lib/i18n";
 import { useToast } from "../../components/Toast";
 import KaarobarLogo from "../../components/KaarobarLogo";
 import { useBrandTheme } from "../../lib/BrandThemeContext";
@@ -43,6 +43,7 @@ export default function DashboardScreen() {
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [unread, setUnread] = useState(0);
+  const [localeTick, setLocaleTick] = useState(0);
 
   async function hydrate(s: Session) {
     const bizRes = await api<{ data: Business[] }>("/businesses", {}, s);
@@ -105,9 +106,6 @@ export default function DashboardScreen() {
       if (isConsumerSession(s)) {
         setLocal(s);
         return;
-      }
-      if (s.user.locale === "ur" || s.user.locale === "en") {
-        await setLocale(s.user.locale);
       }
       setLocal(s);
       try {
@@ -332,6 +330,28 @@ export default function DashboardScreen() {
           </Pressable>
         </Link>
       ))}
+
+      <Text style={styles.section}>{t("common.language")}</Text>
+      <View style={styles.chips}>
+        {(["en", "ur"] as Locale[]).map((code) => {
+          void localeTick;
+          const active = getLocale() === code;
+          return (
+            <Pressable
+              key={code}
+              style={[styles.chip, active && styles.chipActive]}
+              onPress={async () => {
+                await setLocale(code);
+                setLocaleTick((n) => n + 1);
+              }}
+            >
+              <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                {code === "ur" ? t("common.urdu") : t("common.english")}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
 
       <Pressable
         style={styles.logout}

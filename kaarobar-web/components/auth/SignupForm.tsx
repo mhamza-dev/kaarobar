@@ -26,7 +26,6 @@ import {
   type AuthActor,
   type StoredSession,
 } from "@/lib/api/client";
-import { useI18n, type Locale } from "@/lib/i18n";
 import * as Yup from "yup";
 
 interface SignupFormValues {
@@ -63,7 +62,6 @@ const buyerSignupSchema = Yup.object({
 
 const SignupForm = ({ actor }: SignupFormProps): React.ReactElement => {
   const router = useRouter();
-  const { setLocale } = useI18n();
   const [termsModal, setTermsModal] = useState(false);
   const [privacyModal, setPrivacyModal] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -132,7 +130,6 @@ const SignupForm = ({ actor }: SignupFormProps): React.ReactElement => {
           email: string;
           name: string;
           phone?: string | null;
-          locale?: Locale;
         };
       }>(
         "/auth/register",
@@ -156,9 +153,6 @@ const SignupForm = ({ actor }: SignupFormProps): React.ReactElement => {
         user: result.user,
       };
       setSession(base);
-      if (result.user.locale === "ur" || result.user.locale === "en") {
-        setLocale(result.user.locale);
-      }
       const hydrated = await hydrateSessionContext(base);
       setSession(hydrated);
       router.push("/app");

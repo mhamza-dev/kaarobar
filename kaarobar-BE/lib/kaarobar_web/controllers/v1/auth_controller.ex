@@ -187,7 +187,6 @@ defmodule KaarobarWeb.V1.AuthController do
       %{}
       |> maybe_put(params, "name")
       |> maybe_put(params, "phone")
-      |> maybe_put(params, "locale")
       |> maybe_put(params, "password")
 
     case Accounts.update_profile(user, attrs) do
@@ -199,7 +198,7 @@ defmodule KaarobarWeb.V1.AuthController do
             action: "user.profile_update",
             entity_type: "user",
             entity_id: updated.id,
-            metadata: %{locale: updated.locale}
+            metadata: %{name: updated.name}
           })
 
         json(conn, %{user: serialize_user(updated)})
@@ -357,7 +356,6 @@ defmodule KaarobarWeb.V1.AuthController do
       email: user.email,
       name: user.name,
       phone: user.phone,
-      locale: user.locale || "en",
       mfa_required: user.mfa_required,
       mfa_enabled: Accounts.mfa_enabled?(user),
       profile_pic_url: Kaarobar.Profiles.profile_pic_url(user)

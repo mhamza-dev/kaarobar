@@ -16,7 +16,7 @@ import {
   type AuthActor,
   type Session,
 } from "../lib/api";
-import { setLocale, t, type Locale } from "../lib/i18n";
+import { t } from "../lib/i18n";
 import KaarobarLogo from "../components/KaarobarLogo";
 
 export default function LoginScreen() {
@@ -80,7 +80,6 @@ export default function LoginScreen() {
           email: string;
           name: string;
           phone?: string | null;
-          locale?: Locale;
         };
       }>(
         "/auth/login",
@@ -101,9 +100,6 @@ export default function LoginScreen() {
         user: result.user,
       });
       await setSession(hydrated);
-      if (result.user.locale === "ur" || result.user.locale === "en") {
-        await setLocale(result.user.locale);
-      }
       router.replace("/app/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : t("common.error"));

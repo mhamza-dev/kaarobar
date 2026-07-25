@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 
 import { routes } from "@/lib/navigation";
-import LanguageSwitcher from "@/components/app/LanguageSwitcher";
 import KaarobarLogo from "@/components/brand/KaarobarLogo";
 import { useT } from "@/lib/i18n";
 
@@ -107,7 +106,6 @@ export default function AuthShell({
               <KaarobarLogo size={28} className="rounded-[6px]" />
               {t("common.appName")}
             </Link>
-            <LanguageSwitcher compact className="ms-auto" />
           </div>
           <p className="text-sm font-semibold text-brand">{badge}</p>
           <h1 className="mt-2 text-3xl font-bold text-heading">{title}</h1>

@@ -999,7 +999,6 @@ ensure_user = fn email, name, phone ->
               email: email,
               name: name,
               phone: phone,
-              locale: "en",
               status: "active",
               profile_pic_key: portrait_for.({:user, email})
             }

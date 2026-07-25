@@ -50,7 +50,7 @@ export default function AppLayout() {
   const location = useLocation();
   const pathname = location.pathname;
   const navigate = useNavigate();
-  const { t, setLocale } = useI18n();
+  const { t } = useI18n();
   const { unread } = useUnreadNotifications();
   const [session, setSessionState] = useState<StoredSession | null>(null);
   const [booting, setBooting] = useState(true);
@@ -78,9 +78,6 @@ export default function AppLayout() {
         }
         setSessionState(ready);
         setTenantKey(`${ready.business_id || ""}:${ready.branch_id || ""}`);
-        if (ready.user.locale === "ur" || ready.user.locale === "en") {
-          setLocale(ready.user.locale);
-        }
       } catch {
         if (!cancelled) setSessionState(current);
       } finally {
@@ -91,7 +88,7 @@ export default function AppLayout() {
     return () => {
       cancelled = true;
     };
-  }, [navigate, setLocale]);
+  }, [navigate]);
 
   useEffect(() => {
     function onSession() {
@@ -257,10 +254,6 @@ export default function AppLayout() {
 
           <div className="flex min-w-0 flex-1 items-center justify-end gap-2 sm:gap-3">
             <TenantSwitcher />
-            <div className="hidden h-6 w-px shrink-0 bg-rail-border sm:block" aria-hidden />
-            <div className="hidden sm:block">
-              <LanguageSwitcher compact persistToProfile />
-            </div>
             <Link
               to={routes.notifications}
               className="relative shrink-0 rounded-md p-2 text-rail-muted transition hover:bg-rail-hover hover:text-heading"

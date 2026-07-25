@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { api, colors, getSession, setSession } from "../../lib/api";
-import { getLocale, loadLocale, setLocale, t, type Locale } from "../../lib/i18n";
+import { loadLocale, t } from "../../lib/i18n";
 import { useToast } from "../../components/Toast";
 import { registerForPushNotifications } from "../../lib/push";
 
@@ -33,7 +33,6 @@ export default function ProfileScreen() {
     name: "",
     email: "",
     phone: "",
-    locale: "en" as Locale,
     password: "",
   });
 
@@ -53,20 +52,16 @@ export default function ProfileScreen() {
             name: string;
             email: string;
             phone?: string | null;
-            locale?: Locale;
             profile_pic_url?: string | null;
           };
         }>("/auth/me");
-        const locale = res.user.locale === "ur" ? "ur" : "en";
         setForm({
           name: res.user.name || "",
           email: res.user.email || "",
           phone: res.user.phone || "",
-          locale,
           password: "",
         });
         setPicUrl(res.user.profile_pic_url || null);
-        await setLocale(locale);
         try {
           const prefRes = await api<{ data: NotificationPrefs }>("/notification-preferences");
           setPrefs(prefRes.data);
@@ -169,7 +164,6 @@ export default function ProfileScreen() {
       const body: Record<string, string> = {
         name: form.name.trim(),
         phone: form.phone.trim(),
-        locale: form.locale,
       };
       if (form.password.trim()) body.password = form.password;
 
@@ -179,7 +173,6 @@ export default function ProfileScreen() {
           name: string;
           email: string;
           phone?: string | null;
-          locale?: Locale;
         };
       }>("/auth/me", {
         method: "PATCH",
@@ -195,12 +188,10 @@ export default function ProfileScreen() {
             name: res.user.name,
             email: res.user.email,
             phone: res.user.phone,
-            locale: res.user.locale === "ur" ? "ur" : "en",
             profile_pic_url: picUrl,
           },
         });
       }
-      await setLocale(res.user.locale === "ur" ? "ur" : "en");
       setForm((f) => ({ ...f, password: "" }));
       toast.success(t("profile.saved"));
       refresh();
@@ -213,7 +204,6 @@ export default function ProfileScreen() {
 
   // tick forces re-render after locale change
   void tick;
-  const locale = getLocale();
 
   return (
     <>
@@ -265,22 +255,6 @@ export default function ProfileScreen() {
           keyboardType="phone-pad"
         />
 
-        <Text style={styles.label}>{t("profile.locale")}</Text>
-        <View style={styles.row}>
-          {(["en", "ur"] as Locale[]).map((code) => (
-            <Pressable
-              key={code}
-              style={[styles.chip, form.locale === code && styles.chipOn]}
-              onPress={() => setForm({ ...form, locale: code })}
-            >
-              <Text style={[styles.chipText, form.locale === code && styles.chipTextOn]}>
-                {code === "ur" ? t("common.urdu") : t("common.english")}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-        <Text style={styles.hint}>{t("profile.localeHint")}</Text>
-
         <Text style={styles.label}>{t("profile.newPassword")}</Text>
         <TextInput
           style={styles.input}
@@ -327,10 +301,6 @@ export default function ProfileScreen() {
             </Text>
           </View>
         ) : null}
-
-        <Text style={styles.meta}>
-          {t("common.language")}: {locale === "ur" ? t("common.urdu") : t("common.english")}
-        </Text>
       </ScrollView>
     </>
   );

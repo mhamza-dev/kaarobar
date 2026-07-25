@@ -9,25 +9,23 @@ import {
   fieldClass,
 } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
-import { useI18n, type Locale } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
 
 type ProfileUser = {
   id: string;
   email: string;
   name: string;
   phone?: string | null;
-  locale?: Locale;
   profile_pic_url?: string | null;
 };
 
 export default function ProfilePage() {
-  const { t, setLocale, locale } = useI18n();
+  const { t } = useI18n();
   const toast = useToast();
   const [form, setForm] = useState({
     name: "",
     email: "",
     phone: "",
-    locale: "en" as Locale,
     password: "",
   });
   const [picUrl, setPicUrl] = useState<string | null>(null);
@@ -43,7 +41,6 @@ export default function ProfilePage() {
         name: u.name,
         email: u.email,
         phone: u.phone,
-        locale: u.locale === "ur" ? "ur" : "en",
         profile_pic_url: u.profile_pic_url ?? null,
       },
     });
@@ -57,16 +54,14 @@ export default function ProfilePage() {
         name: u.name || "",
         email: u.email || "",
         phone: u.phone || "",
-        locale: u.locale === "ur" ? "ur" : "en",
         password: "",
       });
       setPicUrl(u.profile_pic_url || null);
       syncSessionUser(u);
-      if (u.locale === "ur" || u.locale === "en") setLocale(u.locale);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("profile.loadError"));
     }
-  }, [setLocale, syncSessionUser, t, toast]);
+  }, [syncSessionUser, t, toast]);
 
   useEffect(() => {
     load();
@@ -79,7 +74,6 @@ export default function ProfilePage() {
       const body: Record<string, string> = {
         name: form.name.trim(),
         phone: form.phone.trim(),
-        locale: form.locale,
       };
       if (form.password.trim()) body.password = form.password;
 
@@ -89,7 +83,6 @@ export default function ProfilePage() {
       });
 
       syncSessionUser({ ...res.user, profile_pic_url: picUrl });
-      setLocale(res.user.locale === "ur" ? "ur" : "en");
       setForm((f) => ({ ...f, password: "" }));
       toast.success(t("profile.saved"));
     } catch (err) {
@@ -154,20 +147,6 @@ export default function ProfilePage() {
             />
           </Field>
 
-          <Field label={t("profile.locale")}>
-            <select
-              className={fieldClass}
-              value={form.locale}
-              onChange={(e) =>
-                setForm({ ...form, locale: e.target.value as Locale })
-              }
-            >
-              <option value="en">{t("common.english")}</option>
-              <option value="ur">{t("common.urdu")}</option>
-            </select>
-            <p className="mt-1 text-xs text-muted">{t("profile.localeHint")}</p>
-          </Field>
-
           <Field label={t("profile.newPassword")}>
             <input
               type="password"
@@ -187,10 +166,6 @@ export default function ProfilePage() {
           </div>
         </form>
       </SurfaceCard>
-
-      <p className="text-xs text-muted">
-        {t("common.language")}: {locale === "ur" ? t("common.urdu") : t("common.english")}
-      </p>
     </div>
   );
 }

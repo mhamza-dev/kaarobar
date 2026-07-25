@@ -79,7 +79,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const rawPathname = usePathname();
   const pathname = toAppPath(rawPathname);
   const router = useRouter();
-  const { t, setLocale } = useI18n();
+  const { t } = useI18n();
   const { unread } = useUnreadNotifications();
   const [session, setSessionState] = useState<StoredSession | null>(null);
   const [booting, setBooting] = useState(true);
@@ -102,9 +102,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         if (cancelled) return;
         setSessionState(ready);
         setTenantKey(`${ready.business_id || ""}:${ready.branch_id || ""}`);
-        if (ready.user.locale === "ur" || ready.user.locale === "en") {
-          setLocale(ready.user.locale);
-        }
         if (isConsumerSession(ready) && !canAccessPath(ready, pathname)) {
           router.replace("/app");
         }
@@ -118,7 +115,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [router, setLocale, pathname]);
+  }, [router, pathname]);
 
   useEffect(() => {
     function onSession() {
@@ -349,12 +346,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
           <div className="flex min-w-0 flex-1 items-center justify-end gap-2 sm:gap-3">
             {!buyer ? <TenantSwitcher /> : null}
-            {!buyer ? (
-              <div className="hidden h-6 w-px shrink-0 bg-rail-border sm:block" aria-hidden />
-            ) : null}
-            <div className="hidden sm:block">
-              <LanguageSwitcher compact persistToProfile={!buyer} />
-            </div>
             {buyer ? <NavbarCartLink /> : null}
             <Link
               href={routes.notifications}
