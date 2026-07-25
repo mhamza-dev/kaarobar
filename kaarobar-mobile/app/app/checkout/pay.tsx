@@ -8,12 +8,12 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { api, colors, getSession } from "../../../../lib/api";
-import { useCart } from "../../../../lib/cart";
-import { useToast } from "../../../../components/Toast";
-import BuyerNav from "../../../../components/BuyerNav";
-import { brandPaletteFromPrimary } from "../../../../lib/brandTheme";
-import { useBrandPalette } from "../../../../lib/BrandThemeContext";
+import { api, colors, getSession } from "../../../lib/api";
+import { useCart } from "../../../lib/cart";
+import { useToast } from "../../../components/Toast";
+import BuyerNav from "../../../components/BuyerNav";
+import { brandPaletteFromPrimary } from "../../../lib/brandTheme";
+import { useBrandPalette } from "../../../lib/BrandThemeContext";
 
 export default function CheckoutPayScreen() {
   const toast = useToast();

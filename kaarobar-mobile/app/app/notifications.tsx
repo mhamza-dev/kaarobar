@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import {useCallback, useEffect, useState, useMemo } from "react";
+import { useBrandPalette } from "../../lib/BrandThemeContext";
 import { Link, router, Stack } from "expo-router";
 import {
   ActivityIndicator,
@@ -24,6 +25,8 @@ type Note = {
 };
 
 export default function NotificationsScreen() {
+  const palette = useBrandPalette();
+  const styles = useMemo(() => createStyles(palette), [palette]);
   const toast = useToast();
   const [items, setItems] = useState<Note[]>([]);
   const [unread, setUnread] = useState(0);
@@ -89,7 +92,7 @@ export default function NotificationsScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={colors.brand} />
+        <ActivityIndicator color={palette.brand} />
       </View>
     );
   }
@@ -102,7 +105,7 @@ export default function NotificationsScreen() {
           headerRight: () =>
             unread > 0 ? (
               <Pressable onPress={() => void markAll()} style={{ marginRight: 8 }}>
-                <Text style={{ color: colors.brand, fontWeight: "700" }}>Mark all</Text>
+                <Text style={{ color: palette.brand, fontWeight: "700" }}>Mark all</Text>
               </Pressable>
             ) : null,
         }}
@@ -117,7 +120,7 @@ export default function NotificationsScreen() {
               setRefreshing(true);
               void load();
             }}
-            tintColor={colors.brand}
+            tintColor={palette.brand}
           />
         }
       >
@@ -150,7 +153,8 @@ export default function NotificationsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(palette: import("../../lib/brandTheme").BrandPalette) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bgPrimary, padding: 16 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bgPrimary },
   hint: { color: colors.body, marginBottom: 12 },
@@ -163,18 +167,19 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 10,
   },
-  cardUnread: { borderColor: colors.brand },
+  cardUnread: { borderColor: palette.brand },
   title: { fontWeight: "700", color: colors.heading, fontSize: 16 },
   body: { marginTop: 6, color: colors.body },
   meta: { marginTop: 8, color: colors.muted, fontSize: 12 },
   btn: {
     marginTop: 10,
     alignSelf: "flex-start",
-    backgroundColor: colors.brand,
+    backgroundColor: palette.brand,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   btnText: { color: colors.white, fontWeight: "700" },
-  link: { marginTop: 18, textAlign: "center", color: colors.brand, fontWeight: "600" },
+  link: { marginTop: 18, textAlign: "center", color: palette.brand, fontWeight: "600" },
 });
+}

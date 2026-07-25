@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { colors, getSession, isConsumerSession } from "../../lib/api";
+import { useBrandPalette } from "../../lib/BrandThemeContext";
 import BuyerOrders from "../../components/BuyerOrders";
 
 /** Shared `/sales` — buyer order history; staff use POS for sales. */
 export default function SalesScreen() {
+  const palette = useBrandPalette();
   const [ready, setReady] = useState(false);
   const [buyer, setBuyer] = useState(false);
 
@@ -28,7 +30,7 @@ export default function SalesScreen() {
   if (!ready) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={colors.brand} />
+        <ActivityIndicator color={palette.brand} />
       </View>
     );
   }

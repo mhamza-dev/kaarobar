@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { api, getSession } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
+import Modal from "@/components/modals/Modal";
 import { useToast } from "@/components/ui/Toast";
 import {
   Alert,
@@ -10,8 +11,8 @@ import {
   KpiCard,
   PageHeader,
   StatusBadge,
-  SurfaceCard,
 } from "@/components/app/ui";
+import { BuyerArSkeleton } from "@/components/buyer/BuyerSkeletons";
 import { useT } from "@/lib/i18n";
 
 type Invoice = {
@@ -19,8 +20,10 @@ type Invoice = {
   business_id?: string;
   business_name?: string | null;
   invoice_number: string;
+  total_amount?: string;
   balance_due: string;
   status: string;
+  due_date?: string | null;
 };
 
 type Balance = {
@@ -38,12 +41,16 @@ export default function BuyerAr() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<Invoice | null>(null);
 
   const memberships = getSession()?.buyer_memberships || [];
 
   function businessName(id?: string | null) {
-    if (!id) return "Store";
-    return memberships.find((m) => m.business_id === id)?.business_name || id.slice(0, 8) + "…";
+    if (!id) return t("marketplace.store");
+    return (
+      memberships.find((m) => m.business_id === id)?.business_name ||
+      id.slice(0, 8) + "…"
+    );
   }
 
   async function load() {
@@ -76,10 +83,11 @@ export default function BuyerAr() {
           business_id: invoice.business_id,
         }),
       });
-      toast.success("Payment recorded");
+      toast.success(t("marketplace.paymentRecorded"));
+      setSelected(null);
       await load();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Payment failed");
+      toast.error(err instanceof Error ? err.message : t("marketplace.paymentFailed"));
     } finally {
       setBusy(false);
     }
@@ -97,17 +105,24 @@ export default function BuyerAr() {
       />
       {error ? <Alert tone="error">{error}</Alert> : null}
       {loading ? (
-        <p className="text-sm text-body">Loading balances…</p>
+        <BuyerArSkeleton />
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2">
-            <KpiCard label="Stores with balance" value={balances.length} />
-            <KpiCard label="Open invoices" value={openCount} tone="warning" />
+            <KpiCard
+              label={t("marketplace.storesWithBalance")}
+              value={balances.length}
+            />
+            <KpiCard
+              label={t("marketplace.openInvoices")}
+              value={openCount}
+              tone="warning"
+            />
           </div>
           {balances.length === 0 && invoices.length === 0 ? (
             <EmptyState
-              title="No khata activity"
-              body="Balances appear when a store adds you to khata."
+              title={t("marketplace.emptyArTitle")}
+              body={t("marketplace.emptyArBody")}
             />
           ) : (
             <>
@@ -115,37 +130,45 @@ export default function BuyerAr() {
                 <ul className="grid gap-3 sm:grid-cols-2">
                   {balances.map((b) => (
                     <li key={b.business_id}>
-                      <SurfaceCard className="p-4">
+                      <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
                         <p className="text-sm font-semibold text-heading">
                           {b.business_name || businessName(b.business_id)}
                         </p>
-                        <p className="mt-2 text-2xl font-bold text-heading">Rs {b.balance}</p>
-                      </SurfaceCard>
+                        <p className="mt-2 text-2xl font-bold text-heading">
+                          Rs {b.balance}
+                        </p>
+                      </div>
                     </li>
                   ))}
                 </ul>
               ) : null}
               <ul className="space-y-3">
                 {invoices.length === 0 ? (
-                  <EmptyState title="No open invoices" />
+                  <EmptyState title={t("marketplace.noOpenInvoices")} />
                 ) : (
                   invoices.map((inv) => (
                     <li key={inv.id}>
-                      <SurfaceCard className="flex flex-wrap items-center justify-between gap-3 p-4">
+                      <button
+                        type="button"
+                        onClick={() => setSelected(inv)}
+                        className="flex w-full flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 text-left shadow-sm transition hover:border-brand/30 hover:shadow-md"
+                      >
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
-                            <p className="font-semibold text-heading">{inv.invoice_number}</p>
+                            <p className="font-semibold text-heading">
+                              {inv.invoice_number}
+                            </p>
                             <StatusBadge tone="warning">{inv.status}</StatusBadge>
                           </div>
                           <p className="mt-1 text-sm text-body">
-                            {inv.business_name || businessName(inv.business_id)} · Due Rs{" "}
-                            {inv.balance_due}
+                            {inv.business_name || businessName(inv.business_id)} ·{" "}
+                            {t("marketplace.due")} Rs {inv.balance_due}
                           </p>
                         </div>
-                        <Button size="sm" disabled={busy} onClick={() => void pay(inv)}>
-                          Pay
-                        </Button>
-                      </SurfaceCard>
+                        <span className="text-sm font-semibold text-brand">
+                          {t("marketplace.viewDetails")} →
+                        </span>
+                      </button>
                     </li>
                   ))
                 )}
@@ -154,6 +177,62 @@ export default function BuyerAr() {
           )}
         </>
       )}
+
+      <Modal
+        isOpen={!!selected}
+        onClose={() => setSelected(null)}
+        title={selected?.invoice_number}
+        description={
+          selected
+            ? selected.business_name || businessName(selected.business_id)
+            : undefined
+        }
+        size="md"
+        footer={
+          selected ? (
+            <Button
+              className="w-full rounded-xl sm:w-auto"
+              loading={busy}
+              onClick={() => void pay(selected)}
+            >
+              {t("marketplace.payNow")} · Rs {selected.balance_due}
+            </Button>
+          ) : null
+        }
+      >
+        {selected ? (
+          <dl className="space-y-3 text-sm">
+            <div className="flex justify-between gap-4">
+              <dt className="text-body">{t("common.status")}</dt>
+              <dd>
+                <StatusBadge tone="warning">{selected.status}</StatusBadge>
+              </dd>
+            </div>
+            {selected.total_amount ? (
+              <div className="flex justify-between gap-4">
+                <dt className="text-body">{t("common.total")}</dt>
+                <dd className="font-semibold text-heading">
+                  Rs {selected.total_amount}
+                </dd>
+              </div>
+            ) : null}
+            <div className="flex justify-between gap-4">
+              <dt className="text-body">{t("marketplace.balanceDue")}</dt>
+              <dd className="text-lg font-bold text-heading">
+                Rs {selected.balance_due}
+              </dd>
+            </div>
+            {selected.due_date ? (
+              <div className="flex justify-between gap-4">
+                <dt className="text-body">{t("marketplace.dueDate")}</dt>
+                <dd className="font-semibold text-heading">
+                  {String(selected.due_date)}
+                </dd>
+              </div>
+            ) : null}
+          </dl>
+        ) : null}
+      </Modal>
     </div>
   );
 }

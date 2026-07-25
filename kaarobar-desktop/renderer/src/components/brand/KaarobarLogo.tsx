@@ -30,7 +30,7 @@ export default function KaarobarLogo({
       {...rest}
     >
       {title ? <title>{title}</title> : null}
-      {isIcon ? <rect width="1024" height="1024" fill="#2d6df6" /> : null}
+      {isIcon ? <rect width="1024" height="1024" fill="var(--brand, #2d6df6)" /> : null}
       <g fill="none" stroke={ink} strokeWidth="44" strokeLinecap="round" strokeLinejoin="round">
         <path d="M 270 512 L 478 512" />
         <path d="M 390 230 L 390 410 Q 390 512 478 512" />

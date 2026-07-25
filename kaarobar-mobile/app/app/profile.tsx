@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import {useCallback, useEffect, useState, useMemo } from "react";
+import { useBrandPalette } from "../../lib/BrandThemeContext";
 import { router, Stack } from "expo-router";
 import {
   ActivityIndicator,
@@ -24,6 +25,8 @@ type NotificationPrefs = {
 };
 
 export default function ProfileScreen() {
+  const palette = useBrandPalette();
+  const styles = useMemo(() => createStyles(palette), [palette]);
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const [tick, setTick] = useState(0);
@@ -306,13 +309,14 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(palette: import("../../lib/brandTheme").BrandPalette) {
+  return StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bgPrimary },
   content: { padding: 20, paddingBottom: 40 },
   photoRow: { flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 8 },
   avatar: { width: 72, height: 72, borderRadius: 14 },
   avatarFallback: {
-    backgroundColor: colors.brand,
+    backgroundColor: palette.brand,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -328,7 +332,7 @@ const styles = StyleSheet.create({
   secondaryBtnText: { color: colors.heading, fontWeight: "700", textAlign: "center" },
 
   eyebrow: {
-    color: colors.brand,
+    color: palette.brand,
     fontSize: 12,
     fontWeight: "700",
     textTransform: "uppercase",
@@ -345,7 +349,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     color: colors.heading,
   },
-  disabled: { backgroundColor: colors.brandLight, color: colors.muted },
+  disabled: { backgroundColor: palette.brandLight, color: colors.muted },
   hint: { marginTop: 4, fontSize: 12, color: colors.muted },
   row: { flexDirection: "row", gap: 8 },
   chip: {
@@ -356,12 +360,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     backgroundColor: colors.card,
   },
-  chipOn: { backgroundColor: colors.brand, borderColor: colors.brand },
+  chipOn: { backgroundColor: palette.brand, borderColor: palette.brand },
   chipText: { fontWeight: "700", color: colors.heading },
   chipTextOn: { color: colors.white },
   btn: {
     marginTop: 20,
-    backgroundColor: colors.brand,
+    backgroundColor: palette.brand,
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: "center",
@@ -371,3 +375,4 @@ const styles = StyleSheet.create({
   ok: { color: colors.success, marginBottom: 8 },
   meta: { marginTop: 16, fontSize: 12, color: colors.muted },
 });
+}

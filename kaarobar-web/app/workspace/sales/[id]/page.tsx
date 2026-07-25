@@ -3,21 +3,38 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { api } from "@/lib/api/client";
+import { api, isConsumerSession } from "@/lib/api/client";
 import { detailRoutes, routes } from "@/lib/navigation";
 import { DetailFieldGrid, DetailSection, DetailShell } from "@/components/app/DetailShell";
 import Button from "@/components/ui/Button";
 import SaleReceiptModal, { type ReceiptSale } from "@/components/app/SaleReceiptModal";
+import BuyerOrderDetail from "@/components/buyer/BuyerOrderDetail";
+import { BuyerOrderDetailSkeleton } from "@/components/buyer/BuyerSkeletons";
 
 type Sale = ReceiptSale & {
   status: string;
   customer_id?: string | null;
+  customer_name?: string | null;
   ar_invoice_id?: string | null;
   fbr_invoice_no?: string | null;
   branch_id?: string;
 };
 
 export default function SaleDetailPage() {
+  const [ready, setReady] = useState(false);
+  const [buyer, setBuyer] = useState(false);
+
+  useEffect(() => {
+    setBuyer(isConsumerSession());
+    setReady(true);
+  }, []);
+
+  if (!ready) return <BuyerOrderDetailSkeleton />;
+  if (buyer) return <BuyerOrderDetail />;
+  return <StaffSaleDetailPage />;
+}
+
+function StaffSaleDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [sale, setSale] = useState<Sale | null>(null);
   const [error, setError] = useState<string | null>(null);

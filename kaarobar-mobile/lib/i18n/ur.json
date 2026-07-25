@@ -442,5 +442,26 @@
     "accessDeniedTitle": "رسائی منع ہے",
     "accessDeniedMessage": "منتخب کاروبار اور برانچ کے لیے آپ کو یہ صفحہ کھولنے کی اجازت نہیں ہے۔",
     "goToDashboard": "ڈیش بورڈ پر جائیں"
+  },
+  "marketplace": {
+    "allStores": "← تمام اسٹورز",
+    "viewCart": "کارٹ دیکھیں ({count})",
+    "searchProducts": "مصنوعات تلاش…",
+    "noFilterMatches": "دوسری کیٹیگری یا تلاش آزمائیں۔",
+    "clearFilters": "فلٹر صاف کریں",
+    "productsCount": "{count} مصنوعات",
+    "emptyCatalogTitle": "کوئی مصنوعات نہیں",
+    "emptyCatalogBody": "اس اسٹور نے ابھی کیٹلاگ شائع نہیں کی۔ جلد واپس آئیں یا دوسرے اسٹورز دیکھیں۔",
+    "noImage": "تصویر نہیں",
+    "quickAdd": "شامل کریں",
+    "addToCart": "کارٹ میں شامل کریں",
+    "addQtyToCart": "{count} کارٹ میں شامل کریں",
+    "addedToCart": "{name} شامل ہو گیا",
+    "quantity": "مقدار",
+    "lineTotal": "کل",
+    "allCategories": "سب",
+    "noDescription": "تفصیل دستیاب نہیں۔",
+    "pickupHint": "پک اپ · کارٹ میں شامل کریں",
+    "close": "بند کریں"
   }
 }

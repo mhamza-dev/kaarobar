@@ -1979,17 +1979,25 @@ seed_scenario_pack = fn owner, business, branches, products, employees, cashier 
       end
 
       # Online marketplace order (card/wallet only, no cashier required)
+      # Prefer a portal-enabled customer so buyer Order history has demo data.
+      online_customer =
+        Enum.find(customers, &(&1.portal_enabled == true)) ||
+          Enum.find(customers, &(is_binary(&1.email) and &1.email != "")) ||
+          List.first(customers)
+
       online_total = expected_sale_total.(product, branch.id, qty)
 
       _ =
-        Pos.create_sale(branch.id, owner.id, business.id, nil, %{
-          client_txn_id: Ecto.UUID.generate(),
-          source: "online",
-          customer_id: List.first(customers) && List.first(customers).id,
-          items: [%{product_id: product.id, quantity: qty}],
-          payments: [%{method: "card", amount: online_total}],
-          notes: "Marketplace online order"
-        })
+        if online_customer do
+          Pos.create_sale(branch.id, owner.id, business.id, nil, %{
+            client_txn_id: Ecto.UUID.generate(),
+            source: "online",
+            customer_id: online_customer.id,
+            items: [%{product_id: product.id, quantity: qty}],
+            payments: [%{method: "card", amount: online_total}],
+            notes: "Marketplace online order"
+          })
+        end
     end
 
     # 6) Returns: pending / approved / rejected

@@ -1,9 +1,13 @@
+import { useMemo } from "react";
 import { Link } from "expo-router";
+import { useBrandPalette } from "../lib/BrandThemeContext";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { colors } from "../lib/api";
 import KaarobarLogo from "../components/KaarobarLogo";
 
 export default function LandingScreen() {
+  const palette = useBrandPalette();
+  const styles = useMemo(() => createStyles(palette), [palette]);
   return (
     <View style={styles.container}>
       <Text style={styles.eyebrow}>More than one shop? This is for you.</Text>
@@ -38,7 +42,8 @@ export default function LandingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(palette: import("../lib/brandTheme").BrandPalette) {
+  return StyleSheet.create({
   container: {
     flex: 1,
     padding: 28,
@@ -46,7 +51,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgPrimary,
   },
   eyebrow: {
-    color: colors.brand,
+    color: palette.brand,
     fontWeight: "700",
     fontSize: 12,
     letterSpacing: 1.2,
@@ -72,14 +77,14 @@ const styles = StyleSheet.create({
   },
   pills: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 32 },
   pill: {
-    backgroundColor: colors.brandSoft,
+    backgroundColor: palette.brandSoft,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
   },
-  pillText: { color: colors.brand, fontWeight: "600", fontSize: 12 },
+  pillText: { color: palette.brand, fontWeight: "600", fontSize: 12 },
   primary: {
-    backgroundColor: colors.brand,
+    backgroundColor: palette.brand,
     paddingVertical: 14,
     borderRadius: 12,
     marginBottom: 12,
@@ -104,3 +109,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
+}

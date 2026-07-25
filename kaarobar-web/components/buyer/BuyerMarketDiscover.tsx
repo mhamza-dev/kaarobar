@@ -2,19 +2,16 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { ArrowUpRight, Store } from "lucide-react";
 import { api } from "@/lib/api/client";
-import {
-  Alert,
-  EmptyState,
-  PageHeader,
-  SurfaceCard,
-} from "@/components/app/ui";
+import { Alert, EmptyState, PageHeader } from "@/components/app/ui";
 import ListingFilters, {
   applyListingFilters,
   emptyListingFilters,
   type ListingFilterState,
 } from "@/components/app/ListingFilters";
 import { BrandThemeScope } from "@/components/app/BrandTheme";
+import { BuyerDiscoverSkeleton } from "@/components/buyer/BuyerSkeletons";
 import { useT } from "@/lib/i18n";
 
 type Biz = {
@@ -37,7 +34,7 @@ export default function BuyerMarketDiscover() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       setLoading(true);
       const q = filters.search.trim();
       void api<{ data: Biz[] }>(
@@ -52,7 +49,7 @@ export default function BuyerMarketDiscover() {
         .catch((err) => setError(err instanceof Error ? err.message : "Failed to load"))
         .finally(() => setLoading(false));
     }, 200);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, [filters.search]);
 
   const industryOptions = useMemo(() => {
@@ -73,105 +70,138 @@ export default function BuyerMarketDiscover() {
   );
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow={t("marketplace.eyebrow")}
-        title={t("pages.discoverTitle")}
-        description={t("pages.discoverDesc")}
-        infoKey="page.market.discover"
-      />
+    <div className="space-y-8">
+      <div className="relative overflow-hidden rounded-3xl border border-border bg-card">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-90"
+          style={{
+            background:
+              "radial-gradient(ellipse 80% 60% at 10% 0%, color-mix(in srgb, var(--brand) 18%, transparent), transparent 55%), radial-gradient(ellipse 50% 40% at 90% 20%, color-mix(in srgb, var(--brand) 10%, transparent), transparent 50%)",
+          }}
+        />
+        <div className="relative px-6 py-8 sm:px-8 sm:py-10">
+          <PageHeader
+            eyebrow={t("marketplace.eyebrow")}
+            title={t("pages.discoverTitle")}
+            description={t("pages.discoverDesc")}
+            infoKey="page.market.discover"
+          />
+          <p className="mt-3 max-w-xl text-sm text-body">
+            {t("marketplace.discoverHero")}
+          </p>
+        </div>
+      </div>
+
       <ListingFilters
         value={filters}
         onChange={setFilters}
         categoryOptions={industryOptions}
         categoryLabel="Industry"
         showPrice={false}
-        searchPlaceholder="Search by name or industry"
+        searchPlaceholder={t("marketplace.searchStores")}
       />
+
       {error ? <Alert tone="error">{error}</Alert> : null}
-      {loading && businesses.length === 0 ? (
-        <p className="text-sm text-body">Loading stores…</p>
+
+      {loading ? (
+        <BuyerDiscoverSkeleton />
       ) : filtered.length === 0 ? (
         <EmptyState
-          title={businesses.length === 0 ? "No stores listed yet" : "No matches"}
+          title={
+            businesses.length === 0
+              ? t("marketplace.emptyStoresTitle")
+              : t("common.noResults")
+          }
           body={
             businesses.length === 0
-              ? "When businesses enable the marketplace, they will appear here."
-              : "Try another industry chip or search term."
+              ? t("marketplace.emptyStoresBody")
+              : t("marketplace.noFilterMatches")
           }
         />
       ) : (
-        <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((b) => {
             const accent = b.primary_color || undefined;
             return (
               <li key={b.id}>
                 <BrandThemeScope primaryColor={accent}>
-                <Link
-                  href={`/app/market/${b.marketplace_slug || b.id}`}
-                  className="block h-full transition hover:-translate-y-0.5"
-                >
-                  <SurfaceCard
-                    className="h-full overflow-hidden p-0"
-                    style={
-                      accent
-                        ? { borderTopWidth: 3, borderTopColor: accent }
-                        : undefined
-                    }
+                  <Link
+                    href={`/app/market/${b.marketplace_slug || b.id}`}
+                    className="group block h-full"
                   >
-                    <div
-                      className="flex gap-4 p-5"
+                    <article
+                      className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition duration-200 group-hover:-translate-y-1 group-hover:shadow-lg"
                       style={
                         accent
-                          ? {
-                              background: `linear-gradient(120deg, ${accent}12 0%, transparent 50%)`,
-                            }
+                          ? { borderTopWidth: 4, borderTopColor: accent }
                           : undefined
                       }
                     >
                       <div
-                        className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-card-muted text-xl font-bold text-heading shadow-sm"
-                        style={accent ? { backgroundColor: `${accent}18` } : undefined}
+                        className="relative flex min-h-[7.5rem] items-end p-5"
+                        style={
+                          accent
+                            ? {
+                                background: `linear-gradient(145deg, ${accent}22 0%, ${accent}08 40%, transparent 70%)`,
+                              }
+                            : {
+                                background:
+                                  "linear-gradient(145deg, var(--brand-soft) 0%, transparent 70%)",
+                              }
+                        }
                       >
-                        {b.logo_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={b.logo_url} alt="" className="h-full w-full object-cover" />
-                        ) : (
-                          (b.name || "?").slice(0, 1).toUpperCase()
-                        )}
+                        <div
+                          className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-white/60 bg-card text-xl font-bold text-heading shadow-md"
+                          style={accent ? { boxShadow: `0 8px 24px ${accent}33` } : undefined}
+                        >
+                          {b.logo_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={b.logo_url} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            (b.name || "?").slice(0, 1).toUpperCase()
+                          )}
+                        </div>
+                        <span className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-card/90 text-brand opacity-0 shadow-sm transition group-hover:opacity-100">
+                          <ArrowUpRight className="h-4 w-4" />
+                        </span>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-lg font-bold text-heading">{b.name}</p>
+                      <div className="flex flex-1 flex-col gap-2 p-5 pt-4">
+                        <div className="flex items-start justify-between gap-2">
+                          <h2 className="text-lg font-bold tracking-tight text-heading">
+                            {b.name}
+                          </h2>
+                          {!b.logo_url ? (
+                            <Store className="mt-1 h-4 w-4 shrink-0 text-muted" />
+                          ) : null}
+                        </div>
                         {b.tagline ? (
-                          <p className="mt-0.5 truncate text-sm text-body">{b.tagline}</p>
+                          <p className="line-clamp-1 text-sm text-body">{b.tagline}</p>
                         ) : null}
                         {b.industry ? (
                           <span
-                            className="mt-2 inline-block rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                            className="mt-1 inline-flex w-fit rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider"
                             style={
                               accent
-                                ? { backgroundColor: `${accent}22`, color: accent }
+                                ? { backgroundColor: `${accent}18`, color: accent }
                                 : undefined
                             }
                           >
-                            <span className={!accent ? "text-muted" : undefined}>
+                            <span className={!accent ? "bg-brand-soft px-0 text-brand" : undefined}>
                               {b.industry}
                             </span>
                           </span>
-                        ) : (
-                          <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-muted">
-                            store
-                          </p>
-                        )}
+                        ) : null}
                         {b.marketplace_description ? (
-                          <p className="mt-2 line-clamp-2 text-sm text-body">
+                          <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-body">
                             {b.marketplace_description}
                           </p>
                         ) : null}
+                        <span className="mt-auto pt-3 text-sm font-semibold text-brand">
+                          {t("marketplace.shopNow")} →
+                        </span>
                       </div>
-                    </div>
-                  </SurfaceCard>
-                </Link>
+                    </article>
+                  </Link>
                 </BrandThemeScope>
               </li>
             );

@@ -27,7 +27,10 @@ export function BrandThemeProvider({ children }: { children: ReactNode }) {
   const [staffPrimary, setStaffPrimary] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
 
-  const refreshStaffBrand = useCallback(() => setTick((n) => n + 1), []);
+  const refreshStaffBrand = useCallback(() => {
+    setOverride(null);
+    setTick((n) => n + 1);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;

@@ -735,6 +735,8 @@ defmodule Kaarobar.CustomerPortal do
   end
 
   defp membership_ids(account, business_id) do
+    business_id = blank_to_nil(business_id)
+
     account
     |> list_memberships()
     |> then(fn list ->

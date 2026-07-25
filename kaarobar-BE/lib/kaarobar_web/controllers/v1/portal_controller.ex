@@ -81,14 +81,17 @@ defmodule KaarobarWeb.V1.PortalController do
 
   def orders(conn, params) do
     account = conn.assigns.portal_account
-    opts = [business_id: params["business_id"] || conn.assigns[:business_id]]
+    # Order history is cross-store. Only filter when the client passes an explicit
+    # query/body business_id — never the soft x-business-id session header
+    # (often the first membership / last browsed store).
+    opts = [business_id: blank_to_nil(params["business_id"])]
     data = account |> CustomerPortal.list_orders(opts) |> Enum.map(&serialize_sale/1)
     json(conn, %{data: data})
   end
 
   def show_order(conn, %{"id" => id} = params) do
     account = conn.assigns.portal_account
-    opts = [business_id: params["business_id"] || conn.assigns[:business_id]]
+    opts = [business_id: blank_to_nil(params["business_id"])]
 
     case CustomerPortal.get_order(account, id, opts) do
       nil -> conn |> put_status(:not_found) |> json(%{error: "not_found"})
@@ -288,4 +291,14 @@ defmodule KaarobarWeb.V1.PortalController do
         end)
     }
   end
+
+  defp blank_to_nil(nil), do: nil
+  defp blank_to_nil(""), do: nil
+
+  defp blank_to_nil(v) when is_binary(v) do
+    trimmed = String.trim(v)
+    if trimmed == "", do: nil, else: trimmed
+  end
+
+  defp blank_to_nil(_), do: nil
 end

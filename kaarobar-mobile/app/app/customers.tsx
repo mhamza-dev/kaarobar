@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import {useCallback, useEffect, useState, useMemo } from "react";
+import { useBrandPalette } from "../../lib/BrandThemeContext";
 import {
   View,
   Text,
@@ -31,6 +32,8 @@ type LedgerEntry = {
 };
 
 export default function CustomersScreen() {
+  const palette = useBrandPalette();
+  const styles = useMemo(() => createStyles(palette), [palette]);
   const [session, setSession] = useState<Session | null>(null);
   const [buyer, setBuyer] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -289,7 +292,8 @@ export default function CustomersScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(palette: import("../../lib/brandTheme").BrandPalette) {
+  return StyleSheet.create({
   container: { flex: 1, padding: 24, backgroundColor: colors.bgPrimary },
   title: { fontSize: 24, fontWeight: "800", color: colors.heading, marginBottom: 12 },
   error: { color: colors.danger, marginBottom: 8 },
@@ -304,7 +308,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgSecondary,
   },
   primaryBtn: {
-    backgroundColor: colors.brand,
+    backgroundColor: palette.brand,
     borderRadius: 8,
     padding: 12,
     alignItems: "center",
@@ -332,11 +336,12 @@ const styles = StyleSheet.create({
   },
   chipText: { color: colors.heading, fontSize: 12, fontWeight: "600" },
   portalBadge: {
-    color: colors.brand,
+    color: palette.brand,
     fontSize: 12,
     fontWeight: "700",
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
-  link: { color: colors.brand, marginTop: 8, fontWeight: "600" },
+  link: { color: palette.brand, marginTop: 8, fontWeight: "600" },
 });
+}

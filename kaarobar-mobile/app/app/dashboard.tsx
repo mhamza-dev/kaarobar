@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import {useEffect, useState, useMemo } from "react";
 import { Link, router } from "expo-router";
 import {
   ActivityIndicator,
@@ -38,6 +38,7 @@ type Branch = { id: string; name: string };
 export default function DashboardScreen() {
   const toast = useToast();
   const { palette, refreshStaffBrand } = useBrandTheme();
+  const styles = useMemo(() => createStyles(palette), [palette]);
   const [session, setLocal] = useState<Session | null>(null);
   const [dash, setDash] = useState<Dashboard | null>(null);
   const [businesses, setBusinesses] = useState<Business[]>([]);
@@ -193,7 +194,7 @@ export default function DashboardScreen() {
   if (!session) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={colors.brand} />
+        <ActivityIndicator color={palette.brand} />
       </View>
     );
   }
@@ -366,7 +367,8 @@ export default function DashboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(palette: import("../../lib/brandTheme").BrandPalette) {
+  return StyleSheet.create({
   center: {
     flex: 1,
     alignItems: "center",
@@ -404,7 +406,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     backgroundColor: colors.card,
   },
-  chipActive: { backgroundColor: colors.brand, borderColor: colors.brand },
+  chipActive: { backgroundColor: palette.brand, borderColor: palette.brand },
   chipText: { color: colors.heading, fontWeight: "600" },
   chipTextActive: { color: colors.white },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 12 },
@@ -434,3 +436,4 @@ const styles = StyleSheet.create({
   logout: { marginTop: 16, paddingVertical: 12 },
   logoutText: { textAlign: "center", fontWeight: "600" },
 });
+}

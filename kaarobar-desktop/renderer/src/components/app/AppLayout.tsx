@@ -24,6 +24,7 @@ import { clearSession, getSession, hydrateSessionContext, type StoredSession } f
 import { canAccessBundle, canAccessPath } from "@/lib/rbac";
 import TenantSwitcher from "@/components/app/TenantSwitcher";
 import LanguageSwitcher from "@/components/app/LanguageSwitcher";
+import { StaffBrandProvider } from "@/components/app/BrandTheme";
 import KaarobarLogo from "@/components/brand/KaarobarLogo";
 import Button from "@/components/ui/Button";
 import { useI18n } from "@/lib/i18n";
@@ -200,6 +201,7 @@ export default function AppLayout() {
   }
 
   return (
+    <StaffBrandProvider businessId={session.business_id}>
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-bg-primary text-heading lg:flex-row">
       <aside className="relative z-30 hidden h-full min-h-0 w-[248px] shrink-0 flex-col overflow-hidden border-r border-rail-border bg-rail lg:flex">
         <div className="flex shrink-0 items-center gap-3 border-b border-rail-border px-5 py-4">
@@ -319,5 +321,6 @@ export default function AppLayout() {
         </main>
       </div>
     </div>
+    </StaffBrandProvider>
   );
 }

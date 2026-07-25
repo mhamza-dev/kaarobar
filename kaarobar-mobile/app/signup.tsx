@@ -1,4 +1,5 @@
-import { useState } from "react";
+import {useState, useMemo } from "react";
+import { useBrandPalette } from "../lib/BrandThemeContext";
 import { Link, router } from "expo-router";
 import {
   ActivityIndicator,
@@ -12,6 +13,8 @@ import { api, colors, hydrateSessionContext, setSession } from "../lib/api";
 import KaarobarLogo from "../components/KaarobarLogo";
 
 export default function SignupScreen() {
+  const palette = useBrandPalette();
+  const styles = useMemo(() => createStyles(palette), [palette]);
   const [name, setName] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [email, setEmail] = useState("");
@@ -101,7 +104,8 @@ export default function SignupScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(palette: import("../lib/brandTheme").BrandPalette) {
+  return StyleSheet.create({
   container: { flex: 1, padding: 24, backgroundColor: colors.bgPrimary, justifyContent: "center" },
   brandRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 24 },
   brandTitle: { fontSize: 18, fontWeight: "800", color: colors.heading },
@@ -127,12 +131,13 @@ const styles = StyleSheet.create({
     color: colors.heading,
   },
   primary: {
-    backgroundColor: colors.brand,
+    backgroundColor: palette.brand,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",
     marginTop: 8,
   },
   primaryText: { color: colors.white, fontWeight: "700", fontSize: 16 },
-  link: { marginTop: 18, textAlign: "center", color: colors.brand, fontWeight: "600" },
+  link: { marginTop: 18, textAlign: "center", color: palette.brand, fontWeight: "600" },
 });
+}

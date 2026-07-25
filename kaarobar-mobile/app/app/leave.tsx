@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import {useCallback, useEffect, useState, useMemo } from "react";
+import { useBrandPalette } from "../../lib/BrandThemeContext";
 import { router, Stack } from "expo-router";
 import {
   ActivityIndicator,
@@ -24,6 +25,8 @@ type Leave = {
 };
 
 export default function LeaveApproveScreen() {
+  const palette = useBrandPalette();
+  const styles = useMemo(() => createStyles(palette), [palette]);
   const toast = useToast();
   const [items, setItems] = useState<Leave[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,7 +76,7 @@ export default function LeaveApproveScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={colors.brand} />
+        <ActivityIndicator color={palette.brand} />
       </View>
     );
   }
@@ -123,7 +126,8 @@ export default function LeaveApproveScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(palette: import("../../lib/brandTheme").BrandPalette) {
+  return StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bgPrimary },
   container: { flex: 1, backgroundColor: colors.bgPrimary, padding: 16 },
   empty: { textAlign: "center", color: colors.muted, marginTop: 24 },
@@ -140,7 +144,7 @@ const styles = StyleSheet.create({
   meta: { marginTop: 6, color: colors.muted, fontSize: 12 },
   row: { flexDirection: "row", gap: 8, marginTop: 12 },
   btn: {
-    backgroundColor: colors.brand,
+    backgroundColor: palette.brand,
     borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 10,
@@ -155,3 +159,4 @@ const styles = StyleSheet.create({
   },
   btnSecondaryText: { color: colors.heading, fontWeight: "700" },
 });
+}

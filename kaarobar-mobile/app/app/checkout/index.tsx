@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import {useEffect, useMemo } from "react";
 import { Link, router } from "expo-router";
 import { FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { colors } from "../../../lib/api";
@@ -18,6 +18,8 @@ function StoreSection({
   onRemove: (businessId: string, productId: string) => void;
   onClear: (businessId: string) => void;
 }) {
+  const palette = useBrandPalette();
+  const styles = useMemo(() => createStyles(palette), [palette]);
   const storeTotal = store.lines.reduce((s, l) => s + l.quantity * l.price, 0);
   const accent = store.branding?.primaryColor;
   return (
@@ -84,12 +86,13 @@ function StoreSection({
 }
 
 export default function CheckoutReviewScreen() {
+  const palette = useBrandPalette();
+  const styles = useMemo(() => createStyles(palette), [palette]);
   const { stores, itemCount, subtotal, setQty, removeItem, clearStore } = useCart();
-  const staffBrand = useBrandPalette();
   const footerPalette =
     stores.length === 1
       ? brandPaletteFromPrimary(stores[0].branding?.primaryColor)
-      : staffBrand;
+      : palette;
 
   useEffect(() => {
     if (stores.length === 0) {
@@ -150,11 +153,12 @@ export default function CheckoutReviewScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(palette: import("../../../lib/brandTheme").BrandPalette) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bgPrimary, padding: 16 },
   empty: { color: colors.body, marginTop: 24 },
-  link: { color: colors.brand, fontWeight: "700", marginTop: 8 },
-  linkInline: { color: colors.brand, fontWeight: "700" },
+  link: { color: palette.brand, fontWeight: "700", marginTop: 8 },
+  linkInline: { color: palette.brand, fontWeight: "700" },
   title: { fontSize: 24, fontWeight: "800", color: colors.heading },
   sub: { color: colors.body, marginBottom: 12, marginTop: 4 },
   storeCard: {
@@ -203,3 +207,4 @@ const styles = StyleSheet.create({
   },
   ctaText: { fontWeight: "700" },
 });
+}

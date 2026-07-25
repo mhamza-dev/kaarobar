@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { colors } from "../lib/api";
+import { useBrandPalette } from "../lib/BrandThemeContext";
 
 export function BarcodeScannerModal({
   visible,
@@ -14,6 +15,7 @@ export function BarcodeScannerModal({
   onScan: (code: string) => void;
   title?: string;
 }) {
+  const palette = useBrandPalette();
   const [permission, requestPermission] = useCameraPermissions();
   const [locked, setLocked] = useState(false);
 
@@ -39,8 +41,13 @@ export function BarcodeScannerModal({
         {!permission?.granted ? (
           <View style={styles.center}>
             <Text style={styles.body}>Camera permission is required to scan barcodes.</Text>
-            <Pressable style={styles.btn} onPress={requestPermission}>
-              <Text style={styles.btnText}>Allow camera</Text>
+            <Pressable
+              style={[styles.btn, { backgroundColor: palette.brand }]}
+              onPress={requestPermission}
+            >
+              <Text style={[styles.btnText, { color: palette.brandForeground }]}>
+                Allow camera
+              </Text>
             </Pressable>
           </View>
         ) : (
@@ -93,12 +100,11 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
   body: { color: "#fff", textAlign: "center", marginBottom: 16 },
   btn: {
-    backgroundColor: colors.brand,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  btnText: { color: "#fff", fontWeight: "700" },
+  btnText: { fontWeight: "700" },
   hint: {
     color: "#cbd5e1",
     textAlign: "center",

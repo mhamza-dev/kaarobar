@@ -122,7 +122,10 @@ export async function api<T>(
   if (current?.access_token) {
     headers.set("Authorization", `Bearer ${current.access_token}`);
   }
-  if (current?.business_id) headers.set("x-business-id", current.business_id);
+  // Buyers shop across stores — do not send staff tenant headers on portal calls.
+  if (current?.business_id && !isConsumerSession(current)) {
+    headers.set("x-business-id", current.business_id);
+  }
   if (current?.branch_id && !isConsumerSession(current)) {
     headers.set("x-branch-id", current.branch_id);
   }
@@ -168,6 +171,8 @@ export async function hydrateSessionContext(session: Session): Promise<Session> 
         actor: "consumer",
         account: me.data.account,
         buyer_memberships: me.data.memberships || [],
+        business_id: undefined,
+        branch_id: undefined,
         user: {
           id: me.data.account.id,
           email: me.data.account.email,

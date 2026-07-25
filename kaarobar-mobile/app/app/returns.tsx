@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import {useCallback, useEffect, useState, useMemo } from "react";
+import { useBrandPalette } from "../../lib/BrandThemeContext";
 import { router } from "expo-router";
 import {
   ActivityIndicator,
@@ -45,6 +46,8 @@ type Till = {
 };
 
 export default function ReturnsScreen() {
+  const palette = useBrandPalette();
+  const styles = useMemo(() => createStyles(palette), [palette]);
   const [session, setLocal] = useState<Session | null>(null);
   const [saleId, setSaleId] = useState("");
   const [sale, setSale] = useState<Sale | null>(null);
@@ -170,7 +173,7 @@ export default function ReturnsScreen() {
   if (!session) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={colors.brand} />
+        <ActivityIndicator color={palette.brand} />
       </View>
     );
   }
@@ -311,7 +314,8 @@ export default function ReturnsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(palette: import("../../lib/brandTheme").BrandPalette) {
+  return StyleSheet.create({
   center: {
     flex: 1,
     alignItems: "center",
@@ -344,7 +348,7 @@ const styles = StyleSheet.create({
   },
   row: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
   btn: {
-    backgroundColor: colors.brand,
+    backgroundColor: palette.brand,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -367,7 +371,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  chipActive: { backgroundColor: colors.brand, borderColor: colors.brand },
+  chipActive: { backgroundColor: palette.brand, borderColor: palette.brand },
   chipText: { color: colors.heading, textTransform: "capitalize" },
   chipTextActive: { color: colors.white, fontWeight: "700" },
   pendingRow: {
@@ -377,3 +381,4 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
 });
+}

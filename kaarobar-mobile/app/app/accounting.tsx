@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { colors, getSession, isConsumerSession } from "../../lib/api";
+import { useBrandPalette } from "../../lib/BrandThemeContext";
 import BuyerAr from "../../components/BuyerAr";
 
 /** Shared `/accounting` — buyer khata; staff accounting lives on web/desktop for now. */
 export default function AccountingScreen() {
+  const palette = useBrandPalette();
   const [ready, setReady] = useState(false);
   const [buyer, setBuyer] = useState(false);
 
@@ -28,7 +30,7 @@ export default function AccountingScreen() {
   if (!ready) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={colors.brand} />
+        <ActivityIndicator color={palette.brand} />
       </View>
     );
   }

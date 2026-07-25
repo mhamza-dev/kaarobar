@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import {useCallback, useEffect, useState, useMemo } from "react";
+import { useBrandPalette } from "../../lib/BrandThemeContext";
 import { View, Text, TextInput, ScrollView, Pressable, StyleSheet, Alert } from "react-native";
 import { router } from "expo-router";
 import { api, colors, getSession } from "../../lib/api";
@@ -20,6 +21,8 @@ type Campaign = {
 };
 
 export default function MarketingScreen() {
+  const palette = useBrandPalette();
+  const styles = useMemo(() => createStyles(palette), [palette]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [form, setForm] = useState({
     name: "",
@@ -212,7 +215,8 @@ export default function MarketingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(palette: import("../../lib/brandTheme").BrandPalette) {
+  return StyleSheet.create({
   container: { flex: 1, padding: 24, backgroundColor: colors.bgPrimary },
   title: { fontSize: 24, fontWeight: "800", color: colors.heading, marginBottom: 12 },
   error: { color: colors.danger, marginBottom: 8 },
@@ -226,7 +230,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgSecondary,
   },
   primaryBtn: {
-    backgroundColor: colors.brand,
+    backgroundColor: palette.brand,
     borderRadius: 8,
     padding: 12,
     alignItems: "center",
@@ -252,5 +256,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   chipText: { color: colors.heading, fontSize: 12, fontWeight: "600" },
-  link: { color: colors.brand, marginTop: 8, fontWeight: "600" },
+  link: { color: palette.brand, marginTop: 8, fontWeight: "600" },
 });
+}

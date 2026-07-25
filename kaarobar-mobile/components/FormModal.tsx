@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { colors } from "../lib/api";
+import { useBrandPalette } from "../lib/BrandThemeContext";
 
 export function FormModal({
   visible,
@@ -21,6 +22,8 @@ export function FormModal({
   submitLabel?: string;
   busy?: boolean;
 }) {
+  const palette = useBrandPalette();
+
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.backdrop}>
@@ -31,16 +34,22 @@ export function FormModal({
               {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
             </View>
             <Pressable onPress={onClose} hitSlop={12}>
-              <Text style={styles.close}>Close</Text>
+              <Text style={{ color: palette.brand, fontWeight: "700" }}>Close</Text>
             </Pressable>
           </View>
           <View style={styles.body}>{children}</View>
           <Pressable
-            style={[styles.submit, busy && { opacity: 0.6 }]}
+            style={[
+              styles.submit,
+              { backgroundColor: palette.brand },
+              busy && { opacity: 0.6 },
+            ]}
             onPress={onSubmit}
             disabled={busy}
           >
-            <Text style={styles.submitText}>{busy ? "Saving…" : submitLabel}</Text>
+            <Text style={[styles.submitText, { color: palette.brandForeground }]}>
+              {busy ? "Saving…" : submitLabel}
+            </Text>
           </Pressable>
         </View>
       </View>
@@ -66,14 +75,12 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "flex-start", marginBottom: 16 },
   title: { fontSize: 20, fontWeight: "800", color: colors.heading },
   subtitle: { marginTop: 4, color: colors.body, fontSize: 13 },
-  close: { color: colors.brand, fontWeight: "700" },
   body: { gap: 10 },
   submit: {
     marginTop: 16,
-    backgroundColor: colors.brand,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",
   },
-  submitText: { color: colors.white, fontWeight: "700" },
+  submitText: { fontWeight: "700" },
 });

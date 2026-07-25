@@ -35,4 +35,4 @@ Demo login after seed: `owner@kaarobar.local` / `Password@123`
 
 ## Theme
 
-Deep Sapphire design tokens from Web `globals.css` (`#1d4ed8` / rail `#0d1524`).
+Default Deep Sapphire tokens (`#1d4ed8` / rail `#0d1524`). Staff chrome remaps `--brand*` from the active business `primary_color` via `StaffBrandProvider` (Settings → Branding live-previews buttons/nav/inputs).

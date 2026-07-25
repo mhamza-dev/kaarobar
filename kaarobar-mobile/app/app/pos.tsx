@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useBrandPalette } from "../../lib/BrandThemeContext";
 import { router } from "expo-router";
 import {
   ActivityIndicator,
@@ -53,6 +54,8 @@ function round2(n: number) {
 }
 
 export default function PosScreen() {
+  const palette = useBrandPalette();
+  const styles = useMemo(() => createStyles(palette), [palette]);
   const [session, setLocal] = useState<Session | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [query, setQuery] = useState("");
@@ -271,7 +274,7 @@ export default function PosScreen() {
   if (!session) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={colors.brand} />
+        <ActivityIndicator color={palette.brand} />
       </View>
     );
   }
@@ -519,7 +522,8 @@ export default function PosScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(palette: import("../../lib/brandTheme").BrandPalette) {
+  return StyleSheet.create({
   center: {
     flex: 1,
     alignItems: "center",
@@ -528,7 +532,7 @@ const styles = StyleSheet.create({
   },
   container: { flex: 1, padding: 16, backgroundColor: colors.bgPrimary },
   eyebrow: {
-    color: colors.brand,
+    color: palette.brand,
     fontWeight: "700",
     fontSize: 11,
     letterSpacing: 1.2,
@@ -537,7 +541,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 26, fontWeight: "800", color: colors.heading, marginBottom: 8, marginTop: 4 },
   message: { color: colors.body, marginBottom: 8 },
   scanBtn: {
-    backgroundColor: colors.brand,
+    backgroundColor: palette.brand,
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: "center",
@@ -570,7 +574,7 @@ const styles = StyleSheet.create({
   },
   row: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
   btn: {
-    backgroundColor: colors.brand,
+    backgroundColor: palette.brand,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -598,19 +602,19 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   productActive: {
-    borderColor: colors.brand,
-    backgroundColor: colors.brandLight || colors.brandSoft,
+    borderColor: palette.brand,
+    backgroundColor: palette.brandLight,
   },
   avatar: {
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: colors.brandSoft,
+    backgroundColor: palette.brandSoft,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 8,
   },
-  avatarText: { color: colors.brand, fontWeight: "800", fontSize: 13 },
+  avatarText: { color: palette.brand, fontWeight: "800", fontSize: 13 },
   productName: { fontWeight: "700", color: colors.heading },
   sku: { color: colors.muted, fontSize: 12, marginTop: 2 },
   productFooter: {
@@ -621,8 +625,8 @@ const styles = StyleSheet.create({
   },
   productPrice: { color: colors.heading, fontWeight: "700" },
   qtyChip: {
-    backgroundColor: colors.brandSoft,
-    color: colors.brand,
+    backgroundColor: palette.brandSoft,
+    color: palette.brand,
     overflow: "hidden",
     borderRadius: 999,
     paddingHorizontal: 8,
@@ -680,7 +684,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     backgroundColor: colors.card,
   },
-  chipOn: { backgroundColor: colors.brand, borderColor: colors.brand },
+  chipOn: { backgroundColor: palette.brand, borderColor: palette.brand },
   chipText: { color: colors.heading, fontWeight: "600", fontSize: 12 },
   chipTextOn: { color: colors.white },
   receiptOverlay: {
@@ -697,3 +701,4 @@ const styles = StyleSheet.create({
     padding: 16,
   },
 });
+}

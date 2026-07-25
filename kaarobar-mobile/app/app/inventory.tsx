@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import {useCallback, useEffect, useState, useMemo } from "react";
+import { useBrandPalette } from "../../lib/BrandThemeContext";
 import { router } from "expo-router";
 import {
   ActivityIndicator,
@@ -50,6 +51,8 @@ type Transfer = {
 };
 
 export default function InventoryScreen() {
+  const palette = useBrandPalette();
+  const styles = useMemo(() => createStyles(palette), [palette]);
   const [session, setLocal] = useState<Session | null>(null);
   const [tab, setTab] = useState<Tab>("stock");
   const [modal, setModal] = useState<ModalKind>(null);
@@ -331,7 +334,7 @@ export default function InventoryScreen() {
   if (!session) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={colors.brand} />
+        <ActivityIndicator color={palette.brand} />
       </View>
     );
   }
@@ -738,7 +741,8 @@ export default function InventoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(palette: import("../../lib/brandTheme").BrandPalette) {
+  return StyleSheet.create({
   center: {
     flex: 1,
     alignItems: "center",
@@ -773,7 +777,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   btn: {
-    backgroundColor: colors.brand,
+    backgroundColor: palette.brand,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -793,3 +797,4 @@ const styles = StyleSheet.create({
   chipText: { color: colors.heading, fontSize: 13 },
   row: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
 });
+}

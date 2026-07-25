@@ -78,7 +78,6 @@ const LoginForm = ({ actor, onActorChange }: LoginFormProps): React.ReactElement
         name: result.account.name || result.account.email,
         phone: result.account.phone,
       },
-      business_id: result.memberships?.[0]?.business_id,
     };
     setSession(session);
     return session;

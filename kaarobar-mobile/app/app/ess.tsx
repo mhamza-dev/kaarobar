@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import {useCallback, useEffect, useState, useMemo } from "react";
+import { useBrandPalette } from "../../lib/BrandThemeContext";
 import { router } from "expo-router";
 import {
   ActivityIndicator,
@@ -42,6 +43,8 @@ type EssData = {
 };
 
 export default function EssScreen() {
+  const palette = useBrandPalette();
+  const styles = useMemo(() => createStyles(palette), [palette]);
   const [session, setLocal] = useState<Session | null>(null);
   const [tab, setTab] = useState<Tab>("clock");
   const [data, setData] = useState<EssData | null>(null);
@@ -174,7 +177,7 @@ export default function EssScreen() {
   if (!session) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator color={colors.brand} />
+        <ActivityIndicator color={palette.brand} />
       </View>
     );
   }
@@ -189,7 +192,7 @@ export default function EssScreen() {
           {data.employee.profile_pic_url ? (
             <Image source={{ uri: data.employee.profile_pic_url }} style={{ width: 56, height: 56, borderRadius: 12 }} />
           ) : (
-            <View style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: colors.brand, alignItems: "center", justifyContent: "center" }}>
+            <View style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: palette.brand, alignItems: "center", justifyContent: "center" }}>
               <Text style={{ color: colors.white, fontWeight: "800" }}>{(data.employee.name || "?").slice(0, 1)}</Text>
             </View>
           )}
@@ -324,7 +327,8 @@ export default function EssScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(palette: import("../../lib/brandTheme").BrandPalette) {
+  return StyleSheet.create({
   container: { flex: 1, padding: 24, backgroundColor: colors.bgPrimary },
   title: { fontSize: 24, fontWeight: "800", color: colors.heading, marginBottom: 4 },
   hint: { color: colors.body, marginBottom: 16 },
@@ -340,7 +344,7 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 16, fontWeight: "700", color: colors.heading },
   cardBody: { marginTop: 4, color: colors.body, marginBottom: 12 },
   btn: {
-    backgroundColor: colors.brand,
+    backgroundColor: palette.brand,
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: "center",
@@ -360,3 +364,4 @@ const styles = StyleSheet.create({
   row: { color: colors.body, marginTop: 6, fontSize: 13 },
   slip: { marginBottom: 14, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
 });
+}

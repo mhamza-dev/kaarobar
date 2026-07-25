@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
+import { useBrandPalette } from "../lib/BrandThemeContext";
 import { Link, useFocusEffect } from "expo-router";
 import {
-  ActivityIndicator,
   FlatList,
   Image,
   Pressable,
@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { api, colors } from "../lib/api";
 import BuyerNav from "./BuyerNav";
+import { BuyerDiscoverSkeleton } from "./BuyerSkeletons";
 import {
   applyListingFilters,
   emptyListingFilters,
@@ -32,6 +33,8 @@ type Biz = {
 
 /** Buyer home on `/app/dashboard` — discover marketplace stores. */
 export default function BuyerDiscover() {
+  const palette = useBrandPalette();
+  const styles = useMemo(() => createStyles(palette), [palette]);
   const [filters, setFilters] = useState<ListingFilterState>(emptyListingFilters());
   const [businesses, setBusinesses] = useState<Biz[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -96,8 +99,12 @@ export default function BuyerDiscover() {
   return (
     <View style={styles.container}>
       <BuyerNav />
-      <Text style={styles.title}>Discover stores</Text>
-      <Text style={styles.hint}>Browse branded Kaarobar businesses and place pickup orders.</Text>
+      <View style={[styles.hero, { borderColor: palette.brandSoft }]}>
+        <Text style={styles.title}>Discover stores</Text>
+        <Text style={styles.hint}>
+          Shop neighborhood brands, earn loyalty, and pick up when ready.
+        </Text>
+      </View>
       <TextInput
         style={styles.search}
         placeholder="Search by name or industry"
@@ -123,12 +130,12 @@ export default function BuyerDiscover() {
       ) : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {loading ? (
-        <ActivityIndicator color={colors.brand} style={{ marginTop: 24 }} />
+        <BuyerDiscoverSkeleton />
       ) : (
         <FlatList
           data={filtered}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingBottom: 40, gap: 12 }}
+          contentContainerStyle={{ paddingBottom: 40, gap: 14 }}
           ListEmptyComponent={
             <Text style={styles.empty}>
               {businesses.length === 0
@@ -142,8 +149,8 @@ export default function BuyerDiscover() {
                 style={[
                   styles.card,
                   item.primary_color
-                    ? { borderTopColor: item.primary_color, borderTopWidth: 3 }
-                    : null,
+                    ? { borderTopColor: item.primary_color, borderTopWidth: 4 }
+                    : { borderTopColor: palette.brand, borderTopWidth: 4 },
                 ]}
               >
                 <View style={styles.cardRow}>
@@ -152,7 +159,7 @@ export default function BuyerDiscover() {
                       styles.logo,
                       item.primary_color
                         ? { backgroundColor: `${item.primary_color}22` }
-                        : null,
+                        : { backgroundColor: palette.brandSoft },
                     ]}
                   >
                     {item.logo_url ? (
@@ -170,12 +177,20 @@ export default function BuyerDiscover() {
                         {item.tagline}
                       </Text>
                     ) : null}
-                    <Text style={styles.cardSub}>{item.industry || "store"}</Text>
+                    <Text
+                      style={[
+                        styles.cardSub,
+                        item.primary_color ? { color: item.primary_color } : { color: palette.brand },
+                      ]}
+                    >
+                      {item.industry || "store"}
+                    </Text>
                     {item.marketplace_description ? (
                       <Text style={styles.desc} numberOfLines={2}>
                         {item.marketplace_description}
                       </Text>
                     ) : null}
+                    <Text style={[styles.shopNow, { color: palette.brand }]}>Shop now →</Text>
                   </View>
                 </View>
               </Pressable>
@@ -187,15 +202,23 @@ export default function BuyerDiscover() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(palette: import("../lib/brandTheme").BrandPalette) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bgPrimary, padding: 16 },
-  title: { fontSize: 24, fontWeight: "800", color: colors.heading },
-  hint: { color: colors.body, marginTop: 4, marginBottom: 12 },
+  hero: {
+    borderRadius: 18,
+    borderWidth: 1,
+    backgroundColor: colors.card,
+    padding: 16,
+    marginBottom: 14,
+  },
+  title: { fontSize: 26, fontWeight: "800", color: colors.heading, letterSpacing: -0.3 },
+  hint: { color: colors.body, marginTop: 6, lineHeight: 20 },
   search: {
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.card,
-    borderRadius: 12,
+    borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 12,
     marginBottom: 10,
@@ -211,23 +234,24 @@ const styles = StyleSheet.create({
     marginRight: 8,
     backgroundColor: colors.card,
   },
-  chipOn: { backgroundColor: colors.brand, borderColor: colors.brand },
+  chipOn: { backgroundColor: palette.brand, borderColor: palette.brand },
   chipText: { fontSize: 12, fontWeight: "700", color: colors.heading },
-  chipTextOn: { color: colors.white },
+  chipTextOn: { color: palette.brandForeground },
   error: { color: colors.danger, marginBottom: 8 },
   empty: { color: colors.body, marginTop: 16 },
   card: {
     backgroundColor: colors.card,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
     padding: 14,
+    overflow: "hidden",
   },
   cardRow: { flexDirection: "row", gap: 12 },
   logo: {
-    width: 56,
-    height: 56,
-    borderRadius: 12,
+    width: 60,
+    height: 60,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.bgSecondary || colors.card,
@@ -241,11 +265,12 @@ const styles = StyleSheet.create({
   tagline: { marginTop: 2, color: colors.body, fontSize: 13 },
   cardSub: {
     marginTop: 6,
-    color: colors.muted,
     textTransform: "uppercase",
     fontSize: 11,
-    fontWeight: "700",
+    fontWeight: "800",
     letterSpacing: 0.6,
   },
   desc: { marginTop: 6, color: colors.body, fontSize: 13 },
+  shopNow: { marginTop: 8, fontWeight: "700", fontSize: 13 },
 });
+}

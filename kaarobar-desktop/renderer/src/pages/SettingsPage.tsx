@@ -1,11 +1,16 @@
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { api, getSession, setSession } from "@/lib/api/client";
 import { PageHeader, SurfaceCard, TabBar } from "@/components/app/ui";
 import NotificationPreferencesPanel from "@/components/app/NotificationPreferencesPanel";
 import BrandColorPicker from "@/components/app/BrandColorPicker";
+import {
+  clearStaffBrandPreview,
+  previewStaffBrand,
+} from "@/components/app/BrandTheme";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
+import Button from "@/components/ui/Button";
 
 type Usage = {
   subscription: {
@@ -94,6 +99,10 @@ export default function SettingsPage() {
     else setTab("notifications");
   }, [isOwner, load]);
 
+  useEffect(() => {
+    return () => clearStaffBrandPreview();
+  }, []);
+
   async function toggleFbr(b: Business) {
     try {
       await api(`/businesses/${b.id}`, {
@@ -140,6 +149,8 @@ export default function SettingsPage() {
         }),
       });
       toast.success("Branding saved");
+      clearStaffBrandPreview();
+      window.dispatchEvent(new Event("kaarobar:branding"));
       await load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.saveFailed"));
@@ -480,18 +491,68 @@ export default function SettingsPage() {
                 </label>
                 <div className="text-xs text-body sm:col-span-2">
                   <span className="mb-1.5 block font-medium text-heading">Brand color</span>
-                  <BrandColorPicker
-                    value={activeBusiness.primary_color}
-                    onChange={(hex) =>
-                      setBusinesses((prev) =>
-                        prev.map((x) =>
-                          x.id === activeBusiness.id
-                            ? { ...x, primary_color: hex }
-                            : x
-                        )
-                      )
-                    }
-                  />
+                  <div className="space-y-4">
+                    <BrandColorPicker
+                      value={activeBusiness.primary_color}
+                      onChange={(hex) => {
+                        setBusinesses((prev) =>
+                          prev.map((x) =>
+                            x.id === activeBusiness.id
+                              ? { ...x, primary_color: hex }
+                              : x
+                          )
+                        );
+                        previewStaffBrand(activeBusiness.id, hex);
+                      }}
+                    />
+                    <div
+                      className="flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-border bg-bg-secondary/60 p-4"
+                      style={
+                        activeBusiness.primary_color
+                          ? ({
+                              ["--brand" as string]: activeBusiness.primary_color,
+                              ["--color-brand" as string]:
+                                activeBusiness.primary_color,
+                            } as CSSProperties)
+                          : undefined
+                      }
+                    >
+                      <span className="w-full text-[11px] font-bold uppercase tracking-wide text-muted">
+                        Live preview
+                      </span>
+                      <button
+                        type="button"
+                        className="rounded-md px-4 py-2 text-sm font-semibold text-white shadow-sm"
+                        style={{
+                          backgroundColor:
+                            activeBusiness.primary_color || "#1D4ED8",
+                        }}
+                      >
+                        Primary button
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-md px-3 py-1.5 text-xs font-semibold text-white"
+                        style={{
+                          backgroundColor:
+                            activeBusiness.primary_color || "#1D4ED8",
+                        }}
+                      >
+                        Nav sample
+                      </button>
+                      <input
+                        className="max-w-[12rem] rounded border border-border bg-card px-2 py-1.5 text-sm text-heading"
+                        style={{
+                          borderColor: activeBusiness.primary_color || undefined,
+                          boxShadow: activeBusiness.primary_color
+                            ? `0 0 0 2px ${activeBusiness.primary_color}33`
+                            : undefined,
+                        }}
+                        placeholder="Focus me"
+                        readOnly
+                      />
+                    </div>
+                  </div>
                 </div>
                 <label className="text-xs text-body sm:col-span-2">
                   Marketplace description
@@ -511,13 +572,16 @@ export default function SettingsPage() {
                   />
                 </label>
               </div>
-              <button
+              <Button
                 type="button"
                 onClick={() => void saveBranding(activeBusiness)}
-                className="rounded-md bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground"
+                style={{
+                  backgroundColor: activeBusiness.primary_color || undefined,
+                  borderColor: activeBusiness.primary_color || undefined,
+                }}
               >
                 Save branding
-              </button>
+              </Button>
             </SurfaceCard>
           )}
         </div>

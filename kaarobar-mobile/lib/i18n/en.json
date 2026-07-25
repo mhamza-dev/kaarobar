@@ -442,5 +442,26 @@
     "accessDeniedTitle": "Access denied",
     "accessDeniedMessage": "You do not have permission to open this page for the selected business and branch.",
     "goToDashboard": "Go to dashboard"
+  },
+  "marketplace": {
+    "allStores": "← All stores",
+    "viewCart": "View cart ({count})",
+    "searchProducts": "Search products…",
+    "noFilterMatches": "Try another category or search term.",
+    "clearFilters": "Clear filters",
+    "productsCount": "{count} products",
+    "emptyCatalogTitle": "No products listed",
+    "emptyCatalogBody": "This store has not published a catalog yet. Check back soon or browse other stores.",
+    "noImage": "No image",
+    "quickAdd": "Add",
+    "addToCart": "Add to cart",
+    "addQtyToCart": "Add {count} to cart",
+    "addedToCart": "Added {name}",
+    "quantity": "Quantity",
+    "lineTotal": "Total",
+    "allCategories": "All",
+    "noDescription": "No description available.",
+    "pickupHint": "Pickup · add to cart",
+    "close": "Close"
   }
 }

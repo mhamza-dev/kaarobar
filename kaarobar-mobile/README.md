@@ -31,3 +31,7 @@ npm start
 ```
 
 `EXPO_PUBLIC_API_URL` defaults to `http://localhost:4000/api/v1` (use your LAN IP for a physical device).
+
+## Branding theme
+
+Staff chrome (buttons, inputs, tabs, nav accents) follows the active business `primary_color` via `BrandThemeProvider` / `useBrandPalette()`. Neutrals stay in `lib/api` `colors`; do not hardcode `colors.brand` for accents.

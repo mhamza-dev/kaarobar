@@ -107,50 +107,49 @@ export default function ActionMenu({
   const menu =
     open && coords && mounted
       ? createPortal(
-          <div
-            ref={menuRef}
-            id={menuId}
-            role="menu"
-            aria-label={label}
-            className="fixed z-[90] overflow-hidden rounded-xl border border-border bg-card py-1 shadow-lg shadow-black/10 ring-1 ring-black/5"
-            style={{
-              top: coords.top,
-              left: coords.left,
-              minWidth: coords.minWidth,
-              transform:
-                coords.top < (triggerRef.current?.getBoundingClientRect().bottom ?? 0)
-                  ? "translateY(-100%)"
-                  : undefined,
-            }}
-          >
-            {visible.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                role="menuitem"
-                disabled={item.disabled}
-                className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition disabled:cursor-not-allowed disabled:opacity-40 ${
-                  item.tone === "danger"
-                    ? "text-danger hover:bg-danger/10"
-                    : "text-heading hover:bg-bg-tertiary"
+        <div
+          ref={menuRef}
+          id={menuId}
+          role="menu"
+          aria-label={label}
+          className="fixed z-[90] overflow-hidden rounded-md border border-border bg-card py-1 shadow-lg shadow-black/10 ring-1 ring-black/5"
+          style={{
+            top: coords.top,
+            left: coords.left,
+            minWidth: coords.minWidth,
+            transform:
+              coords.top < (triggerRef.current?.getBoundingClientRect().bottom ?? 0)
+                ? "translateY(-100%)"
+                : undefined,
+          }}
+        >
+          {visible.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="menuitem"
+              disabled={item.disabled}
+              className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition disabled:cursor-not-allowed disabled:opacity-40 ${item.tone === "danger"
+                  ? "text-danger hover:bg-danger/10"
+                  : "text-heading hover:bg-bg-tertiary"
                 }`}
-                onClick={() => {
-                  if (item.disabled) return;
-                  setOpen(false);
-                  item.onClick();
-                }}
-              >
-                {item.icon ? (
-                  <span className="flex h-4 w-4 shrink-0 items-center justify-center opacity-70">
-                    {item.icon}
-                  </span>
-                ) : null}
-                <span className="font-medium">{item.label}</span>
-              </button>
-            ))}
-          </div>,
-          document.body,
-        )
+              onClick={() => {
+                if (item.disabled) return;
+                setOpen(false);
+                item.onClick();
+              }}
+            >
+              {item.icon ? (
+                <span className="flex h-4 w-4 shrink-0 items-center justify-center opacity-70">
+                  {item.icon}
+                </span>
+              ) : null}
+              <span className="font-medium">{item.label}</span>
+            </button>
+          ))}
+        </div>,
+        document.body,
+      )
       : null;
 
   return (
@@ -168,9 +167,8 @@ export default function ActionMenu({
         aria-label={label}
         title={label}
         onClick={() => setOpen((v) => !v)}
-        className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card text-body transition hover:border-brand/40 hover:bg-bg-tertiary hover:text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1 ${
-          open ? "border-brand bg-brand-light text-brand" : ""
-        }`}
+        className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card text-body transition hover:border-brand/40 hover:bg-bg-tertiary hover:text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1 ${open ? "border-brand bg-brand-light text-brand" : ""
+          }`}
       >
         <MoreHorizontal className="h-4 w-4" strokeWidth={2.25} />
       </button>

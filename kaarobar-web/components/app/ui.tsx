@@ -206,11 +206,20 @@ export function Alert({
   );
 }
 
-export function EmptyState({ title, body }: { title: string; body?: string }) {
+export function EmptyState({
+  title,
+  body,
+  action,
+}: {
+  title: string;
+  body?: string;
+  action?: ReactNode;
+}) {
   return (
     <div className="px-6 py-12 text-center">
       <p className="font-semibold text-heading">{title}</p>
       {body ? <p className="mt-1 text-sm text-body">{body}</p> : null}
+      {action ? <div className="mt-4 flex justify-center">{action}</div> : null}
     </div>
   );
 }
