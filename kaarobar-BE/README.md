@@ -16,7 +16,7 @@ Elixir/Phoenix modular monolith implementing Kaarobar SRS **KRB-SRS-001** applic
 | `Kaarobar.Accounting` | ACC-FR journals, TB/P&L/BS, auto-post from sales/payroll, reversals |
 | `Kaarobar.Hr` | HR-FR employees, attendance, leave, payroll approval → ledger |
 | `Kaarobar.Reporting` | RPT-FR owner dashboard aggregates |
-| `Kaarobar.Billing` | ADM-FR plan limits; LemonSqueezy webhook stub |
+| `Kaarobar.Billing` | ADM-FR plan limits; Safepay webhook/checkout (Pakistan) |
 | `Kaarobar.Integrations.Fbr` | FBR-FR async Tier-1 reporting (non-blocking) |
 | `Kaarobar.Notifications` | NOT-FR email queue via Oban |
 
@@ -38,6 +38,25 @@ mix phx.server          # http://localhost:4000
 
 Demo seed: `owner@kaarobar.local` / `Password@123` (also `owner2@`–`owner4@`; staff `manager@` / `cashier@` / … and `*2@`–`*4@`)
 Fresh data: `mix ecto.reset`
+
+### Safepay billing (Pakistan)
+
+Create subscription plans in the **Safepay** merchant dashboard, then set env vars (see `.env.example`):
+
+```bash
+SAFEPAY_API_KEY=...
+SAFEPAY_SECRET_KEY=...
+SAFEPAY_WEBHOOK_SECRET=...
+SAFEPAY_ENVIRONMENT=sandbox
+SAFEPAY_PLAN_STARTER=plan_...
+SAFEPAY_PLAN_GROWTH=plan_...
+SAFEPAY_PLAN_ENTERPRISE=plan_...
+# optional when keys unset:
+SAFEPAY_CHECKOUT_URL=https://...
+```
+
+Webhook endpoint: `POST /api/v1/billing/webhook` (`X-SFPY-SIGNATURE`).  
+`mix kaarobar.lemonsqueezy.setup_plans` is **deprecated** (Lemon Squeezy retired).
 
 Unified login: `POST /api/v1/auth/login` with `actor: "business" | "consumer"`. Buyers land on web `/app` (shared routes; UI by actor). Deprecated `/portal/auth/login|register` proxy to the same. Public API: `GET /api/v1/marketplace/businesses` (includes branding: logo, tagline, color, description). Portal notifications: `/api/v1/portal/notifications*`. Online order status: `PATCH /api/v1/sales/:id/status`. Business branding: `PATCH /businesses/:id`, logo `POST|DELETE /businesses/:id/logo`.
 

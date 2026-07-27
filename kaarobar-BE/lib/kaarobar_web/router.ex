@@ -143,6 +143,7 @@ defmodule KaarobarWeb.Router do
     get "/audit-logs", AuditController, :index
 
     get "/billing/subscription", BillingController, :show
+    post "/billing/checkout", BillingController, :checkout
     get "/notifications", NotificationController, :index
     get "/notifications/unread-count", NotificationController, :unread_count
     post "/notifications/read-all", NotificationController, :mark_all_read
@@ -268,6 +269,8 @@ defmodule KaarobarWeb.Router do
     post "/crm/campaigns/preview", CrmController, :preview
     get "/crm/campaigns/:id", CrmController, :show
     post "/crm/campaigns/:id/send", CrmController, :send
+    post "/crm/campaigns/:id/checkout", CrmController, :checkout_campaign
+    post "/crm/campaigns/:id/confirm-payment", CrmController, :confirm_campaign_payment
 
     get "/crm/segments", CrmController, :list_segments
     post "/crm/segments", CrmController, :create_segment
@@ -323,9 +326,7 @@ defmodule KaarobarWeb.Router do
     get "/payroll", PayrollController, :index
     get "/payroll/:id", PayrollController, :show
     post "/payroll", PayrollController, :create
-    post "/payroll/:id/submit", PayrollController, :submit
     post "/payroll/:id/recalculate", PayrollController, :recalculate
-    post "/payroll/:id/reject", PayrollController, :reject
   end
 
   scope "/api/v1", KaarobarWeb.V1 do
@@ -336,10 +337,13 @@ defmodule KaarobarWeb.Router do
     post "/leave/:id/reject", LeaveController, :reject
   end
 
+  # Growth+ plan entitlement via :payroll_approve (ADM-FR-002)
   scope "/api/v1", KaarobarWeb.V1 do
     pipe_through [:api, :authenticated, :payroll_approve_roles]
 
+    post "/payroll/:id/submit", PayrollController, :submit
     post "/payroll/:id/approve", PayrollController, :approve
+    post "/payroll/:id/reject", PayrollController, :reject
   end
 
   scope "/api/v1", KaarobarWeb.V1 do

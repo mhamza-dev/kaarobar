@@ -135,3 +135,21 @@ else
       System.get_env("PUBLIC_BASE_URL") ||
         "http://localhost:#{System.get_env("PORT") || "4000"}"
 end
+
+# Safepay billing (ADM-FR-003) — keys also read at runtime via System.get_env/1
+safepay_plans =
+  %{
+    "starter" => System.get_env("SAFEPAY_PLAN_STARTER"),
+    "growth" => System.get_env("SAFEPAY_PLAN_GROWTH"),
+    "enterprise" => System.get_env("SAFEPAY_PLAN_ENTERPRISE")
+  }
+  |> Enum.reject(fn {_k, v} -> is_nil(v) or v == "" end)
+  |> Map.new()
+
+config :kaarobar,
+  safepay_environment: System.get_env("SAFEPAY_ENVIRONMENT") || "sandbox",
+  safepay_api_key: System.get_env("SAFEPAY_API_KEY"),
+  safepay_secret_key: System.get_env("SAFEPAY_SECRET_KEY"),
+  safepay_webhook_secret: System.get_env("SAFEPAY_WEBHOOK_SECRET"),
+  safepay_checkout_url: System.get_env("SAFEPAY_CHECKOUT_URL"),
+  safepay_plans: safepay_plans

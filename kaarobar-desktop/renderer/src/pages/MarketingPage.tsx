@@ -108,12 +108,8 @@ export default function MarketingPage() {
   const [costPreview, setCostPreview] = useState<{
     estimated_cost: string;
     unit_cost: string;
-    wallet_balance: string;
     can_send: boolean;
   } | null>(null);
-  const [wallet, setWallet] = useState<{ balance: string; unit_costs: Record<string, string> } | null>(
-    null
-  );
   const [tplForm, setTplForm] = useState({
     name: "",
     channel: "email",
@@ -121,7 +117,6 @@ export default function MarketingPage() {
     body_template: "",
   });
   const [tplPreview, setTplPreview] = useState<{ title: string; message: string } | null>(null);
-  const [topUpAmount, setTopUpAmount] = useState("500");
   const [segForm, setSegForm] = useState({ name: "", min_points: "", khata: false });
   const [couponForm, setCouponForm] = useState({
     code: "",
@@ -140,22 +135,18 @@ export default function MarketingPage() {
 
   const load = useCallback(async () => {
     try {
-      const [c, s, co, ti, tpl, w] = await Promise.all([
+      const [c, s, co, ti, tpl] = await Promise.all([
         api<{ data: Campaign[] }>("/crm/campaigns"),
         api<{ data: Segment[] }>("/crm/segments"),
         api<{ data: Coupon[] }>("/crm/coupons"),
         api<{ data: Tier[] }>("/crm/loyalty-tiers"),
         api<{ data: MsgTemplate[] }>("/crm/templates"),
-        api<{ data: { balance: string; unit_costs: Record<string, string> } }>(
-          "/crm/messaging-wallet"
-        ),
       ]);
       setCampaigns(c.data || []);
       setSegments(s.data || []);
       setCoupons(co.data || []);
       setTiers(ti.data || []);
       setTemplates(tpl.data || []);
-      setWallet(w.data || null);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.loadFailed"));
     }
@@ -172,7 +163,6 @@ export default function MarketingPage() {
           count: number;
           estimated_cost: string;
           unit_cost: string;
-          wallet_balance: string;
           can_send: boolean;
         };
       }>("/crm/campaigns/preview", {
@@ -192,7 +182,6 @@ export default function MarketingPage() {
       setCostPreview({
         estimated_cost: res.data.estimated_cost,
         unit_cost: res.data.unit_cost,
-        wallet_balance: res.data.wallet_balance,
         can_send: res.data.can_send,
       });
     } catch (err) {
@@ -298,20 +287,8 @@ export default function MarketingPage() {
     }
   }
 
-  async function topUpWallet() {
-    setBusy(true);
-    try {
-      const res = await api<{ data: { balance: string } }>("/crm/messaging-wallet/top-up", {
-        method: "POST",
-        body: JSON.stringify({ amount: topUpAmount, note: "Owner top-up" }),
-      });
-      setWallet((w) => (w ? { ...w, balance: res.data.balance } : w));
-      toast.success(`Wallet credited · Rs ${res.data.balance}`);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("common.error"));
-    } finally {
-      setBusy(false);
-    }
+  function isPaidChannel(channel?: string | null) {
+    return channel === "sms" || channel === "whatsapp";
   }
 
   async function sendCampaign(c: Campaign) {
@@ -334,6 +311,43 @@ export default function MarketingPage() {
       );
       await load();
       setDetail(res.data);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function payAndSendCampaign(c: Campaign) {
+    if (!confirm(t("marketing.payAndSendConfirm", { name: c.name }))) return;
+    setBusy(true);
+    try {
+      const res = await api<{
+        data: {
+          checkout_url: string;
+          payment_id: string;
+          amount?: string;
+          dev_fallback?: boolean;
+        };
+      }>(`/crm/campaigns/${c.id}/checkout`, {
+        method: "POST",
+        body: JSON.stringify({ redirect_url: window.location.href }),
+      });
+      if (res.data.dev_fallback) {
+        const sent = await api<{ data: Campaign }>(
+          `/crm/campaigns/${c.id}/confirm-payment`,
+          {
+            method: "POST",
+            body: JSON.stringify({ payment_id: res.data.payment_id }),
+          }
+        );
+        toast.success(t("marketing.payAndSendDone"));
+        await load();
+        setDetail(sent.data);
+      } else if (res.data.checkout_url) {
+        window.open(res.data.checkout_url, "_blank", "noopener,noreferrer");
+        toast.success(t("marketing.checkoutOpened"));
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.error"));
     } finally {
@@ -454,36 +468,12 @@ export default function MarketingPage() {
 
       {tab === "campaigns" ? (
         <>
-          <SurfaceCard className="flex flex-wrap items-end gap-3 p-4">
-            <div>
-              <p className="text-xs font-semibold uppercase text-muted">Messaging wallet</p>
-              <p className="text-lg font-bold text-heading">
-                Rs {wallet?.balance ?? "0.00"}
-              </p>
-              <p className="text-xs text-body">
-                Rates · SMS Rs {wallet?.unit_costs?.sms ?? "2.50"} · WhatsApp Rs{" "}
-                {wallet?.unit_costs?.whatsapp ?? "3.00"}
-              </p>
-            </div>
-            <Field label="Top up (PKR)">
-              <input
-                className={fieldClass}
-                value={topUpAmount}
-                onChange={(e) => setTopUpAmount(e.target.value)}
-              />
-            </Field>
-            <Button size="sm" disabled={busy} onClick={() => void topUpWallet()}>
-              Credit wallet
-            </Button>
-          </SurfaceCard>
-
           <p className="text-sm text-body">
             {t("marketing.hint")}{" "}
             <Link to="/app/customers" className="text-brand underline">
               {t("nav.customers")}
             </Link>
-            . Opt-in consent is required for email/SMS/WhatsApp sends. Paid channels debit the
-            messaging wallet.
+            . {t("marketing.payHint")}
           </p>
 
           <DataTable
@@ -543,8 +533,13 @@ export default function MarketingPage() {
                         },
                         {
                           id: "send",
-                          label: t("marketing.send"),
-                          onClick: () => void sendCampaign(c),
+                          label: isPaidChannel(c.channel)
+                            ? t("marketing.payAndSend")
+                            : t("marketing.send"),
+                          onClick: () =>
+                            void (isPaidChannel(c.channel)
+                              ? payAndSendCampaign(c)
+                              : sendCampaign(c)),
                           hidden: c.status !== "Draft",
                           disabled: busy,
                         },
@@ -1023,10 +1018,9 @@ export default function MarketingPage() {
           </Field>
           {costPreview ? (
             <p className="text-sm text-body">
-              Est. cost Rs {costPreview.estimated_cost} (Rs {costPreview.unit_cost}/msg) · Wallet Rs{" "}
-              {costPreview.wallet_balance}
+              Est. cost Rs {costPreview.estimated_cost} (Rs {costPreview.unit_cost}/msg)
               {!costPreview.can_send ? (
-                <span className="text-danger"> · Over budget or insufficient credits</span>
+                <span className="text-danger"> · Over budget</span>
               ) : null}
             </p>
           ) : null}

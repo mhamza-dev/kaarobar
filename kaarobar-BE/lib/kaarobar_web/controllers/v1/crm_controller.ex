@@ -68,8 +68,68 @@ defmodule KaarobarWeb.V1.CrmController do
       {:error, :budget_exceeded} ->
         conn |> put_status(:unprocessable_entity) |> json(%{error: "budget_exceeded"})
 
+      {:error, :payment_required} ->
+        conn |> put_status(:payment_required) |> json(%{error: "payment_required"})
+
       {:error, :insufficient_credits} ->
         conn |> put_status(:unprocessable_entity) |> json(%{error: "insufficient_credits"})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+    end
+  end
+
+  def checkout_campaign(conn, %{"id" => id} = params) do
+    user = Guardian.Plug.current_resource(conn)
+    business_id = conn.assigns[:business_id]
+    owner_id = conn.assigns[:owner_id]
+
+    case Crm.create_campaign_checkout(id, business_id, owner_id, user.id, %{
+           redirect_url: params["redirect_url"]
+         }) do
+      {:ok, result} ->
+        json(conn, %{
+          data: %{
+            checkout_url: result.checkout_url,
+            amount: result.amount,
+            payment_id: result.payment.id,
+            dev_fallback: Map.get(result, :dev_fallback, false)
+          }
+        })
+
+      {:error, :not_found} ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      {:error, :already_sent} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: "already_sent"})
+
+      {:error, :not_paid_channel} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: "not_paid_channel"})
+
+      {:error, :zero_cost} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: "zero_cost"})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+    end
+  end
+
+  def confirm_campaign_payment(conn, %{"id" => id} = params) do
+    # Dev/fallback confirm when Safepay API is not configured
+    case Crm.confirm_dev_campaign_payment(
+           id,
+           params["payment_id"],
+           conn.assigns.business_id,
+           conn.assigns.owner_id
+         ) do
+      {:ok, c} ->
+        json(conn, %{data: serialize_campaign(c, true)})
+
+      {:error, :not_found} ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      {:error, :forbidden} ->
+        conn |> put_status(:forbidden) |> json(%{error: "forbidden"})
 
       {:error, reason} ->
         conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
@@ -259,22 +319,13 @@ defmodule KaarobarWeb.V1.CrmController do
     })
   end
 
-  def top_up_wallet(conn, params) do
-    case Crm.top_up_wallet(
-           conn.assigns.business_id,
-           conn.assigns.owner_id,
-           params["amount"],
-           params["note"]
-         ) do
-      {:ok, balance} ->
-        json(conn, %{data: %{balance: Decimal.to_string(balance)}})
-
-      {:error, :invalid_amount} ->
-        conn |> put_status(:unprocessable_entity) |> json(%{error: "invalid_amount"})
-
-      {:error, reason} ->
-        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
-    end
+  def top_up_wallet(conn, _params) do
+    conn
+    |> put_status(:gone)
+    |> json(%{
+      error: "top_up_removed",
+      message: "Use Safepay Pay & send for SMS/WhatsApp campaigns."
+    })
   end
 
   defp serialize_template(t) do

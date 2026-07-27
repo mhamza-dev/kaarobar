@@ -46,7 +46,7 @@ export const privacySections: LegalSection[] = [
     id: "not-collect",
     title: "4. What we don’t collect",
     paragraphs: [
-      "We never store full card numbers from your customers. Card payments at the till go through a payment provider that tokenizes them. Your Kaarobar subscription is billed through LemonSqueezy—we don’t keep your full card details for that either.",
+      "We never store full card numbers from your customers. Card payments at the till go through a payment provider that tokenizes them. Your Kaarobar subscription is billed through Safepay (JazzCash, Easypaisa, or local cards)—we don’t keep your full card details for that either.",
     ],
   },
   {
@@ -71,7 +71,7 @@ export const privacySections: LegalSection[] = [
     ],
     bullets: [
       "Hosting, database, file storage, and email providers that help us run the product.",
-      "LemonSqueezy for subscriptions, plan changes, and failed payments.",
+      "Safepay for subscriptions, plan changes, and failed payments (Pakistan).",
       "Payment gateways for customer payments at your tills.",
       "FBR, when you’ve enabled Tier-1 reporting for a business.",
       "Our support team, who may see account metadata to help you—without casually browsing your financial books.",
@@ -230,7 +230,7 @@ export const termsSections: LegalSection[] = [
     id: "billing",
     title: "10. Your Kaarobar subscription",
     paragraphs: [
-      "Using Kaarobar means staying on a paid (or trial) plan. We’ll enforce limits on businesses, branches, or users according to your plan. Platform billing runs through LemonSqueezy. That’s separate from what your customers pay you at the till.",
+      "Using Kaarobar means staying on a paid (or trial) plan. We’ll enforce limits on businesses, branches, or users according to your plan. Platform billing runs through Safepay. That’s separate from what your customers pay you at the till.",
       "Fees aren’t refundable except where the law says so or we’ve agreed otherwise in writing. If payment fails and isn’t fixed, we may pause parts of the account—or the whole account—after we’ve tried to warn you.",
     ],
   },
@@ -345,7 +345,7 @@ export const cookieSections: LegalSection[] = [
     id: "third-parties",
     title: "7. Other companies’ cookies",
     paragraphs: [
-      "When you pay for a Kaarobar plan through LemonSqueezy, or take a customer payment through a gateway, those providers may set their own cookies under their own policies. FBR reporting happens over APIs—it isn’t driven by advertising cookies.",
+      "When you pay for a Kaarobar plan through Safepay, or take a customer payment through a gateway, those providers may set their own cookies under their own policies. FBR reporting happens over APIs—it isn’t driven by advertising cookies.",
     ],
   },
   {

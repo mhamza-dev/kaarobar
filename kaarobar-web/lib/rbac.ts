@@ -49,7 +49,7 @@ const BUNDLES: Record<string, readonly string[]> = {
   ],
 } as const;
 
-type Bundle = keyof typeof BUNDLES;
+export type Bundle = keyof typeof BUNDLES;
 
 const ROUTE_BUNDLES: Record<string, Bundle> = {
   "/app": "any_staff",
@@ -66,6 +66,7 @@ const ROUTE_BUNDLES: Record<string, Bundle> = {
   "/app/ess": "employee_self",
   "/app/profile": "any_staff",
   "/app/settings": "any_staff",
+  "/app/businesses": "owner_manage",
 };
 
 function normalizeRole(role: string): string {
@@ -85,14 +86,29 @@ export function getActiveRoles(session: StoredSession | null): string[] {
   return Array.from(new Set(roles));
 }
 
-export function canAccessBundle(
+/** Plan entitlement check (ADM-FR-002). Missing list → allow until hydrated. */
+export function planAllowsBundle(
+  entitledBundles: string[] | undefined | null,
+  bundle: string
+): boolean {
+  if (!entitledBundles) return true;
+  return entitledBundles.includes(bundle);
+}
+
+export function planAllowsFbr(session: StoredSession | null): boolean {
+  if (!session) return false;
+  if (typeof session.allows_fbr === "boolean") return session.allows_fbr;
+  const plan = session.subscription_plan;
+  return plan === "growth" || plan === "enterprise";
+}
+
+export function roleAllowsBundle(
   session: StoredSession | null,
   bundle: Bundle
 ): boolean {
   const roles = getActiveRoles(session);
   const roleSettings = session?.role_settings || {};
 
-  // Owners get full access except staff self-service (ESS / Staff tools).
   if (roles.includes("owner")) {
     if (OWNER_EXCLUDED_BUNDLES.has(bundle)) return false;
     return true;
@@ -103,6 +119,15 @@ export function canAccessBundle(
     if (typeof override === "boolean") return override;
     return (BUNDLES[bundle] || []).includes(role);
   });
+}
+
+/** Role ∧ plan entitlement (ADM-FR-002). */
+export function canAccessBundle(
+  session: StoredSession | null,
+  bundle: Bundle
+): boolean {
+  if (!roleAllowsBundle(session, bundle)) return false;
+  return planAllowsBundle(session?.entitled_bundles, bundle);
 }
 
 export function canAccessPath(
@@ -141,4 +166,26 @@ export function canAccessPath(
   );
   if (!prefix) return true;
   return canAccessBundle(session, ROUTE_BUNDLES[prefix]);
+}
+
+/** True when role allows but plan does not (deep-link toast). */
+export function isPlanFeatureLocked(
+  session: StoredSession | null,
+  path: string
+): boolean {
+  if (!session || session.actor === "consumer") return false;
+  const exact = ROUTE_BUNDLES[path as keyof typeof ROUTE_BUNDLES];
+  const bundle =
+    exact ||
+    (() => {
+      const prefix = Object.keys(ROUTE_BUNDLES).find(
+        (key) => key !== "/app" && path.startsWith(key)
+      );
+      return prefix ? ROUTE_BUNDLES[prefix] : null;
+    })();
+  if (!bundle) return false;
+  return (
+    roleAllowsBundle(session, bundle) &&
+    !planAllowsBundle(session.entitled_bundles, bundle)
+  );
 }

@@ -41,6 +41,9 @@ const ROUTES: Record<string, Bundle> = {
   "/app/inventory": "inventory",
   "/app/ess": "employee_self",
   "/app/profile": "any_staff",
+  "/app/settings": "any_staff",
+  "/app/businesses": "owner_manage",
+  "/app/leave": "leave_approve",
 };
 
 export function activeRoles(session: Session | null): string[] {
@@ -52,13 +55,39 @@ export function activeRoles(session: Session | null): string[] {
   return Array.from(new Set(roles));
 }
 
-export function canAccess(session: Session | null, bundle: Bundle): boolean {
+export function isOwner(session: Session | null): boolean {
+  return activeRoles(session).includes("owner");
+}
+
+/** Plan entitlement check (ADM-FR-002). Missing list → allow until hydrated. */
+export function planAllowsBundle(
+  entitledBundles: string[] | undefined | null,
+  bundle: string
+): boolean {
+  if (!entitledBundles) return true;
+  return entitledBundles.includes(bundle);
+}
+
+export function planAllowsFbr(session: Session | null): boolean {
+  if (!session) return false;
+  if (typeof session.allows_fbr === "boolean") return session.allows_fbr;
+  const plan = session.subscription_plan;
+  return plan === "growth" || plan === "enterprise";
+}
+
+export function roleAllows(session: Session | null, bundle: Bundle): boolean {
   const roles = activeRoles(session);
   if (roles.includes("owner")) {
     if (OWNER_EXCLUDED_BUNDLES.has(bundle)) return false;
     return true;
   }
   return roles.some((r) => (BUNDLES[bundle] || []).includes(r));
+}
+
+/** Role ∧ plan entitlement (ADM-FR-002). */
+export function canAccess(session: Session | null, bundle: Bundle): boolean {
+  if (!roleAllows(session, bundle)) return false;
+  return planAllowsBundle(session?.entitled_bundles, bundle);
 }
 
 export function canAccessRoute(session: Session | null, route: string): boolean {
@@ -78,7 +107,18 @@ export function canAccessRoute(session: Session | null, route: string): boolean 
     return false;
   }
 
+  if (route.startsWith("/app/businesses")) {
+    return canAccess(session, "owner_manage");
+  }
+
   const bundle = ROUTES[route];
   if (!bundle) return true;
   return canAccess(session, bundle);
+}
+
+export function isPlanFeatureLocked(session: Session | null, route: string): boolean {
+  if (!session || session.actor === "consumer") return false;
+  const bundle = ROUTES[route];
+  if (!bundle) return false;
+  return roleAllows(session, bundle) && !planAllowsBundle(session.entitled_bundles, bundle);
 }

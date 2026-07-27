@@ -35,43 +35,92 @@ defmodule Kaarobar.PlatformIntegrationsTest do
     assert summary.subscription.plan in Billing.plans()
     assert summary.usage.businesses >= 1
     assert summary.limits.max_users > 0
+    assert is_list(summary.plans)
+    assert length(summary.plans) >= 4
+    assert is_list(summary.entitled_bundles)
+    assert "pos" in summary.entitled_bundles
+
+    by_code = Map.new(summary.plans, &{&1.code, &1})
+    assert by_code["trial"].max_businesses == 1
+    assert by_code["trial"].max_branches == 2
+    assert "accounting" not in by_code["trial"].entitled_bundles
+    assert "marketing" in by_code["growth"].entitled_bundles
+    assert by_code["starter"].max_businesses == 3
+    assert by_code["starter"].max_branches == 10
+    assert by_code["starter"].price_pkr == 4999
+    assert by_code["growth"].max_businesses == 10
+    assert by_code["growth"].max_branches == 50
+    assert by_code["growth"].price_pkr == 12_999
+    assert is_list(by_code["growth"].features)
+    assert length(by_code["growth"].features) > 0
+    assert by_code["enterprise"].price_pkr == nil
+    assert is_binary(by_code["enterprise"].tagline)
+
     # Trial allows 1 business — already used by setup
     refute Billing.within_limits?(owner.id, :business)
     assert {:ok, _} = Billing.set_plan(owner.id, "starter")
     assert Billing.within_limits?(owner.id, :business)
   end
 
-  test "ADM-FR-003 LemonSqueezy webhook updates plan", %{owner: owner} do
+  test "ADM-FR-005 expired trial blocks writes", %{owner: owner} do
+    past = DateTime.add(DateTime.utc_now(), -86_400, :second) |> DateTime.truncate(:second)
+    assert {:ok, _} = Billing.set_plan(owner.id, "trial", %{trial_ends_at: past, status: "active"})
+    refute Billing.subscription_allows_writes?(owner.id)
+    refute Billing.within_limits?(owner.id, :branch)
+  end
+
+  test "ADM-FR-003 Safepay webhook updates plan", %{owner: owner} do
+    reference =
+      Kaarobar.Billing.Safepay.encode_reference(%{
+        "owner_id" => owner.id,
+        "type" => "subscription",
+        "plan" => "growth"
+      })
+
     payload = %{
-      "meta" => %{"event_name" => "subscription_created"},
+      "type" => "subscription.created",
       "data" => %{
-        "id" => "ls_sub_123",
-        "attributes" => %{
-          "variant_name" => "Growth Annual",
-          "custom_data" => %{"owner_id" => owner.id},
-          "renews_at" => "2026-12-01T00:00:00Z"
-        }
+        "token" => "sub_sfpy_123",
+        "reference" => reference,
+        "status" => "ACTIVE",
+        "current_period_end_date" => "2026-12-01T00:00:00Z"
       }
     }
 
-    assert {:ok, %{handled: true}} = Billing.handle_lemonsqueezy_webhook(payload)
+    assert {:ok, %{handled: true}} = Billing.handle_safepay_webhook(payload)
     sub = Billing.get_subscription(owner.id)
     assert sub.plan == "growth"
-    assert sub.lemon_squeezy_id == "ls_sub_123"
+    assert sub.lemon_squeezy_id == "sub_sfpy_123"
     assert sub.status == "active"
   end
 
-  test "webhook signature verification", %{} do
-    Application.put_env(:kaarobar, :lemonsqueezy_webhook_secret, "test-secret")
-    on_exit(fn -> Application.delete_env(:kaarobar, :lemonsqueezy_webhook_secret) end)
+  test "ADM-FR-003 trial checkout is blocked", %{owner: owner} do
+    assert {:error, :invalid_plan} = Billing.create_plan_checkout(owner.id, "trial")
+  end
 
-    body = ~s({"hello":"world"})
+  test "ADM-FR-003 checkout falls back without Safepay keys", %{owner: owner} do
+    System.put_env("SAFEPAY_CHECKOUT_URL", "https://example.test/safepay-fallback")
+    on_exit(fn -> System.delete_env("SAFEPAY_CHECKOUT_URL") end)
+
+    assert {:ok, %{checkout_url: url, dev_fallback: true}} =
+             Billing.create_plan_checkout(owner.id, "starter")
+
+    assert url == "https://example.test/safepay-fallback"
+  end
+
+  test "webhook signature verification", %{} do
+    Application.put_env(:kaarobar, :safepay_webhook_secret, "test-secret")
+    on_exit(fn -> Application.delete_env(:kaarobar, :safepay_webhook_secret) end)
+
+    data = %{"token" => "trk_1", "status" => "COMPLETED"}
+    body = Jason.encode!(%{"type" => "payment.completed", "data" => data})
+
     sig =
-      :crypto.mac(:hmac, :sha256, "test-secret", body)
+      :crypto.mac(:hmac, :sha512, "test-secret", Jason.encode!(data))
       |> Base.encode16(case: :lower)
 
-    assert :ok = Billing.verify_webhook_signature(body, sig)
-    assert {:error, :invalid_signature} = Billing.verify_webhook_signature(body, "bad")
+    assert :ok = Billing.verify_webhook_signature(body, sig, %{data: data})
+    assert {:error, :invalid_signature} = Billing.verify_webhook_signature(body, "bad", %{data: data})
   end
 
   test "RPT-FR branch dashboard and sales-by-day", %{
@@ -100,6 +149,8 @@ defmodule Kaarobar.PlatformIntegrationsTest do
     business: business,
     branch: branch
   } do
+    assert {:ok, _} = Billing.set_plan(owner.id, "growth")
+
     sale =
       %Sale{}
       |> Sale.changeset(%{

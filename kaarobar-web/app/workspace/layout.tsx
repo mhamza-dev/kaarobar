@@ -29,7 +29,7 @@ import {
   isConsumerSession,
   type StoredSession,
 } from "@/lib/api/client";
-import { canAccessBundle, canAccessPath } from "@/lib/rbac";
+import { canAccessBundle, canAccessPath, isPlanFeatureLocked } from "@/lib/rbac";
 import { toAppPath } from "@/lib/app-path";
 import TenantSwitcher from "@/components/app/TenantSwitcher";
 import LanguageSwitcher from "@/components/app/LanguageSwitcher";
@@ -39,6 +39,7 @@ import { useI18n } from "@/lib/i18n";
 import { useUnreadNotifications } from "@/lib/hooks/useUnreadNotifications";
 import { CartProvider, useCartOptional } from "@/lib/cart";
 import { StaffBrandProvider } from "@/components/app/BrandTheme";
+import { useToast } from "@/components/ui/Toast";
 
 const icons = {
   layout: LayoutDashboard,
@@ -80,11 +81,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = toAppPath(rawPathname);
   const router = useRouter();
   const { t } = useI18n();
+  const toast = useToast();
   const { unread } = useUnreadNotifications();
   const [session, setSessionState] = useState<StoredSession | null>(null);
   const [booting, setBooting] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [tenantKey, setTenantKey] = useState("boot");
+  const [planLockHandled, setPlanLockHandled] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -133,7 +136,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setMenuOpen(false);
+    setPlanLockHandled(false);
   }, [pathname]);
+
+  useEffect(() => {
+    if (!session || booting || planLockHandled) return;
+    if (isConsumerSession(session)) return;
+    if (!isPlanFeatureLocked(session, pathname)) return;
+    setPlanLockHandled(true);
+    toast.error(t("rbac.planFeatureLocked"));
+    router.replace(routes.app);
+  }, [session, booting, pathname, planLockHandled, router, t, toast]);
 
   const buyer = isConsumerSession(session);
 
@@ -189,11 +202,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   if (!canAccessPath(session, pathname)) {
+    const planLocked = isPlanFeatureLocked(session, pathname);
     return (
       <div className="flex min-h-screen items-center justify-center bg-bg-primary p-6 text-center">
         <div>
-          <h2 className="text-xl font-bold text-heading">{t("rbac.accessDeniedTitle")}</h2>
-          <p className="mt-2 text-body">{t("rbac.accessDeniedMessage")}</p>
+          <h2 className="text-xl font-bold text-heading">
+            {planLocked ? t("rbac.planFeatureLockedTitle") : t("rbac.accessDeniedTitle")}
+          </h2>
+          <p className="mt-2 text-body">
+            {planLocked ? t("rbac.planFeatureLocked") : t("rbac.accessDeniedMessage")}
+          </p>
           <Button
             className="mt-4"
             onClick={() =>

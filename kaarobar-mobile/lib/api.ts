@@ -61,6 +61,10 @@ export type Session = {
     business_name?: string | null;
     branch_name?: string | null;
   }[];
+  /** Owner-scoped plan entitlements (ADM-FR-002). */
+  entitled_bundles?: string[];
+  allows_fbr?: boolean;
+  subscription_plan?: string;
 };
 
 const SESSION_KEY = "kaarobar_session";
@@ -191,5 +195,65 @@ export async function hydrateSessionContext(session: Session): Promise<Session> 
     user: Session["user"];
     memberships: NonNullable<Session["memberships"]>;
   }>("/auth/me", {}, session);
-  return { ...session, actor: "business", user: me.user, memberships: me.memberships || [] };
+  let merged: Session = {
+    ...session,
+    actor: "business",
+    user: me.user,
+    memberships: me.memberships || [],
+  };
+
+  try {
+    const bill = await api<{
+      data: {
+        entitled_bundles?: string[];
+        allows_fbr?: boolean;
+        subscription?: { plan?: string; entitled_bundles?: string[]; allows_fbr?: boolean };
+      };
+    }>("/billing/subscription", {}, merged);
+    merged = {
+      ...merged,
+      entitled_bundles:
+        bill.data?.entitled_bundles ||
+        bill.data?.subscription?.entitled_bundles ||
+        [],
+      allows_fbr:
+        bill.data?.allows_fbr ?? bill.data?.subscription?.allows_fbr ?? false,
+      subscription_plan: bill.data?.subscription?.plan,
+    };
+  } catch {
+    // leave entitlements unset
+  }
+
+  await setSession(merged);
+  return merged;
+}
+
+export async function billingCheckout(plan: string, redirectUrl?: string) {
+  return api<{ data: { checkout_url: string } }>("/billing/checkout", {
+    method: "POST",
+    body: JSON.stringify({
+      plan,
+      redirect_url: redirectUrl,
+    }),
+  });
+}
+
+export async function campaignCheckout(campaignId: string, redirectUrl?: string) {
+  return api<{
+    data: {
+      checkout_url: string;
+      payment_id: string;
+      dev_fallback?: boolean;
+    };
+  }>(`/crm/campaigns/${campaignId}/checkout`, {
+    method: "POST",
+    body: JSON.stringify({ redirect_url: redirectUrl }),
+  });
+}
+
+export async function confirmCampaignPayment(campaignId: string, paymentId: string) {
+  return api<{ data: unknown }>(`/crm/campaigns/${campaignId}/confirm-payment`, {
+    method: "POST",
+    body: JSON.stringify({ payment_id: paymentId }),
+  });
 }

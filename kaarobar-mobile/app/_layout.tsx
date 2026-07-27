@@ -35,7 +35,10 @@ export default function RootLayout() {
             <Stack.Screen name="app/ess" options={{ title: t("nav.ess") }} />
             <Stack.Screen name="app/leave" options={{ title: "Leave approvals" }} />
             <Stack.Screen name="app/notifications" options={{ title: t("nav.notifications") }} />
-            <Stack.Screen name="app/profile" options={{ title: t("nav.profile") }} />
+            <Stack.Screen name="app/settings" options={{ title: t("nav.settings") }} />
+            <Stack.Screen name="app/businesses" options={{ title: t("nav.businesses") }} />
+            <Stack.Screen name="app/businesses/[id]" options={{ title: t("pages.businessDetailTitle") }} />
+            <Stack.Screen name="app/profile" options={{ headerShown: false }} />
             <Stack.Screen name="app/market/index" options={{ title: "Marketplace" }} />
             <Stack.Screen name="app/market/[id]" options={{ title: "Store" }} />
             <Stack.Screen name="app/checkout/index" options={{ title: "Cart" }} />

@@ -89,6 +89,7 @@ export default function HrPage() {
   const session = getSession();
   const canLeaveApprove = canAccessBundle(session, "leave_approve");
   const canPayrollApprove = canAccessBundle(session, "payroll_approve");
+  const canSeePayroll = canPayrollApprove;
   const [tab, setTab] = useState<Tab>("employees");
   const [modal, setModal] = useState<ModalKind>(null);
   const [editingEmployeeId, setEditingEmployeeId] = useState<string | null>(null);
@@ -116,29 +117,40 @@ export default function HrPage() {
       const requests: Promise<unknown>[] = [
         api<{ data: Employee[] }>("/employees"),
         api<{ data: Attendance[] }>("/attendance"),
-        api<{ data: PayrollRun[] }>("/payroll"),
       ];
       if (canLeaveApprove) {
-        requests.splice(2, 0, api<{ data: Leave[] }>("/leave"));
+        requests.push(api<{ data: Leave[] }>("/leave"));
+      }
+      if (canSeePayroll) {
+        requests.push(api<{ data: PayrollRun[] }>("/payroll"));
       }
       const results = await Promise.all(requests);
       setEmployees((results[0] as { data: Employee[] }).data || []);
       setAttendance((results[1] as { data: Attendance[] }).data || []);
+      let idx = 2;
       if (canLeaveApprove) {
-        setLeave((results[2] as { data: Leave[] }).data || []);
-        setPayroll((results[3] as { data: PayrollRun[] }).data || []);
+        setLeave((results[idx] as { data: Leave[] }).data || []);
+        idx += 1;
       } else {
         setLeave([]);
-        setPayroll((results[2] as { data: PayrollRun[] }).data || []);
+      }
+      if (canSeePayroll) {
+        setPayroll((results[idx] as { data: PayrollRun[] }).data || []);
+      } else {
+        setPayroll([]);
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.loadFailed"));
     }
-  }, [canLeaveApprove, t, toast]);
+  }, [canLeaveApprove, canSeePayroll, t, toast]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (tab === "payroll" && !canSeePayroll) setTab("employees");
+  }, [tab, canSeePayroll]);
 
   function openNewEmployee() {
     setEditingEmployeeId(null);
@@ -279,7 +291,9 @@ export default function HrPage() {
     { id: "employees", label: t("hr.tabs.employees"), infoKey: "tab.hr.employees" },
     { id: "attendance", label: t("hr.tabs.attendance"), infoKey: "tab.hr.attendance" },
     { id: "leave", label: t("hr.tabs.leave"), infoKey: "tab.hr.leave" },
-    { id: "payroll", label: t("hr.tabs.payroll"), infoKey: "tab.hr.payroll" },
+    ...(canSeePayroll
+      ? [{ id: "payroll" as const, label: t("hr.tabs.payroll"), infoKey: "tab.hr.payroll" }]
+      : []),
   ];
 
   return (

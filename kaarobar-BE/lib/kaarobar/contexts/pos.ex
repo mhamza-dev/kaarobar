@@ -136,7 +136,7 @@ defmodule Kaarobar.Pos do
     |> Multi.run(:enqueue_fbr, fn _repo, %{sale: sale} ->
       business = Repo.get(Kaarobar.Schemas.Business, business_id)
 
-      if business && business.fbr_tier1 do
+      if business && business.fbr_tier1 && Kaarobar.Billing.plan_allows_fbr?(owner_id) do
         %{sale_id: sale.id}
         |> Kaarobar.Workers.FbrReportWorker.new()
         |> Oban.insert()

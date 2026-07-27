@@ -11,6 +11,7 @@ alias Kaarobar.{
 
 alias Kaarobar.Schemas.{
   AttendanceRecord,
+  CampaignPayment,
   CampaignSegment,
   Coupon,
   CrmCampaign,
@@ -24,9 +25,124 @@ alias Kaarobar.Schemas.{
   Product,
   ProductBranchPrice,
   ProductImage,
+  SubscriptionPlan,
   Supplier,
   User
 }
+
+# —— Subscription plan catalog (ADM-FR-002) ————————————————————————
+
+trial_bundles = ~w(any_staff pos inventory customers notifications owner_manage settings)
+starter_bundles = trial_bundles ++ ~w(accounting hr reports leave_approve)
+growth_bundles = starter_bundles ++ ~w(marketing payroll_approve pos_approve)
+enterprise_bundles = Enum.map(Kaarobar.Roles.bundles(), &Atom.to_string/1)
+
+plan_defs = [
+  %{
+    code: "trial",
+    name: "Trial",
+    max_businesses: 1,
+    max_branches: 2,
+    max_users: 5,
+    price_pkr: 0,
+    billing_period: "trial",
+    price_display: "Free · 14 days",
+    tagline: "Try Kaarobar with a sample business, branches, and chart of accounts.",
+    features: [
+      "1 business · 2 branches",
+      "POS + inventory",
+      "Pakistan chart of accounts included",
+      "Owner dashboard",
+      "Email support"
+    ],
+    entitled_bundles: trial_bundles,
+    sort_order: 0
+  },
+  %{
+    code: "starter",
+    name: "Starter",
+    max_businesses: 3,
+    max_branches: 10,
+    max_users: 25,
+    price_pkr: 4999,
+    billing_period: "month",
+    price_display: "Rs 4,999/month",
+    tagline: "A solid fit when one business is growing across a few shops.",
+    features: [
+      "Up to 3 businesses",
+      "Up to 10 branches",
+      "POS, inventory, accounting",
+      "Attendance & leave",
+      "PDF and Excel exports"
+    ],
+    entitled_bundles: starter_bundles,
+    sort_order: 1,
+    safepay_plan_id: System.get_env("SAFEPAY_PLAN_STARTER"),
+    # Deprecated / unused for checkout (kept for historical rows)
+    lemon_variant_id: System.get_env("LEMONSQUEEZY_VARIANT_STARTER")
+  },
+  %{
+    code: "growth",
+    name: "Growth",
+    max_businesses: 10,
+    max_branches: 50,
+    max_users: 100,
+    price_pkr: 12_999,
+    billing_period: "month",
+    price_display: "Rs 12,999/month",
+    tagline: "For owners juggling several businesses who need payroll and FBR.",
+    features: [
+      "Up to 10 businesses",
+      "Up to 50 branches",
+      "Payroll that posts to the ledger",
+      "FBR Tier-1 reporting",
+      "Approvals and audit history",
+      "Priority support"
+    ],
+    entitled_bundles: growth_bundles,
+    sort_order: 2,
+    safepay_plan_id: System.get_env("SAFEPAY_PLAN_GROWTH"),
+    lemon_variant_id: System.get_env("LEMONSQUEEZY_VARIANT_GROWTH")
+  },
+  %{
+    code: "enterprise",
+    name: "Enterprise",
+    max_businesses: 9999,
+    max_branches: 9999,
+    max_users: 9999,
+    price_pkr: nil,
+    billing_period: "custom",
+    price_display: "Custom",
+    tagline: "Higher limits, hands-on onboarding, and help with compliance setup.",
+    features: [
+      "Custom business and branch limits",
+      "A named person to help you",
+      "Security review support",
+      "Custom tax templates",
+      "SLA options"
+    ],
+    entitled_bundles: enterprise_bundles,
+    sort_order: 3,
+    safepay_plan_id: System.get_env("SAFEPAY_PLAN_ENTERPRISE"),
+    lemon_variant_id: System.get_env("LEMONSQUEEZY_VARIANT_ENTERPRISE")
+  }
+]
+
+for attrs <- plan_defs do
+  case Repo.get_by(SubscriptionPlan, code: attrs.code) do
+    nil ->
+      %SubscriptionPlan{}
+      |> SubscriptionPlan.changeset(attrs)
+      |> Repo.insert!()
+
+    existing ->
+      existing
+      |> SubscriptionPlan.changeset(attrs)
+      |> Repo.update!()
+  end
+end
+
+IO.puts("Seeded #{length(plan_defs)} subscription plans")
 
 import Ecto.Query
 import Ecto.Changeset
@@ -2795,6 +2911,63 @@ seed_crm_and_finance = fn owner, business, branches, products ->
     |> Enum.reject(fn c -> MapSet.member?(existing_campaign_names, c.name) end)
 
   _ = bulk_insert!.(CrmCampaign, campaign_attrs, [])
+
+  # Sample Safepay campaign payments (pending SMS draft + paid WhatsApp sent)
+  sms_campaign =
+    from(c in CrmCampaign,
+      where: c.business_id == ^business.id and c.name == "SMS flash sale"
+    )
+    |> Repo.one()
+
+  wa_campaign =
+    from(c in CrmCampaign,
+      where: c.business_id == ^business.id and c.name == "WhatsApp weekend deal"
+    )
+    |> Repo.one()
+
+  existing_payment_campaign_ids =
+    from(p in CampaignPayment,
+      where: p.business_id == ^business.id,
+      select: p.campaign_id
+    )
+    |> Repo.all()
+    |> MapSet.new()
+
+  campaign_payment_attrs =
+    [
+      sms_campaign &&
+        not MapSet.member?(existing_payment_campaign_ids, sms_campaign.id) &&
+        %{
+          amount: Decimal.new("20.00"),
+          currency: "PKR",
+          status: "pending",
+          lemon_checkout_id: "seed_chk_sms_#{String.slice(business.id, 0, 8)}",
+          checkout_url:
+            "/api/v1/crm/campaigns/#{sms_campaign.id}/confirm-payment?payment_id=seed",
+          campaign_id: sms_campaign.id,
+          business_id: business.id,
+          owner_id: owner.id,
+          actor_id: owner.id
+        },
+      wa_campaign &&
+        not MapSet.member?(existing_payment_campaign_ids, wa_campaign.id) &&
+        %{
+          amount: Decimal.new("45.00"),
+          currency: "PKR",
+          status: "paid",
+          lemon_order_id: "seed_ord_wa_#{String.slice(business.id, 0, 8)}",
+          lemon_checkout_id: "seed_chk_wa_#{String.slice(business.id, 0, 8)}",
+          checkout_url: "https://kaarobar.local/checkout/seed-whatsapp",
+          paid_at: DateTime.add(seed_now, -2 * 86_400, :second),
+          campaign_id: wa_campaign.id,
+          business_id: business.id,
+          owner_id: owner.id,
+          actor_id: owner.id
+        }
+    ]
+    |> Enum.reject(&(&1 in [nil, false]))
+
+  _ = bulk_insert!.(CampaignPayment, campaign_payment_attrs, [])
 
   # AR / AP / PO keep context helpers (journals + stock side-effects)
   khata_customers = Enum.filter(customers, & &1.khata_enabled)

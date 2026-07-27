@@ -17,6 +17,9 @@ defmodule Kaarobar.Integrations.Fbr do
       is_nil(sale) ->
         {:error, :sale_not_found}
 
+      not Kaarobar.Billing.plan_allows_fbr?(sale.owner_id) ->
+        {:error, :plan_feature_locked}
+
       not is_nil(sale.fbr_invoice_no) ->
         {:ok, sale.fbr_invoice_no}
 

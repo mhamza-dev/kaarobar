@@ -5,7 +5,7 @@ defmodule Kaarobar.Schemas.CrmCampaignRecipient do
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
 
-  @channel_statuses ~w(notified email_only skipped_no_user)
+  @channel_statuses ~w(notified email_only skipped_no_user sms_queued whatsapp_queued)
 
   schema "crm_campaign_recipients" do
     field :channel_status, :string, default: "skipped_no_user"

@@ -60,7 +60,7 @@ Portal / Helpdesk / Public API / appointments remain Should until Product promot
 | ACC-FR-001/003–008/010/012/013/015/017 | COA, journals, statements, AR/AP, FBR hooks |
 | HR-FR-001/002/005/006/008–011 | Employees, attendance, leave, payroll, ESS |
 | RPT-FR-001/002 | Owner + branch reports |
-| ADM-FR-002/003 | Plan limits + LemonSqueezy webhook/checkout |
+| ADM-FR-002/003 | Plan limits + Safepay webhook/checkout (Pakistan) |
 | CRM-FR-002/007/011/015–017 | Campaigns draft→send, points, async, audiences, customer CRM fields |
 | NOT-FR-001/003/004/005/006 | Inbox/email, payslip notify, push, i18n, branding |
 | FBR-FR-001–004 | Tier-1 flag, async report, receipt fields, non-blocking |

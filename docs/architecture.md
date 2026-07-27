@@ -64,5 +64,5 @@ Aligned to Kaarobar SRS KRB-SRS-001 §3 (ISO/IEC/IEEE 42010 viewpoints), with st
 
 - FBR POS adapter (async, never blocks sale)
 - Payment gateway adapter (customer → owner; tokenized; no raw PAN)
-- LemonSqueezy (owner → Kaarobar subscription)
+- Safepay (owner → Kaarobar subscription, Pakistan)
 - Notifications: email first; SMS / WhatsApp later

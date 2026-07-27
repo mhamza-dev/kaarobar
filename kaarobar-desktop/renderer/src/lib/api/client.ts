@@ -25,6 +25,10 @@ export type StoredSession = {
     branch_name?: string | null;
   }[];
   role_settings?: Record<string, Record<string, boolean>>;
+  /** Owner-scoped plan entitlements (ADM-FR-002). */
+  entitled_bundles?: string[];
+  allows_fbr?: boolean;
+  subscription_plan?: string;
 };
 
 const SESSION_KEY = "kaarobar_desktop_session";
@@ -119,6 +123,30 @@ export async function hydrateSessionContext(
     } catch {
       // Non-owner users may not have access to role-settings endpoint.
     }
+  }
+
+  try {
+    const bill = await api<{
+      data: {
+        entitled_bundles?: string[];
+        allows_fbr?: boolean;
+        subscription?: { plan?: string; entitled_bundles?: string[]; allows_fbr?: boolean };
+      };
+    }>("/billing/subscription", {}, merged);
+    const entitled =
+      bill.data?.entitled_bundles ||
+      bill.data?.subscription?.entitled_bundles ||
+      [];
+    merged = {
+      ...merged,
+      entitled_bundles: entitled,
+      allows_fbr:
+        bill.data?.allows_fbr ?? bill.data?.subscription?.allows_fbr ?? false,
+      subscription_plan: bill.data?.subscription?.plan,
+    };
+    setSession(merged);
+  } catch {
+    // Billing may be unavailable; leave entitled_bundles unset (fail-open until loaded).
   }
 
   return merged;

@@ -42,13 +42,14 @@ Customer flags: `marketing_opt_in_email`, `marketing_opt_in_sms`, `marketing_opt
 - Types: `order.placed`, `order.status_changed`, `crm.campaign` (+ staff `order.online_placed`)
 - Online sales default status `Placed`; staff `PATCH /sales/:id/status` → Confirmed → Ready → Completed | Cancelled
 
-### Paid messaging (internal wallet)
+### Paid messaging (Safepay pay-to-send)
 
-- `businesses.messaging_wallet_balance` + `messaging_wallet_ledger`
-- Campaign fields: `budget_amount`, `estimated_cost`, `actual_cost`, `unit_cost_snapshot`, `template_id`
-- Unit rates via `config :kaarobar, :messaging_unit_costs` (email/in_app free; SMS/WhatsApp charged)
-- Send blocked with `budget_exceeded` / `insufficient_credits`
-- Top-up: `POST /api/v1/crm/messaging-wallet/top-up` (owner MVP stub)
+- Free channels (`email`, `in_app`): send as before (wallet unused when cost is 0)
+- Paid channels (`sms`, `whatsapp`): **Pay & send** → `POST /crm/campaigns/:id/checkout` creates `campaign_payments` + Safepay one-time checkout (PKR); webhook (or dev `confirm-payment`) marks paid and sends
+- Direct `POST …/send` on unpaid paid-channel returns `402 payment_required`
+- Ledger still records `campaign_spend`; wallet may be credited then debited on Safepay success
+- Free stub top-up removed (`POST …/messaging-wallet/top-up` → 410)
+- Requires `SAFEPAY_API_KEY` + `SAFEPAY_SECRET_KEY`; without keys uses `dev_fallback` confirm-payment path
 
 ### Loyalty tiers / Coupons / SMS-WA
 

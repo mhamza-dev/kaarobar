@@ -12,7 +12,7 @@ Kaarobar is multi-tenant SaaS. Owner → business → branch isn’t an aftertho
 2. **Accounting** — Real double-entry books under the POS (not a cash notebook)
 3. **HR & Payroll** — Attendance, leave, payroll, ESS
 4. **CRM (baseline)** — Email/in-app campaigns, audience filters, loyalty points
-5. **Platform** — Plan limits, LemonSqueezy hooks, FBR hooks, push/email, en/ur
+5. **Platform** — Plan limits, Safepay billing (PK), FBR hooks, push/email, en/ur
 6. **Roadmap** — Helpdesk · Public API · BI · appointments · production FBR adapter · full billing portal
 
 ## Goals
@@ -37,7 +37,7 @@ Kaarobar is multi-tenant SaaS. Owner → business → branch isn’t an aftertho
 - Pakistan sales tax defaults + FBR Tier-1 **hooks** (async/mock; production adapter later)
 - HR: employees, attendance (POS/mobile), leave, payroll into the ledger, ESS
 - Owner dashboards, RBAC-filtered navigation, and reports
-- Platform subscription plan limits + LemonSqueezy webhook/checkout
+- Platform subscription plan limits + Safepay webhook/checkout (Pakistan)
 - CRM campaigns as-built (email/in-app; audiences all/khata/min_points)
 - Push + in-app + email notifications; English + Urdu
 - **Customer Portal** — customer login (separate from staff), orders, loyalty, khata/AR
@@ -108,7 +108,7 @@ Desktop POS keeps a local catalog and stock, queues sales with a `client_txn_id`
 | Accounting | ACC — COA, journals, statements, tax |
 | Hr | HR — employees, attendance, leave, payroll |
 | Reporting | RPT — owner/branch dashboards |
-| Billing | ADM — LemonSqueezy subscription limits |
+| Billing | ADM — Safepay subscription limits (Pakistan) |
 | Integrations.Fbr | FBR — Tier-1 async reporting |
 | Notifications | NOT — email (SMS/WhatsApp later) |
 
@@ -122,7 +122,7 @@ Desktop POS keeps a local catalog and stock, queues sales with a `client_txn_id`
 | API | Elixir, Phoenix, Ecto, Guardian, Oban, Argon2 |
 | Database | PostgreSQL 16 |
 | Object storage | Cloudflare R2 (planned) |
-| Subscription billing | LemonSqueezy (planned) |
+| Subscription billing | Safepay (JazzCash / Easypaisa / cards) |
 
 ## Theme (all clients)
 
@@ -159,7 +159,24 @@ cd kaarobar-desktop && npm install && npm start
 Demo seed user: `owner@kaarobar.local` / `Password@123`  
 Additional owners: `owner2@` (growth), `owner3@` (starter), `owner4@` (trial) — same password.  
 Staff: `manager@` / `cashier@` / `accountant@` / `hr@` / `inventory@kaarobar.local` (and `*2@`, `*3@`, `*4@` per owner).  
-Fresh demo data: `cd kaarobar-BE && mix ecto.reset`
+Fresh demo data: `cd kaarobar-BE && mix ecto.reset` (runs migrations, seeds `subscription_plans`, demo businesses/branches, and CRM data). After schema changes that add tables such as `subscription_plans` or `campaign_payments`, use `mix ecto.reset` locally so seeds stay in sync.
+
+### Billing (Safepay — Pakistan)
+
+Optional env vars in `kaarobar-BE/.env` (see `.env.example`):
+
+| Variable | Purpose |
+|----------|---------|
+| `SAFEPAY_API_KEY` | Client key for one-time payment init |
+| `SAFEPAY_SECRET_KEY` | Merchant secret (passport token / API) |
+| `SAFEPAY_WEBHOOK_SECRET` | Verify `X-SFPY-SIGNATURE` on billing webhooks |
+| `SAFEPAY_ENVIRONMENT` | `sandbox` (default) \| `production` \| `development` |
+| `SAFEPAY_PLAN_STARTER` / `_GROWTH` / `_ENTERPRISE` | Safepay dashboard plan IDs for upgrades |
+| `SAFEPAY_CHECKOUT_URL` | Static checkout URL fallback when API credentials are missing |
+
+Without API credentials, subscription checkout falls back to `SAFEPAY_CHECKOUT_URL` and campaign sends use the `dev_fallback` confirm-payment path. See [`docs/platform.md`](docs/platform.md) and [`docs/crm.md`](docs/crm.md).
+
+Lemon Squeezy env vars (`LEMONSQUEEZY_*`) are deprecated and unused on the live path.
 
 ### Buyer marketplace (unified login)
 

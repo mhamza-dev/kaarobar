@@ -18,17 +18,26 @@ defmodule KaarobarWeb.V1.BusinessController do
   def create(conn, params) do
     user = Guardian.Plug.current_resource(conn)
 
-    if Billing.within_limits?(user.id, :business) do
-      case Tenancy.create_business(user.id, atomize(params)) do
-        {:ok, business} ->
-          conn |> put_status(:created) |> json(%{data: serialize(business)})
+    cond do
+      not Billing.subscription_allows_writes?(user.id) ->
+        _ = Billing.notify_plan_limit(user.id, :business)
 
-        {:error, changeset} ->
-          conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(changeset.errors)})
-      end
-    else
-      _ = Billing.notify_plan_limit(user.id, :business)
-      conn |> put_status(:payment_required) |> json(%{error: "plan_limit_reached"})
+        conn
+        |> put_status(:payment_required)
+        |> json(%{error: "subscription_inactive"})
+
+      not Billing.within_limits?(user.id, :business) ->
+        _ = Billing.notify_plan_limit(user.id, :business)
+        conn |> put_status(:payment_required) |> json(%{error: "plan_limit_reached"})
+
+      true ->
+        case Tenancy.create_business(user.id, atomize(params)) do
+          {:ok, business} ->
+            conn |> put_status(:created) |> json(%{data: serialize(business)})
+
+          {:error, changeset} ->
+            conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(changeset.errors)})
+        end
     end
   end
 
@@ -56,6 +65,9 @@ defmodule KaarobarWeb.V1.BusinessController do
 
       {:error, :not_found} ->
         conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      {:error, :plan_feature_locked} ->
+        conn |> put_status(:forbidden) |> json(%{error: "plan_feature_locked"})
 
       {:error, changeset} ->
         conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(changeset.errors)})

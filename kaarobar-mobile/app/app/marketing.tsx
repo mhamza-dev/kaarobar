@@ -1,10 +1,11 @@
 import {useCallback, useEffect, useState, useMemo } from "react";
 import { useBrandPalette } from "../../lib/BrandThemeContext";
-import { View, Text, TextInput, ScrollView, Pressable, StyleSheet, Alert } from "react-native";
+import { View, Text, TextInput, ScrollView, Pressable, StyleSheet, Alert, Linking } from "react-native";
 import { router } from "expo-router";
 import { api, colors, getSession } from "../../lib/api";
-import { canAccessRoute } from "../../lib/rbac";
+import { canAccessRoute, isPlanFeatureLocked } from "../../lib/rbac";
 import { t } from "../../lib/i18n";
+import { useToast } from "../../components/Toast";
 
 type Campaign = {
   id: string;
@@ -12,6 +13,7 @@ type Campaign = {
   title: string;
   message: string;
   audience: string;
+  channel?: string;
   min_points?: number | null;
   status: string;
   sent_at?: string | null;
@@ -23,6 +25,7 @@ type Campaign = {
 export default function MarketingScreen() {
   const palette = useBrandPalette();
   const styles = useMemo(() => createStyles(palette), [palette]);
+  const toast = useToast();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [form, setForm] = useState({
     name: "",
@@ -53,12 +56,15 @@ export default function MarketingScreen() {
         return;
       }
       if (!canAccessRoute(s, "/app/marketing")) {
+        if (isPlanFeatureLocked(s, "/app/marketing")) {
+          toast.error(t("rbac.planFeatureLocked"));
+        }
         router.replace("/app/dashboard");
         return;
       }
       await load();
     })();
-  }, [load]);
+  }, [load, toast]);
 
   async function create() {
     setBusy(true);
@@ -85,11 +91,61 @@ export default function MarketingScreen() {
     }
   }
 
+  function isPaidChannel(channel?: string | null) {
+    return channel === "sms" || channel === "whatsapp";
+  }
+
   async function send(c: Campaign) {
+    if (isPaidChannel(c.channel)) {
+      Alert.alert(t("marketing.payAndSend"), t("marketing.payAndSendConfirm", { name: c.name }), [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("marketing.payAndSend"),
+          onPress: () => {
+            void (async () => {
+              setBusy(true);
+              try {
+                const res = await api<{
+                  data: {
+                    checkout_url: string;
+                    payment_id: string;
+                    dev_fallback?: boolean;
+                  };
+                }>(`/crm/campaigns/${c.id}/checkout`, {
+                  method: "POST",
+                  body: "{}",
+                });
+                if (res.data.dev_fallback) {
+                  const sent = await api<{ data: Campaign }>(
+                    `/crm/campaigns/${c.id}/confirm-payment`,
+                    {
+                      method: "POST",
+                      body: JSON.stringify({ payment_id: res.data.payment_id }),
+                    }
+                  );
+                  setDetail(sent.data);
+                  toast.success(t("marketing.payAndSendDone"));
+                  await load();
+                } else if (res.data.checkout_url) {
+                  await Linking.openURL(res.data.checkout_url);
+                  toast.success(t("marketing.checkoutOpened"));
+                }
+              } catch (err) {
+                setError(err instanceof Error ? err.message : "Pay & send failed");
+              } finally {
+                setBusy(false);
+              }
+            })();
+          },
+        },
+      ]);
+      return;
+    }
+
     Alert.alert(t("marketing.send"), t("marketing.sendConfirm", { name: c.name }), [
       { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Send",
+        text: t("marketing.send"),
         onPress: () => {
           void (async () => {
             setBusy(true);
@@ -172,7 +228,11 @@ export default function MarketingScreen() {
           <View style={styles.row}>
             {c.status === "Draft" ? (
               <Pressable style={styles.chip} onPress={() => send(c)}>
-                <Text style={styles.chipText}>{t("marketing.send")}</Text>
+                <Text style={styles.chipText}>
+                  {c.channel === "sms" || c.channel === "whatsapp"
+                    ? t("marketing.payAndSend")
+                    : t("marketing.send")}
+                </Text>
               </Pressable>
             ) : null}
             <Pressable

@@ -35,6 +35,14 @@ defmodule KaarobarWeb.V1.MembershipController do
            {:ok, membership} <- Tenancy.create_membership(user, attrs) do
         conn |> put_status(:created) |> json(%{data: serialize(membership)})
       else
+        {:error, :subscription_inactive} ->
+          owner_id = Tenancy.owner_id_for_business(business_id) || user.id
+          _ = Kaarobar.Billing.notify_plan_limit(owner_id, :user)
+
+          conn
+          |> put_status(:payment_required)
+          |> json(%{error: "subscription_inactive", limit: "users"})
+
         {:error, :plan_limit_reached} ->
           owner_id = Tenancy.owner_id_for_business(business_id) || user.id
           _ = Kaarobar.Billing.notify_plan_limit(owner_id, :user)

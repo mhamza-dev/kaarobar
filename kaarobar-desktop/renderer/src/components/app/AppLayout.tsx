@@ -4,6 +4,7 @@ import {
   Bell,
   BookOpen,
   Boxes,
+  Building2,
   ClipboardList,
   ContactRound,
   FileText,
@@ -21,7 +22,7 @@ import {
 } from "lucide-react";
 import { appNav, appNavGroups, routes } from "@/lib/navigation";
 import { clearSession, getSession, hydrateSessionContext, type StoredSession } from "@/lib/api/client";
-import { canAccessBundle, canAccessPath } from "@/lib/rbac";
+import { canAccessBundle, canAccessPath, isPlanFeatureLocked } from "@/lib/rbac";
 import TenantSwitcher from "@/components/app/TenantSwitcher";
 import LanguageSwitcher from "@/components/app/LanguageSwitcher";
 import { StaffBrandProvider } from "@/components/app/BrandTheme";
@@ -29,6 +30,7 @@ import KaarobarLogo from "@/components/brand/KaarobarLogo";
 import Button from "@/components/ui/Button";
 import { useI18n } from "@/lib/i18n";
 import { useUnreadNotifications } from "@/lib/hooks/useUnreadNotifications";
+import { useToast } from "@/components/ui/Toast";
 
 const icons = {
   layout: LayoutDashboard,
@@ -44,6 +46,7 @@ const icons = {
   bell: Bell,
   settings: Settings,
   profile: UserRound,
+  businesses: Building2,
   ess: Wrench,
 } as const;
 
@@ -52,11 +55,13 @@ export default function AppLayout() {
   const pathname = location.pathname;
   const navigate = useNavigate();
   const { t } = useI18n();
+  const toast = useToast();
   const { unread } = useUnreadNotifications();
   const [session, setSessionState] = useState<StoredSession | null>(null);
   const [booting, setBooting] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [tenantKey, setTenantKey] = useState("boot");
+  const [planLockHandled, setPlanLockHandled] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -107,7 +112,16 @@ export default function AppLayout() {
 
   useEffect(() => {
     setMenuOpen(false);
+    setPlanLockHandled(false);
   }, [pathname]);
+
+  useEffect(() => {
+    if (!session || booting || planLockHandled) return;
+    if (!isPlanFeatureLocked(session, pathname)) return;
+    setPlanLockHandled(true);
+    toast.error(t("rbac.planFeatureLocked"));
+    navigate(routes.app, { replace: true });
+  }, [session, booting, pathname, planLockHandled, navigate, t, toast]);
 
   const visibleNav = useMemo(
     () => appNav.filter((item) => canAccessBundle(session, item.bundle)),
@@ -142,11 +156,16 @@ export default function AppLayout() {
   }
 
   if (!canAccessPath(session, pathname)) {
+    const planLocked = isPlanFeatureLocked(session, pathname);
     return (
       <div className="flex min-h-screen items-center justify-center bg-bg-primary p-6 text-center">
         <div>
-          <h2 className="text-xl font-bold text-heading">{t("rbac.accessDeniedTitle")}</h2>
-          <p className="mt-2 text-body">{t("rbac.accessDeniedMessage")}</p>
+          <h2 className="text-xl font-bold text-heading">
+            {planLocked ? t("rbac.planFeatureLockedTitle") : t("rbac.accessDeniedTitle")}
+          </h2>
+          <p className="mt-2 text-body">
+            {planLocked ? t("rbac.planFeatureLocked") : t("rbac.accessDeniedMessage")}
+          </p>
           <Button className="mt-4" onClick={() => navigate(routes.app)}>
             {t("rbac.goToDashboard")}
           </Button>

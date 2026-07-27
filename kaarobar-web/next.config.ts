@@ -28,6 +28,7 @@ const nextConfig: NextConfig = {
       { source: "/app/loyalty", destination: "/app/customers", permanent: false },
       { source: "/app/ar", destination: "/app/accounting", permanent: false },
       { source: "/app/market", destination: "/app", permanent: false },
+      { source: "/app/profile", destination: "/app/settings?tab=profile", permanent: false },
       { source: "/login", has: [{ type: "query", key: "as", value: "buyer" }], destination: "/login?as=consumer", permanent: false },
       { source: "/signup", has: [{ type: "query", key: "as", value: "buyer" }], destination: "/signup?as=consumer", permanent: false },
     ];

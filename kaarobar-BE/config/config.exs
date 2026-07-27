@@ -67,7 +67,14 @@ config :kaarobar,
     "in_app" => "0",
     "sms" => "2.50",
     "whatsapp" => "3.00"
-  }
+  },
+  # Safepay (overridden from env in runtime.exs / process env)
+  safepay_environment: "sandbox",
+  safepay_api_key: nil,
+  safepay_secret_key: nil,
+  safepay_webhook_secret: nil,
+  safepay_checkout_url: nil,
+  safepay_plans: %{}
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

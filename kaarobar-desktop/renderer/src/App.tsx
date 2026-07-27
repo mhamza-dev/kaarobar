@@ -17,6 +17,8 @@ import ReportsPage from "@/pages/ReportsPage";
 import NotificationsPage from "@/pages/NotificationsPage";
 import SettingsPage from "@/pages/SettingsPage";
 import ProfilePage from "@/pages/ProfilePage";
+import BusinessesPage from "@/pages/BusinessesPage";
+import BusinessDetailPage from "@/pages/BusinessDetailPage";
 import EssPage from "@/pages/EssPage";
 import SalesPage from "@/pages/SalesPage";
 import CustomerDetailPage from "@/pages/CustomerDetailPage";
@@ -68,6 +70,8 @@ export default function App() {
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="profile" element={<ProfilePage />} />
+                <Route path="businesses" element={<BusinessesPage />} />
+                <Route path="businesses/:id" element={<BusinessDetailPage />} />
                 <Route path="ess" element={<EssPage />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />

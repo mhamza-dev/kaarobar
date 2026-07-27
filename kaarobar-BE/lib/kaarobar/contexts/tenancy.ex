@@ -57,6 +57,7 @@ defmodule Kaarobar.Tenancy do
 
   def update_business(business_id, actor, attrs) do
     with {:ok, business} <- fetch_owned_business(business_id, actor.id),
+         :ok <- maybe_require_fbr_plan(business, attrs),
          {:ok, updated} <-
            business |> Business.changeset(attrs) |> Repo.update(),
          {:ok, _} <-
@@ -82,6 +83,17 @@ defmodule Kaarobar.Tenancy do
              ])
            }) do
       {:ok, updated}
+    end
+  end
+
+  defp maybe_require_fbr_plan(business, attrs) do
+    enabling? =
+      Map.get(attrs, :fbr_tier1) == true or Map.get(attrs, "fbr_tier1") == true
+
+    if enabling? and not Kaarobar.Billing.plan_allows_fbr?(business.owner_id) do
+      {:error, :plan_feature_locked}
+    else
+      :ok
     end
   end
 
@@ -249,6 +261,7 @@ defmodule Kaarobar.Tenancy do
     normalized_roles = normalize_roles(roles)
 
     with {:ok, business} <- fetch_owned_business(business_id, actor.id),
+         true <- Kaarobar.Billing.subscription_allows_writes?(business.owner_id) || {:error, :subscription_inactive},
          true <- Kaarobar.Billing.within_limits?(business.owner_id, :user) || {:error, :plan_limit_reached},
          :ok <- Roles.validate_roles(List.wrap(normalized_roles)),
          {:ok, membership} <-

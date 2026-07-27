@@ -1,4 +1,3 @@
-"use client";
 
 import { useI18n, type Locale } from "@/lib/i18n";
 

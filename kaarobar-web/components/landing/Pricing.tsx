@@ -77,7 +77,7 @@ export default function Pricing() {
             Plans that grow with how you actually expand.
           </h2>
           <p className="mt-5 text-lg text-body">
-            You pay Kaarobar for the software (via LemonSqueezy). That’s separate
+            You pay Kaarobar for the software (via Safepay — JazzCash, Easypaisa, or card). That’s separate
             from what your customers pay you at the till.
           </p>
         </div>

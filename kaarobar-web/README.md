@@ -38,7 +38,7 @@ See also [docs/crm.md](../docs/crm.md).
 
 ## SRS-aligned product copy
 
-Landing sections map to SRS scope: Owner→Business→Branch hierarchy, POS/Inventory/Accounting/HR modules, offline desktop POS, FBR Tier-1, subscription billing (LemonSqueezy).
+Landing sections map to SRS scope: Owner→Business→Branch hierarchy, POS/Inventory/Accounting/HR modules, offline desktop POS, FBR Tier-1, subscription billing (Safepay).
 
 ## Setup
 

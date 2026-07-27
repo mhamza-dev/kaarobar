@@ -219,7 +219,8 @@ export default function DashboardScreen() {
           : t("pages.notificationsDesc"),
     },
     { href: "/app/ess", title: t("nav.ess"), subtitle: t("nav.ess") },
-    { href: "/app/profile", title: t("nav.profile"), subtitle: t("profile.description") },
+    { href: "/app/settings", title: t("nav.settings"), subtitle: t("pages.settingsDesc") },
+    { href: "/app/businesses", title: t("nav.businesses"), subtitle: t("pages.businessesDesc") },
   ].filter((item) => {
     if (item.href === "/app/pos" || item.href === "/app/returns") return canAccess(session, "pos");
     if (item.href === "/app/customers") return canAccess(session, "customers");
@@ -227,6 +228,7 @@ export default function DashboardScreen() {
     if (item.href === "/app/inventory") return canAccess(session, "inventory");
     if (item.href === "/app/leave") return canAccess(session, "leave_approve");
     if (item.href === "/app/ess") return canAccess(session, "employee_self");
+    if (item.href === "/app/businesses") return canAccess(session, "owner_manage");
     return true;
   });
 

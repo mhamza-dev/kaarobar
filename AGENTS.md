@@ -39,7 +39,7 @@ Goals: **G1–G7** (see SRS §1.4.2 / README). Pakistan-first (FBR Tier-1); Engl
 
 | Phase | Ship |
 |-------|------|
-| **Production baseline (Must)** | TEN/POS/INV/ACC/HR/RPT, CRM campaigns as-built, khata, loyalty points, push, desktop offline, FBR hooks, LemonSqueezy webhook/checkout |
+| **Production baseline (Must)** | TEN/POS/INV/ACC/HR/RPT, CRM campaigns as-built, khata, loyalty points, push, desktop offline, FBR hooks, Safepay webhook/checkout |
 | **A remaining (Should)** | Customer Portal, coupons, loyalty tiers, consent, named segments |
 | **B (Should)** | Helpdesk, Public API/webhooks, BI, production FBR adapter, appointments |
 

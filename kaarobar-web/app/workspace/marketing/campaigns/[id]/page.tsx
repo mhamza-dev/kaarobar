@@ -5,6 +5,9 @@ import { useParams } from "next/navigation";
 import { api } from "@/lib/api/client";
 import { routes } from "@/lib/navigation";
 import { DetailFieldGrid, DetailSection, DetailShell } from "@/components/app/DetailShell";
+import Button from "@/components/ui/Button";
+import { useToast } from "@/components/ui/Toast";
+import { useT } from "@/lib/i18n";
 
 type Campaign = {
   id: string;
@@ -29,11 +32,18 @@ type Campaign = {
   };
 };
 
+function isPaidChannel(channel?: string | null) {
+  return channel === "sms" || channel === "whatsapp";
+}
+
 export default function CampaignDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const t = useT();
+  const toast = useToast();
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -42,22 +52,76 @@ export default function CampaignDetailPage() {
       const res = await api<{ data: Campaign }>(`/crm/campaigns/${id}`);
       setCampaign(res.data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load campaign");
+      setError(err instanceof Error ? err.message : t("common.loadFailed"));
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, t]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
+  async function sendCampaign() {
+    if (!campaign) return;
+    if (!confirm(t("marketing.sendConfirm", { name: campaign.name }))) return;
+    setBusy(true);
+    try {
+      const res = await api<{ data: Campaign }>(`/crm/campaigns/${campaign.id}/send`, {
+        method: "POST",
+        body: "{}",
+      });
+      setCampaign(res.data);
+      toast.success(t("marketing.sentOk"));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function payAndSend() {
+    if (!campaign) return;
+    if (!confirm(t("marketing.payAndSendConfirm", { name: campaign.name }))) return;
+    setBusy(true);
+    try {
+      const res = await api<{
+        data: {
+          checkout_url: string;
+          payment_id: string;
+          dev_fallback?: boolean;
+        };
+      }>(`/crm/campaigns/${campaign.id}/checkout`, {
+        method: "POST",
+        body: JSON.stringify({ redirect_url: window.location.href }),
+      });
+      if (res.data.dev_fallback) {
+        const sent = await api<{ data: Campaign }>(
+          `/crm/campaigns/${campaign.id}/confirm-payment`,
+          {
+            method: "POST",
+            body: JSON.stringify({ payment_id: res.data.payment_id }),
+          }
+        );
+        setCampaign(sent.data);
+        toast.success(t("marketing.payAndSendDone"));
+      } else if (res.data.checkout_url) {
+        window.open(res.data.checkout_url, "_blank", "noopener,noreferrer");
+        toast.success(t("marketing.checkoutOpened"));
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <DetailShell
       backHref={routes.marketing}
-      backLabel="Back to marketing"
-      eyebrow="Campaign"
-      title={campaign?.name || "Campaign"}
+      backLabel={t("marketing.backToMarketing")}
+      eyebrow={t("marketing.eyebrow")}
+      title={campaign?.name || t("marketing.campaignFallback")}
       subtitle={campaign?.title}
       status={
         campaign
@@ -67,22 +131,37 @@ export default function CampaignDetailPage() {
             }
           : undefined
       }
+      actions={
+        campaign?.status === "Draft" ? (
+          <Button
+            size="sm"
+            loading={busy}
+            onClick={() =>
+              void (isPaidChannel(campaign.channel) ? payAndSend() : sendCampaign())
+            }
+          >
+            {isPaidChannel(campaign.channel)
+              ? t("marketing.payAndSend")
+              : t("marketing.send")}
+          </Button>
+        ) : undefined
+      }
       loading={loading}
       error={error}
     >
       {campaign ? (
         <>
-          <DetailSection title="Overview">
+          <DetailSection title={t("marketing.overview")}>
             <DetailFieldGrid
               fields={[
-                { label: "Channel", value: campaign.channel || "email" },
-                { label: "Audience", value: campaign.audience },
+                { label: t("marketing.channel"), value: campaign.channel || "email" },
+                { label: t("marketing.audience"), value: campaign.audience },
                 {
-                  label: "Sent at",
+                  label: t("marketing.sentAt"),
                   value: campaign.sent_at ? String(campaign.sent_at).slice(0, 16) : "—",
                 },
                 {
-                  label: "Recipients",
+                  label: t("marketing.recipients"),
                   value: String(campaign.recipients?.length ?? campaign.delivery?.total ?? 0),
                 },
               ]}
@@ -92,7 +171,7 @@ export default function CampaignDetailPage() {
             </p>
           </DetailSection>
 
-          <DetailSection title="Delivery">
+          <DetailSection title={t("marketing.delivery")}>
             <ul className="divide-y divide-border text-sm">
               {(campaign.recipients || []).map((r) => (
                 <li key={r.id} className="flex justify-between gap-2 py-2">
@@ -104,7 +183,7 @@ export default function CampaignDetailPage() {
               ))}
             </ul>
             {(campaign.recipients || []).length === 0 ? (
-              <p className="text-sm text-body">No recipients recorded yet.</p>
+              <p className="text-sm text-body">{t("marketing.noRecipients")}</p>
             ) : null}
           </DetailSection>
         </>

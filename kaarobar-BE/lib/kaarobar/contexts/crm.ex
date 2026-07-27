@@ -9,6 +9,7 @@ defmodule Kaarobar.Crm do
   alias Kaarobar.{Audit, Mailer, Notifications, Repo}
   alias Kaarobar.Schemas.{
     Business,
+    CampaignPayment,
     CampaignSegment,
     CrmCampaign,
     CrmCampaignRecipient,
@@ -17,6 +18,10 @@ defmodule Kaarobar.Crm do
     MessagingWalletLedger,
     Sale
   }
+
+  @paid_channels ~w(sms whatsapp)
+
+  def paid_channel?(channel), do: to_string(channel || "") in @paid_channels
 
   ## —— Segments (CRM-FR-001) ————————————————————————————————
 
@@ -114,6 +119,7 @@ defmodule Kaarobar.Crm do
       is_nil(budget) or Decimal.compare(estimated, budget) != :gt
 
     within_wallet = Decimal.compare(estimated, wallet) != :gt
+    requires_payment = paid_channel?(channel) and Decimal.compare(estimated, Decimal.new("0")) == :gt
 
     %{
       count: count,
@@ -124,11 +130,17 @@ defmodule Kaarobar.Crm do
       budget_amount: budget && Decimal.to_string(budget),
       within_budget: within_budget,
       within_wallet: within_wallet,
-      can_send: within_budget and within_wallet
+      requires_payment: requires_payment,
+      paid_channel: paid_channel?(channel),
+      can_send:
+        within_budget and
+          if(requires_payment, do: true, else: within_wallet)
     }
   end
 
-  def send_campaign(campaign_id, business_id, owner_id, actor_id) do
+  def send_campaign(campaign_id, business_id, owner_id, actor_id, opts \\ []) do
+    prepaid = Keyword.get(opts, :prepaid, false)
+
     case get_campaign(campaign_id, business_id, owner_id) do
       nil ->
         {:error, :not_found}
@@ -142,22 +154,228 @@ defmodule Kaarobar.Crm do
         unit = unit_cost(campaign.channel || "email")
         estimated = Decimal.mult(unit, Decimal.new(count))
         wallet = wallet_balance(business_id, owner_id)
+        paid? = prepaid or has_paid_payment?(campaign.id)
 
         cond do
           campaign.budget_amount &&
               Decimal.compare(estimated, campaign.budget_amount) == :gt ->
             {:error, :budget_exceeded}
 
-          Decimal.compare(estimated, wallet) == :gt ->
+          paid_channel?(campaign.channel) and not paid? ->
+            {:error, :payment_required}
+
+          not paid_channel?(campaign.channel) and
+              Decimal.compare(estimated, wallet) == :gt and Decimal.compare(estimated, Decimal.new("0")) == :gt ->
             {:error, :insufficient_credits}
 
           true ->
-            do_send_campaign(campaign, customers, estimated, unit, business_id, owner_id, actor_id)
+            do_send_campaign(campaign, customers, estimated, unit, business_id, owner_id, actor_id,
+              skip_wallet: paid_channel?(campaign.channel) and paid?
+            )
         end
     end
   end
 
-  defp do_send_campaign(campaign, customers, estimated, unit, business_id, owner_id, actor_id) do
+  defp has_paid_payment?(campaign_id) do
+    from(p in CampaignPayment,
+      where: p.campaign_id == ^campaign_id and p.status == "paid",
+      select: count(p.id)
+    )
+    |> Repo.one()
+    |> Kernel.>(0)
+  end
+
+  @doc """
+  Create Safepay checkout to pay for an SMS/WhatsApp campaign send (PKR one-time).
+  """
+  def create_campaign_checkout(campaign_id, business_id, owner_id, actor_id, opts \\ %{}) do
+    case get_campaign(campaign_id, business_id, owner_id) do
+      nil ->
+        {:error, :not_found}
+
+      %{status: "Sent"} ->
+        {:error, :already_sent}
+
+      campaign ->
+        if not paid_channel?(campaign.channel) do
+          {:error, :not_paid_channel}
+        else
+          customers = resolve_audience(campaign)
+          count = length(customers)
+          unit = unit_cost(campaign.channel || "sms")
+          estimated = Decimal.mult(unit, Decimal.new(count))
+
+          if Decimal.compare(estimated, Decimal.new("0")) != :gt do
+            {:error, :zero_cost}
+          else
+            {:ok, payment} =
+              %CampaignPayment{}
+              |> CampaignPayment.changeset(%{
+                amount: estimated,
+                currency: "PKR",
+                status: "pending",
+                campaign_id: campaign.id,
+                business_id: business_id,
+                owner_id: owner_id,
+                actor_id: actor_id
+              })
+              |> Repo.insert()
+
+            reference =
+              Kaarobar.Billing.Safepay.encode_reference(%{
+                "type" => "campaign_send",
+                "campaign_id" => campaign.id,
+                "business_id" => business_id,
+                "owner_id" => owner_id,
+                "payment_id" => payment.id,
+                "actor_id" => actor_id
+              })
+
+            case Kaarobar.Billing.Safepay.create_payment_checkout(estimated, reference, opts) do
+              {:ok, %{checkout_url: url} = meta} ->
+                payment
+                |> CampaignPayment.changeset(%{
+                  checkout_url: url,
+                  lemon_checkout_id: meta[:checkout_id] || meta[:tracker] || meta["checkout_id"]
+                })
+                |> Repo.update()
+
+                {:ok, %{payment: payment, checkout_url: url, amount: Decimal.to_string(estimated)}}
+
+              {:error, :not_configured} ->
+                # Dev fallback: mark checkout_url as local confirm path
+                url =
+                  "/api/v1/crm/campaigns/#{campaign.id}/confirm-payment?payment_id=#{payment.id}"
+
+                payment
+                |> CampaignPayment.changeset(%{checkout_url: url})
+                |> Repo.update()
+
+                {:ok,
+                 %{
+                   payment: payment,
+                   checkout_url: url,
+                   amount: Decimal.to_string(estimated),
+                   dev_fallback: true
+                 }}
+
+              {:error, reason} ->
+                _ =
+                  payment
+                  |> CampaignPayment.changeset(%{status: "failed"})
+                  |> Repo.update()
+
+                {:error, reason}
+            end
+          end
+        end
+    end
+  end
+
+  def confirm_dev_campaign_payment(campaign_id, payment_id, business_id, owner_id) do
+    payment = Repo.get_by(CampaignPayment, id: payment_id, campaign_id: campaign_id)
+
+    cond do
+      is_nil(payment) ->
+        {:error, :not_found}
+
+      payment.business_id != business_id or payment.owner_id != owner_id ->
+        {:error, :forbidden}
+
+      payment.status == "paid" ->
+        send_campaign(campaign_id, business_id, owner_id, payment.actor_id || owner_id, prepaid: true)
+
+      true ->
+        now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+        {:ok, _} =
+          payment
+          |> CampaignPayment.changeset(%{status: "paid", paid_at: now, lemon_order_id: "dev-#{payment.id}"})
+          |> Repo.update()
+
+        # Credit wallet then send as prepaid (ledger still records spend)
+        _ =
+          top_up_wallet(business_id, owner_id, payment.amount, "Safepay campaign payment (dev)")
+
+        send_campaign(campaign_id, business_id, owner_id, payment.actor_id || owner_id, prepaid: true)
+    end
+  end
+
+  def complete_campaign_payment_from_webhook(payload, custom, event) do
+    payment_id = custom["payment_id"]
+    campaign_id = custom["campaign_id"]
+    business_id = custom["business_id"]
+    owner_id = custom["owner_id"]
+    actor_id = custom["actor_id"] || owner_id
+
+    data = payload["data"] || payload
+    order_id =
+      to_string(
+        data["token"] || data["tracker"] || data["id"] || payload["tracker"] ||
+          get_in(payload, ["data", "id"]) || ""
+      )
+
+    success_events =
+      ~w(payment.completed payment_completed order_created order_paid order_payment_success subscription_payment_success)
+
+    event_ok? =
+      event in success_events or
+        String.downcase(to_string(event)) in success_events or
+        String.upcase(to_string(data["status"] || "")) in ~w(COMPLETED PAID SUCCESS)
+
+    if event_ok? and is_binary(campaign_id) and is_binary(business_id) do
+      payment =
+        cond do
+          is_binary(payment_id) -> Repo.get(CampaignPayment, payment_id)
+          true ->
+            from(p in CampaignPayment,
+              where: p.campaign_id == ^campaign_id and p.status == "pending",
+              order_by: [desc: p.inserted_at],
+              limit: 1
+            )
+            |> Repo.one()
+        end
+
+      case payment do
+        nil ->
+          {:error, :payment_not_found}
+
+        %{status: "paid"} ->
+          {:ok, %{handled: true, event: event, already_paid: true}}
+
+        payment ->
+          now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+          {:ok, _} =
+            payment
+            |> CampaignPayment.changeset(%{
+              status: "paid",
+              paid_at: now,
+              lemon_order_id: if(order_id != "", do: order_id, else: payment.lemon_order_id)
+            })
+            |> Repo.update()
+
+          _ =
+            top_up_wallet(
+              business_id,
+              owner_id,
+              payment.amount,
+              "Safepay campaign payment"
+            )
+
+          case send_campaign(campaign_id, business_id, owner_id, actor_id, prepaid: true) do
+            {:ok, _} -> {:ok, %{handled: true, event: event, campaign_id: campaign_id}}
+            {:error, :already_sent} -> {:ok, %{handled: true, event: event, already_sent: true}}
+            {:error, reason} -> {:error, reason}
+          end
+      end
+    else
+      {:ok, :ignored}
+    end
+  end
+
+  defp do_send_campaign(campaign, customers, estimated, unit, business_id, owner_id, actor_id, opts) do
+        skip_wallet = Keyword.get(opts, :skip_wallet, false)
         now = DateTime.utc_now() |> DateTime.truncate(:second)
 
         recipients =
@@ -177,15 +395,31 @@ defmodule Kaarobar.Crm do
           biz =
             Repo.get_by!(Business, id: business_id, owner_id: owner_id)
 
-          new_balance = Decimal.sub(biz.messaging_wallet_balance || Decimal.new("0"), estimated)
+          unless skip_wallet do
+            new_balance = Decimal.sub(biz.messaging_wallet_balance || Decimal.new("0"), estimated)
 
-          if Decimal.compare(new_balance, Decimal.new("0")) == :lt do
-            Repo.rollback(:insufficient_credits)
+            if Decimal.compare(new_balance, Decimal.new("0")) == :lt do
+              Repo.rollback(:insufficient_credits)
+            end
+
+            biz
+            |> Business.changeset(%{messaging_wallet_balance: new_balance})
+            |> Repo.update!()
+          else
+            # Prepaid via Safepay: still debit if wallet was credited on payment
+            new_balance = Decimal.sub(biz.messaging_wallet_balance || Decimal.new("0"), estimated)
+
+            if Decimal.compare(new_balance, Decimal.new("0")) == :lt do
+              # Allow zeroing if credit race; clamp at 0
+              biz
+              |> Business.changeset(%{messaging_wallet_balance: Decimal.new("0")})
+              |> Repo.update!()
+            else
+              biz
+              |> Business.changeset(%{messaging_wallet_balance: new_balance})
+              |> Repo.update!()
+            end
           end
-
-          biz
-          |> Business.changeset(%{messaging_wallet_balance: new_balance})
-          |> Repo.update!()
 
           %MessagingWalletLedger{}
           |> MessagingWalletLedger.changeset(%{

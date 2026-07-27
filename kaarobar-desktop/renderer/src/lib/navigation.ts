@@ -64,7 +64,8 @@ export const routes = {
   hr: "/app/hr",
   reports: "/app/reports",
   settings: "/app/settings",
-  profile: "/app/profile",
+  profile: "/app/settings?tab=profile",
+  businesses: "/app/businesses",
   notifications: "/app/notifications",
   contact: "/contact",
   about: "/about",
@@ -90,6 +91,7 @@ export const detailRoutes = {
   saleReturn: (id: string) => `/app/returns/${id}`,
   payroll: (id: string) => `/app/hr/payroll/${id}`,
   purchaseOrder: (id: string) => `/app/inventory/purchase-orders/${id}`,
+  business: (id: string) => `/app/businesses/${id}`,
 } as const;
 
 export const appNav = [
@@ -105,7 +107,7 @@ export const appNav = [
   { titleKey: "nav.reports", href: "/app/reports", groupKey: "nav.backOffice", icon: "reports", bundle: "reports" },
   { titleKey: "nav.notifications", href: "/app/notifications", groupKey: "nav.system", icon: "bell", bundle: "notifications" },
   { titleKey: "nav.ess", href: "/app/ess", groupKey: "nav.system", icon: "ess", bundle: "employee_self" },
-  { titleKey: "nav.profile", href: "/app/profile", groupKey: "nav.system", icon: "profile", bundle: "any_staff" },
+  { titleKey: "nav.businesses", href: "/app/businesses", groupKey: "nav.system", icon: "businesses", bundle: "owner_manage" },
   { titleKey: "nav.settings", href: "/app/settings", groupKey: "nav.system", icon: "settings", bundle: "any_staff" },
 ] as const;
 
