@@ -199,13 +199,14 @@ export default function AppLayout() {
                   <Link
                     key={item.href}
                     to={item.href}
-                    className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition ${active
-                      ? "bg-brand text-white shadow-sm"
-                      : "text-rail-foreground hover:bg-rail-hover"
-                      }`}
+                    className={`nav-pill flex items-center gap-3 px-3 py-2.5 text-sm font-medium ${
+                      active
+                        ? "nav-pill-active animate-nav-in"
+                        : "text-rail-foreground hover:bg-rail-hover/80"
+                    }`}
                   >
                     <Icon
-                      className={`h-4 w-4 shrink-0 ${active ? "text-white" : "text-rail-muted"}`}
+                      className={`h-4 w-4 shrink-0 ${active ? "text-brand-foreground" : "text-rail-muted"}`}
                       strokeWidth={2}
                     />
                     {t(item.titleKey)}
@@ -221,10 +222,10 @@ export default function AppLayout() {
 
   return (
     <StaffBrandProvider businessId={session.business_id}>
-    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-bg-primary text-heading lg:flex-row">
-      <aside className="relative z-30 hidden h-full min-h-0 w-[248px] shrink-0 flex-col overflow-hidden border-r border-rail-border bg-rail lg:flex">
-        <div className="flex shrink-0 items-center gap-3 border-b border-rail-border px-5 py-4">
-          <KaarobarLogo size={40} className="shrink-0 shadow-brand rounded-[9px]" />
+    <div className="app-atmosphere flex h-full min-h-0 flex-1 flex-col overflow-hidden text-heading lg:flex-row">
+      <aside className="glass-nav relative z-30 hidden h-full min-h-0 w-[248px] shrink-0 flex-col overflow-hidden border-r lg:flex">
+        <div className="flex shrink-0 items-center gap-3 border-b border-glass-border/80 px-5 py-4">
+          <KaarobarLogo size={40} className="shrink-0 rounded-md shadow-brand" />
           <div>
             <p className="text-sm font-bold tracking-tight text-heading">
               {t("common.appName")}
@@ -232,10 +233,10 @@ export default function AppLayout() {
             <p className="text-xs text-rail-muted">{t("common.pointOfSale")}</p>
           </div>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="relative z-10 min-h-0 flex-1 overflow-y-auto">
           <NavBody />
         </div>
-        <div className="mt-auto shrink-0 space-y-3 border-t border-rail-border p-4">
+        <div className="relative z-10 mt-auto shrink-0 space-y-3 border-t border-glass-border/80 p-4">
           <LanguageSwitcher />
           <button
             type="button"
@@ -243,7 +244,7 @@ export default function AppLayout() {
               clearSession();
               navigate(routes.login);
             }}
-            className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-rail-muted transition hover:bg-rail-hover hover:text-heading"
+            className="nav-pill flex w-full items-center gap-3 px-3 py-2.5 text-sm font-medium text-rail-muted hover:bg-rail-hover/80 hover:text-heading"
           >
             <LogOut className="h-4 w-4" />
             {t("common.signOut")}
@@ -251,8 +252,8 @@ export default function AppLayout() {
         </div>
       </aside>
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="z-20 flex min-h-[4.5rem] shrink-0 flex-wrap items-center justify-between gap-3 border-b border-rail-border bg-rail px-4 sm:px-5 lg:px-6">
+      <div className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="glass-nav sticky top-0 z-20 flex min-h-[4.5rem] shrink-0 flex-wrap items-center justify-between gap-3 border-b px-4 sm:px-5 lg:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <Button
               variant="ghost"
@@ -262,8 +263,8 @@ export default function AppLayout() {
             >
               {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
-            <KaarobarLogo size={36} className="shrink-0 shadow-brand rounded-[8px] lg:hidden" />
-            <div className="min-w-0 border-l border-rail-border pl-3 lg:border-l-0 lg:pl-0">
+            <KaarobarLogo size={36} className="shrink-0 rounded-md shadow-brand lg:hidden" />
+            <div className="min-w-0 border-l border-glass-border/80 pl-3 lg:border-l-0 lg:pl-0">
               <p className="mb-0.5 hidden text-[10px] font-bold uppercase tracking-[0.14em] text-rail-muted lg:block">
                 {t("common.workspace")}
               </p>
@@ -277,7 +278,7 @@ export default function AppLayout() {
             <TenantSwitcher />
             <Link
               to={routes.notifications}
-              className="relative shrink-0 rounded-md p-2 text-rail-muted transition hover:bg-rail-hover hover:text-heading"
+              className="relative shrink-0 rounded-md p-2 text-rail-muted transition hover:bg-rail-hover/80 hover:text-heading"
               aria-label={t("nav.notifications")}
             >
               <Bell className="h-4 w-4" strokeWidth={2} />
@@ -289,9 +290,9 @@ export default function AppLayout() {
             </Link>
             <Link
               to={routes.profile}
-              className="flex shrink-0 items-center gap-2.5 rounded-md border border-rail-border bg-card py-1 pl-1 pr-2.5 transition hover:bg-rail-hover sm:pr-3"
+              className="glass-panel flex shrink-0 items-center gap-2.5 border py-1 pl-1 pr-2.5 transition hover:bg-rail-hover/60 sm:pr-3"
             >
-              <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-md bg-brand text-xs font-bold text-white shadow-brand">
+              <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-brand text-xs font-bold text-white shadow-brand">
                 {session.user.profile_pic_url ? (
                   <img
                     src={session.user.profile_pic_url}
@@ -315,9 +316,9 @@ export default function AppLayout() {
         </header>
 
         {menuOpen ? (
-          <div className="max-h-[min(24rem,50vh)] shrink-0 overflow-y-auto border-b border-rail-border bg-rail lg:hidden">
+          <div className="glass-nav max-h-[min(24rem,50vh)] shrink-0 overflow-y-auto border-b lg:hidden">
             <NavBody compact />
-            <div className="border-t border-rail-border px-4 py-3">
+            <div className="border-t border-glass-border/80 px-4 py-3">
               <LanguageSwitcher />
             </div>
           </div>
@@ -328,7 +329,7 @@ export default function AppLayout() {
             }`}
         >
           <div
-            key={tenantKey}
+            key={`${tenantKey}:${pathname}`}
             className={
               isPos
                 ? "flex h-full min-h-0 flex-col"

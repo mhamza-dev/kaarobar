@@ -167,7 +167,7 @@ export default function ActionMenu({
         aria-label={label}
         title={label}
         onClick={() => setOpen((v) => !v)}
-        className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card text-body transition hover:border-brand/40 hover:bg-bg-tertiary hover:text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1 ${open ? "border-brand bg-brand-light text-brand" : ""
+        className={`inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-body transition hover:border-brand/40 hover:bg-bg-tertiary hover:text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1 ${open ? "border-brand bg-brand-light text-brand" : ""
           }`}
       >
         <MoreHorizontal className="h-4 w-4" strokeWidth={2.25} />

@@ -102,7 +102,7 @@ const LoginForm = ({ actor, onActorChange }: LoginFormProps): React.ReactElement
         null
       );
       persistBuyerSession(result);
-      toast.success("Welcome — you're signed in as a consumer");
+      toast.success("Welcome. You're signed in as a customer.");
       router.push("/app");
     } catch (error) {
       const msg = error instanceof Error ? error.message : t("auth.loginFailed");
@@ -221,7 +221,7 @@ const LoginForm = ({ actor, onActorChange }: LoginFormProps): React.ReactElement
 
   return (
     <div className="space-y-4">
-      <div className="flex rounded-lg border border-border p-1">
+      <div className="flex rounded-md border border-border p-1">
         <button
           type="button"
           className={`flex-1 rounded-md px-3 py-2 text-sm font-semibold transition ${

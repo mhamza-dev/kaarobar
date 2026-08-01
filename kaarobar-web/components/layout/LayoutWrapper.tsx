@@ -3,8 +3,6 @@
 import { ReactNode, useEffect } from "react";
 import { usePathname } from "next/navigation";
 
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 import { LocaleProvider } from "@/lib/i18n";
 import { ToastProvider } from "@/components/ui/Toast";
 
@@ -12,20 +10,10 @@ interface LayoutWrapperProps {
   children: ReactNode;
 }
 
-const HIDDEN_LAYOUT_ROUTES = ["/login", "/signup", "/forgot-password"];
-
 export default function LayoutWrapper({ children }: LayoutWrapperProps) {
   const pathname = usePathname();
-  const user = null;
-
-  const hideLayout =
-    HIDDEN_LAYOUT_ROUTES.includes(pathname) ||
-    pathname.startsWith("/app") ||
-    pathname.startsWith("/workspace");
-
-  const isAppShell = pathname.startsWith("/app") || pathname.startsWith("/workspace");
-  const showNavbar = !hideLayout;
-  const showFooter = !hideLayout && !user;
+  const isAppShell =
+    pathname.startsWith("/app") || pathname.startsWith("/workspace");
 
   useEffect(() => {
     const root = document.documentElement;
@@ -44,7 +32,6 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
   return (
     <LocaleProvider>
       <ToastProvider>
-        {showNavbar && <Navbar />}
         <main
           className={
             isAppShell
@@ -54,7 +41,6 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
         >
           {children}
         </main>
-        {showFooter && <Footer />}
       </ToastProvider>
     </LocaleProvider>
   );

@@ -113,6 +113,7 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.panel}>
       <View style={styles.brandRow}>
         <KaarobarLogo size={48} />
         <View>
@@ -172,7 +173,11 @@ export default function LoginScreen() {
         </Pressable>
       ) : null}
 
-      <Pressable style={styles.primary} onPress={onSubmit} disabled={busy}>
+      <Pressable
+        style={({ pressed }) => [styles.primary, pressed && styles.primaryPressed]}
+        onPress={onSubmit}
+        disabled={busy}
+      >
         {busy ? (
           <ActivityIndicator color={colors.white} />
         ) : (
@@ -188,6 +193,7 @@ export default function LoginScreen() {
       <Link href="/landing" style={styles.linkMuted}>
         {t("common.back")}
       </Link>
+      </View>
     </View>
   );
 }
@@ -195,6 +201,13 @@ export default function LoginScreen() {
 function createStyles(palette: import("../lib/brandTheme").BrandPalette) {
   return StyleSheet.create({
   container: { flex: 1, padding: 24, backgroundColor: colors.bgPrimary, justifyContent: "center" },
+  panel: {
+    backgroundColor: colors.glass,
+    borderColor: colors.glassBorder,
+    borderWidth: 1,
+    borderRadius: colors.radiusLg,
+    padding: 20,
+  },
   brandRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 20 },
   brandTitle: { fontSize: 20, fontWeight: "800", color: colors.heading },
   brandSub: { fontSize: 12, color: colors.muted, marginTop: 2 },
@@ -205,7 +218,7 @@ function createStyles(palette: import("../lib/brandTheme").BrandPalette) {
     marginBottom: 16,
     borderWidth: 1,
     borderColor: palette.brand,
-    borderRadius: 10,
+    borderRadius: colors.radiusLg,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
@@ -214,15 +227,15 @@ function createStyles(palette: import("../lib/brandTheme").BrandPalette) {
     backgroundColor: "#fee2e2",
     color: colors.danger,
     padding: 10,
-    borderRadius: 8,
+    borderRadius: colors.radiusLg,
     marginBottom: 12,
   },
   label: { fontSize: 13, fontWeight: "600", color: colors.heading, marginBottom: 6 },
   input: {
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-    borderRadius: 12,
+    borderColor: colors.glassBorder,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: colors.radiusLg,
     paddingHorizontal: 14,
     paddingVertical: 12,
     marginBottom: 14,
@@ -230,10 +243,14 @@ function createStyles(palette: import("../lib/brandTheme").BrandPalette) {
   },
   primary: {
     backgroundColor: palette.brand,
-    borderRadius: 12,
+    borderRadius: colors.radiusLg,
     paddingVertical: 14,
     alignItems: "center",
     marginTop: 8,
+  },
+  primaryPressed: {
+    transform: [{ scale: 0.98 }],
+    opacity: 0.92,
   },
   primaryText: { color: colors.white, fontWeight: "700", fontSize: 16 },
   rememberRow: {

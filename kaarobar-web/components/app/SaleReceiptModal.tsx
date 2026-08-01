@@ -42,7 +42,7 @@ export default function SaleReceiptModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 print:static print:bg-transparent print:p-0">
-      <div className="max-h-[90vh] w-full max-w-md overflow-auto rounded-lg bg-white p-6 shadow-xl print:max-h-none print:shadow-none">
+      <div className="max-h-[90vh] w-full max-w-md overflow-auto rounded-md bg-white p-6 shadow-xl print:max-h-none print:shadow-none">
         <div id="kaarobar-receipt" className="space-y-3 text-sm text-slate-900">
           <div className="text-center">
             <p className="text-lg font-bold">{businessName}</p>

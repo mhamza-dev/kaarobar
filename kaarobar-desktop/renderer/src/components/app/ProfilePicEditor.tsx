@@ -83,7 +83,7 @@ export default function ProfilePicEditor({
   return (
     <div className="flex flex-wrap items-center gap-4">
       <div
-        className={`${dim} overflow-hidden rounded-xl border border-border bg-bg-tertiary shadow-sm`}
+        className={`${dim} overflow-hidden rounded-md border border-border bg-bg-tertiary shadow-sm`}
       >
         {url ? (
           // eslint-disable-next-line @next/next/no-img-element

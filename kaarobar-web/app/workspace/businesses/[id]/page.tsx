@@ -361,7 +361,7 @@ export default function BusinessDetailPage() {
                 }}
               />
               <div
-                className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-border bg-bg-secondary/60 p-4"
+                className="mt-3 flex flex-wrap items-center gap-3 rounded-md border border-dashed border-border bg-bg-secondary/60 p-4"
                 style={
                   business.primary_color
                     ? ({

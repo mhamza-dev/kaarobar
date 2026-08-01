@@ -100,7 +100,7 @@ export default function Tabs<T extends string>({
         aria-label={ariaLabel}
         id={listId}
         onKeyDown={onKeyDown}
-        className={`inline-flex max-w-full flex-wrap gap-1 rounded-lg border border-border/80 bg-bg-tertiary/80 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] ${className}`}
+        className={`inline-flex max-w-full flex-wrap gap-1 rounded-md border border-border/80 bg-bg-tertiary/80 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] ${className}`}
       >
         {tabs.map((tab, index) => {
           const selected = value === tab.id;
@@ -125,7 +125,7 @@ export default function Tabs<T extends string>({
                 disabled:cursor-not-allowed disabled:opacity-40
                 ${
                   selected
-                    ? "bg-card text-heading shadow-sm ring-1 ring-black/5"
+                    ? "bg-card/95 text-heading shadow-sm ring-1 ring-black/5"
                     : "text-body hover:bg-card/60 hover:text-heading"
                 }
               `}
@@ -134,7 +134,7 @@ export default function Tabs<T extends string>({
                 <span>{tab.label}</span>
                 {tab.badge != null && tab.badge !== "" ? (
                   <span
-                    className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
+                    className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
                       selected ? "bg-brand-soft text-brand" : "bg-bg-secondary text-muted"
                     }`}
                   >
@@ -188,7 +188,7 @@ export default function Tabs<T extends string>({
               <span>{tab.label}</span>
               {tab.badge != null && tab.badge !== "" ? (
                 <span
-                  className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
+                  className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
                     selected ? "bg-brand-soft text-brand" : "bg-bg-tertiary text-muted"
                   }`}
                 >
@@ -197,7 +197,7 @@ export default function Tabs<T extends string>({
               ) : null}
               <span
                 aria-hidden
-                className={`absolute inset-x-2 bottom-0 h-0.5 rounded-full transition-all duration-200 ${
+                className={`absolute inset-x-2 bottom-0 h-0.5 rounded-md transition-all duration-200 ${
                   selected ? "bg-brand opacity-100" : "bg-transparent opacity-0"
                 }`}
               />

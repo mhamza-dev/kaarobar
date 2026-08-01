@@ -37,7 +37,7 @@ const Button = ({
   disabled = false,
   loading = false,
   fullWidth = false,
-  rounded = false,
+  rounded: _rounded = false,
   startIcon,
   endIcon,
   className = "",
@@ -72,7 +72,7 @@ const Button = ({
     xl: "h-12 px-7 text-lg",
   };
 
-  const radius = rounded ? "rounded-full" : "rounded-md";
+  const radius = "rounded-md";
 
   const variantClasses = {
     primary: `

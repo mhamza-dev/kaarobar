@@ -64,7 +64,7 @@ const Input = ({
     w-full
     rounded-md
     border
-    bg-bg-secondary
+    bg-bg-secondary/80
 
     py-2.5
 

@@ -23,12 +23,12 @@ function SignupInner() {
   return (
     <GuestOnly>
       <AuthShell
-        badge={isBuyer ? "Shop with Kaarobar" : "Start free trial"}
-        title={isBuyer ? "Create a consumer account" : "Create your owner account"}
+        badge={isBuyer ? "Customer account" : "Owner account"}
+        title={isBuyer ? "Create a customer account" : "Create your Kaarobar account"}
         subtitle={
           isBuyer
-            ? "Order from marketplace stores and track loyalty across businesses."
-            : "We’ll set up your first business, a Pakistan chart of accounts, and a starting branch."
+            ? "Order from stores on the marketplace and keep loyalty in one place."
+            : "We will create your first business, a Pakistan chart of accounts, and a starting branch."
         }
         footer={
           <>

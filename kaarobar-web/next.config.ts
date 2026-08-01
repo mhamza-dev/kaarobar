@@ -11,6 +11,15 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
+      // Marketing site moved to 2ndHub Solutions; Kaarobar web starts at login
+      { source: "/about", destination: "/login", permanent: false },
+      { source: "/contact", destination: "/login", permanent: false },
+      { source: "/blog", destination: "/login", permanent: false },
+      { source: "/careers", destination: "/login", permanent: false },
+      { source: "/solutions", destination: "/login", permanent: false },
+      { source: "/solutions/:path*", destination: "/login", permanent: false },
+      { source: "/products", destination: "/login", permanent: false },
+      { source: "/products/:path*", destination: "/login", permanent: false },
       // Never expose internal filesystem segment in the browser
       { source: "/workspace", destination: "/app", permanent: false },
       { source: "/workspace/:path*", destination: "/app/:path*", permanent: false },

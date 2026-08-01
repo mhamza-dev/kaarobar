@@ -75,7 +75,7 @@ const Modal = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className={`relative flex max-h-[90vh] w-full flex-col overflow-hidden rounded-md border border-border bg-card shadow-xl animate-rise ${sizes[size]}`}
+        className={`relative flex max-h-[90vh] w-full flex-col overflow-hidden rounded-md border border-glass-border glass-panel shadow-xl animate-sheet ${sizes[size]}`}
       >
         {(title || description || showCloseButton) && (
           <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">

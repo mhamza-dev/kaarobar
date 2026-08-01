@@ -13,16 +13,16 @@ export const privacySections: LegalSection[] = [
     id: "overview",
     title: "1. Overview",
     paragraphs: [
-      "Kaarobar helps owners run POS, accounting, and HR across more than one business and branch. This policy explains what information we handle when you use the product, why we need it, and how we look after it.",
-      "We try to collect only what the product actually needs. If Pakistan’s data rules get clearer over time—or if we expand to other countries—we’ll keep updating how we work so we stay on the right side of those expectations.",
+      "Kaarobar helps owners run POS, accounting, and HR as Cloud (multi-business) or Offline Desktop (single shop). This policy explains what information we handle when you use the product, why we need it, and how we look after it.",
+      "We try to collect only what the product actually needs. If Pakistan’s data rules get clearer over time, or if we expand to other countries, we’ll keep updating how we work so we stay on the right side of those expectations.",
     ],
   },
   {
     id: "controller",
     title: "2. Who we are",
     paragraphs: [
-      "When we talk about “Kaarobar,” “we,” or “us,” we mean the team providing the web app, desktop POS, and mobile apps.",
-      "Your subscription account is with us. The day-to-day business data you put in—sales, stock, staff records, ledgers—belongs to you. We process that data so the product can do its job for your team.",
+      "When we talk about “Kaarobar,” “we,” or “us,” we mean **2ndHub Solutions**, the company that publishes Kaarobar Cloud and Kaarobar Offline Desktop (web app, desktop POS, and mobile apps).",
+      "Your subscription or Offline license account is with us. The day-to-day business data you put in, sales, stock, staff records, ledgers, belongs to you. We process that data so the product can do its job for your team.",
     ],
   },
   {
@@ -37,7 +37,7 @@ export const privacySections: LegalSection[] = [
       "Operational data from the till and stock room: products, prices, inventory, sales, returns, tills, purchase orders, and goods receipts.",
       "Accounting records: chart of accounts, journals, tax settings, and payables/receivables.",
       "Staff records: employee details, attendance, leave, pay structure, payroll runs, and payslips. Things like CNIC or bank account numbers are treated as sensitive and locked down more tightly.",
-      "An audit trail of important changes—who did what, and when—so you can reconstruct what happened later.",
+      "An audit trail of important changes, who did what, and when, so you can reconstruct what happened later.",
       "Billing and support information tied to your Kaarobar plan.",
       "Basic technical signals (for example IP address, device or app type, and timing) that help us keep the service secure and reliable.",
     ],
@@ -46,7 +46,7 @@ export const privacySections: LegalSection[] = [
     id: "not-collect",
     title: "4. What we don’t collect",
     paragraphs: [
-      "We never store full card numbers from your customers. Card payments at the till go through a payment provider that tokenizes them. Your Kaarobar subscription is billed through Safepay (JazzCash, Easypaisa, or local cards)—we don’t keep your full card details for that either.",
+      "We never store full card numbers from your customers. Card payments at the till go through a payment provider that tokenizes them. Your Kaarobar subscription is billed through Safepay (JazzCash, Easypaisa, or local cards), we don’t keep your full card details for that either.",
     ],
   },
   {
@@ -57,7 +57,7 @@ export const privacySections: LegalSection[] = [
       "Sign people in, apply the right roles, and keep each owner’s data separate from everyone else’s.",
       "Run POS, inventory, accounting, HR, payroll, reports, and offline sync.",
       "Post sales, stock, and approved payroll into the ledger so your books stay consistent.",
-      "Send FBR reports when you’ve marked a business as Tier-1—without freezing the cashier at checkout.",
+      "Send FBR reports when you’ve marked a business as Tier-1, without freezing the cashier at checkout.",
       "Enforce plan limits and handle subscription billing.",
       "Send service emails (and later, if we add them, SMS or WhatsApp notices).",
       "Spot abuse, protect accounts, and keep the platform stable.",
@@ -74,7 +74,7 @@ export const privacySections: LegalSection[] = [
       "Safepay for subscriptions, plan changes, and failed payments (Pakistan).",
       "Payment gateways for customer payments at your tills.",
       "FBR, when you’ve enabled Tier-1 reporting for a business.",
-      "Our support team, who may see account metadata to help you—without casually browsing your financial books.",
+      "Our support team, who may see account metadata to help you, without casually browsing your financial books.",
       "Anyone we must disclose to under a lawful request.",
     ],
   },
@@ -93,7 +93,7 @@ export const privacySections: LegalSection[] = [
     ],
     bullets: [
       "Encrypted connections (TLS) and encryption at rest on our database and file storage.",
-      "Passwords stored with a modern hashing algorithm—never in plain text, and never written into logs.",
+      "Passwords stored with a modern hashing algorithm, never in plain text, and never written into logs.",
       "Extra protection for sensitive fields such as CNIC and bank account numbers.",
       "Short-lived login tokens that can be revoked if a session should end.",
       "Rate limits and lockouts when someone tries too many failed logins.",
@@ -111,15 +111,15 @@ export const privacySections: LegalSection[] = [
     id: "retention",
     title: "10. How long we keep data",
     paragraphs: [
-      "You can deactivate a business or branch without wiping history—your past sales and books often need to stay available for audits. Posted journals aren’t rewritten in place; corrections go through proper reversing entries.",
-      "We keep account, billing, and audit information for as long as we need it to run the service, meet legal duties, and settle disputes. When we no longer need something, we delete or anonymize it where that’s practical—without breaking financial history you’re required to keep.",
+      "You can deactivate a business or branch without wiping history, your past sales and books often need to stay available for audits. Posted journals aren’t rewritten in place; corrections go through proper reversing entries.",
+      "We keep account, billing, and audit information for as long as we need it to run the service, meet legal duties, and settle disputes. When we no longer need something, we delete or anonymize it where that’s practical, without breaking financial history you’re required to keep.",
     ],
   },
   {
     id: "rights",
     title: "11. Your choices",
     paragraphs: [
-      "You can ask us to correct account details, explain what we hold, or help close an account. Because Kaarobar stores books and payroll history, some requests may mean deactivating or anonymizing rather than deleting every posted record. That’s deliberate—so your audit trail stays usable.",
+      "You can ask us to correct account details, explain what we hold, or help close an account. Because Kaarobar stores books and payroll history, some requests may mean deactivating or anonymizing rather than deleting every posted record. That’s deliberate, so your audit trail stays usable.",
     ],
   },
   {
@@ -147,7 +147,7 @@ export const privacySections: LegalSection[] = [
     id: "contact",
     title: "15. Contact",
     paragraphs: [
-      `Questions about privacy? Email ${LEGAL_CONTACT_EMAIL} or use the Contact page.`,
+      `Questions about privacy? Email ${LEGAL_CONTACT_EMAIL}.`,
     ],
   },
 ];
@@ -157,21 +157,21 @@ export const termsSections: LegalSection[] = [
     id: "acceptance",
     title: "1. Agreeing to these terms",
     paragraphs: [
-      "These Terms & Conditions cover your use of Kaarobar on the web, desktop POS, and mobile apps. By creating an account or using the product, you agree to them. If you don’t, please don’t use Kaarobar.",
+      "These Terms & Conditions cover your use of Kaarobar,  a product of **2ndHub Solutions**,  on the web, desktop POS, and mobile apps (Cloud subscription and Offline Desktop one-time license). By creating an account, activating a license, or using the product, you agree to them. If you don’t, please don’t use Kaarobar.",
     ],
   },
   {
     id: "service",
     title: "2. What Kaarobar is",
     paragraphs: [
-      "Kaarobar is software for multi-business, multi-branch POS, accounting, inventory, HR and payroll, reporting, and related integrations (including offline till sync and optional FBR reporting). We’ll keep improving the product. Some features may arrive after the core ones, and we may change or retire less-critical pieces with reasonable notice when we can.",
+      "Kaarobar is software published by 2ndHub Solutions. **Kaarobar Cloud** covers multi-business, multi-branch POS, accounting, inventory, HR and payroll, reporting, and related integrations (including offline till sync and optional FBR reporting). **Kaarobar Offline Desktop** is a single-shop desktop edition with local data after license activation. We’ll keep improving the product. Some features may arrive after the core ones, and we may change or retire less-critical pieces with reasonable notice when we can.",
     ],
   },
   {
     id: "accounts",
     title: "3. Accounts and access",
     paragraphs: [
-      "Keep your login details accurate and private. Sign-in uses email and password, with optional two-factor authentication—we strongly recommend MFA for Owners and Accountants.",
+      "Keep your login details accurate and private. Sign-in uses email and password, with optional two-factor authentication, we strongly recommend MFA for Owners and Accountants.",
       "Owners can create businesses and branches and invite staff with the right roles. You’re responsible for what happens under your account and for giving people only the access they need.",
     ],
   },
@@ -179,7 +179,7 @@ export const termsSections: LegalSection[] = [
     id: "customer-data",
     title: "4. Your business data",
     paragraphs: [
-      "You own the business data you put into Kaarobar. You give us permission to host and process it so we can run the product—post journals, generate payslips, sync offline sales, send FBR reports you’ve enabled, and so on.",
+      "You own the business data you put into Kaarobar. You give us permission to host and process it so we can run the product, post journals, generate payslips, sync offline sales, send FBR reports you’ve enabled, and so on.",
       "You’re also confirming you have the right to upload employee, customer, and supplier information, including any sensitive IDs you choose to store.",
     ],
   },
@@ -201,7 +201,7 @@ export const termsSections: LegalSection[] = [
     id: "financial",
     title: "6. Books and audit trail",
     paragraphs: [
-      "Once a journal is posted, it stays put. Fixes happen with reversing or adjusting entries—not silent edits. Important actions are written to an audit log that can’t be quietly changed from inside the product.",
+      "Once a journal is posted, it stays put. Fixes happen with reversing or adjusting entries, not silent edits. Important actions are written to an audit log that can’t be quietly changed from inside the product.",
       "That design helps your books stand up to scrutiny, but you’re still responsible for your own filings, tax choices, payroll settings, and approvals. Kaarobar isn’t a substitute for a Chartered Accountant.",
     ],
   },
@@ -216,7 +216,7 @@ export const termsSections: LegalSection[] = [
     id: "fbr",
     title: "8. FBR Tier-1",
     paragraphs: [
-      "If you mark a business as Tier-1, we’ll try to report completed sales to FBR in the background, put fiscal details on receipts when we get them back, and retry failures—without stopping the customer at the counter. You’re responsible for knowing whether Tier-1 rules apply to you and for reconciling with FBR. We don’t give tax or legal advice.",
+      "If you mark a business as Tier-1, we’ll try to report completed sales to FBR in the background, put fiscal details on receipts when we get them back, and retry failures, without stopping the customer at the counter. You’re responsible for knowing whether Tier-1 rules apply to you and for reconciling with FBR. We don’t give tax or legal advice.",
     ],
   },
   {
@@ -228,10 +228,11 @@ export const termsSections: LegalSection[] = [
   },
   {
     id: "billing",
-    title: "10. Your Kaarobar subscription",
+    title: "10. Your Kaarobar subscription and Offline license",
     paragraphs: [
-      "Using Kaarobar means staying on a paid (or trial) plan. We’ll enforce limits on businesses, branches, or users according to your plan. Platform billing runs through Safepay. That’s separate from what your customers pay you at the till.",
-      "Fees aren’t refundable except where the law says so or we’ve agreed otherwise in writing. If payment fails and isn’t fixed, we may pause parts of the account—or the whole account—after we’ve tried to warn you.",
+      "Using **Kaarobar Cloud** means staying on a paid (or trial) plan. We’ll enforce limits on businesses, branches, or users according to your plan. Platform billing runs through Safepay. That’s separate from what your customers pay you at the till.",
+      "**Kaarobar Offline Desktop** is sold as a one-time license (term or lifetime). Expired term licenses may lock POS, products, and sales as described in the product; lifetime licenses do not lock for expiry.",
+      "Fees aren’t refundable except where the law says so or we’ve agreed otherwise in writing. If payment fails and isn’t fixed, we may pause parts of the account, or the whole account, after we’ve tried to warn you.",
     ],
   },
   {
@@ -259,7 +260,7 @@ export const termsSections: LegalSection[] = [
     id: "liability",
     title: "14. Limits on liability",
     paragraphs: [
-      "To the fullest extent allowed by law, Kaarobar isn’t liable for indirect or consequential losses, lost profits, or tax penalties that come from how you configure or use the product—including FBR and payment integrations. If we’re liable at all, the total won’t exceed what you paid us for Kaarobar in the three months before the claim.",
+      "To the fullest extent allowed by law, Kaarobar isn’t liable for indirect or consequential losses, lost profits, or tax penalties that come from how you configure or use the product, including FBR and payment integrations. If we’re liable at all, the total won’t exceed what you paid us for Kaarobar in the three months before the claim.",
     ],
   },
   {
@@ -287,7 +288,7 @@ export const termsSections: LegalSection[] = [
     id: "contact",
     title: "18. Contact",
     paragraphs: [
-      `Questions about these terms? Email ${LEGAL_CONTACT_EMAIL} or use the Contact page.`,
+      `Questions about these terms? Email ${LEGAL_CONTACT_EMAIL}.`,
     ],
   },
 ];
@@ -324,7 +325,7 @@ export const cookieSections: LegalSection[] = [
     id: "preferences",
     title: "4. Preference cookies",
     paragraphs: [
-      "We may remember small preferences—like a dismissed notice or the last business you had open—so you don’t have to set them every visit. These aren’t used for ads.",
+      "We may remember small preferences, like a dismissed notice or the last business you had open, so you don’t have to set them every visit. These aren’t used for ads.",
     ],
   },
   {
@@ -345,14 +346,14 @@ export const cookieSections: LegalSection[] = [
     id: "third-parties",
     title: "7. Other companies’ cookies",
     paragraphs: [
-      "When you pay for a Kaarobar plan through Safepay, or take a customer payment through a gateway, those providers may set their own cookies under their own policies. FBR reporting happens over APIs—it isn’t driven by advertising cookies.",
+      "When you pay for a Kaarobar plan through Safepay, or take a customer payment through a gateway, those providers may set their own cookies under their own policies. FBR reporting happens over APIs, it isn’t driven by advertising cookies.",
     ],
   },
   {
     id: "manage",
     title: "8. Managing cookies",
     paragraphs: [
-      "You can clear or block cookies in your browser. Blocking essential ones will sign you out or stop parts of the web app from working. On the desktop POS, only clear local data after you’re sure everything has synced—otherwise you could lose a queued sale.",
+      "You can clear or block cookies in your browser. Blocking essential ones will sign you out or stop parts of the web app from working. On the desktop POS, only clear local data after you’re sure everything has synced, otherwise you could lose a queued sale.",
     ],
   },
   {
@@ -373,7 +374,7 @@ export const cookieSections: LegalSection[] = [
     id: "contact",
     title: "11. Contact",
     paragraphs: [
-      `Questions? Email ${LEGAL_CONTACT_EMAIL}. You can also read the Privacy Policy or use the Contact page.`,
+      `Questions? Email ${LEGAL_CONTACT_EMAIL}. You can also read the Privacy Policy.`,
     ],
   },
 ];

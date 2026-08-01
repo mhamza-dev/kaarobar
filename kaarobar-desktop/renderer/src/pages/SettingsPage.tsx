@@ -784,7 +784,7 @@ function SettingsPageInner() {
                       }}
                     />
                     <div
-                      className="flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-border bg-bg-secondary/60 p-4"
+                      className="flex flex-wrap items-center gap-3 rounded-md border border-dashed border-border bg-bg-secondary/60 p-4"
                       style={
                         activeBusiness.primary_color
                           ? ({

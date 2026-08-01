@@ -14,7 +14,7 @@ export function BuyerDiscoverSkeleton({ count = 6 }: { count?: number }) {
     <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3" aria-busy="true">
       {Array.from({ length: count }).map((_, i) => (
         <li key={i}>
-          <div className="overflow-hidden rounded-2xl border border-border bg-card">
+          <div className="overflow-hidden rounded-md border border-border bg-card">
             <Skeleton className="h-28 w-full rounded-none" />
             <div className="space-y-3 p-5">
               <Skeleton className="h-5 w-2/3" />
@@ -35,7 +35,7 @@ export function BuyerProductGridSkeleton({ count = 8 }: { count?: number }) {
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          className="overflow-hidden rounded-2xl border border-border bg-card"
+          className="overflow-hidden rounded-md border border-border bg-card"
         >
           <Skeleton className="aspect-[4/3] w-full rounded-none" />
           <div className="space-y-2.5 p-4">
@@ -55,9 +55,9 @@ export function BuyerOrderListSkeleton({ count = 4 }: { count?: number }) {
       {Array.from({ length: count }).map((_, i) => (
         <li
           key={i}
-          className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4"
+          className="flex items-center gap-4 rounded-md border border-border bg-card p-4"
         >
-          <Skeleton className="h-12 w-12 shrink-0 rounded-xl" />
+          <Skeleton className="h-12 w-12 shrink-0 rounded-md" />
           <div className="min-w-0 flex-1 space-y-2">
             <Skeleton className="h-4 w-1/3" />
             <Skeleton className="h-3 w-1/2" />
@@ -73,7 +73,7 @@ export function BuyerOrderDetailSkeleton() {
   return (
     <div className="mx-auto max-w-2xl space-y-4" aria-busy="true">
       <Skeleton className="h-4 w-24" />
-      <div className="overflow-hidden rounded-2xl border border-border bg-card p-6 space-y-4">
+      <div className="overflow-hidden rounded-md border border-border bg-card p-6 space-y-4">
         <Skeleton className="h-7 w-1/2" />
         <Skeleton className="h-4 w-1/3" />
         <div className="space-y-3 border-t border-border pt-4">
@@ -91,12 +91,12 @@ export function BuyerLoyaltySkeleton() {
   return (
     <div className="space-y-4" aria-busy="true">
       <div className="grid gap-4 sm:grid-cols-2">
-        <Skeleton className="h-24 rounded-2xl" />
-        <Skeleton className="h-24 rounded-2xl" />
+        <Skeleton className="h-24 rounded-md" />
+        <Skeleton className="h-24 rounded-md" />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Skeleton className="h-36 rounded-2xl" />
-        <Skeleton className="h-36 rounded-2xl" />
+        <Skeleton className="h-36 rounded-md" />
+        <Skeleton className="h-36 rounded-md" />
       </div>
     </div>
   );
@@ -106,12 +106,12 @@ export function BuyerArSkeleton() {
   return (
     <div className="space-y-4" aria-busy="true">
       <div className="grid gap-4 sm:grid-cols-2">
-        <Skeleton className="h-24 rounded-2xl" />
-        <Skeleton className="h-24 rounded-2xl" />
+        <Skeleton className="h-24 rounded-md" />
+        <Skeleton className="h-24 rounded-md" />
       </div>
-      <Skeleton className="h-20 rounded-2xl" />
-      <Skeleton className="h-20 rounded-2xl" />
-      <Skeleton className="h-20 rounded-2xl" />
+      <Skeleton className="h-20 rounded-md" />
+      <Skeleton className="h-20 rounded-md" />
+      <Skeleton className="h-20 rounded-md" />
     </div>
   );
 }
@@ -119,9 +119,9 @@ export function BuyerArSkeleton() {
 export function BuyerCheckoutSkeleton() {
   return (
     <div className="mx-auto max-w-2xl space-y-4" aria-busy="true">
-      <Skeleton className="h-40 rounded-2xl" />
-      <Skeleton className="h-40 rounded-2xl" />
-      <Skeleton className="h-12 w-full rounded-xl" />
+      <Skeleton className="h-40 rounded-md" />
+      <Skeleton className="h-40 rounded-md" />
+      <Skeleton className="h-12 w-full rounded-md" />
     </div>
   );
 }

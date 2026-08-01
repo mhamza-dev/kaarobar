@@ -95,11 +95,11 @@ export default function BuyerOrderDetail() {
         {t("marketplace.backToOrders")}
       </Link>
 
-      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+      <div className="overflow-hidden rounded-md border border-border bg-card shadow-sm">
         <div className="border-b border-border bg-gradient-to-br from-brand-soft/80 to-transparent px-5 py-6 sm:px-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand text-brand-foreground shadow-brand">
+              <div className="flex h-12 w-12 items-center justify-center rounded-md bg-brand text-brand-foreground shadow-brand">
                 <Package className="h-6 w-6" strokeWidth={2} />
               </div>
               <div>
@@ -182,7 +182,7 @@ export default function BuyerOrderDetail() {
           </div>
 
           {order.payments && order.payments.length > 0 ? (
-            <div className="mt-5 rounded-xl bg-bg-secondary/80 px-4 py-3">
+            <div className="mt-5 rounded-md bg-bg-secondary/80 px-4 py-3">
               <p className="text-xs font-bold uppercase tracking-wide text-muted">
                 {t("marketplace.payment")}
               </p>

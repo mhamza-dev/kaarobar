@@ -1,47 +1,3 @@
-export const landingNav = [
-  { title: "Solutions", href: "/solutions" },
-  { title: "Modules", href: "/#modules" },
-  { title: "Compare", href: "/#comparison" },
-  { title: "Pricing", href: "/#pricing" },
-  { title: "FAQ", href: "/#faq" },
-] as const;
-
-export const companyNav = [
-  { title: "About", href: "/about" },
-  { title: "Blog", href: "/blog" },
-  { title: "Careers", href: "/careers" },
-  { title: "Contact", href: "/contact" },
-] as const;
-
-/** Compact company links for desktop navbar */
-export const navbarCompanyNav = [
-  { title: "About", href: "/about" },
-  { title: "Contact", href: "/contact" },
-] as const;
-
-export const productLinks = [
-  { label: "Solutions", href: "/solutions" },
-  { label: "Modules", href: "/#modules" },
-  { label: "Pricing", href: "/#pricing" },
-  { label: "Mobile App", href: "/#mobile" },
-  { label: "FAQ", href: "/#faq" },
-] as const;
-
-export const solutionLinks = [
-  { label: "Multi-business retail", href: "/solutions/multi-business-retail" },
-  { label: "Multi-branch POS", href: "/solutions/multi-branch-pos" },
-  { label: "Accounting & tax", href: "/solutions/accounting-tax" },
-  { label: "HR & payroll", href: "/solutions/hr-payroll" },
-  { label: "FBR Tier-1 ready", href: "/solutions/fbr-tier-1" },
-] as const;
-
-export const companyLinks = [
-  { label: "About", href: "/about" },
-  { label: "Blog", href: "/blog" },
-  { label: "Careers", href: "/careers" },
-  { label: "Contact", href: "/contact" },
-] as const;
-
 export const legalLinks = [
   { label: "Privacy Policy", href: "/privacy-policy" },
   { label: "Terms & Conditions", href: "/terms-of-service" },
@@ -49,7 +5,7 @@ export const legalLinks = [
 ] as const;
 
 export const routes = {
-  home: "/",
+  home: "/login",
   login: "/login",
   signup: "/signup",
   forgotPassword: "/forgot-password",
@@ -67,14 +23,10 @@ export const routes = {
   profile: "/app/settings?tab=profile",
   businesses: "/app/businesses",
   notifications: "/app/notifications",
-  contact: "/contact",
-  about: "/about",
-  blog: "/blog",
-  careers: "/careers",
-  solutions: "/solutions",
   privacy: "/privacy-policy",
   terms: "/terms-of-service",
   cookies: "/cookie-policy",
+  supportEmail: "mailto:support@kaarobar.com",
 } as const;
 
 /** Detail route helpers for entity pages. */

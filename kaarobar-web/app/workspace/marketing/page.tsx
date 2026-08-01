@@ -611,7 +611,7 @@ export default function MarketingPage() {
               </div>
             </form>
             {tplPreview ? (
-              <div className="rounded-lg border border-border bg-white p-3 text-sm shadow-sm">
+              <div className="rounded-md border border-border bg-white p-3 text-sm shadow-sm">
                 <p className="text-xs font-semibold uppercase text-muted">
                   Preview ({tplForm.channel})
                 </p>
@@ -930,7 +930,7 @@ export default function MarketingPage() {
               onChange={(e) => setForm({ ...form, message: e.target.value })}
             />
           </Field>
-          <div className="rounded-lg border border-border bg-bg-primary p-3 text-sm">
+          <div className="rounded-md border border-border bg-bg-primary p-3 text-sm">
             <p className="mb-1 text-xs font-semibold uppercase text-muted">Message preview</p>
             <p className="font-semibold text-heading">{form.title || "Title"}</p>
             <p className="mt-1 whitespace-pre-wrap text-body">{form.message || "Message body…"}</p>

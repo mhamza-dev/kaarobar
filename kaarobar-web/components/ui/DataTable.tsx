@@ -150,7 +150,7 @@ export default function DataTable<T>({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={searchPlaceholder}
-                className="w-full rounded-md border border-border bg-card py-2 pl-9 pr-9 text-sm text-heading outline-none transition placeholder:text-muted focus:border-brand focus:ring-2 focus:ring-brand-soft"
+                className="w-full rounded-md border border-border bg-card py-2 pl-9 pr-9 text-sm text-heading outline-none transition placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand-soft"
               />
               {query ? (
                 <button

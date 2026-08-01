@@ -525,9 +525,9 @@ export default function PosPage() {
 
           <div className="flex flex-wrap items-center gap-2">
             {till ? (
-              <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-success/20 bg-success-soft/60 px-3 py-2.5 shadow-sm">
+              <div className="flex flex-wrap items-center gap-3 rounded-md border border-success/20 bg-success-soft/60 px-3 py-2.5 shadow-sm">
                 <div className="flex items-center gap-2.5">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-success/15 text-success">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-md bg-success/15 text-success">
                     <Banknote className="h-4 w-4" aria-hidden />
                   </span>
                   <div className="min-w-0">
@@ -569,9 +569,9 @@ export default function PosPage() {
                 </Button>
               </div>
             ) : (
-              <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-warning/25 bg-warning-soft/70 px-3 py-2.5 shadow-sm">
+              <div className="flex flex-wrap items-center gap-3 rounded-md border border-warning/25 bg-warning-soft/70 px-3 py-2.5 shadow-sm">
                 <div className="flex items-center gap-2.5">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-warning/15 text-warning">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-md bg-warning/15 text-warning">
                     <Banknote className="h-4 w-4" aria-hidden />
                   </span>
                   <div className="min-w-0">
@@ -822,7 +822,7 @@ export default function PosPage() {
                 {t("pos.customerKhata")}
               </p>
               {selectedCustomer ? (
-                <div className="rounded-xl border border-border bg-bg-tertiary/60 p-3">
+                <div className="rounded-md border border-border bg-bg-tertiary/60 p-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="truncate font-semibold text-heading">{selectedCustomer.name}</p>
@@ -928,7 +928,7 @@ export default function PosPage() {
         }
       >
         <div className="space-y-4">
-          <div className="flex items-end justify-between rounded-xl border border-border bg-bg-tertiary/50 px-4 py-3">
+          <div className="flex items-end justify-between rounded-md border border-border bg-bg-tertiary/50 px-4 py-3">
             <span className="text-sm font-medium text-body">{t("pos.totalBill")}</span>
             <strong className="text-xl font-bold text-heading">Rs {money(total)}</strong>
           </div>
@@ -954,7 +954,7 @@ export default function PosPage() {
                     disabled={khataLocked}
                     title={khataLocked ? t("pos.khataNeedsCustomer") : undefined}
                     onClick={() => setPayMethod(method)}
-                    className={`flex items-center gap-2.5 rounded-xl border px-3 py-3 text-left transition ${active
+                    className={`flex items-center gap-2.5 rounded-md border px-3 py-3 text-left transition ${active
                       ? "border-brand bg-brand text-white shadow-sm"
                       : khataLocked
                         ? "cursor-not-allowed border-border bg-bg-tertiary text-muted opacity-60"
@@ -962,7 +962,7 @@ export default function PosPage() {
                       }`}
                   >
                     <span
-                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${active ? "bg-white/20" : "bg-bg-tertiary"
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${active ? "bg-white/20" : "bg-bg-tertiary"
                         }`}
                     >
                       <Icon className={`h-4 w-4 ${active ? "text-white" : "text-brand"}`} />
@@ -1052,7 +1052,7 @@ export default function PosPage() {
           </div>
 
           {showNewCustomer ? (
-            <div className="space-y-2 rounded-xl border border-border bg-bg-tertiary/50 p-3">
+            <div className="space-y-2 rounded-md border border-border bg-bg-tertiary/50 p-3">
               <input
                 className={fieldClass}
                 placeholder="Name"
@@ -1071,7 +1071,7 @@ export default function PosPage() {
             </div>
           ) : null}
 
-          <div className="max-h-72 space-y-1 overflow-y-auto rounded-xl border border-border">
+          <div className="max-h-72 space-y-1 overflow-y-auto rounded-md border border-border">
             {filteredCustomers.length === 0 ? (
               <p className="px-3 py-6 text-center text-sm text-body">
                 {t("pos.noCustomersFound")}

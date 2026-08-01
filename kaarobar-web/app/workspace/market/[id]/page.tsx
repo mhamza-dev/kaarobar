@@ -201,7 +201,7 @@ export default function MarketplaceStorePage() {
           {t("marketplace.allStores")}
         </Link>
         <div
-          className="mt-3 overflow-hidden rounded-3xl border border-border bg-card"
+          className="mt-3 overflow-hidden rounded-md border border-border bg-card"
           style={accent ? { borderTopWidth: 4, borderTopColor: accent } : undefined}
         >
           <div
@@ -216,7 +216,7 @@ export default function MarketplaceStorePage() {
           >
             <div className="flex flex-wrap items-start gap-4">
               <div
-                className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border bg-card text-2xl font-bold text-heading shadow-md"
+                className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-card text-2xl font-bold text-heading shadow-md"
                 style={accent ? { boxShadow: `0 8px 28px ${accent}33` } : undefined}
               >
                 {business?.logo_url ? (
@@ -242,7 +242,7 @@ export default function MarketplaceStorePage() {
               {storeCartCount > 0 ? (
                 <Link href="/app/checkout">
                   <Button
-                    className="gap-2 rounded-xl px-5 py-2.5"
+                    className="gap-2 rounded-md px-5 py-2.5"
                     startIcon={<ShoppingCart className="h-4 w-4" />}
                   >
                     {t("marketplace.viewCart", { count: storeCartCount })}
@@ -265,7 +265,7 @@ export default function MarketplaceStorePage() {
               value={filters.search}
               onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
               placeholder={t("marketplace.searchProducts")}
-              className="w-full rounded-2xl border border-border bg-card py-3 pe-4 ps-10 text-sm text-heading shadow-sm outline-none transition placeholder:text-muted focus:border-brand/40 focus:ring-2 focus:ring-brand/15"
+              className="w-full rounded-md border border-border bg-card py-3 pe-4 ps-10 text-sm text-heading shadow-sm outline-none transition placeholder:text-muted focus:border-brand/40 focus:ring-2 focus:ring-brand/15"
             />
           </div>
           {categoryOptions.length > 0 ? (
@@ -323,7 +323,7 @@ export default function MarketplaceStorePage() {
           body={t("marketplace.emptyCatalogBody")}
           action={
             <Link href="/app">
-              <Button variant="secondary" className="rounded-xl">
+              <Button variant="secondary" className="rounded-md">
                 {t("marketplace.browseStores")}
               </Button>
             </Link>
@@ -336,7 +336,7 @@ export default function MarketplaceStorePage() {
           action={
             <Button
               variant="secondary"
-              className="rounded-xl"
+              className="rounded-md"
               onClick={() => setFilters(emptyListingFilters())}
             >
               {t("marketplace.clearFilters")}
@@ -348,7 +348,7 @@ export default function MarketplaceStorePage() {
           {filtered.map((p) => (
             <article
               key={p.id}
-              className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card text-left transition duration-200 hover:-translate-y-0.5 hover:border-brand/25 hover:shadow-lg"
+              className="group relative flex h-full flex-col overflow-hidden rounded-md border border-border bg-card text-left transition duration-200 hover:-translate-y-0.5 hover:border-brand/25 hover:shadow-lg"
             >
               <div className="relative aspect-[4/3] overflow-hidden bg-bg-secondary">
                 <button
@@ -425,7 +425,7 @@ export default function MarketplaceStorePage() {
                 <span className="text-xs font-bold uppercase tracking-wide text-muted">
                   {t("marketplace.quantity")}
                 </span>
-                <div className="inline-flex items-center rounded-xl border border-border bg-card">
+                <div className="inline-flex items-center rounded-md border border-border bg-card">
                   <button
                     type="button"
                     aria-label="Decrease quantity"
@@ -457,7 +457,7 @@ export default function MarketplaceStorePage() {
               <Button
                 loading={adding}
                 onClick={() => handleAdd(detail, qty)}
-                className="h-12 w-full rounded-xl px-6 text-base sm:w-auto"
+                className="h-12 w-full rounded-md px-6 text-base sm:w-auto"
               >
                 {qty > 1
                   ? t("marketplace.addQtyToCart", { count: qty })
@@ -469,7 +469,7 @@ export default function MarketplaceStorePage() {
       >
         {detail ? (
           <div className="space-y-5">
-            <div className="overflow-hidden rounded-2xl bg-bg-secondary">
+            <div className="overflow-hidden rounded-md bg-bg-secondary">
               {detail.image_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img

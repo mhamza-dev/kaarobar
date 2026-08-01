@@ -318,7 +318,13 @@ export default function DashboardScreen() {
 
       {links.map((item) => (
         <Link key={item.href} href={item.href} asChild>
-          <Pressable style={[styles.navCard, { backgroundColor: palette.brand }]}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.navCard,
+              { backgroundColor: palette.brand },
+              pressed && styles.navCardPressed,
+            ]}
+          >
             <Text style={[styles.navTitle, { color: palette.brandForeground }]}>
               {item.title}
             </Text>
@@ -402,11 +408,11 @@ function createStyles(palette: import("../../lib/brandTheme").BrandPalette) {
   chips: { flexDirection: "row", gap: 8, marginBottom: 8 },
   chip: {
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 20,
+    borderColor: colors.glassBorder,
+    borderRadius: colors.radiusLg,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: colors.card,
+    backgroundColor: colors.glass,
   },
   chipActive: { backgroundColor: palette.brand, borderColor: palette.brand },
   chipText: { color: colors.heading, fontWeight: "600" },
@@ -414,10 +420,10 @@ function createStyles(palette: import("../../lib/brandTheme").BrandPalette) {
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 12 },
   card: {
     width: "47%",
-    backgroundColor: colors.card,
-    borderColor: colors.border,
+    backgroundColor: colors.glass,
+    borderColor: colors.glassBorder,
     borderWidth: 1,
-    borderRadius: 14,
+    borderRadius: colors.radiusLg,
     padding: 14,
   },
   cardLabel: { color: colors.body, fontSize: 13 },
@@ -429,9 +435,13 @@ function createStyles(palette: import("../../lib/brandTheme").BrandPalette) {
   },
   navCard: {
     marginTop: 12,
-    borderRadius: 12,
+    borderRadius: colors.radiusLg,
     paddingVertical: 14,
     paddingHorizontal: 16,
+  },
+  navCardPressed: {
+    transform: [{ scale: 0.98 }],
+    opacity: 0.92,
   },
   navTitle: { fontWeight: "800", fontSize: 16 },
   navSub: { marginTop: 2, fontSize: 13 },

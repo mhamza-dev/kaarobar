@@ -16,17 +16,20 @@ export default function LegalDocument({
   sections,
 }: LegalDocumentProps) {
   return (
-    <section className="bg-bg-primary py-20">
-      <div className="mx-auto max-w-3xl px-6">
+    <section className="app-atmosphere min-h-screen py-16">
+      <div className="glass-panel relative z-10 mx-auto max-w-3xl rounded-md p-6 sm:p-10">
         <p className="text-sm font-semibold uppercase tracking-wider text-brand">
           Legal
         </p>
-        <h1 className="mt-3 text-4xl font-bold text-heading">{title}</h1>
+        <h1 className="mt-3 text-3xl font-bold text-heading sm:text-4xl">{title}</h1>
         {description ? (
           <p className="mt-4 text-lg leading-8 text-body">{description}</p>
         ) : null}
-        <p className="mt-4 text-body">
-          Last updated: {LEGAL_EFFECTIVE_DATE}
+        <p className="mt-4 text-body">Last updated: {LEGAL_EFFECTIVE_DATE}</p>
+        <p className="mt-2 text-sm text-muted">
+          <Link href={routes.login} className="text-brand hover:underline">
+            Back to sign in
+          </Link>
         </p>
 
         <div className="mt-10 space-y-8 text-body leading-8">
@@ -65,10 +68,6 @@ export default function LegalDocument({
             Cookie Policy
           </Link>
           {" · "}
-          <Link href={routes.contact} className="text-brand hover:underline">
-            Contact
-          </Link>
-          {" · "}
           <a
             href={`mailto:${LEGAL_CONTACT_EMAIL}`}
             className="text-brand hover:underline"
@@ -83,11 +82,11 @@ export default function LegalDocument({
 
 function renderInline(text: string) {
   const email = LEGAL_CONTACT_EMAIL;
-  if (!text.includes(email) && !text.includes("Contact page")) {
+  if (!text.includes(email)) {
     return text;
   }
 
-  const parts = text.split(new RegExp(`(${email}|Contact page)`, "g"));
+  const parts = text.split(new RegExp(`(${email})`, "g"));
   return parts.map((part, index) => {
     if (part === email) {
       return (
@@ -98,17 +97,6 @@ function renderInline(text: string) {
         >
           {email}
         </a>
-      );
-    }
-    if (part === "Contact page") {
-      return (
-        <Link
-          key={`${part}-${index}`}
-          href={routes.contact}
-          className="font-medium text-brand hover:underline"
-        >
-          Contact page
-        </Link>
       );
     }
     return <span key={`${part}-${index}`}>{part}</span>;

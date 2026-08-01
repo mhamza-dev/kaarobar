@@ -128,7 +128,7 @@ export function DetailFieldGrid({
   return (
     <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {fields.map((f) => (
-        <div key={f.label} className="rounded-md border border-border/70 bg-card-muted/40 px-3 py-2.5">
+        <div key={f.label} className="rounded-md border border-glass-border/70 bg-card-muted/40 px-3 py-2.5">
           <dt className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
             {f.icon ? <f.icon className="h-3.5 w-3.5" /> : null}
             {f.label}

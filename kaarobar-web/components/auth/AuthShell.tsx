@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import {
-  ArrowLeft,
   BarChart3,
   Boxes,
   BookOpenCheck,
@@ -17,17 +16,17 @@ const highlights = [
   {
     icon: Boxes,
     title: "Several businesses, one login",
-    description: "Owner, business, and branch are built in from the start—not bolted on later.",
+    description: "Pick the shop and branch you need. Access stays scoped to your role.",
   },
   {
     icon: BookOpenCheck,
     title: "Real double-entry books",
-    description: "Sales and payroll post balanced journals for you.",
+    description: "Sales and payroll post balanced journals so your ledger stays honest.",
   },
   {
     icon: BarChart3,
     title: "See every shop",
-    description: "Sales, cash, stock, and staff across all your locations.",
+    description: "Sales, cash, stock, and staff across the locations you manage.",
   },
 ];
 
@@ -53,30 +52,27 @@ export default function AuthShell({
       <aside className="relative hidden overflow-hidden bg-sidebar text-sidebar-foreground lg:flex lg:flex-col lg:justify-between lg:p-12">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(29,78,216,0.35),transparent_55%)]" />
         <div className="relative">
-          <Link href={routes.home} className="inline-flex items-center gap-2 text-sm text-sidebar-muted hover:text-white">
-            <ArrowLeft size={16} />
-            {t("common.back")}
-          </Link>
-          <div className="mt-10 flex items-center gap-3">
-            <KaarobarLogo size={48} className="shrink-0 rounded-[11px] shadow-brand" />
+          <Link href={routes.login} className="inline-flex items-center gap-3">
+            <KaarobarLogo size={48} className="shrink-0 rounded-md shadow-brand" />
             <div>
               <p className="text-2xl font-bold text-white">{t("common.appName")}</p>
-              <p className="mt-0.5 text-xs text-sidebar-muted">
-                {t("common.pointOfSale")}
+              <p className="mt-0.5 text-xs text-slate-400">
+                A product of 2ndHub Solutions
               </p>
             </div>
-          </div>
-          <div className="mt-10 rounded-md border border-white/10 bg-white/5 p-5 backdrop-blur">
-            <div className="inline-flex items-center gap-2 rounded-md bg-brand/30 px-3 py-1 text-xs font-semibold text-brand-muted">
+          </Link>
+          {/* Avoid .glass-panel here: it is a light surface and kills contrast on the dark rail */}
+          <div className="mt-10 rounded-md border border-white/20 bg-black/40 p-5 backdrop-blur-md">
+            <div className="inline-flex items-center gap-2 rounded-md bg-brand px-3 py-1 text-xs font-semibold text-white">
               <ShieldCheck size={14} />
-              Built for Pakistan · Multi-branch
+              Built for shops in Pakistan
             </div>
             <p className="mt-4 text-lg font-semibold text-white">
-              Everything under one owner account
+              Run the till, stock, and books in one place
             </p>
-            <p className="mt-2 text-sm leading-6 text-sidebar-muted">
-              POS, stock, proper books, and payroll—with shops that can work on
-              their own while you still see the full picture.
+            <p className="mt-2 text-sm leading-6 text-slate-300">
+              Use the web app when you are online. Desktop and mobile cover the
+              rest of the day for your team.
             </p>
           </div>
         </div>
@@ -86,12 +82,12 @@ export default function AuthShell({
             const Icon = item.icon;
             return (
               <li key={item.title} className="flex gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-white/10 text-brand-muted">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-white/10 text-sky-200">
                   <Icon size={18} />
                 </div>
                 <div>
                   <p className="font-semibold text-white">{item.title}</p>
-                  <p className="mt-1 text-sm text-sidebar-muted">{item.description}</p>
+                  <p className="mt-1 text-sm text-slate-300">{item.description}</p>
                 </div>
               </li>
             );
@@ -99,11 +95,14 @@ export default function AuthShell({
         </ul>
       </aside>
 
-      <main className="flex flex-col justify-center bg-bg-primary px-6 py-12 sm:px-10">
-        <div className="mx-auto w-full max-w-md">
+      <main className="app-atmosphere flex flex-col justify-center px-6 py-12 sm:px-10">
+        <div className="relative z-10 mx-auto w-full max-w-md animate-rise rounded-md border border-border bg-card p-6 shadow-sm sm:p-8">
           <div className="mb-6 flex items-center justify-between gap-3">
-            <Link href={routes.home} className="inline-flex items-center gap-2 text-sm font-semibold text-brand lg:hidden">
-              <KaarobarLogo size={28} className="rounded-[6px]" />
+            <Link
+              href={routes.login}
+              className="inline-flex items-center gap-2 text-sm font-semibold text-brand lg:hidden"
+            >
+              <KaarobarLogo size={28} className="rounded-md" />
               {t("common.appName")}
             </Link>
           </div>

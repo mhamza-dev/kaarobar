@@ -130,7 +130,7 @@ export default function BuyerAr() {
                 <ul className="grid gap-3 sm:grid-cols-2">
                   {balances.map((b) => (
                     <li key={b.business_id}>
-                      <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+                      <div className="rounded-md border border-border bg-card p-5 shadow-sm">
                         <p className="text-sm font-semibold text-heading">
                           {b.business_name || businessName(b.business_id)}
                         </p>
@@ -151,7 +151,7 @@ export default function BuyerAr() {
                       <button
                         type="button"
                         onClick={() => setSelected(inv)}
-                        className="flex w-full flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 text-left shadow-sm transition hover:border-brand/30 hover:shadow-md"
+                        className="flex w-full flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-card p-4 text-left shadow-sm transition hover:border-brand/30 hover:shadow-md"
                       >
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
@@ -191,7 +191,7 @@ export default function BuyerAr() {
         footer={
           selected ? (
             <Button
-              className="w-full rounded-xl sm:w-auto"
+              className="w-full rounded-md sm:w-auto"
               loading={busy}
               onClick={() => void pay(selected)}
             >

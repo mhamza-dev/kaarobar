@@ -16,9 +16,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Kaarobar — POS, Accounting & Payroll for Multi-Business Owners",
+  title: "Kaarobar | Sign in",
   description:
-    "Run the till, keep proper books, and manage staff across every business and branch you own—with Pakistan tax and FBR Tier-1 when you need it.",
+    "Sign in to Kaarobar Cloud (web, desktop, and mobile) by 2ndHub Solutions. Run POS, stock, books, and payroll for your shops.",
   icons: {
     icon: [{ url: "/brand/kaarobar-icon.svg", type: "image/svg+xml" }],
     apple: [{ url: "/brand/kaarobar-icon.png" }],

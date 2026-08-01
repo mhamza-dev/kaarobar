@@ -65,8 +65,8 @@ export default function BuyerOrders() {
       {loading ? (
         <BuyerOrderListSkeleton />
       ) : orders.length === 0 ? (
-        <div className="overflow-hidden rounded-2xl border border-dashed border-brand/30 bg-gradient-to-b from-brand-light/60 to-card px-6 py-10 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand text-brand-foreground shadow-brand">
+        <div className="overflow-hidden rounded-md border border-dashed border-brand/30 bg-gradient-to-b from-brand-light/60 to-card px-6 py-10 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-md bg-brand text-brand-foreground shadow-brand">
             <ShoppingBag className="h-7 w-7" />
           </div>
           <EmptyState
@@ -75,7 +75,7 @@ export default function BuyerOrders() {
           />
           <Link
             href="/app"
-            className="mt-2 inline-flex rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-brand-foreground shadow-sm transition hover:bg-brand-hover"
+            className="mt-2 inline-flex rounded-md bg-brand px-5 py-2.5 text-sm font-semibold text-brand-foreground shadow-sm transition hover:bg-brand-hover"
           >
             {t("marketplace.browseStores")}
           </Link>
@@ -86,9 +86,9 @@ export default function BuyerOrders() {
             <li key={o.id}>
               <Link
                 href={`/app/sales/${o.id}`}
-                className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-md"
+                className="group flex items-center gap-4 rounded-md border border-border bg-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-md"
               >
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-sm font-bold text-brand">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-brand-soft text-sm font-bold text-brand">
                   {(o.business_name || "O").slice(0, 1).toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">

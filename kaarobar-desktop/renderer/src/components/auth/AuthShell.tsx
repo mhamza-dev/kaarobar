@@ -56,7 +56,7 @@ export default function AuthShell({
             {t("common.back")}
           </Link>
           <div className="mt-10 flex items-center gap-3">
-            <KaarobarLogo size={48} className="shrink-0 rounded-[11px] shadow-brand" />
+            <KaarobarLogo size={48} className="shrink-0 rounded-md shadow-brand" />
             <div>
               <p className="text-2xl font-bold text-white">{t("common.appName")}</p>
               <p className="mt-0.5 text-xs text-sidebar-muted">
@@ -64,7 +64,7 @@ export default function AuthShell({
               </p>
             </div>
           </div>
-          <div className="mt-10 rounded-md border border-white/10 bg-white/5 p-5 backdrop-blur">
+          <div className="mt-10 glass-panel rounded-md border border-white/10 bg-white/8 p-5">
             <div className="inline-flex items-center gap-2 rounded-md bg-brand/30 px-3 py-1 text-xs font-semibold text-brand-muted">
               <ShieldCheck size={14} />
               Built for Pakistan · Multi-branch
@@ -97,11 +97,11 @@ export default function AuthShell({
         </ul>
       </aside>
 
-      <main className="flex flex-col justify-center bg-bg-primary px-6 py-12 sm:px-10">
-        <div className="mx-auto w-full max-w-md">
+      <main className="app-atmosphere flex flex-col justify-center px-6 py-12 sm:px-10">
+        <div className="glass-panel relative z-10 mx-auto w-full max-w-md animate-rise p-6 sm:p-8">
           <div className="mb-6 flex items-center justify-between gap-3">
             <Link to={routes.login} className="inline-flex items-center gap-2 text-sm font-semibold text-brand lg:hidden">
-              <KaarobarLogo size={28} className="rounded-[6px]" />
+              <KaarobarLogo size={28} className="rounded-md" />
               {t("common.appName")}
             </Link>
           </div>

@@ -150,9 +150,9 @@ export default function BrandColorPicker({ value, onChange }: Props) {
 
   return (
     <div className="w-full max-w-lg space-y-3">
-      <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-sm">
+      <div className="flex items-center gap-3 rounded-md border border-border bg-card p-3 shadow-sm">
         <span
-          className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-black/10 shadow-inner"
+          className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border border-black/10 shadow-inner"
           style={{ backgroundColor: current }}
           aria-hidden
         >
@@ -179,7 +179,7 @@ export default function BrandColorPicker({ value, onChange }: Props) {
                 key={p.hex}
                 type="button"
                 onClick={() => onChange(p.hex)}
-                className={`flex flex-col items-center gap-1.5 rounded-xl border p-2.5 transition ${
+                className={`flex flex-col items-center gap-1.5 rounded-md border p-2.5 transition ${
                   active
                     ? "border-heading bg-bg-secondary ring-2 ring-offset-1 ring-offset-card"
                     : "border-border bg-card hover:border-heading/30 hover:bg-bg-secondary/70"
@@ -218,7 +218,7 @@ export default function BrandColorPicker({ value, onChange }: Props) {
         aria-expanded={customOpen}
         aria-controls={panelId}
         onClick={() => setCustomOpen((o) => !o)}
-        className={`flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${
+        className={`flex w-full items-center justify-between gap-2 rounded-md border px-3 py-2.5 text-sm font-semibold transition ${
           customOpen || isCustom
             ? "border-heading bg-bg-secondary text-heading"
             : "border-border bg-card text-body hover:bg-bg-secondary"
@@ -239,11 +239,11 @@ export default function BrandColorPicker({ value, onChange }: Props) {
       {customOpen ? (
         <div
           id={panelId}
-          className="space-y-4 rounded-xl border border-border bg-card p-3 shadow-sm sm:p-4"
+          className="space-y-4 rounded-md border border-border bg-card p-3 shadow-sm sm:p-4"
         >
           <div
             ref={satRef}
-            className="relative h-40 w-full cursor-crosshair touch-none overflow-hidden rounded-lg border border-border"
+            className="relative h-40 w-full cursor-crosshair touch-none overflow-hidden rounded-md border border-border"
             style={{
               backgroundColor: pureHue,
               backgroundImage: `
@@ -287,7 +287,7 @@ export default function BrandColorPicker({ value, onChange }: Props) {
 
           <div className="flex items-center gap-2">
             <span
-              className="h-10 w-10 shrink-0 rounded-lg border border-border shadow-inner"
+              className="h-10 w-10 shrink-0 rounded-md border border-border shadow-inner"
               style={{ backgroundColor: current }}
               aria-hidden
             />

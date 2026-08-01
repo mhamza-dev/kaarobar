@@ -66,7 +66,7 @@ const Input = ({
     w-full
     rounded-md
     border
-    bg-bg-secondary
+    bg-bg-secondary/80
 
     py-2.5
 
@@ -85,8 +85,8 @@ const Input = ({
 
     ${
       hasError
-        ? "border-danger focus:border-danger focus:ring-2 focus:ring-danger-soft"
-        : "border-border focus:border-brand focus:ring-2 focus:ring-brand-soft"
+        ? "border-danger focus:border-danger focus:ring-1 focus:ring-danger-soft"
+        : "border-border focus:border-brand focus:ring-1 focus:ring-brand-soft"
     }
 
     disabled:bg-bg-tertiary

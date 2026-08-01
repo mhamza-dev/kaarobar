@@ -71,7 +71,7 @@ export default function BuyerMarketDiscover() {
 
   return (
     <div className="space-y-8">
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-card">
+      <div className="relative overflow-hidden rounded-md border border-border bg-card">
         <div
           className="pointer-events-none absolute inset-0 opacity-90"
           style={{
@@ -130,7 +130,7 @@ export default function BuyerMarketDiscover() {
                     className="group block h-full"
                   >
                     <article
-                      className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition duration-200 group-hover:-translate-y-1 group-hover:shadow-lg"
+                      className="flex h-full flex-col overflow-hidden rounded-md border border-border bg-card shadow-sm transition duration-200 group-hover:-translate-y-1 group-hover:shadow-lg"
                       style={
                         accent
                           ? { borderTopWidth: 4, borderTopColor: accent }
@@ -151,7 +151,7 @@ export default function BuyerMarketDiscover() {
                         }
                       >
                         <div
-                          className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-white/60 bg-card text-xl font-bold text-heading shadow-md"
+                          className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-md border border-white/60 bg-card text-xl font-bold text-heading shadow-md"
                           style={accent ? { boxShadow: `0 8px 24px ${accent}33` } : undefined}
                         >
                           {b.logo_url ? (
@@ -179,7 +179,7 @@ export default function BuyerMarketDiscover() {
                         ) : null}
                         {b.industry ? (
                           <span
-                            className="mt-1 inline-flex w-fit rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider"
+                            className="mt-1 inline-flex w-fit rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider"
                             style={
                               accent
                                 ? { backgroundColor: `${accent}18`, color: accent }

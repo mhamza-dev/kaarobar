@@ -7,17 +7,18 @@
 | Field | Value |
 |-------|-------|
 | Document No. | **KRB-SRS-003** |
-| Version | **3.1** (Production Baseline — Implementation-Aligned) |
-| Date | July 22, 2026 |
-| Supersedes | KRB-SRS-003 v3.0 (Draft for Review); KRB-SRS-002 v2.0 (archived) |
+| Version | **3.2** (Production Baseline — Two Editions) |
+| Date | August 1, 2026 |
+| Supersedes | KRB-SRS-003 v3.1; KRB-SRS-003 v3.0 (Draft for Review); KRB-SRS-002 v2.0 (archived) |
 | Classification | Confidential — Internal Planning Document |
 | Prepared By | Hamza AI — Founder & Lead Engineer |
+| Publisher | **2ndHub Solutions** (Kaarobar is a product of 2ndHub Solutions) |
 | Standards | ISO/IEC/IEEE 29148:2018, ISO/IEC 25010:2011, ISO/IEC/IEEE 42010:2011 |
 | Status | **Production baseline for engineering** — living document; Phase A remaining / Phase B roadmap retained |
 
-This document is the authoritative engineering contract for Kaarobar. "Kaarobar" is a working product name and may be changed prior to release. Requirement language follows RFC 2119 (`shall` / `must` / `should` / `may`) and MoSCoW prioritization (**Must** / **Should** / **Could** / Won't).
+This document is the authoritative engineering contract for Kaarobar. "Kaarobar" is the product name; the publisher / vendor is **2ndHub Solutions**. Requirement language follows RFC 2119 (`shall` / `must` / `should` / `may`) and MoSCoW prioritization (**Must** / **Should** / **Could** / Won't).
 
-> **v3.1 rule:** MoSCoW **Must** = production baseline (shipped or accepted Partial with stated criteria). Enterprise roadmap items remain in this SRS as **Should** / Phase A–B — they are not deleted, and they are not launch-blocking until Product promotes them.
+> **v3.2 rule:** MoSCoW **Must** = production baseline (shipped or accepted Partial with stated criteria). Two commercial editions are normative: **Kaarobar Cloud** (subscription) and **Kaarobar Offline Desktop** (one-time license). Enterprise roadmap items remain as **Should** / Phase A–B until Product promotes them.
 
 ---
 
@@ -31,6 +32,16 @@ This document is the authoritative engineering contract for Kaarobar. "Kaarobar"
 | 2.0 | 2026-07-20 | Hamza AI | PostgreSQL migration (shared DB + RLS); multi-vertical catalog; scheduling; FBR Tier-1; offline sync hardening. |
 | 3.0 | 2026-07-22 | Hamza AI | CRM & Marketing/Campaigns; Customer Portal login; role-scoped employee dashboards; Helpdesk; Public API & Webhooks; BI/analytics (RFM, campaign ROI, sales trends). Reverses v2.0 out-of-scope decisions on "native loyalty/CRM marketing automation" and "staff-initiated appointment booking only." |
 | **3.1** | **2026-07-22** | **Hamza AI** | **Production Baseline.** Aligns Musts with the shipped Kaarobar codebase (Elixir/Phoenix + PostgreSQL + Oban): khata tender, loyalty points, industry presets, CRM campaigns as-built, push notifications, ESS employee portal login, desktop offline sync, en/ur i18n, branding. Rewrites CRM Must to shipped behavior; moves coupons/tiers/consent CRM, Customer Portal, Helpdesk, Public API, appointments, production FBR adapter, and full billing portal to Should / Phase A–B. Roles aligned to code (`marketing`, `admin`). |
+| **3.2** | **2026-08-01** | **Hamza AI** | **Two editions.** Publisher **2ndHub Solutions**. Normative commercial split: **Kaarobar Cloud** (Web + syncing Desktop + Mobile; Safepay subscription) vs **Kaarobar Offline Desktop** (single shop, local SQLite, one-time license; `ODE-FR-*`). Cloud billing primary = **Safepay** (ADM-FR-003); Offline one-time purchase / license lockout = **ADM-FR-007**. Keeps `OFF-FR-*` as Cloud desktop sync only. Product feature doc: [`docs/offline-desktop.md`](../offline-desktop.md). |
+
+### Commercial editions (v3.2 — normative)
+
+| Edition | Who | Platforms | Commercial |
+|---------|-----|-----------|------------|
+| **Kaarobar Cloud** | Multi-business / multi-branch owners; sync & owner dashboard | **Web**, **Desktop** (offline-capable then syncs — `OFF-FR`), **Mobile** | **Subscription** via Safepay (Trial / Starter / Growth / Enterprise) |
+| **Kaarobar Offline Desktop** | Single shop on their own machine | **Fully offline Desktop** only (one business per install) | **One-time purchase** — license activation once online, then day-to-day offline (`ODE-FR-*`, ADM-FR-007) |
+
+Cloud Desktop ≠ Offline Desktop SKU. Offline Edition **shall not** require cloud sync for day-to-day selling after license activation. See §10.5 (`OFF-FR`) and §10.6 (`ODE-FR`).
 
 ### Why PostgreSQL Was Chosen (carried forward from v2.0)
 
@@ -60,9 +71,9 @@ Customer engagement remains strategic. v3.1 does **not** remove the enterprise r
 
 | Phase | Scope | MoSCoW |
 |-------|-------|--------|
-| **Production baseline (Release 1.0 Must)** | TEN, POS (incl. khata + loyalty points), INV core, ACC, HR/ESS, RPT core, ADM plan limits + LemonSqueezy webhook/checkout, NOT (in-app/email/push), OFF desktop, CRM campaigns as-built, FBR hooks (mock/non-blocking) | **Must** |
+| **Production baseline (Release 1.0 Must)** | TEN, POS (incl. khata + loyalty points), INV core, ACC, HR/ESS, RPT core, ADM plan limits + **Safepay** webhook/checkout (Cloud), NOT (in-app/email/push), OFF Cloud desktop sync, CRM campaigns as-built, FBR hooks (mock/non-blocking); **Offline Desktop Edition** (`ODE-FR-*`) + ADM-FR-007 license lockout | **Must** |
 | **Phase A remaining** | Customer Portal (`CUS-FR`), coupons, loyalty tiers, marketing consent engine, named segments, SMS/WhatsApp campaigns, role-dashboard polish | **Should** until promoted |
-| **Phase B** | Helpdesk (`SUP-FR`), Public API/Webhooks (`API-FR`), BI RFM/ROI, production FBR adapter, full LemonSqueezy portal, appointments/recipes/agrochemical polish | **Should** until promoted |
+| **Phase B** | Helpdesk (`SUP-FR`), Public API/Webhooks (`API-FR`), BI RFM/ROI, production FBR adapter, full self-serve billing portal, appointments/recipes/agrochemical polish | **Should** until promoted |
 
 ---
 
@@ -77,7 +88,7 @@ Customer engagement remains strategic. v3.1 does **not** remove the enterprise r
 7. [UML Diagrams](#7-uml-diagrams)
 8. [External Interface Requirements](#8-external-interface-requirements)
 9. [Non-Functional Requirements](#9-non-functional-requirements)
-10. [Offline & Synchronization Requirements](#10-offline--synchronization-requirements)
+10. [Offline & Synchronization Requirements](#10-offline--synchronization-requirements) (Cloud sync + Offline Desktop Edition)
 11. [Requirement Traceability Matrix](#11-requirement-traceability-matrix)
 12. [Risk Register](#12-risk-register)
 13. [Appendices](#13-appendices)
@@ -95,7 +106,7 @@ This Software Requirements Specification (SRS) defines the functional, non-funct
 3. **HR & Payroll** — employees, attendance, leave, payroll into the ledger, Employee Self-Service (ESS).
 4. **CRM & Marketing (baseline)** — draft→send campaigns (email + in-app), audience filters, loyalty points.
 5. **Customers** — profiles, khata (credit), loyalty points, ledger view for staff.
-6. **Platform** — subscription plan limits, LemonSqueezy webhook/checkout, FBR Tier-1 hooks (non-blocking), notifications (in-app / email / push), en/ur localization.
+6. **Platform** — Cloud subscription plan limits, **Safepay** webhook/checkout, Offline Desktop one-time license (ADM-FR-007), FBR Tier-1 hooks (non-blocking), notifications (in-app / email / push), en/ur localization.
 
 **Enterprise roadmap** (documented in this SRS, not Must-complete for production baseline): Customer Portal, coupons/tiers/consent CRM, Helpdesk, Public API & webhooks, appointments, production FBR adapter, BI.
 
@@ -128,9 +139,15 @@ The SRS is the authoritative engineering contract. It is prepared in accordance 
 
 #### 1.4.1 Product Perspective
 
-Kaarobar is a multi-tenant SaaS product for Pakistan-first Owners who operate one or more businesses, each with one or more branches. It replaces fragmented POS + spreadsheet accounting + separate payroll (+ optional external CRM) with a single tenant-scoped platform.
+**Kaarobar** is a product family of **2ndHub Solutions** for Pakistan-first shop and multi-location owners.
 
-**Clients (production baseline):** Web (dashboard / browser POS), Desktop Electron (offline-capable till), Mobile (oversight + ESS + lighter POS).
+**Kaarobar Cloud** is a multi-tenant SaaS product for Owners who operate one or more businesses, each with one or more branches. It replaces fragmented POS + spreadsheet accounting + separate payroll (+ optional external CRM) with a single tenant-scoped platform.
+
+**Kaarobar Offline Desktop** is a separate commercial edition: one shop per install, local SQLite, license-then-offline (see §10.6 and [`docs/offline-desktop.md`](../offline-desktop.md)).
+
+**Cloud clients (production baseline):** Web (dashboard / browser POS), Desktop Electron (offline-capable till that **syncs** — `OFF-FR`), Mobile (oversight + ESS + lighter POS).
+
+**Offline Desktop client:** Standalone Electron install (no browser SaaS; no multi-shop cloud sync).
 
 **Roadmap clients:** Customer Portal (end-customer self-service) — Phase A remaining.
 
@@ -156,7 +173,7 @@ Kaarobar is a multi-tenant SaaS product for Pakistan-first Owners who operate on
 - Pakistan sales tax defaults + **FBR Tier-1 hooks** (flag, async enqueue, receipt fields, non-blocking) — production adapter Should
 - HR: employees, attendance, leave, payroll (PK tax + EOBI), payslips; **ESS** (clock / leave / payslips) with **employee portal login linkage**
 - Owner / branch dashboards and reports (RBAC-filtered)
-- Platform: subscription **plan limits**; LemonSqueezy **inbound webhook** + **checkout URL**
+- Platform: Cloud subscription **plan limits**; **Safepay** inbound webhook + checkout URL; Offline Desktop one-time license (ADM-FR-007)
 - Notifications: in-app inbox, email (Swoosh/Oban), **Expo push** + device tokens, prefs
 - **CRM baseline:** draft→send campaigns (email + in-app); audiences `all` \| `khata` \| `min_points`; recipient tracking; async send
 - Localization: **English + Urdu** (RTL for Urdu)
@@ -167,7 +184,7 @@ Kaarobar is a multi-tenant SaaS product for Pakistan-first Owners who operate on
 | Phase | Items |
 |-------|--------|
 | **A remaining** | Customer Portal (`CUS-FR`); coupons (`POS-FR-019` / CRM coupon FRs); loyalty **tiers**; marketing consent/opt-out engine; named segments; SMS/WhatsApp campaigns; role-home dashboard polish (`TEN-FR-013` beyond RBAC) |
-| **B** | Helpdesk (`SUP-FR`); Public API & signed webhooks (`API-FR`); BI RFM/campaign ROI/trends; production FBR adapter; full LemonSqueezy self-serve portal; appointments/scheduling; recipes/BOM; agrochemical/batch UI polish; `support_agent` role |
+| **B** | Helpdesk (`SUP-FR`); Public API & signed webhooks (`API-FR`); BI RFM/campaign ROI/trends; production FBR adapter; full self-serve billing portal; appointments/scheduling; recipes/BOM; agrochemical/batch UI polish; `support_agent` role |
 
 #### 1.4.4 Out of Scope (Release 1.0)
 
@@ -184,12 +201,22 @@ Kaarobar is a multi-tenant SaaS product for Pakistan-first Owners who operate on
 - **Fixed asset** management / depreciation
 - Native mobile Customer Portal app (responsive web when Portal ships)
 
+**Out of scope for Offline Desktop Edition (`ODE-FR`) specifically:**
+
+- Multi-branch / multi-business **cloud** sync in one Offline install
+- Browser SaaS for the Offline SKU
+- Kitchen display / KOT
+- Delivery rider tracking
+- Split-bill at checkout
+- Free-form brand color picker (curated presets only)
+- OS-level background backup service (auto-backup runs while the app is open)
+
 #### 1.4.5 Assumptions and Dependencies
 
 1. Owners accept shared-database multi-tenancy with application scoping (and RLS where enabled).
 2. FBR rules may change; **baseline** implements hooks/mock path; tax-advisor review required before asserting production filing (Appendix C).
 3. Email/push depend on third-party providers; SMS/WhatsApp when enabled.
-4. LemonSqueezy (or equivalent) handles Owner→Kaarobar billing events; full portal is Should.
+4. **Safepay** (Pakistan) handles Owner→Kaarobar **Cloud** billing events; full self-serve portal is Should. Offline Desktop is a one-time license purchase (ADM-FR-007), not a Safepay subscription plan.
 5. **This repository implements logical modules as Elixir/Phoenix contexts + Oban** (not NestJS/BullMQ). Older NestJS wording is historical; see §3.1.
 6. Phase A remaining / Phase B items stay in the SRS for enterprise planning; they are **Should** until Product promotes them to Must.
 
@@ -206,7 +233,7 @@ Kaarobar is a multi-tenant SaaS product for Pakistan-first Owners who operate on
 | CRM campaigns (as-built) | **Done** | Coupons/segments/consent Should |
 | Reporting | **Done** | BI Should |
 | Notifications + Push | **Done** | |
-| Billing limits + LS webhook/checkout | **Done** | Full portal Should |
+| Billing limits + Safepay webhook/checkout | **Done** | Full portal Should; Offline one-time = ADM-FR-007 |
 | FBR hooks | **Partial** | Mock/async Accepted for Must; production adapter Should |
 | Customer Portal / Helpdesk / Public API | **Planned** | Phase A remaining / B |
 | Appointments / Recipes | **Planned** | Phase B / future extensibility |
@@ -268,7 +295,7 @@ Kaarobar is a multi-tenant SaaS product for Pakistan-first Owners who operate on
 | **CRM & Marketing (baseline)** | Campaigns draft→send, audiences, loyalty points | `marketing`, Owner | Must |
 | Customers | Profiles, khata, loyalty points, ledger | Cashier, Accountant | Must |
 | Notifications | In-app, email, push | System | Must |
-| Platform Admin & Billing | Plan limits, LemonSqueezy webhook/checkout | Owner, Platform Admin | Must |
+| Platform Admin & Billing | Plan limits, Safepay webhook/checkout (Cloud); Offline one-time license | Owner, Platform Admin | Must |
 | Scheduling (roadmap) | Appointments, staff calendar, self-booking | Service Staff, Customer | Should |
 | **CRM (extended)** | Named segments, coupons, tiers, consent, SMS/WA | `marketing` | Should |
 | **Customer Portal** | Login, history, loyalty, booking, AR pay, prefs | Customer | Should |
@@ -391,9 +418,9 @@ Clients (Web, Desktop, Mobile; Customer Portal when shipped) are independently d
 | Auth (staff) | JWT + optional TOTP | `users` |
 | Auth (customer) | JWT + optional MFA | `customer_accounts` (Phase A remaining) |
 | Auth (public API) | API keys + OAuth2 client-credentials | Phase B |
-| Webhooks | Inbound LemonSqueezy (Must); outbound HMAC (Phase B) | |
+| Webhooks | Inbound Safepay billing (Must); outbound HMAC (Phase B) | |
 | Campaign delivery | Job queue + notification adapters | Email Must; SMS/WhatsApp Should |
-| Billing | LemonSqueezy | Owner subscriptions |
+| Billing | Safepay (Cloud); Offline one-time license | Owner subscriptions / ODE license |
 | Payments | Payment gateway adapter | Customer→Owner; no raw PAN |
 | FBR | Async adapter | Never blocks sale |
 
@@ -492,7 +519,7 @@ flowchart TB
 |-------------|-----------|-----------|
 | FBR POS | Outbound | No |
 | Payment gateway | Inbound payment intents | No (async confirm) |
-| LemonSqueezy | Subscription webhooks | N/A |
+| Safepay | Cloud subscription webhooks / checkout | N/A |
 | Email / SMS / WhatsApp | Outbound marketing & transactional | No (queued) |
 | Public webhooks | Outbound to Owner endpoints | No (queued + retry) |
 
@@ -748,10 +775,11 @@ All requirements use MoSCoW priority. Requirement IDs are unique and stable for 
 |----|-------------|----------|
 | ADM-FR-001 | Platform Admin should be able to view and manage all tenants (Owners) for support purposes, without exposing tenant financial data by default. | Should |
 | ADM-FR-002 | The system shall enforce subscription plan limits (number of businesses, branches, and/or users) per Owner account. | Must |
-| ADM-FR-003 | The system shall integrate with LemonSqueezy via **inbound webhook** (HMAC-verified) for plan/status changes and shall support a **checkout URL** for upgrades. | Must |
+| ADM-FR-003 | The system shall integrate with **Safepay** (Pakistan) via **inbound webhook** (HMAC-verified) for Cloud plan/status changes and shall support a **checkout URL** for upgrades. | Must |
 | ADM-FR-004 | The Owner should have a full self-service billing portal to view invoices and update the payment method. | Should |
 | ADM-FR-005 | The system shall support a free trial period with automatic feature restriction upon expiry if no plan is selected. | Should |
 | ADM-FR-006 | Platform Admin should be able to add or edit industry presets / future `business_types` via an internal admin tool, without a schema migration. | Should |
+| ADM-FR-007 | The Offline Desktop Edition shall support **one-time purchase / license entitlement**: activation (online once), term or lifetime validity, expiry reminders, and **lockout of POS / products / sales** when the license is expired (lifetime licenses shall never lock). See §10.6. | Must |
 
 ### 5.9 Notifications
 
@@ -826,7 +854,7 @@ All requirements use MoSCoW priority. Requirement IDs are unique and stable for 
 
 ### 5.13 Public API & Webhooks
 
-> **v3.1:** Phase B — outbound Public API/webhooks are **Should**. Inbound LemonSqueezy billing webhook remains Must (ADM-FR-003).
+> **v3.2:** Phase B — outbound Public API/webhooks are **Should**. Inbound **Safepay** Cloud billing webhook remains Must (ADM-FR-003). Offline one-time license behaviors are Must (ADM-FR-007 / §10.6).
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
@@ -1224,9 +1252,9 @@ Thermal ESC/POS printers, cash drawers, barcode/QR scanners, standard A4 printer
 
 Tokenized card/wallet payments for Customer→Owner (AR pay in portal, card tender at POS). No raw PAN storage.
 
-#### 8.3.2 Subscription Billing Interface (LemonSqueezy)
+#### 8.3.2 Subscription Billing Interface (Safepay — Cloud)
 
-Owner→Kaarobar plan checkout, webhooks for plan changes and payment failures (ADM-FR-003).
+Owner→Kaarobar **Cloud** plan checkout, webhooks for plan changes and payment failures (ADM-FR-003). Offline Desktop one-time license is separate (ADM-FR-007 / §10.6).
 
 #### 8.3.3 Notification Channels
 
@@ -1384,7 +1412,34 @@ Stock applies as atomic deltas on sync (never absolute overwrite). Manager appro
 | OFF-FR-007 | Returns/refunds requiring Branch Manager approval (POS-FR-008) that cannot reach the manager while offline shall be queued as PendingApproval locally and resolved once connectivity is restored. | Must |
 | OFF-FR-008 | While offline, the POS may accept cached coupon codes and shall re-validate coupon eligibility on sync; invalid redemptions shall be flagged for manager review and shall not silently corrupt campaign analytics. | Should |
 
-**Online-only (v3.1):** Web POS, Mobile POS, Customer Portal (when shipped), Helpdesk, Campaign create/send UI, Public API, and live webhook delivery require connectivity. **Desktop POS** is the offline-capable client (OFF-FR-001–007).
+> **v3.2:** `OFF-FR-*` apply to **Kaarobar Cloud Desktop** (sync offline → reconnection). They do **not** define the Offline Desktop Edition SKU.
+
+**Online-only (Cloud):** Web POS, Mobile POS, Customer Portal (when shipped), Helpdesk, Campaign create/send UI, Public API, and live webhook delivery require connectivity. **Cloud Desktop POS** is the offline-capable syncing client (OFF-FR-001–007).
+
+### 10.6 Offline Desktop Edition (Single Shop)
+
+Product feature doc: [`docs/offline-desktop.md`](../offline-desktop.md). Publisher: **2ndHub Solutions**.
+
+**Kaarobar Offline Desktop** is a commercial edition for a **single shop** install: local SQLite, license activation once online, then **day-to-day selling without cloud**. It is distinct from Cloud Desktop sync (`OFF-FR`).
+
+| ID | Requirement | Priority |
+|----|-------------|----------|
+| ODE-FR-001 | The Offline Desktop Edition shall support **exactly one business / shop per install** (no multi-business create or multi-branch cloud sync). | Must |
+| ODE-FR-002 | Shop operational data shall persist in a **local SQLite** database on the install machine. | Must |
+| ODE-FR-003 | After successful **license activation** (online once), day-to-day selling and shop operations shall work **without continuous internet**. | Must |
+| ODE-FR-004 | The Offline Desktop UI shall support **English and Urdu**, with **RTL** layout for Urdu. | Must |
+| ODE-FR-005 | The POS shall be **vertical-aware** (retail / food / salon / services): nature chosen at setup; catalog kinds and POS controls filtered accordingly (tables/tickets for food; served-by for salon/services). | Must |
+| ODE-FR-006 | Checkout shall support barcode/tap add, cash / card-online / **khata**, overstock block for stock-tracked products, and printable receipts (EN/UR layout). | Must |
+| ODE-FR-007 | The edition shall provide product catalog, stock updates from sales and purchase receive, low-stock visibility, suppliers, purchase orders, and receive flow. | Must |
+| ODE-FR-008 | The edition shall provide searchable sales history with role-gated refunds/voids and stock restore where applicable. | Must |
+| ODE-FR-009 | The edition shall provide **customers and khata**: profiles, balances, debit/credit ledger (date filter), print ledger, khata sales, and customer payment recording. | Must |
+| ODE-FR-010 | Staff access shall use RBAC roles **owner / admin / manager / cashier** (create, edit, deactivate). | Must |
+| ODE-FR-011 | Business branding/settings shall support shop name, currency, logo, curated brand color presets, social links on receipts, and branch contact details. | Must |
+| ODE-FR-012 | The edition shall support **encrypted** `.kaarobar-backup` archives (database + media), restore from Backup or setup, and optional **auto-backup while the app is open** (not an OS background service). | Must |
+| ODE-FR-013 | License expiry within 7 days (or already expired) shall surface in reminders; **expired licenses shall lock POS, products, and sales** (including mid-session); **lifetime** licenses shall never lock. Restock reminders from sales velocity shall be available. | Must |
+| ODE-FR-014 | Client installers shall be available for **macOS DMG**, **Windows Setup/Portable**, and **Linux AppImage**. | Must |
+
+**Out of scope for ODE** (also §1.4.4): multi-branch cloud sync; browser SaaS; KOT/kitchen display; delivery rider tracking; split-bill; free-form brand color picker; OS background backup service.
 
 ---
 
@@ -1396,11 +1451,11 @@ Sample traceability rows (not exhaustive — full matrix maintained in engineeri
 |---------------|----------------------|
 | G1 Owner hustle reduction | RPT-FR-001, TEN-FR-013, RPT-FR-002 |
 | G2 Real accounting | ACC-FR-003, ACC-FR-004, ACC-FR-010, ACC-FR-015 |
-| G3 Branch autonomy / offline | POS-FR-011, OFF-FR-001–004, REL-NFR-002 |
+| G3 Branch autonomy / offline | POS-FR-011, OFF-FR-001–004 (Cloud Desktop), ODE-FR-001–003/013 (Offline Edition), REL-NFR-002 |
 | G4 Pakistan-ready | ACC-FR-016, ACC-FR-017, FBR-FR-001–004 |
 | G5 Low operating cost | §3.1 modular monolith, §3.2.2 shared DB |
 | **G6 Customer engagement** | CRM-FR-002/007/011/016/017, POS-FR-012/020/021; CUS-FR when Phase A remaining |
-| **G7 Platform extensibility** | API-FR-001–008 (Phase B Should); ADM-FR-003 inbound billing webhook (Must) |
+| **G7 Platform extensibility** | API-FR-001–008 (Phase B Should); ADM-FR-003 Safepay inbound billing webhook (Must); ADM-FR-007 Offline license (Must) |
 | UC-28 Campaign send | CRM-FR-002, CRM-FR-011, CRM-FR-015, CRM-FR-016, NOT-FR-001 |
 | UC-37 Khata sale | POS-FR-020, ACC-FR-012 |
 | UC-38 Loyalty | POS-FR-021, CRM-FR-007 |
@@ -1433,7 +1488,7 @@ Risks R-01–R-06 carried forward from KRB-SRS-002; R-07–R-09 from v3.0; R-10�
 
 ## 13 Appendices
 
-### Appendix A — Requirement Count Summary (v3.1)
+### Appendix A — Requirement Count Summary (v3.2)
 
 | Prefix | Module / Area | Count (approx.) | Must (production baseline) |
 |--------|---------------|-----------------|----------------------------|
@@ -1444,19 +1499,20 @@ Risks R-01–R-06 carried forward from KRB-SRS-002; R-07–R-09 from v3.0; R-10�
 | ACC-FR | Accounting | 20 | ~13 |
 | HR-FR | HR & Payroll | 12 | ~8 |
 | RPT-FR | Reporting & BI | 10 | ~3 |
-| ADM-FR | Platform Admin | 6 | ~2 |
+| ADM-FR | Platform Admin | 7 | ~3 (incl. ADM-FR-007) |
 | NOT-FR | Notifications / i18n / brand | 6 | ~5 |
 | CRM-FR | CRM & Marketing | 17 | ~7 (as-built) |
 | CUS-FR | Customer Portal | 10 | 0 (all Should) |
 | SUP-FR | Helpdesk | 8 | 0 (all Should) |
-| API-FR | Public API | 8 | 0 (all Should; LS inbound under ADM) |
+| API-FR | Public API | 8 | 0 (all Should; Safepay inbound under ADM) |
 | FBR-FR | FBR interface | 6 | ~4 (hooks) |
-| OFF-FR | Offline & Sync | 8 | ~6 (desktop) |
+| OFF-FR | Cloud Desktop Offline & Sync | 8 | ~6 |
+| ODE-FR | Offline Desktop Edition | 14 | ~14 |
 | *-NFR | Non-functional | ~40 | ~25 |
-| **Total FR** | | **≈ 170** | **≈ 85 Must** (honest baseline) |
-| **Grand total FR + NFR** | | **≈ 210+** | **≈ 110 Must** |
+| **Total FR** | | **≈ 185** | **≈ 100 Must** (honest baseline + ODE) |
+| **Grand total FR + NFR** | | **≈ 225+** | **≈ 125 Must** |
 
-> v3.1 lowered Must count vs v3.0 draft by moving Portal/Helpdesk/Public API/coupons/appointments to Should. Exact enumeration is the authoritative tables in §§5, 8.3.4, 9, 10.
+> v3.2 adds Offline Desktop Edition Musts (`ODE-FR`, ADM-FR-007) and confirms Safepay as Cloud billing. Exact enumeration is the authoritative tables in §§5, 8.3.4, 9, 10.
 
 ### Appendix B — Sample Default Chart of Accounts (Pakistan Retail Template)
 
@@ -1502,28 +1558,29 @@ Vertical-specific templates may extend this list (ACC-FR-001).
 6. **Which Phase A vs Phase B modules ship first?** — Recommendation: Phase A = Customer Portal + basic CRM; Phase B = Helpdesk + Public API + BI.
 7. **WhatsApp Business API provider selection** (Meta Cloud API vs BSP aggregators) and template approval ownership.
 
-### Appendix E — Requirement ID Prefix Reference (v3.0)
+### Appendix E — Requirement ID Prefix Reference (v3.2)
 
 | Prefix | Section | Notes |
 |--------|---------|-------|
-| TEN-FR | §5.1 | Includes TEN-FR-012..014 (new) |
-| POS-FR | §5.2 | Includes POS-FR-019 (new) |
+| TEN-FR | §5.1 | Includes TEN-FR-012..014 |
+| POS-FR | §5.2 | Includes POS-FR-019 |
 | INV-FR | §5.3 | |
 | SCH-FR | §5.4 | SCH-FR-001 extended for portal booking |
 | ACC-FR | §5.5 | |
 | HR-FR | §5.6 | |
-| RPT-FR | §5.7 | Includes RPT-FR-008..010 (new) |
-| ADM-FR | §5.8 | |
+| RPT-FR | §5.7 | Includes RPT-FR-008..010 |
+| ADM-FR | §5.8 | Safepay Cloud (ADM-FR-003); Offline one-time (ADM-FR-007) |
 | NOT-FR | §5.9 | |
-| **CRM-FR** | **§5.10** | **New — CRM & Marketing** |
-| **CUS-FR** | **§5.11** | **New — Customer Portal** |
-| **SUP-FR** | **§5.12** | **New — Helpdesk** |
-| **API-FR** | **§5.13** | **New — Public API & Webhooks** |
+| CRM-FR | §5.10 | CRM & Marketing |
+| CUS-FR | §5.11 | Customer Portal |
+| SUP-FR | §5.12 | Helpdesk |
+| API-FR | §5.13 | Public API & Webhooks |
 | FBR-FR | §8.3.4 | |
-| OFF-FR | §10.5 | Includes OFF-FR-008 (new) |
+| OFF-FR | §10.5 | Cloud Desktop sync; includes OFF-FR-008 |
+| **ODE-FR** | **§10.6** | **Offline Desktop Edition (single shop)** |
 | PERF/COMP/USE/REL/SEC/MNT/PORT/CMP-NFR | §9 | Includes SEC-NFR-010..012, PERF-NFR-006, CMP-NFR-005, USE-NFR-005 |
 
 ---
 
-*End of Document — KRB-SRS-003 v3.1*  
-*Doc. No. KRB-SRS-003 | Version 3.1 Production Baseline | July 22, 2026 | Confidential*
+*End of Document — KRB-SRS-003 v3.2*  
+*Doc. No. KRB-SRS-003 | Version 3.2 Two Editions · Publisher 2ndHub Solutions | August 1, 2026 | Confidential*

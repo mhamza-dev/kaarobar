@@ -18,24 +18,24 @@ function LoginInner() {
   return (
     <GuestOnly>
       <AuthShell
-        badge={isBuyer ? "Shop as a consumer" : "Welcome back"}
-        title={isBuyer ? "Sign in as Consumer" : "Sign in to Kaarobar"}
+        badge={isBuyer ? "Customer sign-in" : "Staff sign-in"}
+        title={isBuyer ? "Sign in to shop" : "Sign in to Kaarobar"}
         subtitle={
           isBuyer
-            ? "Browse marketplace stores, place pickup orders, and track loyalty across businesses."
-            : "Open the dashboard for every business and branch you own."
+            ? "Browse stores, place pickup orders, and check your points."
+            : "Open the workspace for your businesses and branches."
         }
         footer={
           isBuyer ? (
             <>
               New here?{" "}
               <Link href={`${routes.signup}?as=consumer`} variant="link">
-                Create a consumer account
+                Create a customer account
               </Link>
             </>
           ) : (
             <>
-              Don&apos;t have an account?{" "}
+              Need an account?{" "}
               <Link href={routes.signup} variant="link">
                 Create one
               </Link>

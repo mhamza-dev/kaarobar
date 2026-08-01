@@ -28,7 +28,7 @@ export function PageHeader({
   secondaryAction,
 }: PageHeaderProps) {
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="flex flex-col gap-4 animate-fade-in sm:flex-row sm:items-end sm:justify-between">
       <div>
         <span className="inline-flex rounded-md bg-brand-soft px-3 py-1 text-xs font-semibold tracking-wide text-brand">
           {eyebrow}
@@ -93,9 +93,7 @@ export function SurfaceCard({
   className?: string;
 }) {
   return (
-    <div
-      className={`overflow-hidden rounded-md border border-border bg-card shadow-sm ${className}`}
-    >
+    <div className={`glass-card overflow-hidden ${className}`}>
       {children}
     </div>
   );
@@ -123,7 +121,7 @@ export function KpiCard({
   }[tone];
 
   return (
-    <SurfaceCard className="p-5 transition hover:-translate-y-0.5 hover:shadow-md">
+    <SurfaceCard className="p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-body">{label}</p>
@@ -181,7 +179,7 @@ export function Field({
 }
 
 export const fieldClass =
-  "w-full rounded-md border border-border bg-bg-secondary px-3 py-2.5 text-sm text-heading outline-none transition placeholder:text-muted focus:border-brand focus:ring-2 focus:ring-brand-soft";
+  "w-full rounded-md border border-border bg-bg-secondary/80 px-3 py-2.5 text-sm text-heading outline-none transition placeholder:text-muted focus:border-brand focus:ring-2 focus:ring-brand-soft";
 
 export function Alert({
   tone = "info",
@@ -209,4 +207,3 @@ export function EmptyState({ title, body }: { title: string; body?: string }) {
     </div>
   );
 }
-

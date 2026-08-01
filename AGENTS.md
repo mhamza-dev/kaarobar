@@ -6,27 +6,33 @@ Instructions for Cursor (and any coding agent) working in this repository.
 
 | Document | Role |
 |----------|------|
-| [`docs/srs/KRB-SRS-003.md`](docs/srs/KRB-SRS-003.md) | **Authoritative SRS v3.1 Production Baseline** — what to build |
+| [`docs/srs/KRB-SRS-003.md`](docs/srs/KRB-SRS-003.md) | **Authoritative SRS v3.2 Two Editions** — what to build |
 | [`docs/srs/KRB-SRS-002.md`](docs/srs/KRB-SRS-002.md) | Archived SRS v2.0 (traceability only — do not use for new work) |
 | [`docs/requirements-index.md`](docs/requirements-index.md) | Stable requirement ID prefixes |
 | [`docs/architecture.md`](docs/architecture.md), [`docs/adr/`](docs/adr/) | How this repo implements the SRS |
 | Module docs under [`docs/`](docs/) | Tenancy, POS, accounting, HR, platform status |
+| [`docs/offline-desktop.md`](docs/offline-desktop.md) | Offline Desktop Edition feature doc (`ODE-FR`) |
 
-**v3.1 rule:** MoSCoW **Must** = production baseline (shipped). Portal / Helpdesk / Public API / coupons / appointments are **Should** (roadmap) until Product promotes them. When **code and SRS disagree**, stop and ask the human.
+**v3.2 rule:** MoSCoW **Must** = production baseline (shipped). Two commercial editions: **Kaarobar Cloud** (subscription) and **Kaarobar Offline Desktop** (one-time). Portal / Helpdesk / Public API / coupons / appointments are **Should** (roadmap) until Product promotes them. When **code and SRS disagree**, stop and ask the human.
 
-Requirement language follows **RFC 2119** (`shall` / `should` / `may`) and **MoSCoW** (Must / Should / Could). Cite IDs (e.g. `POS-FR-005`, `SEC-NFR-001`) in PRs, commits when asked, and tests.
+Requirement language follows **RFC 2119** (`shall` / `should` / `may`) and **MoSCoW** (Must / Should / Could). Cite IDs (e.g. `POS-FR-005`, `SEC-NFR-001`, `ODE-FR-001`) in PRs, commits when asked, and tests.
 
 ---
 
 ## 2. Product snapshot
 
-**Kaarobar** is multi-tenant SaaS for owners who run **multiple businesses**, each with **multiple branches**.
+**Kaarobar** is a product of **2ndHub Solutions**.
 
-Hierarchy: **Owner → Business → Branch**.
+| Edition | Who | Platforms | Commercial |
+|---------|-----|-----------|------------|
+| **Kaarobar Cloud** | Multi-business / multi-branch | Web + Desktop (sync) + Mobile | Subscription (Safepay) |
+| **Kaarobar Offline Desktop** | Single shop | Desktop only (local SQLite) | One-time license |
 
-Pillars:
+Cloud hierarchy: **Owner → Business → Branch**. Offline: one shop per install — see [`docs/offline-desktop.md`](docs/offline-desktop.md).
 
-1. Point of Sale (offline-capable desktop till)
+Pillars (Cloud):
+
+1. Point of Sale (offline-capable desktop till that syncs)
 2. Double-entry Accounting (not a cash log)
 3. HR & Payroll (posts to the same ledger)
 4. CRM & Marketing (Phase A)

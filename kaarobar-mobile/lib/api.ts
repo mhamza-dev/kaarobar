@@ -8,6 +8,10 @@ export const colors = {
   bgPrimary: "#f6f8fb",
   bgSecondary: "#ffffff",
   card: "#ffffff",
+  glass: "rgba(255, 255, 255, 0.82)",
+  glassBorder: "rgba(148, 163, 184, 0.28)",
+  mesh1: "rgba(59, 130, 246, 0.14)",
+  mesh2: "rgba(15, 118, 110, 0.08)",
   border: "#e2e8f0",
   heading: "#0f172a",
   body: "#475569",
@@ -17,6 +21,7 @@ export const colors = {
   danger: "#dc2626",
   success: "#15803d",
   white: "#ffffff",
+  radiusLg: 12,
 } as const;
 
 export const API_URL =

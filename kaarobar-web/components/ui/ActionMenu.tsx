@@ -112,7 +112,7 @@ export default function ActionMenu({
             id={menuId}
             role="menu"
             aria-label={label}
-            className="fixed z-[90] overflow-hidden rounded-xl border border-border bg-card py-1 shadow-lg shadow-black/10 ring-1 ring-black/5"
+            className="fixed z-[90] overflow-hidden rounded-md border border-border bg-card py-1 shadow-lg shadow-black/10 ring-1 ring-black/5"
             style={{
               top: coords.top,
               left: coords.left,
@@ -168,7 +168,7 @@ export default function ActionMenu({
         aria-label={label}
         title={label}
         onClick={() => setOpen((v) => !v)}
-        className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card text-body transition hover:border-brand/40 hover:bg-bg-tertiary hover:text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1 ${
+        className={`inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-body transition hover:border-brand/40 hover:bg-bg-tertiary hover:text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1 ${
           open ? "border-brand bg-brand-light text-brand" : ""
         }`}
       >

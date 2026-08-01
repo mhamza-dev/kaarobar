@@ -75,7 +75,7 @@ export default function BuyerLoyalty() {
                 <button
                   type="button"
                   onClick={() => setSelected(row)}
-                  className="w-full rounded-2xl border border-border bg-card p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-md"
+                  className="w-full rounded-md border border-border bg-card p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-md"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <p className="font-semibold text-heading">
@@ -108,8 +108,8 @@ export default function BuyerLoyalty() {
       >
         {selected ? (
           <div className="space-y-5">
-            <div className="flex items-center gap-4 rounded-2xl bg-brand-soft/60 p-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand text-brand-foreground">
+            <div className="flex items-center gap-4 rounded-md bg-brand-soft/60 p-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-md bg-brand text-brand-foreground">
                 <Gift className="h-6 w-6" />
               </div>
               <div>

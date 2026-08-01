@@ -1,10 +1,19 @@
 # Kaarobar
 
-POS, accounting, and payroll for owners who run more than one business—and often more than one branch in each.
+POS, accounting, and payroll. A product of **2ndHub Solutions**.
 
-Internal planning reference: **[KRB-SRS-003](docs/srs/KRB-SRS-003.md)** v3.1 Production Baseline (ISO/IEC/IEEE 29148:2018; supersedes KRB-SRS-002). Stack: Elixir/Phoenix + PostgreSQL + Oban.
+Internal planning reference: **[KRB-SRS-003](docs/srs/KRB-SRS-003.md)** v3.2 Two Editions (ISO/IEC/IEEE 29148:2018; supersedes KRB-SRS-002). Stack: Elixir/Phoenix + PostgreSQL + Oban.
 
-Kaarobar is multi-tenant SaaS. Owner → business → branch isn’t an afterthought—it’s how the product is structured.
+Company marketing site (product landing, about, etc.) is a separate **2ndHub Solutions** repo. **kaarobar-web** opens on the login page (`/` → `/login`).
+
+## Product editions
+
+| Edition | Who | Platforms | Commercial |
+|---------|-----|-----------|------------|
+| **Kaarobar Cloud** | Multi-business / multi-branch owners | Web + Desktop (sync offline) + Mobile | Subscription (Safepay) |
+| **Kaarobar Offline Desktop** | Single shop on their own PC | Desktop only, local SQLite after license | One-time purchase |
+
+Offline Desktop feature list: [`docs/offline-desktop.md`](docs/offline-desktop.md) (`ODE-FR-*`). Cloud Desktop sync remains `OFF-FR-*` (queues then syncs; not the Offline SKU).
 
 ## What it covers
 
@@ -96,7 +105,9 @@ Shared cluster, tenant-isolated by ID. Every tenant-scoped table carries `owner_
 
 ### Offline POS (SRS §10)
 
-Desktop POS keeps a local catalog and stock, queues sales with a `client_txn_id`, and syncs without creating duplicates. Stock updates apply as deltas (never absolute overwrites).
+**Cloud Desktop (`OFF-FR`):** keeps a local catalog and stock, queues sales with a `client_txn_id`, and syncs without creating duplicates. Stock updates apply as deltas (never absolute overwrites).
+
+**Offline Desktop Edition (`ODE-FR`):** single shop, local SQLite, license-then-offline — day-to-day selling does not require cloud. See [`docs/offline-desktop.md`](docs/offline-desktop.md).
 
 ## Backend modules (SRS §3.3 / §5)
 
