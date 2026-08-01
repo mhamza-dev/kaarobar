@@ -35,6 +35,14 @@ Customer flags: `marketing_opt_in_email`, `marketing_opt_in_sms`, `marketing_opt
 - Public marketplace serialize includes `logo_url`, `tagline`, `primary_color`, `marketplace_description`
 - Settings UI: Branding tab (web + desktop)
 
+### Public marketplace product feed (CUS-FR-012)
+
+- `GET /api/v1/marketplace/products?q=&category=&industry=&limit=&cursor=`
+- Active products only from active businesses with `marketplace_enabled`
+- Each row: product id/name/price/`image_url`/category/`product_kind`, plus `business_id` / `business_name` / `business_slug` / `industry`
+- Price is the online-branch branch price when configured; `cursor` is an opaque offset for the next page (`meta.next_cursor`)
+- Existing store discovery: `GET /marketplace/businesses` (+ `/:id`, `/:id/catalog`)
+
 ### Consumer in-app notifications
 
 - `notifications.customer_account_id` (XOR with `user_id`)

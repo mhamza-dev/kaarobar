@@ -9,13 +9,17 @@ import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import {
   Alert,
-  EmptyState,
-  PageHeader,
-  SurfaceCard,
   fieldClass,
 } from "@/components/app/ui";
 import { BrandThemeScope } from "@/components/app/BrandTheme";
+import {
+  BuyerBackLink,
+  BuyerCard,
+  BuyerEmptyPanel,
+  BuyerHero,
+} from "@/components/buyer/BuyerLayout";
 import { useT } from "@/lib/i18n";
+import { ShoppingCart } from "lucide-react";
 
 function money(n: number) {
   return n.toFixed(2);
@@ -51,7 +55,11 @@ export default function CheckoutPayPage() {
 
   if (stores.length === 0) {
     return (
-      <EmptyState title={t("marketplace.emptyCartTitle")} body={t("marketplace.emptyCartBody")} />
+      <BuyerEmptyPanel
+        icon={<ShoppingCart className="h-7 w-7" />}
+        title={t("marketplace.emptyCartTitle")}
+        body={t("marketplace.emptyCartBody")}
+      />
     );
   }
 
@@ -138,7 +146,8 @@ export default function CheckoutPayPage() {
       primaryColor={stores.length === 1 ? stores[0].branding?.primaryColor : null}
       className="mx-auto max-w-lg space-y-6"
     >
-      <PageHeader
+      <BuyerBackLink href="/app/checkout">{t("marketplace.backToCart")}</BuyerBackLink>
+      <BuyerHero
         eyebrow={t("marketplace.checkoutEyebrow")}
         title={t("pages.checkoutPayTitle")}
         description={
@@ -150,9 +159,9 @@ export default function CheckoutPayPage() {
       />
 
       {stores.length > 1 ? (
-        <SurfaceCard className="space-y-2 p-4">
+        <BuyerCard className="space-y-2 p-4">
           <p className="text-xs font-bold uppercase tracking-wide text-muted">
-            Orders to place
+            {t("marketplace.ordersToPlace")}
           </p>
           <ul className="space-y-1 text-sm text-body">
             {stores.map((s) => {
@@ -165,20 +174,18 @@ export default function CheckoutPayPage() {
               );
             })}
           </ul>
-          <p className="text-xs text-muted">
-            Each store is a separate pickup order with the same contact details.
-          </p>
-        </SurfaceCard>
+          <p className="text-xs text-muted">{t("marketplace.multiStoreCheckoutHint")}</p>
+        </BuyerCard>
       ) : null}
 
       {error ? <Alert tone="error">{error}</Alert> : null}
 
-      <SurfaceCard className="space-y-4 p-5">
+      <BuyerCard className="space-y-4 p-5">
         <p className="text-xs font-bold uppercase tracking-wide text-muted">
           {t("marketplace.pickupContact")}
         </p>
         <label className="block text-sm text-body">
-          Name
+          {t("auth.fullName")}
           <input
             className={`${fieldClass} mt-1`}
             value={contactName}
@@ -187,7 +194,7 @@ export default function CheckoutPayPage() {
           />
         </label>
         <label className="block text-sm text-body">
-          Phone
+          {t("auth.phone")}
           <input
             className={`${fieldClass} mt-1`}
             value={phone}
@@ -201,7 +208,7 @@ export default function CheckoutPayPage() {
           <textarea
             className={`${fieldClass} mt-1`}
             rows={3}
-            placeholder="e.g. ready after 5pm, ask for counter 2"
+            placeholder={t("marketplace.pickupNotesPlaceholder")}
             value={pickupNotes}
             onChange={(e) => setPickupNotes(e.target.value)}
           />
@@ -227,17 +234,15 @@ export default function CheckoutPayPage() {
               </button>
             ))}
           </div>
-          <p className="mt-2 text-xs text-muted">
-            Card / wallet capture is stubbed for demo — placing the order records the sale.
-          </p>
+          <p className="mt-2 text-xs text-muted">{t("marketplace.paymentStubHint")}</p>
         </div>
 
         <div className="flex items-center justify-between border-t border-border pt-3 font-bold text-heading">
-          <span>Total</span>
+          <span>{t("common.total")}</span>
           <span>Rs {money(subtotal)}</span>
         </div>
 
-        <Button className="w-full" disabled={busy} loading={busy} onClick={() => void placeOrder()}>
+        <Button className="w-full rounded-md" disabled={busy} loading={busy} onClick={() => void placeOrder()}>
           {stores.length > 1
             ? t("marketplace.placeOrders", { count: stores.length })
             : t("marketplace.placeOrder")}
@@ -246,9 +251,9 @@ export default function CheckoutPayPage() {
           href="/app/checkout"
           className="block text-center text-sm font-medium text-brand hover:underline"
         >
-          ← Back to cart
+          {t("marketplace.backToCart")}
         </Link>
-      </SurfaceCard>
+      </BuyerCard>
     </BrandThemeScope>
   );
 }

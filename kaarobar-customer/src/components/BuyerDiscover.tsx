@@ -13,6 +13,7 @@ import {
 import { api, colors } from "../lib/api";
 import BuyerNav from "./BuyerNav";
 import { BuyerDiscoverSkeleton } from "./BuyerSkeletons";
+import { BuyerEmptyPanel, BuyerHero } from "./BuyerLayout";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
 import { pushPath } from "../lib/nav";
@@ -105,10 +106,13 @@ export default function BuyerDiscover() {
   return (
     <View style={styles.container}>
       <BuyerNav />
-      <View style={[styles.hero, { borderColor: palette.brandSoft }]}>
-        <Text style={styles.title}>{t("pages.discoverTitle")}</Text>
-        <Text style={styles.hint}>{t("pages.discoverDesc")}</Text>
-      </View>
+      <BuyerHero
+        eyebrow={t("marketplace.eyebrow")}
+        title={t("pages.discoverTitle")}
+        description={t("pages.discoverDesc")}
+      >
+        <Text style={styles.heroExtra}>{t("marketplace.discoverHero")}</Text>
+      </BuyerHero>
       <TextInput
         style={styles.search}
         placeholder={t("marketplace.searchStores")}
@@ -141,11 +145,18 @@ export default function BuyerDiscover() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingBottom: 40, gap: 14 }}
           ListEmptyComponent={
-            <Text style={styles.empty}>
-              {businesses.length === 0
-                ? t("marketplace.emptyDiscover")
-                : t("marketplace.noFilterMatches")}
-            </Text>
+            <BuyerEmptyPanel
+              title={
+                businesses.length === 0
+                  ? t("marketplace.emptyStoresTitle")
+                  : t("common.noResults")
+              }
+              body={
+                businesses.length === 0
+                  ? t("marketplace.emptyStoresBody")
+                  : t("marketplace.noFilterMatches")
+              }
+            />
           }
           renderItem={({ item }) => (
             <Pressable
@@ -220,20 +231,12 @@ export default function BuyerDiscover() {
 function createStyles(palette: import("../lib/brandTheme").BrandPalette) {
   return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bgPrimary, padding: 16 },
-  hero: {
-    borderRadius: 18,
-    borderWidth: 1,
-    backgroundColor: colors.card,
-    padding: 16,
-    marginBottom: 14,
-  },
-  title: { fontSize: 26, fontWeight: "800", color: colors.heading, letterSpacing: -0.3 },
-  hint: { color: colors.body, marginTop: 6, lineHeight: 20 },
+  heroExtra: { marginTop: 8, color: colors.body, fontSize: 13, lineHeight: 18 },
   search: {
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.card,
-    borderRadius: 14,
+    borderRadius: colors.radiusLg,
     paddingHorizontal: 14,
     paddingVertical: 12,
     marginBottom: 10,
@@ -253,10 +256,9 @@ function createStyles(palette: import("../lib/brandTheme").BrandPalette) {
   chipText: { fontSize: 12, fontWeight: "700", color: colors.heading },
   chipTextOn: { color: palette.brandForeground },
   error: { color: colors.danger, marginBottom: 8 },
-  empty: { color: colors.body, marginTop: 16 },
   card: {
     backgroundColor: colors.card,
-    borderRadius: 16,
+    borderRadius: colors.radiusLg,
     borderWidth: 1,
     borderColor: colors.border,
     padding: 14,
@@ -266,7 +268,7 @@ function createStyles(palette: import("../lib/brandTheme").BrandPalette) {
   logo: {
     width: 60,
     height: 60,
-    borderRadius: 14,
+    borderRadius: colors.radiusLg,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.bgSecondary || colors.card,

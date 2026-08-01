@@ -10,6 +10,8 @@ export const routes = {
   signup: "/signup",
   forgotPassword: "/forgot-password",
   app: "/app",
+  products: "/app/products",
+  account: "/app/account",
   pos: "/app/pos",
   sales: "/app/sales",
   appointments: "/app/appointments",
@@ -35,7 +37,10 @@ export const detailRoutes = {
   customer: (id: string) => `/app/customers/${id}`,
   employee: (id: string) => `/app/hr/employees/${id}`,
   sale: (id: string) => `/app/sales/${id}`,
+  appointment: (id: string) => `/app/sales/appointments/${id}`,
   product: (id: string) => `/app/inventory/products/${id}`,
+  marketProduct: (businessId: string, productId: string) =>
+    `/app/market/${businessId}/product/${productId}`,
   supplier: (id: string) => `/app/inventory/suppliers/${id}`,
   campaign: (id: string) => `/app/marketing/campaigns/${id}`,
   arInvoice: (id: string) => `/app/accounting/ar/${id}`,
@@ -46,6 +51,15 @@ export const detailRoutes = {
   purchaseOrder: (id: string) => `/app/inventory/purchase-orders/${id}`,
   business: (id: string) => `/app/businesses/${id}`,
 } as const;
+
+/** Buyer marketplace primary nav (consumer sessions). */
+export const buyerNav = [
+  { href: "/app", titleKey: "nav.discover", icon: "pos" as const },
+  { href: "/app/products", titleKey: "nav.products", icon: "inventory" as const },
+  { href: "/app/sales", titleKey: "nav.orders", icon: "sales" as const },
+  { href: "/app/customers", titleKey: "nav.loyalty", icon: "customers" as const },
+  { href: "/app/account", titleKey: "nav.account", icon: "profile" as const },
+] as const;
 
 export const appNav = [
   { titleKey: "nav.dashboard", href: "/app", groupKey: "nav.overview", icon: "layout", bundle: "any_staff" },

@@ -1,13 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Search, X } from "lucide-react";
+import { Bell, Search, X } from "lucide-react";
 import { api, isConsumerSession } from "@/lib/api/client";
-import { PageHeader, SurfaceCard, fieldClass } from "@/components/app/ui";
+import { fieldClass, PageHeader, SurfaceCard } from "@/components/app/ui";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { notifyNotificationsChanged } from "@/lib/hooks/useUnreadNotifications";
+import {
+  BuyerBackLink,
+  BuyerCard,
+  BuyerEmptyPanel,
+  BuyerHero,
+} from "@/components/buyer/BuyerLayout";
 
 type Note = {
   id: string;
@@ -80,21 +86,89 @@ export default function NotificationsPage() {
     }
   }
 
+  if (buyer) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-6">
+        <BuyerBackLink href="/app/account">{t("nav.account")}</BuyerBackLink>
+        <BuyerHero
+          eyebrow={t("marketplace.eyebrow")}
+          title={t("pages.notificationsTitle")}
+          description={t("pages.buyerNotificationsDesc")}
+          infoKey="page.buyer.notifications"
+          action={
+            unread > 0
+              ? {
+                  label: busy ? t("common.loading") : t("notifications.markAllRead"),
+                  onClick: () => void markAllRead(),
+                }
+              : undefined
+          }
+        />
+
+        <div className="relative max-w-md">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+          <input
+            className={`${fieldClass} pl-9 pr-9`}
+            placeholder={t("common.search")}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          {query ? (
+            <button
+              type="button"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted hover:text-heading"
+              onClick={() => setQuery("")}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          ) : null}
+        </div>
+
+        {filtered.length === 0 ? (
+          <BuyerEmptyPanel
+            icon={<Bell className="h-7 w-7" />}
+            title={t("notifications.empty")}
+            body={t("pages.buyerNotificationsDesc")}
+          />
+        ) : (
+          <div className="space-y-3">
+            {filtered.map((n) => (
+              <BuyerCard key={n.id} className="p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-heading">{n.title || n.type}</p>
+                    {n.body ? <p className="mt-1 text-sm text-body">{n.body}</p> : null}
+                    <p className="mt-2 text-xs text-muted">
+                      {new Date(n.inserted_at).toLocaleString()}
+                      {n.read_at
+                        ? ` · ${t("notifications.read")}`
+                        : ` · ${t("notifications.unread")}`}
+                    </p>
+                  </div>
+                  {!n.read_at ? (
+                    <Button size="sm" variant="secondary" onClick={() => void markRead(n.id)}>
+                      {t("notifications.markRead")}
+                    </Button>
+                  ) : null}
+                </div>
+              </BuyerCard>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow={buyer ? t("marketplace.eyebrow") : undefined}
         title={t("pages.notificationsTitle")}
-        description={
-          buyer
-            ? t("pages.buyerNotificationsDesc")
-            : t("pages.notificationsDesc")
-        }
-        infoKey={buyer ? "page.buyer.notifications" : "page.notifications"}
+        description={t("pages.notificationsDesc")}
+        infoKey="page.notifications"
         action={
           unread > 0
             ? {
-                label: busy ? "Working…" : "Mark all read",
+                label: busy ? t("common.loading") : t("notifications.markAllRead"),
                 onClick: () => void markAllRead(),
               }
             : undefined
@@ -122,7 +196,7 @@ export default function NotificationsPage() {
 
       {filtered.length === 0 ? (
         <SurfaceCard className="p-8 text-center">
-          <p className="text-sm text-body">{t("notifications.empty") || "No notifications yet."}</p>
+          <p className="text-sm text-body">{t("notifications.empty")}</p>
         </SurfaceCard>
       ) : (
         <div className="space-y-3">
@@ -134,12 +208,14 @@ export default function NotificationsPage() {
                   {n.body ? <p className="mt-1 text-sm text-body">{n.body}</p> : null}
                   <p className="mt-2 text-xs text-muted">
                     {new Date(n.inserted_at).toLocaleString()}
-                    {n.read_at ? " · read" : " · unread"}
+                    {n.read_at
+                      ? ` · ${t("notifications.read")}`
+                      : ` · ${t("notifications.unread")}`}
                   </p>
                 </div>
                 {!n.read_at ? (
                   <Button size="sm" variant="secondary" onClick={() => void markRead(n.id)}>
-                    Mark read
+                    {t("notifications.markRead")}
                   </Button>
                 ) : null}
               </div>

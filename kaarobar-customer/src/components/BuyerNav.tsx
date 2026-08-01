@@ -5,6 +5,7 @@ import { pushPath } from "../lib/nav";
 import { colors } from "../lib/api";
 import { useCartOptional } from "../lib/cart";
 import { useBrandPalette } from "../lib/BrandThemeContext";
+import { t } from "../lib/i18n";
 
 /**
  * Compact cart chrome for discover/store screens.
@@ -18,12 +19,12 @@ export default function BuyerNav() {
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.eyebrow}>Marketplace</Text>
+      <Text style={styles.eyebrow}>{t("marketplace.eyebrow")}</Text>
       <Pressable
         style={styles.cartBtn}
         onPress={() => pushPath(navigation, "/app/checkout")}
       >
-        <Text style={styles.cartLabel}>Cart</Text>
+        <Text style={styles.cartLabel}>{t("pos.cart")}</Text>
         {count > 0 ? (
           <View style={[styles.badge, { backgroundColor: brand.brand }]}>
             <Text style={[styles.badgeText, { color: brand.brandForeground }]}>
@@ -46,6 +47,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     backgroundColor: colors.card,
+    marginBottom: 8,
   },
   eyebrow: {
     fontSize: 12,
@@ -59,7 +61,7 @@ const styles = StyleSheet.create({
     gap: 8,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 8,
+    borderRadius: colors.radiusLg,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },

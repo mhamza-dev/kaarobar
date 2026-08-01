@@ -21,6 +21,12 @@ export function replacePath(
   }
 }
 
+function productPathParts(path: string): { storeId: string; productId: string } | null {
+  const m = path.match(/^\/app\/market\/([^/]+)\/product\/([^/]+)/);
+  if (!m) return null;
+  return { storeId: m[1], productId: m[2] };
+}
+
 export function pushPath(
   navigation: NavigationProp<ParamListBase>,
   path: string,
@@ -32,16 +38,66 @@ export function pushPath(
     } as never);
     return;
   }
-  if (path === "/app/sales") {
-    navigation.navigate("Orders" as never);
+  if (path === "/app/products") {
+    navigation.navigate("Products" as never, {
+      screen: "ProductsHome",
+    } as never);
     return;
   }
-  if (path === "/app/customers" || path === "/app/accounting") {
+  if (path === "/app/sales") {
+    navigation.navigate("Orders" as never, {
+      screen: "OrdersHome",
+    } as never);
+    return;
+  }
+  if (path === "/app/account") {
+    navigation.navigate("Account" as never, {
+      screen: "AccountHome",
+    } as never);
+    return;
+  }
+  if (path === "/app/customers") {
     navigation.navigate("Loyalty" as never);
     return;
   }
+  if (path === "/app/accounting") {
+    navigation.navigate("Account" as never, {
+      screen: "Balance",
+    } as never);
+    return;
+  }
   if (path === "/app/notifications") {
-    navigation.navigate("Alerts" as never);
+    navigation.navigate("Account" as never, {
+      screen: "Alerts",
+    } as never);
+    return;
+  }
+
+  const productParts = productPathParts(path);
+  if (productParts) {
+    // Both Discover and Products stacks register ProductDetail; Products is the
+    // canonical entry for the cross-store feed and works from any tab.
+    navigation.navigate("Products" as never, {
+      screen: "ProductDetail",
+      params: { ...productParts, ...params },
+    } as never);
+    return;
+  }
+
+  if (path.startsWith("/app/sales/appointments/")) {
+    const id = path.split("/").pop();
+    navigation.navigate("Orders" as never, {
+      screen: "AppointmentDetail",
+      params: { id, ...params },
+    } as never);
+    return;
+  }
+  if (path.startsWith("/app/sales/") && path !== "/app/sales") {
+    const id = path.split("/").pop();
+    navigation.navigate("Orders" as never, {
+      screen: "OrderDetail",
+      params: { id, ...params },
+    } as never);
     return;
   }
   if (path.startsWith("/app/market/")) {

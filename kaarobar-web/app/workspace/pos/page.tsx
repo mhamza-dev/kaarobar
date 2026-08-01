@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Banknote,
   BookUser,
+  Check,
   CreditCard,
   Minus,
   Plus,
@@ -822,16 +823,21 @@ export default function PosPage() {
                 {t("pos.customerKhata")}
               </p>
               {selectedCustomer ? (
-                <div className="rounded-md border border-border bg-bg-tertiary/60 p-3">
+                <div className="rounded-md border border-brand bg-brand-soft p-3 shadow-sm">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold text-heading">{selectedCustomer.name}</p>
-                      <p className="mt-0.5 text-xs text-body">
-                        {selectedCustomer.phone || "No phone"}
-                        {" · "}
-                        {selectedCustomer.loyalty_points ?? 0} {t("customers.points")}
-                        {selectedCustomer.khata_enabled ? " · Khata" : ""}
-                      </p>
+                    <div className="flex min-w-0 items-start gap-3">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-brand/15 text-sm font-bold text-brand">
+                        {selectedCustomer.name.slice(0, 1).toUpperCase()}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-heading">{selectedCustomer.name}</p>
+                        <p className="mt-0.5 text-xs text-body">
+                          {selectedCustomer.phone || "No phone"}
+                          {" · "}
+                          {selectedCustomer.loyalty_points ?? 0} {t("customers.points")}
+                          {selectedCustomer.khata_enabled ? " · Khata" : ""}
+                        </p>
+                      </div>
                     </div>
                     <button
                       type="button"
@@ -1071,9 +1077,9 @@ export default function PosPage() {
             </div>
           ) : null}
 
-          <div className="max-h-72 space-y-1 overflow-y-auto rounded-md border border-border">
+          <div className="max-h-72 space-y-2 overflow-y-auto pr-0.5">
             {filteredCustomers.length === 0 ? (
-              <p className="px-3 py-6 text-center text-sm text-body">
+              <p className="rounded-md border border-dashed border-border px-3 py-6 text-center text-sm text-body">
                 {t("pos.noCustomersFound")}
               </p>
             ) : (
@@ -1089,25 +1095,42 @@ export default function PosPage() {
                       setCustomerQuery("");
                       setShowNewCustomer(false);
                     }}
-                    className={`flex w-full items-center justify-between gap-3 border-b border-border/60 px-3 py-2.5 text-left last:border-b-0 ${selected
-                      ? "bg-brand-light text-brand"
-                      : "bg-card text-heading hover:bg-bg-tertiary"
-                      }`}
+                    className={`flex w-full items-center gap-3 rounded-md border p-3.5 text-left transition ${
+                      selected
+                        ? "border-brand bg-brand-soft shadow-sm"
+                        : "border-border bg-card hover:border-brand/30"
+                    }`}
                   >
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm font-semibold">{c.name}</span>
-                      <span className="block text-xs text-body">
+                    <span
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-sm font-bold ${
+                        selected
+                          ? "bg-brand/15 text-brand"
+                          : "bg-bg-secondary text-heading"
+                      }`}
+                    >
+                      {c.name.slice(0, 1).toUpperCase()}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold text-heading">
+                        {c.name}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-muted">
                         {c.phone || "—"}
                         {c.khata_enabled ? " · Khata" : ""}
                         {" · "}
                         {c.loyalty_points ?? 0} pts
                       </span>
                     </span>
-                    {selected ? (
-                      <span className="shrink-0 text-xs font-bold uppercase tracking-wide">
-                        {t("pos.attached")}
-                      </span>
-                    ) : null}
+                    <span
+                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border transition ${
+                        selected
+                          ? "border-brand bg-brand text-white"
+                          : "border-border bg-card text-transparent"
+                      }`}
+                      aria-hidden
+                    >
+                      <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+                    </span>
                   </button>
                 );
               })

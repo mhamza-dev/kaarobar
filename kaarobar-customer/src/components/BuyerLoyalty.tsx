@@ -10,7 +10,9 @@ import {
 } from "react-native";
 import { api, colors } from "../lib/api";
 import BuyerNav from "./BuyerNav";
+import { BuyerEmptyPanel, BuyerHero } from "./BuyerLayout";
 import { BuyerLoyaltySkeleton } from "./BuyerSkeletons";
+import { t } from "../lib/i18n";
 
 type LoyaltyRow = {
   business_id: string;
@@ -41,18 +43,25 @@ export default function BuyerLoyalty() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
       <BuyerNav />
-      <Text style={styles.title}>Loyalty</Text>
-      <Text style={styles.hint}>Points and tiers — tap a store for earn/redeem rates.</Text>
+      <BuyerHero
+        eyebrow={t("marketplace.eyebrow")}
+        title={t("pages.buyerLoyaltyTitle")}
+        description={t("pages.buyerLoyaltyDesc")}
+      />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {loading ? (
         <BuyerLoyaltySkeleton />
       ) : rows.length === 0 ? (
-        <Text style={styles.empty}>No loyalty balances yet — order from a store first.</Text>
+        <BuyerEmptyPanel
+          title={t("marketplace.emptyLoyaltyTitle")}
+          body={t("marketplace.emptyLoyaltyBody")}
+        />
       ) : (
         <>
           <View style={styles.kpi}>
-            <Text style={styles.kpiLabel}>Total points</Text>
+            <Text style={styles.kpiLabel}>{t("marketplace.totalPoints")}</Text>
             <Text style={styles.kpiValue}>{total}</Text>
+            <Text style={styles.meta}>{t("marketplace.acrossStores")}</Text>
           </View>
           {rows.map((row) => (
             <Pressable
@@ -61,12 +70,16 @@ export default function BuyerLoyalty() {
               onPress={() => setSelected(row)}
             >
               <View style={styles.row}>
-                <Text style={styles.biz}>{row.business_name || "Store"}</Text>
+                <Text style={styles.biz}>
+                  {row.business_name || t("marketplace.store")}
+                </Text>
                 {row.tier ? <Text style={styles.tier}>{row.tier.name}</Text> : null}
               </View>
               <Text style={styles.points}>{row.points}</Text>
-              <Text style={styles.meta}>points</Text>
-              <Text style={[styles.tap, { color: palette.brand }]}>View details →</Text>
+              <Text style={styles.meta}>{t("marketplace.points")}</Text>
+              <Text style={[styles.tap, { color: palette.brand }]}>
+                {t("marketplace.viewDetails")} →
+              </Text>
             </Pressable>
           ))}
         </>
@@ -82,26 +95,28 @@ export default function BuyerLoyalty() {
           <View style={styles.sheet}>
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>
-                {selected?.business_name || "Store"}
+                {selected?.business_name || t("marketplace.store")}
               </Text>
               <Pressable onPress={() => setSelected(null)} hitSlop={12}>
-                <Text style={{ color: palette.brand, fontWeight: "700" }}>Close</Text>
+                <Text style={{ color: palette.brand, fontWeight: "700" }}>
+                  {t("common.close")}
+                </Text>
               </Pressable>
             </View>
             {selected ? (
               <>
                 <Text style={styles.points}>{selected.points}</Text>
-                <Text style={styles.meta}>points</Text>
+                <Text style={styles.meta}>{t("marketplace.points")}</Text>
                 {selected.tier ? (
                   <Text style={[styles.tier, { alignSelf: "flex-start", marginTop: 8 }]}>
                     {selected.tier.name}
                   </Text>
                 ) : null}
-                <Text style={styles.section}>Earn rate</Text>
+                <Text style={styles.section}>{t("marketplace.earnRate")}</Text>
                 <Text style={styles.hintCard}>
                   {selected.rates.points_per_earn} pt per Rs {selected.rates.earn_per_amount}
                 </Text>
-                <Text style={styles.section}>Redeem value</Text>
+                <Text style={styles.section}>{t("marketplace.redeemValue")}</Text>
                 <Text style={styles.hintCard}>
                   Rs {selected.rates.redeem_value} per point
                 </Text>
@@ -117,13 +132,10 @@ export default function BuyerLoyalty() {
 function createStyles(palette: import("../lib/brandTheme").BrandPalette) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.bgPrimary, padding: 16 },
-    title: { fontSize: 26, fontWeight: "800", color: colors.heading },
-    hint: { color: colors.body, marginTop: 4, marginBottom: 14 },
     error: { color: colors.danger, marginBottom: 8 },
-    empty: { color: colors.body },
     kpi: {
       backgroundColor: colors.card,
-      borderRadius: 16,
+      borderRadius: colors.radiusLg,
       borderWidth: 1,
       borderColor: colors.border,
       padding: 16,
@@ -133,7 +145,7 @@ function createStyles(palette: import("../lib/brandTheme").BrandPalette) {
     kpiValue: { marginTop: 4, fontSize: 32, fontWeight: "800", color: colors.heading },
     card: {
       backgroundColor: colors.card,
-      borderRadius: 16,
+      borderRadius: colors.radiusLg,
       borderWidth: 1,
       borderColor: colors.border,
       padding: 16,

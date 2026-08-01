@@ -1,17 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Wallet } from "lucide-react";
 import { api, getSession } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/modals/Modal";
 import { useToast } from "@/components/ui/Toast";
 import {
   Alert,
-  EmptyState,
   KpiCard,
-  PageHeader,
   StatusBadge,
 } from "@/components/app/ui";
+import {
+  BuyerBackLink,
+  BuyerCard,
+  BuyerEmptyPanel,
+  BuyerHero,
+} from "@/components/buyer/BuyerLayout";
 import { BuyerArSkeleton } from "@/components/buyer/BuyerSkeletons";
 import { useT } from "@/lib/i18n";
 
@@ -79,8 +85,7 @@ export default function BuyerAr() {
         body: JSON.stringify({
           invoice_id: invoice.id,
           amount: invoice.balance_due,
-          method: "card",
-          business_id: invoice.business_id,
+          method: "wallet",
         }),
       });
       toast.success(t("marketplace.paymentRecorded"));
@@ -97,7 +102,8 @@ export default function BuyerAr() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
+      <BuyerBackLink href="/app/account">{t("nav.account")}</BuyerBackLink>
+      <BuyerHero
         eyebrow={t("marketplace.eyebrow")}
         title={t("pages.buyerArTitle")}
         description={t("pages.buyerArDesc")}
@@ -120,9 +126,18 @@ export default function BuyerAr() {
             />
           </div>
           {balances.length === 0 && invoices.length === 0 ? (
-            <EmptyState
+            <BuyerEmptyPanel
+              icon={<Wallet className="h-7 w-7" />}
               title={t("marketplace.emptyArTitle")}
               body={t("marketplace.emptyArBody")}
+              action={
+                <Link
+                  href="/app"
+                  className="inline-flex rounded-md bg-brand px-5 py-2.5 text-sm font-semibold text-brand-foreground"
+                >
+                  {t("marketplace.browseStores")}
+                </Link>
+              }
             />
           ) : (
             <>
@@ -130,44 +145,49 @@ export default function BuyerAr() {
                 <ul className="grid gap-3 sm:grid-cols-2">
                   {balances.map((b) => (
                     <li key={b.business_id}>
-                      <div className="rounded-md border border-border bg-card p-5 shadow-sm">
+                      <BuyerCard className="p-5">
                         <p className="text-sm font-semibold text-heading">
                           {b.business_name || businessName(b.business_id)}
                         </p>
                         <p className="mt-2 text-2xl font-bold text-heading">
                           Rs {b.balance}
                         </p>
-                      </div>
+                      </BuyerCard>
                     </li>
                   ))}
                 </ul>
               ) : null}
               <ul className="space-y-3">
                 {invoices.length === 0 ? (
-                  <EmptyState title={t("marketplace.noOpenInvoices")} />
+                  <BuyerEmptyPanel title={t("marketplace.noOpenInvoices")} />
                 ) : (
                   invoices.map((inv) => (
                     <li key={inv.id}>
                       <button
                         type="button"
                         onClick={() => setSelected(inv)}
-                        className="flex w-full flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-card p-4 text-left shadow-sm transition hover:border-brand/30 hover:shadow-md"
+                        className="w-full text-left"
                       >
-                        <div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="font-semibold text-heading">
-                              {inv.invoice_number}
+                        <BuyerCard
+                          hover
+                          className="flex flex-wrap items-center justify-between gap-3 p-4"
+                        >
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="font-semibold text-heading">
+                                {inv.invoice_number}
+                              </p>
+                              <StatusBadge tone="warning">{inv.status}</StatusBadge>
+                            </div>
+                            <p className="mt-1 text-sm text-body">
+                              {inv.business_name || businessName(inv.business_id)} ·{" "}
+                              {t("marketplace.due")} Rs {inv.balance_due}
                             </p>
-                            <StatusBadge tone="warning">{inv.status}</StatusBadge>
                           </div>
-                          <p className="mt-1 text-sm text-body">
-                            {inv.business_name || businessName(inv.business_id)} ·{" "}
-                            {t("marketplace.due")} Rs {inv.balance_due}
-                          </p>
-                        </div>
-                        <span className="text-sm font-semibold text-brand">
-                          {t("marketplace.viewDetails")} →
-                        </span>
+                          <span className="text-sm font-semibold text-brand">
+                            {t("marketplace.viewDetails")} →
+                          </span>
+                        </BuyerCard>
                       </button>
                     </li>
                   ))

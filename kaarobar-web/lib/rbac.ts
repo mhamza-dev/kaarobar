@@ -139,6 +139,10 @@ export function canAccessPath(
 
   const buyerShared =
     path === "/app" ||
+    path === "/app/products" ||
+    path.startsWith("/app/products/") ||
+    path === "/app/account" ||
+    path.startsWith("/app/account/") ||
     path === "/app/sales" ||
     path.startsWith("/app/sales/") ||
     path === "/app/customers" ||
@@ -156,8 +160,10 @@ export function canAccessPath(
     return buyerShared;
   }
 
-  // Staff: all ROUTE_BUNDLES; store detail & checkout are buyer-only
+  // Staff: all ROUTE_BUNDLES; marketplace storefront & checkout are buyer-only
   if (path.startsWith("/app/market/")) return false;
+  if (path === "/app/products" || path.startsWith("/app/products/")) return false;
+  if (path === "/app/account" || path.startsWith("/app/account/")) return false;
   if (path === "/app/checkout" || path.startsWith("/app/checkout/")) return false;
 
   const exact = ROUTE_BUNDLES[path as keyof typeof ROUTE_BUNDLES];

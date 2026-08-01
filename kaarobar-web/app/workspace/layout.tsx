@@ -14,14 +14,16 @@ import {
   LogOut,
   Megaphone,
   Menu,
+  Package,
   Receipt,
   Settings,
+  ShoppingBag,
   ShoppingCart,
   UserRound,
   Users,
   X,
 } from "lucide-react";
-import { appNav, appNavGroups, routes } from "@/lib/navigation";
+import { appNav, appNavGroups, buyerNav, routes } from "@/lib/navigation";
 import {
   clearSession,
   getSession,
@@ -57,23 +59,75 @@ const icons = {
   profile: UserRound,
 } as const;
 
-function NavbarCartLink() {
+function NavbarCartLink({ sticky = false }: { sticky?: boolean }) {
   const cart = useCartOptional();
   const count = cart?.itemCount ?? 0;
   return (
     <Link
       href="/app/checkout"
-      className="relative shrink-0 rounded-md p-2 text-rail-muted transition hover:bg-rail-hover/80 hover:text-heading"
+      className={`relative shrink-0 rounded-md p-2 transition ${
+        sticky
+          ? "bg-brand text-brand-foreground shadow-brand hover:brightness-110"
+          : "text-rail-muted hover:bg-rail-hover/80 hover:text-heading"
+      }`}
       aria-label="Cart"
     >
       <ShoppingCart className="h-4 w-4" strokeWidth={2} />
       {count > 0 ? (
-        <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-bold text-white">
+        <span
+          className={`absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold ${
+            sticky ? "bg-heading text-white" : "bg-brand text-white"
+          }`}
+        >
           {count > 99 ? "99+" : count}
         </span>
       ) : null}
     </Link>
   );
+}
+
+function buyerNavActive(pathname: string, href: string) {
+  if (href === "/app") {
+    return pathname === "/app" || pathname.startsWith("/app/market/");
+  }
+  if (href === "/app/account") {
+    return (
+      pathname === "/app/account" ||
+      pathname.startsWith("/app/account/") ||
+      pathname === "/app/accounting" ||
+      pathname.startsWith("/app/accounting/") ||
+      pathname === "/app/notifications" ||
+      pathname.startsWith("/app/notifications/")
+    );
+  }
+  if (href === "/app/customers") {
+    return pathname === "/app/customers" || pathname.startsWith("/app/customers/");
+  }
+  if (href === "/app/sales") {
+    return pathname === "/app/sales" || pathname.startsWith("/app/sales/");
+  }
+  if (href === "/app/products") {
+    return pathname === "/app/products" || pathname.startsWith("/app/products/");
+  }
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function buyerPageTitle(pathname: string, t: (key: string) => string) {
+  if (pathname.startsWith("/app/checkout")) return t("pages.checkoutReviewTitle");
+  if (pathname.startsWith("/app/market/") && pathname.includes("/product/")) {
+    return t("pages.productDetailTitle");
+  }
+  if (pathname.startsWith("/app/market/")) return t("pages.catalogTitle");
+  if (pathname.startsWith("/app/sales/appointments/")) {
+    return t("pages.appointmentDetailTitle");
+  }
+  if (pathname.startsWith("/app/sales/") && pathname !== "/app/sales") {
+    return t("marketplace.orderDetailTitle");
+  }
+  if (pathname.startsWith("/app/accounting")) return t("pages.buyerArTitle");
+  if (pathname.startsWith("/app/notifications")) return t("pages.notificationsTitle");
+  const item = buyerNav.find((n) => buyerNavActive(pathname, n.href));
+  return item ? t(item.titleKey) : t("marketplace.eyebrow");
 }
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -99,7 +153,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Staff on buyer-only paths or buyers on staff paths redirect after hydrate
       try {
         const ready = await hydrateSessionContext(current);
         if (cancelled) return;
@@ -158,13 +211,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     [session, buyer]
   );
 
-  const buyerNav = [
-    { href: "/app", title: "Discover", icon: "pos" as const },
-    { href: "/app/sales", title: "Orders", icon: "sales" as const },
-    { href: "/app/customers", title: "Loyalty", icon: "customers" as const },
-    { href: "/app/accounting", title: "Balance", icon: "accounting" as const },
-  ];
-
   const grouped = useMemo(
     () =>
       appNavGroups
@@ -175,15 +221,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         .filter((g) => g.items.length > 0),
     [visibleNav]
   );
-
-  const buyerTitle =
-    pathname.startsWith("/app/checkout")
-      ? "Checkout"
-      : buyerNav.find(
-          (item) =>
-            pathname === item.href ||
-            (item.href !== "/app" && pathname.startsWith(item.href))
-        )?.title ?? "Marketplace";
 
   const titleKey =
     visibleNav.find(
@@ -232,44 +269,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     .slice(0, 2)
     .toUpperCase();
 
-  function NavBody({ compact = false }: { compact?: boolean }) {
-    if (buyer) {
-      return (
-        <nav className={`flex flex-1 flex-col gap-5 ${compact ? "px-3 py-4" : "px-3 py-5"}`}>
-          <div>
-            <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.14em] text-rail-muted">
-              Marketplace
-            </p>
-            <div className="space-y-1">
-              {buyerNav.map((item) => {
-                const active =
-                  pathname === item.href ||
-                  (item.href !== "/app" && pathname.startsWith(item.href));
-                const Icon = icons[item.icon];
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`nav-pill flex items-center gap-3 px-3 py-2.5 text-sm font-medium ${
-                      active
-                        ? "nav-pill-active animate-nav-in"
-                        : "text-rail-foreground hover:bg-rail-hover/80"
-                    }`}
-                  >
-                    <Icon
-                      className={`h-4 w-4 shrink-0 ${active ? "text-brand-foreground" : "text-rail-muted"}`}
-                      strokeWidth={2}
-                    />
-                    {item.title}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        </nav>
-      );
-    }
-
+  function StaffNavBody({ compact = false }: { compact?: boolean }) {
     return (
       <nav className={`flex flex-1 flex-col gap-5 ${compact ? "px-3 py-4" : "px-3 py-5"}`}>
         {grouped.map(({ groupKey, items }) => (
@@ -308,9 +308,165 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // —— Buyer marketplace shell (top nav, no staff glass sidebar) ——————————
+  if (buyer) {
+    return (
+      <CartProvider>
+        <StaffBrandProvider businessId={null}>
+          <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-bg-primary text-heading">
+            <header className="sticky top-0 z-30 border-b border-border bg-card/95 shadow-sm backdrop-blur-md">
+              <div className="mx-auto flex min-h-[4.25rem] max-w-7xl flex-wrap items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+                <div className="flex min-w-0 items-center gap-3">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="lg:hidden text-muted"
+                    onClick={() => setMenuOpen((v) => !v)}
+                    aria-label="Menu"
+                  >
+                    {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                  </Button>
+                  <Link href="/app" className="flex min-w-0 items-center gap-2.5">
+                    <KaarobarLogo size={36} className="shrink-0 rounded-md shadow-brand" />
+                    <div className="min-w-0 leading-tight">
+                      <p className="truncate text-sm font-bold tracking-tight text-heading">
+                        {t("common.appName")}
+                      </p>
+                      <p className="hidden text-[10px] font-bold uppercase tracking-[0.14em] text-muted sm:block">
+                        {t("marketplace.eyebrow")}
+                      </p>
+                    </div>
+                  </Link>
+                </div>
+
+                <nav className="hidden items-center gap-1 lg:flex">
+                  {buyerNav.map((item) => {
+                    const active = buyerNavActive(pathname, item.href);
+                    const Icon =
+                      item.icon === "inventory"
+                        ? Package
+                        : item.icon === "pos"
+                          ? ShoppingBag
+                          : icons[item.icon];
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold transition ${
+                          active
+                            ? "bg-brand text-brand-foreground shadow-sm"
+                            : "text-body hover:bg-bg-secondary hover:text-heading"
+                        }`}
+                      >
+                        <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
+                        {t(item.titleKey)}
+                      </Link>
+                    );
+                  })}
+                </nav>
+
+                <div className="flex items-center gap-2">
+                  <NavbarCartLink sticky />
+                  <Link
+                    href={routes.notifications}
+                    className="relative shrink-0 rounded-md p-2 text-muted transition hover:bg-bg-secondary hover:text-heading"
+                    aria-label={t("nav.notifications")}
+                  >
+                    <Bell className="h-4 w-4" strokeWidth={2} />
+                    {unread > 0 ? (
+                      <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-white">
+                        {unread > 99 ? "99+" : unread}
+                      </span>
+                    ) : null}
+                  </Link>
+                  <Link
+                    href="/app/account"
+                    className="flex shrink-0 items-center gap-2 rounded-md border border-border bg-card py-1 pl-1 pr-2.5 transition hover:border-brand/30"
+                  >
+                    <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-md bg-brand text-xs font-bold text-white">
+                      {initials}
+                    </span>
+                    <span className="hidden max-w-[120px] truncate text-sm font-semibold text-heading sm:block">
+                      {session.user.name}
+                    </span>
+                  </Link>
+                </div>
+              </div>
+
+              {menuOpen ? (
+                <div className="border-t border-border lg:hidden">
+                  <nav className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3 sm:px-6">
+                    {buyerNav.map((item) => {
+                      const active = buyerNavActive(pathname, item.href);
+                      const Icon =
+                        item.icon === "inventory"
+                          ? Package
+                          : item.icon === "pos"
+                            ? ShoppingBag
+                            : icons[item.icon];
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-semibold ${
+                            active
+                              ? "bg-brand text-brand-foreground"
+                              : "text-body hover:bg-bg-secondary"
+                          }`}
+                        >
+                          <Icon className="h-4 w-4" />
+                          {t(item.titleKey)}
+                        </Link>
+                      );
+                    })}
+                    <div className="mt-2 border-t border-border pt-3">
+                      <LanguageSwitcher />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        clearSession();
+                        router.push(routes.login);
+                      }}
+                      className="mt-1 flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-muted hover:bg-bg-secondary hover:text-heading"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      {t("common.signOut")}
+                    </button>
+                  </nav>
+                </div>
+              ) : null}
+
+              <div className="border-t border-border/80 bg-bg-secondary/60">
+                <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2 sm:px-6 lg:px-8">
+                  <p className="truncate text-sm font-bold text-heading">
+                    {buyerPageTitle(pathname, t)}
+                  </p>
+                  <div className="hidden lg:block">
+                    <LanguageSwitcher />
+                  </div>
+                </div>
+              </div>
+            </header>
+
+            <main className="relative z-10 min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
+              <div
+                key={`${tenantKey}:${pathname}`}
+                className="mx-auto w-full max-w-7xl animate-rise"
+              >
+                {children}
+              </div>
+            </main>
+          </div>
+        </StaffBrandProvider>
+      </CartProvider>
+    );
+  }
+
+  // —— Staff workspace shell ——————————————————————————————————————————————
   return (
     <CartProvider>
-    <StaffBrandProvider businessId={buyer ? null : session.business_id}>
+    <StaffBrandProvider businessId={session.business_id}>
     <div className="app-atmosphere flex h-full min-h-0 flex-1 flex-col overflow-hidden text-heading lg:flex-row">
       <aside className="glass-nav relative z-30 hidden h-full min-h-0 w-[248px] shrink-0 flex-col overflow-hidden border-r lg:flex">
         <div className="flex shrink-0 items-center gap-3 border-b border-glass-border/80 px-5 py-4">
@@ -323,7 +479,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <div className="relative z-10 min-h-0 flex-1 overflow-y-auto">
-          <NavBody />
+          <StaffNavBody />
         </div>
         <div className="relative z-10 mt-auto shrink-0 space-y-3 border-t border-glass-border/80 p-4">
           <LanguageSwitcher />
@@ -355,17 +511,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <KaarobarLogo size={36} className="shrink-0 rounded-md shadow-brand lg:hidden" />
             <div className="min-w-0 border-l border-glass-border/80 pl-3 lg:border-l-0 lg:pl-0">
               <p className="mb-0.5 hidden text-[10px] font-bold uppercase tracking-[0.14em] text-rail-muted lg:block">
-                {buyer ? "Marketplace" : t("common.workspace")}
+                {t("common.workspace")}
               </p>
               <h1 className="truncate text-sm font-bold tracking-tight text-heading">
-                {buyer ? buyerTitle : t(titleKey)}
+                {t(titleKey)}
               </h1>
             </div>
           </div>
 
           <div className="flex min-w-0 flex-1 items-center justify-end gap-2 sm:gap-3">
-            {!buyer ? <TenantSwitcher /> : null}
-            {buyer ? <NavbarCartLink /> : null}
+            <TenantSwitcher />
             <Link
               href={routes.notifications}
               className="relative shrink-0 rounded-md p-2 text-rail-muted transition hover:bg-rail-hover/80 hover:text-heading"
@@ -378,53 +533,37 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </span>
               ) : null}
             </Link>
-            {!buyer ? (
-              <Link
-                href={routes.profile}
-                className="glass-panel flex shrink-0 items-center gap-2.5 border py-1 pl-1 pr-2.5 transition hover:bg-rail-hover/60 sm:pr-3"
-              >
-                <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-brand text-xs font-bold text-white shadow-brand">
-                  {session.user.profile_pic_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={session.user.profile_pic_url}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    initials
-                  )}
-                </span>
-                <div className="hidden max-w-[148px] leading-tight lg:block">
-                  <p className="truncate text-sm font-semibold text-heading">
-                    {session.user.name}
-                  </p>
-                  <p className="truncate text-[11px] text-rail-muted">
-                    {session.user.email}
-                  </p>
-                </div>
-              </Link>
-            ) : (
-              <div className="glass-panel flex shrink-0 items-center gap-2.5 border py-1 pl-1 pr-2.5">
-                <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-brand text-xs font-bold text-white shadow-brand">
-                  {initials}
-                </span>
-                <div className="hidden max-w-[148px] leading-tight lg:block">
-                  <p className="truncate text-sm font-semibold text-heading">
-                    {session.user.name}
-                  </p>
-                  <p className="truncate text-[11px] text-rail-muted">
-                    {session.user.email}
-                  </p>
-                </div>
+            <Link
+              href={routes.profile}
+              className="glass-panel flex shrink-0 items-center gap-2.5 border py-1 pl-1 pr-2.5 transition hover:bg-rail-hover/60 sm:pr-3"
+            >
+              <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-brand text-xs font-bold text-white shadow-brand">
+                {session.user.profile_pic_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={session.user.profile_pic_url}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  initials
+                )}
+              </span>
+              <div className="hidden max-w-[148px] leading-tight lg:block">
+                <p className="truncate text-sm font-semibold text-heading">
+                  {session.user.name}
+                </p>
+                <p className="truncate text-[11px] text-rail-muted">
+                  {session.user.email}
+                </p>
               </div>
-            )}
+            </Link>
           </div>
         </header>
 
         {menuOpen ? (
           <div className="glass-nav max-h-[min(24rem,50vh)] shrink-0 overflow-y-auto border-b lg:hidden">
-            <NavBody compact />
+            <StaffNavBody compact />
             <div className="border-t border-glass-border/80 px-4 py-3">
               <LanguageSwitcher />
             </div>

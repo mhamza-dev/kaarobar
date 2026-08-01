@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Image,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -84,9 +82,6 @@ export default function MarketStoreScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<ListingFilterState>(emptyListingFilters());
-  const [detail, setDetail] = useState<Product | null>(null);
-  const [qty, setQty] = useState(1);
-  const [adding, setAdding] = useState(false);
   const [mode, setMode] = useState<Mode>("shop");
 
   useEffect(() => {
@@ -126,10 +121,6 @@ export default function MarketStoreScreen() {
     })();
   }, [id, navigation]);
 
-  useEffect(() => {
-    setQty(1);
-  }, [detail?.id]);
-
   const services = useMemo(() => products.filter(isServiceProduct), [products]);
   const goods = useMemo(() => products.filter((p) => !isServiceProduct(p)), [products]);
   const canBook = !!business?.appointments_enabled && services.length > 0;
@@ -159,36 +150,6 @@ export default function MarketStoreScreen() {
 
   const filtersActive =
     filters.search.trim() !== "" || filters.categories.length > 0;
-
-  function handleAdd(p: Product, quantity = 1) {
-    if (!business) return;
-    setAdding(true);
-    try {
-      addItem(
-        {
-          id: business.id,
-          name: business.name,
-          branding: {
-            logoUrl: business.logo_url,
-            primaryColor: business.primary_color,
-            tagline: business.tagline,
-          },
-        },
-        {
-          id: p.id,
-          name: p.name,
-          price: Number(p.price || 0),
-          imageUrl: p.image_url,
-          category: productCategory(p),
-        },
-        quantity
-      );
-      toast.success(t("marketplace.addedToCart", { name: p.name }));
-      setDetail(null);
-    } finally {
-      setAdding(false);
-    }
-  }
 
   function handleQuickAdd(p: Product) {
     if (!business) return;
@@ -224,7 +185,6 @@ export default function MarketStoreScreen() {
   const accent = business?.primary_color || undefined;
   const storeCartCount = business ? storeCount(business.id) : 0;
   const palette = brandPaletteFromPrimary(accent);
-  const detailTotal = detail ? Number(detail.price || 0) * qty : 0;
 
   if (loading) {
     return (
@@ -440,7 +400,12 @@ export default function MarketStoreScreen() {
             renderItem={({ item }) => (
               <Pressable
                 style={styles.productCard}
-                onPress={() => setDetail(item)}
+                onPress={() =>
+                  navigation.navigate("ProductDetail" as never, {
+                    storeId: id,
+                    productId: item.id,
+                  } as never)
+                }
               >
                 <View style={styles.productImgWrap}>
                   {item.image_url ? (
@@ -478,94 +443,6 @@ export default function MarketStoreScreen() {
               </Pressable>
             )}
           />
-
-          <Modal
-            visible={!!detail}
-            animationType="slide"
-            transparent
-            onRequestClose={() => setDetail(null)}
-          >
-            <View style={styles.modalBackdrop}>
-              <Pressable style={StyleSheet.absoluteFill} onPress={() => setDetail(null)} />
-              <View style={styles.sheet}>
-                <View style={styles.sheetHandle} />
-                <View style={styles.sheetHeader}>
-                  <Text style={styles.sheetTitle} numberOfLines={2}>
-                    {detail?.name}
-                  </Text>
-                  <Pressable onPress={() => setDetail(null)} hitSlop={12}>
-                    <Text style={{ color: palette.brand, fontWeight: "700" }}>
-                      {t("marketplace.close")}
-                    </Text>
-                  </Pressable>
-                </View>
-                <ScrollView showsVerticalScrollIndicator={false}>
-                  {detail?.image_url ? (
-                    <Image source={{ uri: detail.image_url }} style={styles.detailImg} />
-                  ) : (
-                    <View style={[styles.detailImg, styles.noImg]}>
-                      <Text style={styles.noImgText}>{t("marketplace.noImage")}</Text>
-                    </View>
-                  )}
-                  <Text style={styles.cat}>{detail ? productCategory(detail) : ""}</Text>
-                  <Text style={[styles.productPrice, { fontSize: 22, marginTop: 6 }]}>
-                    Rs {formatPrice(detail?.price)}
-                  </Text>
-                  {detail?.description ? (
-                    <Text style={styles.detailDesc}>{detail.description}</Text>
-                  ) : (
-                    <Text style={styles.productDesc}>{t("marketplace.noDescription")}</Text>
-                  )}
-                  {detail?.sku ? (
-                    <Text style={styles.productDesc}>SKU · {detail.sku}</Text>
-                  ) : null}
-
-                  <View style={styles.qtyBlock}>
-                    <Text style={styles.qtyLabel}>{t("marketplace.quantity")}</Text>
-                    <View style={styles.stepper}>
-                      <Pressable
-                        style={[styles.stepBtn, qty <= 1 && styles.stepBtnDisabled]}
-                        disabled={qty <= 1}
-                        onPress={() => setQty((q) => Math.max(1, q - 1))}
-                      >
-                        <Text style={styles.stepBtnText}>−</Text>
-                      </Pressable>
-                      <Text style={styles.qtyValue}>{qty}</Text>
-                      <Pressable
-                        style={styles.stepBtn}
-                        onPress={() => setQty((q) => Math.min(99, q + 1))}
-                      >
-                        <Text style={styles.stepBtnText}>+</Text>
-                      </Pressable>
-                    </View>
-                    <View style={{ marginStart: "auto" }}>
-                      <Text style={styles.qtyLabel}>{t("marketplace.lineTotal")}</Text>
-                      <Text style={styles.productPrice}>Rs {formatPrice(detailTotal)}</Text>
-                    </View>
-                  </View>
-                </ScrollView>
-
-                <Pressable
-                  style={[
-                    styles.addBtn,
-                    { backgroundColor: palette.brand, opacity: adding ? 0.6 : 1 },
-                  ]}
-                  disabled={adding || !detail}
-                  onPress={() => detail && handleAdd(detail, qty)}
-                >
-                  {adding ? (
-                    <ActivityIndicator color={palette.brandForeground} />
-                  ) : (
-                    <Text style={[styles.addText, { color: palette.brandForeground }]}>
-                      {qty > 1
-                        ? t("marketplace.addQtyToCart", { count: qty })
-                        : t("marketplace.addToCart")}
-                    </Text>
-                  )}
-                </Pressable>
-              </View>
-            </View>
-          </Modal>
         </>
       ) : (
         <View style={styles.emptyWrap}>

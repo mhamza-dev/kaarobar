@@ -4,13 +4,18 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Store } from "lucide-react";
 import { api } from "@/lib/api/client";
-import { Alert, EmptyState, PageHeader } from "@/components/app/ui";
+import { Alert } from "@/components/app/ui";
 import ListingFilters, {
   applyListingFilters,
   emptyListingFilters,
   type ListingFilterState,
 } from "@/components/app/ListingFilters";
 import { BrandThemeScope } from "@/components/app/BrandTheme";
+import {
+  BuyerCard,
+  BuyerEmptyPanel,
+  BuyerHero,
+} from "@/components/buyer/BuyerLayout";
 import { BuyerDiscoverSkeleton } from "@/components/buyer/BuyerSkeletons";
 import { useT } from "@/lib/i18n";
 
@@ -73,32 +78,28 @@ export default function BuyerMarketDiscover() {
 
   return (
     <div className="space-y-8">
-      <div className="relative overflow-hidden rounded-md border border-border bg-card">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-90"
-          style={{
-            background:
-              "radial-gradient(ellipse 80% 60% at 10% 0%, color-mix(in srgb, var(--brand) 18%, transparent), transparent 55%), radial-gradient(ellipse 50% 40% at 90% 20%, color-mix(in srgb, var(--brand) 10%, transparent), transparent 50%)",
-          }}
-        />
-        <div className="relative px-6 py-8 sm:px-8 sm:py-10">
-          <PageHeader
-            eyebrow={t("marketplace.eyebrow")}
-            title={t("pages.discoverTitle")}
-            description={t("pages.discoverDesc")}
-            infoKey="page.market.discover"
-          />
-          <p className="mt-3 max-w-xl text-sm text-body">
-            {t("marketplace.discoverHero")}
-          </p>
+      <BuyerHero
+        eyebrow={t("marketplace.eyebrow")}
+        title={t("pages.discoverTitle")}
+        description={t("pages.discoverDesc")}
+        infoKey="page.market.discover"
+      >
+        <p className="mt-3 max-w-xl text-sm text-body">{t("marketplace.discoverHero")}</p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Link
+            href="/app/products"
+            className="inline-flex rounded-md bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground shadow-sm transition hover:brightness-110"
+          >
+            {t("marketplace.browseProducts")}
+          </Link>
         </div>
-      </div>
+      </BuyerHero>
 
       <ListingFilters
         value={filters}
         onChange={setFilters}
         categoryOptions={industryOptions}
-        categoryLabel="Industry"
+        categoryLabel={t("marketplace.filterIndustry")}
         showPrice={false}
         searchPlaceholder={t("marketplace.searchStores")}
       />
@@ -108,7 +109,8 @@ export default function BuyerMarketDiscover() {
       {loading ? (
         <BuyerDiscoverSkeleton />
       ) : filtered.length === 0 ? (
-        <EmptyState
+        <BuyerEmptyPanel
+          icon={<Store className="h-7 w-7" />}
           title={
             businesses.length === 0
               ? t("marketplace.emptyStoresTitle")
@@ -131,13 +133,11 @@ export default function BuyerMarketDiscover() {
                     href={`/app/market/${b.marketplace_slug || b.id}`}
                     className="group block h-full"
                   >
-                    <article
-                      className="flex h-full flex-col overflow-hidden rounded-md border border-border bg-card shadow-sm transition duration-200 group-hover:-translate-y-1 group-hover:shadow-lg"
-                      style={
-                        accent
-                          ? { borderTopWidth: 4, borderTopColor: accent }
-                          : undefined
-                      }
+                    <BuyerCard
+                      as="article"
+                      hover
+                      accent={accent}
+                      className="flex h-full flex-col"
                     >
                       <div
                         className="relative flex min-h-[7.5rem] items-end p-5"
@@ -205,7 +205,7 @@ export default function BuyerMarketDiscover() {
                           →
                         </span>
                       </div>
-                    </article>
+                    </BuyerCard>
                   </Link>
                 </BrandThemeScope>
               </li>

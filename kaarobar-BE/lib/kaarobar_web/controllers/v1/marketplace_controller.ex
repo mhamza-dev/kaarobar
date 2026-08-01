@@ -40,4 +40,17 @@ defmodule KaarobarWeb.V1.MarketplaceController do
         conn |> put_status(:unprocessable_entity) |> json(%{error: "online_branch_required"})
     end
   end
+
+  def products(conn, params) do
+    result =
+      Marketplace.list_products(
+        q: params["q"],
+        category: params["category"],
+        industry: params["industry"],
+        limit: params["limit"],
+        cursor: params["cursor"]
+      )
+
+    json(conn, result)
+  end
 end

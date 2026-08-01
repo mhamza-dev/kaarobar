@@ -7,14 +7,18 @@ import { api } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
 import {
   Alert,
-  EmptyState,
-  PageHeader,
   StatusBadge,
   TabBar,
 } from "@/components/app/ui";
+import {
+  BuyerCard,
+  BuyerEmptyPanel,
+  BuyerHero,
+} from "@/components/buyer/BuyerLayout";
 import { BuyerOrderListSkeleton } from "@/components/buyer/BuyerSkeletons";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
+import { detailRoutes } from "@/lib/navigation";
 
 type Order = {
   id: string;
@@ -71,7 +75,9 @@ export default function BuyerOrders() {
     setLoading(true);
     void Promise.all([
       api<{ data: Order[] }>("/portal/orders"),
-      api<{ data: Appointment[] }>("/portal/appointments").catch(() => ({ data: [] as Appointment[] })),
+      api<{ data: Appointment[] }>("/portal/appointments").catch(() => ({
+        data: [] as Appointment[],
+      })),
     ])
       .then(([orderRes, apptRes]) => {
         setOrders(orderRes.data || []);
@@ -121,7 +127,7 @@ export default function BuyerOrders() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
+      <BuyerHero
         eyebrow={t("marketplace.eyebrow")}
         title={t("pages.buyerOrdersTitle")}
         description={t("pages.buyerOrdersDesc")}
@@ -154,70 +160,68 @@ export default function BuyerOrders() {
         <BuyerOrderListSkeleton />
       ) : tab === "orders" ? (
         orders.length === 0 ? (
-          <div className="overflow-hidden rounded-md border border-dashed border-brand/30 bg-gradient-to-b from-brand-light/60 to-card px-6 py-10 text-center">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-md bg-brand text-brand-foreground shadow-brand">
-              <ShoppingBag className="h-7 w-7" />
-            </div>
-            <EmptyState
-              title={t("marketplace.emptyOrdersTitle")}
-              body={t("marketplace.emptyOrdersBody")}
-            />
-            <Link
-              href="/app"
-              className="mt-2 inline-flex rounded-md bg-brand px-5 py-2.5 text-sm font-semibold text-brand-foreground shadow-sm transition hover:bg-brand-hover"
-            >
-              {t("marketplace.browseStores")}
-            </Link>
-          </div>
+          <BuyerEmptyPanel
+            icon={<ShoppingBag className="h-7 w-7" />}
+            title={t("marketplace.emptyOrdersTitle")}
+            body={t("marketplace.emptyOrdersBody")}
+            action={
+              <Link
+                href="/app"
+                className="inline-flex rounded-md bg-brand px-5 py-2.5 text-sm font-semibold text-brand-foreground shadow-sm transition hover:bg-brand-hover"
+              >
+                {t("marketplace.browseStores")}
+              </Link>
+            }
+          />
         ) : (
           <ul className="space-y-3">
             {orders.map((o) => (
               <li key={o.id}>
-                <Link
-                  href={`/app/sales/${o.id}`}
-                  className="group flex items-center gap-4 rounded-md border border-border bg-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-md"
-                >
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-brand-soft text-sm font-bold text-brand">
-                    {(o.business_name || "O").slice(0, 1).toUpperCase()}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold text-heading">{o.invoice_number}</p>
-                      <StatusBadge tone={statusTone(o.status)}>{o.status}</StatusBadge>
-                      {o.source === "online" ? (
-                        <StatusBadge tone="info">{t("marketplace.onlineBadge")}</StatusBadge>
-                      ) : null}
+                <Link href={detailRoutes.sale(o.id)} className="group block">
+                  <BuyerCard
+                    hover
+                    className="flex items-center gap-4 p-4"
+                  >
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-brand-soft text-sm font-bold text-brand">
+                      {(o.business_name || "O").slice(0, 1).toUpperCase()}
                     </div>
-                    <p className="mt-1 truncate text-sm text-body">
-                      {o.business_name ? `${o.business_name} · ` : ""}
-                      {o.inserted_at ? new Date(o.inserted_at).toLocaleString() : ""}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-semibold text-heading">{o.invoice_number}</p>
+                        <StatusBadge tone={statusTone(o.status)}>{o.status}</StatusBadge>
+                        {o.source === "online" ? (
+                          <StatusBadge tone="info">{t("marketplace.onlineBadge")}</StatusBadge>
+                        ) : null}
+                      </div>
+                      <p className="mt-1 truncate text-sm text-body">
+                        {o.business_name ? `${o.business_name} · ` : ""}
+                        {o.inserted_at ? new Date(o.inserted_at).toLocaleString() : ""}
+                      </p>
+                    </div>
+                    <p className="shrink-0 text-lg font-bold text-heading">
+                      Rs {o.total_amount}
                     </p>
-                  </div>
-                  <p className="shrink-0 text-lg font-bold text-heading">
-                    Rs {o.total_amount}
-                  </p>
-                  <ChevronRight className="h-5 w-5 shrink-0 text-muted transition group-hover:text-brand" />
+                    <ChevronRight className="h-5 w-5 shrink-0 text-muted transition group-hover:text-brand" />
+                  </BuyerCard>
                 </Link>
               </li>
             ))}
           </ul>
         )
       ) : upcoming.length === 0 && past.length === 0 ? (
-        <div className="overflow-hidden rounded-md border border-dashed border-brand/30 bg-gradient-to-b from-brand-light/60 to-card px-6 py-10 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-md bg-brand text-brand-foreground shadow-brand">
-            <Calendar className="h-7 w-7" />
-          </div>
-          <EmptyState
-            title={t("appointments.emptyTitle")}
-            body={t("appointments.emptyBody")}
-          />
-          <Link
-            href="/app"
-            className="mt-2 inline-flex rounded-md bg-brand px-5 py-2.5 text-sm font-semibold text-brand-foreground shadow-sm transition hover:bg-brand-hover"
-          >
-            {t("marketplace.browseStores")}
-          </Link>
-        </div>
+        <BuyerEmptyPanel
+          icon={<Calendar className="h-7 w-7" />}
+          title={t("appointments.emptyTitle")}
+          body={t("appointments.emptyBody")}
+          action={
+            <Link
+              href="/app"
+              className="inline-flex rounded-md bg-brand px-5 py-2.5 text-sm font-semibold text-brand-foreground shadow-sm transition hover:bg-brand-hover"
+            >
+              {t("marketplace.browseStores")}
+            </Link>
+          }
+        />
       ) : (
         <div className="space-y-6">
           {upcoming.length > 0 ? (
@@ -227,37 +231,42 @@ export default function BuyerOrders() {
               </h2>
               <ul className="space-y-3">
                 {upcoming.map((a) => (
-                  <li
-                    key={a.id}
-                    className="flex flex-wrap items-center gap-4 rounded-md border border-border bg-card p-4 shadow-sm"
-                  >
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-brand-soft text-sm font-bold text-brand">
-                      {(a.business_name || "A").slice(0, 1).toUpperCase()}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-semibold text-heading">
-                          {a.product_name || t("appointments.service")}
-                        </p>
-                        <StatusBadge tone={statusTone(a.status)}>{a.status}</StatusBadge>
-                      </div>
-                      <p className="mt-1 text-sm text-body">
-                        {a.business_name ? `${a.business_name} · ` : ""}
-                        {a.starts_at ? new Date(a.starts_at).toLocaleString() : ""}
-                        {a.staff_name ? ` · ${a.staff_name}` : ""}
-                      </p>
-                    </div>
-                    {a.status === "Booked" ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        loading={cancellingId === a.id}
-                        onClick={() => void cancelAppointment(a.id)}
-                        className="rounded-md"
+                  <li key={a.id}>
+                    <BuyerCard className="flex flex-wrap items-center gap-4 p-4">
+                      <Link
+                        href={detailRoutes.appointment(a.id)}
+                        className="flex min-w-0 flex-1 items-center gap-4"
                       >
-                        {t("appointments.cancel")}
-                      </Button>
-                    ) : null}
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-brand-soft text-sm font-bold text-brand">
+                          {(a.business_name || "A").slice(0, 1).toUpperCase()}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-semibold text-heading">
+                              {a.product_name || t("appointments.service")}
+                            </p>
+                            <StatusBadge tone={statusTone(a.status)}>{a.status}</StatusBadge>
+                          </div>
+                          <p className="mt-1 text-sm text-body">
+                            {a.business_name ? `${a.business_name} · ` : ""}
+                            {a.starts_at ? new Date(a.starts_at).toLocaleString() : ""}
+                            {a.staff_name ? ` · ${a.staff_name}` : ""}
+                          </p>
+                        </div>
+                        <ChevronRight className="h-5 w-5 shrink-0 text-muted" />
+                      </Link>
+                      {a.status === "Booked" ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          loading={cancellingId === a.id}
+                          onClick={() => void cancelAppointment(a.id)}
+                          className="rounded-md"
+                        >
+                          {t("appointments.cancel")}
+                        </Button>
+                      ) : null}
+                    </BuyerCard>
                   </li>
                 ))}
               </ul>
@@ -270,22 +279,24 @@ export default function BuyerOrders() {
               </h2>
               <ul className="space-y-3">
                 {past.map((a) => (
-                  <li
-                    key={a.id}
-                    className="flex items-center gap-4 rounded-md border border-border bg-card/70 p-4"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-semibold text-heading">
-                          {a.product_name || t("appointments.service")}
-                        </p>
-                        <StatusBadge tone={statusTone(a.status)}>{a.status}</StatusBadge>
-                      </div>
-                      <p className="mt-1 text-sm text-muted">
-                        {a.business_name ? `${a.business_name} · ` : ""}
-                        {a.starts_at ? new Date(a.starts_at).toLocaleString() : ""}
-                      </p>
-                    </div>
+                  <li key={a.id}>
+                    <Link href={detailRoutes.appointment(a.id)} className="block">
+                      <BuyerCard hover className="flex items-center gap-4 p-4 opacity-90">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-semibold text-heading">
+                              {a.product_name || t("appointments.service")}
+                            </p>
+                            <StatusBadge tone={statusTone(a.status)}>{a.status}</StatusBadge>
+                          </div>
+                          <p className="mt-1 text-sm text-muted">
+                            {a.business_name ? `${a.business_name} · ` : ""}
+                            {a.starts_at ? new Date(a.starts_at).toLocaleString() : ""}
+                          </p>
+                        </div>
+                        <ChevronRight className="h-5 w-5 shrink-0 text-muted" />
+                      </BuyerCard>
+                    </Link>
                   </li>
                 ))}
               </ul>

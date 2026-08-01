@@ -3,11 +3,15 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Minus, Plus, Trash2 } from "lucide-react";
+import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import Button from "@/components/ui/Button";
-import { EmptyState, PageHeader, SurfaceCard } from "@/components/app/ui";
 import { BrandThemeScope } from "@/components/app/BrandTheme";
+import {
+  BuyerCard,
+  BuyerEmptyPanel,
+  BuyerHero,
+} from "@/components/buyer/BuyerLayout";
 import { useT } from "@/lib/i18n";
 
 function money(n: number) {
@@ -27,9 +31,17 @@ export default function CheckoutReviewPage() {
 
   if (stores.length === 0) {
     return (
-      <EmptyState
+      <BuyerEmptyPanel
+        icon={<ShoppingCart className="h-7 w-7" />}
         title={t("marketplace.emptyCartTitle")}
         body={t("marketplace.emptyCartBody")}
+        action={
+          <Link href="/app">
+            <Button variant="secondary" className="rounded-md">
+              {t("marketplace.browseStores")}
+            </Button>
+          </Link>
+        }
       />
     );
   }
@@ -37,11 +49,11 @@ export default function CheckoutReviewPage() {
   const storeLabel =
     stores.length === 1
       ? stores[0].businessName
-      : `${stores.length} stores`;
+      : t("marketplace.storesCount", { count: stores.length });
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <PageHeader
+      <BuyerHero
         eyebrow={t("marketplace.checkoutEyebrow")}
         title={t("pages.checkoutReviewTitle")}
         description={`${storeLabel} · ${itemCount} · ${t("pages.checkoutReviewDesc")}`}
@@ -53,10 +65,7 @@ export default function CheckoutReviewPage() {
         const storeTotal = store.lines.reduce((s, l) => s + l.quantity * l.price, 0);
         return (
           <BrandThemeScope key={store.businessId} primaryColor={accent}>
-            <SurfaceCard
-              className="overflow-hidden p-0"
-              style={accent ? { borderTopWidth: 3, borderTopColor: accent } : undefined}
-            >
+            <BuyerCard accent={accent} className="p-0">
               <div className="flex items-center gap-3 border-b border-border bg-bg-secondary/50 px-4 py-3">
                 <div
                   className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-card text-sm font-bold text-heading"
@@ -78,7 +87,7 @@ export default function CheckoutReviewPage() {
                 <div className="flex shrink-0 items-center gap-2">
                   <Link href={`/app/market/${store.businessId}`}>
                     <Button variant="ghost" size="sm">
-                      Shop
+                      {t("marketplace.shopNow")}
                     </Button>
                   </Link>
                   <button
@@ -86,7 +95,7 @@ export default function CheckoutReviewPage() {
                     className="text-xs font-medium text-muted hover:text-danger"
                     onClick={() => clearStore(store.businessId)}
                   >
-                    Clear
+                    {t("marketplace.clearCart")}
                   </button>
                 </div>
               </div>
@@ -100,7 +109,7 @@ export default function CheckoutReviewPage() {
                         <img src={line.imageUrl} alt="" className="h-full w-full object-cover" />
                       ) : (
                         <div className="flex h-full items-center justify-center text-[10px] text-muted">
-                          No img
+                          {t("marketplace.noImage")}
                         </div>
                       )}
                     </div>
@@ -157,15 +166,15 @@ export default function CheckoutReviewPage() {
                 </span>
                 <span className="font-bold text-heading">Rs {money(storeTotal)}</span>
               </div>
-            </SurfaceCard>
+            </BuyerCard>
           </BrandThemeScope>
         );
       })}
 
-      <SurfaceCard className="flex items-center justify-between p-4">
+      <BuyerCard className="flex items-center justify-between p-4">
         <span className="font-semibold text-heading">{t("marketplace.grandTotal")}</span>
         <span className="text-lg font-bold text-heading">Rs {money(subtotal)}</span>
-      </SurfaceCard>
+      </BuyerCard>
 
       <BrandThemeScope
         primaryColor={stores.length === 1 ? stores[0].branding?.primaryColor : null}

@@ -1,13 +1,15 @@
-import {useEffect, useMemo } from "react";
-import { FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { colors } from "../lib/api";
 import { useCart, type CartStore } from "../lib/cart";
 import BuyerNav from "../components/BuyerNav";
+import { BuyerEmptyPanel, BuyerHero } from "../components/BuyerLayout";
 import { brandPaletteFromPrimary } from "../lib/brandTheme";
 import { useBrandPalette } from "../lib/BrandThemeContext";
-import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/native";
+import { t } from "../lib/i18n";
+import { useNavigation } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
-import { replacePath, pushPath } from "../lib/nav";
+import { pushPath } from "../lib/nav";
+import { useMemo } from "react";
+import { FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 function StoreSection({
   store,
@@ -40,10 +42,10 @@ function StoreSection({
         <Pressable
           onPress={() => pushPath(navigation, `/app/market/${store.businessId}`)}
         >
-          <Text style={styles.linkInline}>Shop</Text>
+          <Text style={styles.linkInline}>{t("marketplace.shopNow")}</Text>
         </Pressable>
         <Pressable onPress={() => onClear(store.businessId)}>
-          <Text style={styles.remove}>Clear</Text>
+          <Text style={styles.remove}>{t("marketplace.clearCart")}</Text>
         </Pressable>
       </View>
       {store.lines.map((line) => (
@@ -75,7 +77,7 @@ function StoreSection({
                 <Text style={styles.qtyBtnText}>+</Text>
               </Pressable>
               <Pressable onPress={() => onRemove(store.businessId, line.productId)}>
-                <Text style={styles.remove}>Remove</Text>
+                <Text style={styles.remove}>{t("common.delete")}</Text>
               </Pressable>
             </View>
           </View>
@@ -98,20 +100,21 @@ export default function CheckoutReviewScreen() {
       ? brandPaletteFromPrimary(stores[0].branding?.primaryColor)
       : palette;
 
-  useEffect(() => {
-    if (stores.length === 0) {
-      replacePath(navigation, "/app/dashboard");
-    }
-  }, [stores.length]);
-
   if (stores.length === 0) {
     return (
       <View style={styles.container}>
         <BuyerNav />
-        <Text style={styles.empty}>Your cart is empty.</Text>
-        <Pressable onPress={() => pushPath(navigation, "/app/dashboard")}>
-        <Text style={styles.link}>Browse stores</Text>
-      </Pressable>
+        <BuyerHero
+          eyebrow={t("marketplace.checkoutEyebrow")}
+          title={t("pages.checkoutReviewTitle")}
+          description={t("pages.checkoutReviewDesc")}
+        />
+        <BuyerEmptyPanel
+          title={t("marketplace.emptyCartTitle")}
+          body={t("marketplace.emptyCartBody")}
+          actionLabel={t("marketplace.keepShopping")}
+          onAction={() => pushPath(navigation, "/app/dashboard")}
+        />
       </View>
     );
   }
@@ -119,10 +122,16 @@ export default function CheckoutReviewScreen() {
   return (
     <View style={styles.container}>
       <BuyerNav />
-      <Text style={styles.title}>Review cart</Text>
+      <BuyerHero
+        eyebrow={t("marketplace.checkoutEyebrow")}
+        title={t("pages.checkoutReviewTitle")}
+        description={t("pages.checkoutReviewDesc")}
+      />
       <Text style={styles.sub}>
-        {stores.length === 1 ? stores[0].businessName : `${stores.length} stores`} ·{" "}
-        {itemCount} item{itemCount === 1 ? "" : "s"}
+        {stores.length === 1
+          ? stores[0].businessName
+          : t("marketplace.storesCount", { count: stores.length })}{" "}
+        · {itemCount}
       </Text>
 
       <FlatList
@@ -139,13 +148,15 @@ export default function CheckoutReviewScreen() {
         )}
         ListFooterComponent={
           <View style={styles.footer}>
-            <Text style={styles.total}>Grand total · Rs {subtotal.toFixed(2)}</Text>
+            <Text style={styles.total}>
+              {t("marketplace.grandTotal")} · Rs {subtotal.toFixed(2)}
+            </Text>
             <Pressable
               style={[styles.cta, { backgroundColor: footerPalette.brand }]}
               onPress={() => pushPath(navigation, "/app/checkout/pay")}
             >
               <Text style={[styles.ctaText, { color: footerPalette.brandForeground }]}>
-                Continue
+                {t("marketplace.continue")}
               </Text>
             </Pressable>
           </View>
@@ -158,14 +169,11 @@ export default function CheckoutReviewScreen() {
 function createStyles(palette: import("../lib/brandTheme").BrandPalette) {
   return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bgPrimary, padding: 16 },
-  empty: { color: colors.body, marginTop: 24 },
-  link: { color: palette.brand, fontWeight: "700", marginTop: 8 },
   linkInline: { color: palette.brand, fontWeight: "700" },
-  title: { fontSize: 24, fontWeight: "800", color: colors.heading },
-  sub: { color: colors.body, marginBottom: 12, marginTop: 4 },
+  sub: { color: colors.body, marginBottom: 12, marginTop: -4 },
   storeCard: {
     backgroundColor: colors.card,
-    borderRadius: 12,
+    borderRadius: colors.radiusLg,
     borderWidth: 1,
     borderColor: colors.border,
     padding: 12,
@@ -203,7 +211,7 @@ function createStyles(palette: import("../lib/brandTheme").BrandPalette) {
   footer: { paddingTop: 8, gap: 10 },
   total: { fontWeight: "800", fontSize: 16, color: colors.heading },
   cta: {
-    borderRadius: 12,
+    borderRadius: colors.radiusLg,
     paddingVertical: 14,
     alignItems: "center",
   },

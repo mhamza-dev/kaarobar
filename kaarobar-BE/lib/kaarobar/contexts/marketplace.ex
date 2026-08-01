@@ -6,7 +6,10 @@ defmodule Kaarobar.Marketplace do
   import Ecto.Query
 
   alias Kaarobar.{Catalog, CustomerPortal, Pos, Repo}
-  alias Kaarobar.Schemas.{Branch, Business, Employee, Product}
+  alias Kaarobar.Schemas.{Branch, Business, Employee, Product, ProductBranchPrice}
+
+  @default_product_limit 24
+  @max_product_limit 100
 
   def list_businesses(opts \\ []) do
     q = opts[:q]
@@ -26,6 +29,101 @@ defmodule Kaarobar.Marketplace do
       end
 
     Repo.all(query)
+  end
+
+  @doc """
+  Cross-business product feed for the public marketplace (CUS-FR-012).
+
+  Only active products from active, `marketplace_enabled` businesses.
+  Supports `q`, `category`, `industry`, `limit`, and offset-style `cursor`.
+  """
+  def list_products(opts \\ []) do
+    q = blank_to_nil(opts[:q])
+    category = blank_to_nil(opts[:category])
+    industry = blank_to_nil(opts[:industry])
+    limit = parse_limit(opts[:limit])
+    offset = parse_cursor(opts[:cursor])
+
+    query =
+      from(p in Product,
+        join: b in Business,
+        on: b.id == p.business_id and b.owner_id == p.owner_id,
+        left_join: pbp in ProductBranchPrice,
+        on: pbp.product_id == p.id and pbp.branch_id == b.online_branch_id,
+        where: b.marketplace_enabled == true and b.is_active == true and p.is_active == true,
+        order_by: [asc: p.name, asc: p.id],
+        limit: ^(limit + 1),
+        offset: ^offset,
+        select: {p, b, pbp.price}
+      )
+
+    query =
+      if is_binary(q) do
+        like = "%#{escape_like(q)}%"
+
+        from([p, b, _pbp] in query,
+          where:
+            ilike(p.name, ^like) or ilike(p.sku, ^like) or
+              ilike(coalesce(p.category, ""), ^like) or ilike(b.name, ^like)
+        )
+      else
+        query
+      end
+
+    query =
+      if is_binary(category) do
+        from([p, _b, _pbp] in query, where: ilike(coalesce(p.category, ""), ^category))
+      else
+        query
+      end
+
+    query =
+      if is_binary(industry) do
+        from([_p, b, _pbp] in query, where: ilike(b.industry, ^industry))
+      else
+        query
+      end
+
+    rows = Repo.all(query)
+    products = rows |> Enum.map(fn {p, _b, _price} -> p end) |> Repo.preload(:images)
+
+    enriched =
+      Enum.zip(rows, products)
+      |> Enum.map(fn {{_p, business, price}, product} ->
+        %{product: product, business: business, price: price}
+      end)
+
+    {page, rest} = Enum.split(enriched, limit)
+
+    data = Enum.map(page, &serialize_marketplace_product/1)
+
+    next_cursor =
+      if rest == [] do
+        nil
+      else
+        Integer.to_string(offset + limit)
+      end
+
+    %{data: data, meta: %{limit: limit, next_cursor: next_cursor}}
+  end
+
+  def serialize_marketplace_product(%{
+        product: %Product{} = p,
+        business: %Business{} = b,
+        price: price
+      }) do
+    %{
+      id: p.id,
+      name: p.name,
+      price: if(price, do: to_string(price), else: nil),
+      image_url: Catalog.primary_image_url(p),
+      category: p.category,
+      product_kind: p.product_kind,
+      business_id: b.id,
+      business_name: b.name,
+      business_slug: b.marketplace_slug,
+      industry: b.industry
+    }
   end
 
   def get_business(id_or_slug) when is_binary(id_or_slug) do
@@ -209,4 +307,49 @@ defmodule Kaarobar.Marketplace do
       {k, v} -> {k, v}
     end)
   end
+
+  defp blank_to_nil(nil), do: nil
+  defp blank_to_nil(""), do: nil
+
+  defp blank_to_nil(v) when is_binary(v) do
+    case String.trim(v) do
+      "" -> nil
+      trimmed -> trimmed
+    end
+  end
+
+  defp blank_to_nil(v), do: v
+
+  defp escape_like(term) when is_binary(term) do
+    term
+    |> String.replace("\\", "\\\\")
+    |> String.replace("%", "\\%")
+    |> String.replace("_", "\\_")
+  end
+
+  defp parse_limit(nil), do: @default_product_limit
+  defp parse_limit(v) when is_integer(v) and v > 0, do: min(v, @max_product_limit)
+
+  defp parse_limit(v) when is_binary(v) do
+    case Integer.parse(String.trim(v)) do
+      {n, _} when n > 0 -> min(n, @max_product_limit)
+      _ -> @default_product_limit
+    end
+  end
+
+  defp parse_limit(_), do: @default_product_limit
+
+  defp parse_cursor(nil), do: 0
+  defp parse_cursor(""), do: 0
+
+  defp parse_cursor(v) when is_integer(v) and v >= 0, do: v
+
+  defp parse_cursor(v) when is_binary(v) do
+    case Integer.parse(String.trim(v)) do
+      {n, _} when n >= 0 -> n
+      _ -> 0
+    end
+  end
+
+  defp parse_cursor(_), do: 0
 end

@@ -82,6 +82,7 @@ defmodule KaarobarWeb.Router do
     post "/portal/auth/request-reset", PortalAuthController, :request_reset
     post "/portal/auth/reset-password", PortalAuthController, :reset_password
 
+    get "/marketplace/products", MarketplaceController, :products
     get "/marketplace/businesses", MarketplaceController, :index
     get "/marketplace/businesses/:id", MarketplaceController, :show
     get "/marketplace/businesses/:id/catalog", MarketplaceController, :catalog

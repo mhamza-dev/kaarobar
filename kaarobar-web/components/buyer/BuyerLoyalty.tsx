@@ -1,16 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Gift } from "lucide-react";
+import Link from "next/link";
+import { Gift, Wallet } from "lucide-react";
 import { api } from "@/lib/api/client";
 import {
   Alert,
-  EmptyState,
   KpiCard,
-  PageHeader,
   StatusBadge,
 } from "@/components/app/ui";
 import Modal from "@/components/modals/Modal";
+import {
+  BuyerCard,
+  BuyerEmptyPanel,
+  BuyerHero,
+} from "@/components/buyer/BuyerLayout";
 import { BuyerLoyaltySkeleton } from "@/components/buyer/BuyerSkeletons";
 import { useT } from "@/lib/i18n";
 
@@ -41,19 +45,39 @@ export default function BuyerLoyalty() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
+      <BuyerHero
         eyebrow={t("marketplace.eyebrow")}
         title={t("pages.buyerLoyaltyTitle")}
         description={t("pages.buyerLoyaltyDesc")}
         infoKey="page.buyer.loyalty"
-      />
+      >
+        <p className="mt-3">
+          <Link
+            href="/app/accounting"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand hover:underline"
+          >
+            <Wallet className="h-4 w-4" />
+            {t("marketplace.accountBalance")} →
+          </Link>
+        </p>
+      </BuyerHero>
+
       {error ? <Alert tone="error">{error}</Alert> : null}
       {loading ? (
         <BuyerLoyaltySkeleton />
       ) : rows.length === 0 ? (
-        <EmptyState
+        <BuyerEmptyPanel
+          icon={<Gift className="h-7 w-7" />}
           title={t("marketplace.emptyLoyaltyTitle")}
           body={t("marketplace.emptyLoyaltyBody")}
+          action={
+            <Link
+              href="/app"
+              className="inline-flex rounded-md bg-brand px-5 py-2.5 text-sm font-semibold text-brand-foreground"
+            >
+              {t("marketplace.browseStores")}
+            </Link>
+          }
         />
       ) : (
         <>
@@ -75,23 +99,25 @@ export default function BuyerLoyalty() {
                 <button
                   type="button"
                   onClick={() => setSelected(row)}
-                  className="w-full rounded-md border border-border bg-card p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-md"
+                  className="w-full text-left"
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="font-semibold text-heading">
-                      {row.business_name || t("marketplace.store")}
+                  <BuyerCard hover className="p-5">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-semibold text-heading">
+                        {row.business_name || t("marketplace.store")}
+                      </p>
+                      {row.tier ? (
+                        <StatusBadge tone="success">{row.tier.name}</StatusBadge>
+                      ) : null}
+                    </div>
+                    <p className="mt-3 text-4xl font-bold tracking-tight text-heading">
+                      {row.points}
                     </p>
-                    {row.tier ? (
-                      <StatusBadge tone="success">{row.tier.name}</StatusBadge>
-                    ) : null}
-                  </div>
-                  <p className="mt-3 text-4xl font-bold tracking-tight text-heading">
-                    {row.points}
-                  </p>
-                  <p className="text-sm text-body">{t("marketplace.points")}</p>
-                  <p className="mt-4 text-sm font-medium text-brand">
-                    {t("marketplace.viewDetails")} →
-                  </p>
+                    <p className="text-sm text-body">{t("marketplace.points")}</p>
+                    <p className="mt-4 text-sm font-medium text-brand">
+                      {t("marketplace.viewDetails")} →
+                    </p>
+                  </BuyerCard>
                 </button>
               </li>
             ))}

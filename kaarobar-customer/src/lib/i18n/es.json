@@ -74,7 +74,12 @@
     "profile": "Profile",
     "businesses": "Businesses",
     "ess": "Staff tools",
-    "appointments": "Appointments"
+    "appointments": "Appointments",
+    "discover": "Descubrir",
+    "products": "Productos",
+    "orders": "Pedidos",
+    "loyalty": "Fidelidad",
+    "account": "Cuenta"
   },
   "auth": {
     "signInTitle": "Sign in",

@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Package } from "lucide-react";
+import { Package } from "lucide-react";
 import { api } from "@/lib/api/client";
 import { Alert, StatusBadge } from "@/components/app/ui";
 import InfoButton from "@/components/ui/InfoButton";
+import { BuyerBackLink, BuyerCard } from "@/components/buyer/BuyerLayout";
 import { BuyerOrderDetailSkeleton } from "@/components/buyer/BuyerSkeletons";
 import { useT } from "@/lib/i18n";
 
@@ -70,13 +70,7 @@ export default function BuyerOrderDetail() {
   if (error) {
     return (
       <div className="mx-auto max-w-2xl space-y-4">
-        <Link
-          href="/app/sales"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:underline"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {t("marketplace.backToOrders")}
-        </Link>
+        <BuyerBackLink href="/app/sales">{t("marketplace.backToOrders")}</BuyerBackLink>
         <Alert tone="error">{error}</Alert>
       </div>
     );
@@ -87,15 +81,9 @@ export default function BuyerOrderDetail() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-5 animate-rise">
-      <Link
-        href="/app/sales"
-        className="inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:underline"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        {t("marketplace.backToOrders")}
-      </Link>
+      <BuyerBackLink href="/app/sales">{t("marketplace.backToOrders")}</BuyerBackLink>
 
-      <div className="overflow-hidden rounded-md border border-border bg-card shadow-sm">
+      <BuyerCard className="p-0">
         <div className="border-b border-border bg-gradient-to-br from-brand-soft/80 to-transparent px-5 py-6 sm:px-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex gap-3">
@@ -204,7 +192,7 @@ export default function BuyerOrderDetail() {
             </p>
           ) : null}
         </div>
-      </div>
+      </BuyerCard>
     </div>
   );
 }

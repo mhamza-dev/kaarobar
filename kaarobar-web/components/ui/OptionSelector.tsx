@@ -67,13 +67,13 @@ const OptionSelector = <T extends string>({
                 ${
                   selected
                     ? `
-                      border-brand bg-card shadow-sm
-                      ring-1 ring-brand/30
+                      border-brand bg-brand-soft shadow-sm
+                      ring-1 ring-brand/20
                     `
                     : `
-                      border-border bg-bg-primary
+                      border-border bg-card
                       hover:-translate-y-0.5 hover:border-brand/35
-                      hover:bg-card hover:shadow-sm
+                      hover:shadow-sm
                     `
                 }
               `}
@@ -109,11 +109,7 @@ const OptionSelector = <T extends string>({
                   </p>
 
                   {option.description && (
-                    <p
-                      className={`mt-1 text-xs leading-5 ${
-                        selected ? "text-slate-600" : "text-body"
-                      }`}
-                    >
+                    <p className="mt-1 text-xs leading-5 text-muted">
                       {option.description}
                     </p>
                   )}

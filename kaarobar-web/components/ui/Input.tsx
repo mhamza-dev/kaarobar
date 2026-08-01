@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useField } from "formik";
-import { Eye, EyeOff } from "lucide-react";
+import { ChevronDown, Eye, EyeOff } from "lucide-react";
 
 interface InputProps {
   type:
@@ -135,7 +135,7 @@ const Input = ({
           <select
             id={inputId}
             disabled={props.disabled}
-            className={`${baseClass} appearance-none`}
+            className={`${baseClass} appearance-none bg-card pr-10`}
             {...field}
           >
             <option value="">Select...</option>
@@ -146,6 +146,10 @@ const Input = ({
               </option>
             ))}
           </select>
+
+          <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted">
+            <ChevronDown className="h-4 w-4" aria-hidden />
+          </div>
         </div>
       )}
 
