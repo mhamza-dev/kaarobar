@@ -86,12 +86,66 @@ defmodule Kaarobar.Catalog do
     |> Repo.update()
   end
 
-  def list_products(business_id, owner_id) do
-    Product
-    |> where([p], p.business_id == ^business_id and p.owner_id == ^owner_id)
-    |> preload([:images, :variants, :product_category, product_modifier_groups: [modifier_group: :modifiers]])
-    |> order_by([p], asc: p.name)
-    |> Repo.all()
+  def list_products(business_id, owner_id, opts \\ []) do
+    q_term = blank_to_nil(opts[:q])
+    active = opts[:active]
+    category_ids = List.wrap(opts[:category_ids]) |> Enum.reject(&is_nil/1)
+    category_id = blank_to_nil(opts[:category_id])
+    category = blank_to_nil(opts[:category])
+    product_kind = blank_to_nil(opts[:product_kind])
+
+    category_ids =
+      if is_binary(category_id), do: Enum.uniq([category_id | category_ids]), else: category_ids
+
+    query =
+      Product
+      |> where([p], p.business_id == ^business_id and p.owner_id == ^owner_id)
+      |> then(fn q ->
+        case active do
+          true -> where(q, [p], p.is_active == true)
+          false -> where(q, [p], p.is_active == false)
+          _ -> q
+        end
+      end)
+      |> then(fn q ->
+        if category_ids != [] do
+          where(q, [p], p.category_id in ^category_ids)
+        else
+          q
+        end
+      end)
+      |> then(fn q ->
+        if is_binary(category) do
+          where(q, [p], ilike(coalesce(p.category, ""), ^category))
+        else
+          q
+        end
+      end)
+      |> then(fn q ->
+        if is_binary(product_kind) and product_kind in Product.kinds() do
+          where(q, [p], p.product_kind == ^product_kind)
+        else
+          q
+        end
+      end)
+      |> then(fn q ->
+        if is_binary(q_term) do
+          like = "%#{escape_like(q_term)}%"
+
+          where(
+            q,
+            [p],
+            ilike(p.name, ^like) or ilike(p.sku, ^like) or ilike(coalesce(p.barcode, ""), ^like) or
+              ilike(coalesce(p.brand, ""), ^like) or ilike(coalesce(p.category, ""), ^like)
+          )
+        else
+          q
+        end
+      end)
+      |> preload([:images, :variants, :product_category, product_modifier_groups: [modifier_group: :modifiers]])
+      |> order_by([p], asc: p.name)
+
+    Repo.all(query)
   end
 
   def get_product(product_id, business_id, owner_id) do
@@ -489,4 +543,21 @@ defmodule Kaarobar.Catalog do
   defp to_dec(v) when is_binary(v), do: Decimal.new(v)
   defp to_dec(v) when is_integer(v), do: Decimal.new(v)
   defp to_dec(v) when is_float(v), do: Decimal.from_float(v)
+
+  defp blank_to_nil(nil), do: nil
+  defp blank_to_nil(""), do: nil
+
+  defp blank_to_nil(v) when is_binary(v) do
+    s = String.trim(v)
+    if s == "", do: nil, else: s
+  end
+
+  defp blank_to_nil(v), do: v
+
+  defp escape_like(term) when is_binary(term) do
+    term
+    |> String.replace("\\", "\\\\")
+    |> String.replace("%", "\\%")
+    |> String.replace("_", "\\_")
+  end
 end

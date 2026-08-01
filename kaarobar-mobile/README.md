@@ -1,37 +1,32 @@
 # Kaarobar Mobile (`kaarobar-mobile`)
 
-Expo / React Native client for Kaarobar SRS **KRB-SRS-003**.
+React Native CLI client for **business / staff** (KRB-SRS-003).
 
 ## Purpose
 
-| Actor | Mobile use |
-|-------|------------|
-| Business | Dashboard, POS, customers, inventory, ESS, … |
-| Consumer | Same `/app/*` routes; UI switches with `actor=consumer` |
+Staff POS, sales, products, customers, settings (including ESS Attendance). Consumer marketplace lives in [`kaarobar-customer`](../kaarobar-customer).
 
-## Unified login
+## Tabs
 
-Login toggle **Sign in as Consumer** posts `actor: "consumer"`. Business posts `actor: "business"`. Both land on `/app/dashboard`.
-
-| Shared route | Business | Consumer |
-|--------------|----------|----------|
-| `/app/dashboard` | Hub | Discover stores |
-| `/app/sales` | → POS | Order history |
-| `/app/customers` | CRM | Loyalty |
-| `/app/accounting` | (web/desktop) | Khata balance |
-| `/app/market/:id` | — | Store checkout |
-
-Demo consumer: `ayesha.customer@kaarobar-demo.pk` / `Password@123`
+POS · Sales · Products · Customers · Settings  
+Attendance (clock in/out, leave, payslips) is under **Settings → Attendance**.
 
 ## Setup
 
 ```bash
 npm install
 npm start
+# then in another terminal:
+npm run ios
+# or
+npm run android
 ```
 
-`EXPO_PUBLIC_API_URL` defaults to `http://localhost:4000/api/v1` (use your LAN IP for a physical device).
+Set `API_URL` (defaults to `http://localhost:4000/api/v1`). Use your LAN IP for a physical device.
 
-## Branding theme
+Demo staff: `owner@kaarobar.local` / `Password@123`
 
-Staff chrome (buttons, inputs, tabs, nav accents) follows the active business `primary_color` via `BrandThemeProvider` / `useBrandPalette()`. Neutrals stay in `lib/api` `colors`; do not hardcode `colors.brand` for accents.
+## Stack
+
+- React Native 0.76 + React Navigation (native stack + bottom tabs)
+- AsyncStorage session, duplicated theme/i18n (no shared npm package)

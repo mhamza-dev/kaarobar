@@ -102,6 +102,11 @@ defmodule KaarobarWeb.Router do
     get "/portal/ar", PortalController, :ar
     post "/portal/ar/pay", PortalController, :pay_ar
     get "/portal/bookings", PortalController, :bookings
+    get "/portal/appointments", PortalController, :bookings
+    get "/portal/appointments/slots", PortalController, :appointment_slots
+    post "/portal/appointments", PortalController, :book_appointment
+    post "/portal/appointments/:id/cancel", PortalController, :cancel_appointment
+    patch "/portal/appointments/:id", PortalController, :reschedule_appointment
     post "/portal/sessions/revoke", PortalController, :revoke_sessions
     get "/portal/notifications", PortalController, :notifications
     get "/portal/notifications/unread-count", PortalController, :notifications_unread
@@ -188,6 +193,15 @@ defmodule KaarobarWeb.Router do
     get "/returns/:id", ReturnController, :show
     post "/returns", ReturnController, :create
     get "/fbr/sales/:sale_id", FbrController, :status
+
+    get "/appointments/slots", AppointmentController, :slots
+    get "/appointments/schedule", AppointmentController, :schedule
+    get "/appointments", AppointmentController, :index
+    post "/appointments", AppointmentController, :create
+    get "/appointments/:id", AppointmentController, :show
+    patch "/appointments/:id", AppointmentController, :update
+    post "/appointments/:id/cancel", AppointmentController, :cancel
+    post "/appointments/:id/complete", AppointmentController, :complete
 
     get "/sync/catalog", SyncController, :catalog
     get "/sync/inventory", SyncController, :inventory

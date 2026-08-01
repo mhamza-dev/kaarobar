@@ -1,0 +1,111 @@
+import { useMemo } from "react";
+import { useBrandPalette } from "../lib/BrandThemeContext";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { colors } from "../lib/api";
+import KaarobarLogo from "../components/KaarobarLogo";
+import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/native";
+import type { NavigationProp, ParamListBase } from "@react-navigation/native";
+import { replacePath, pushPath } from "../lib/nav";
+
+export default function LandingScreen() {
+  const navigation = useNavigation<NavigationProp<ParamListBase>>();
+  const palette = useBrandPalette();
+  const styles = useMemo(() => createStyles(palette), [palette]);
+  return (
+    <View style={styles.container}>
+      <Text style={styles.eyebrow}>More than one shop? This is for you.</Text>
+      <View style={styles.brandRow}>
+        <KaarobarLogo size={56} />
+        <Text style={styles.brand}>Kaarobar</Text>
+      </View>
+      <Text style={styles.subtitle}>
+        Run the till, keep proper books, and manage staff across every business
+        and branch you own.
+      </Text>
+
+      <View style={styles.pills}>
+        {["Branch POS", "Real books", "HR & payroll", "FBR ready"].map((label) => (
+          <View key={label} style={styles.pill}>
+            <Text style={styles.pillText}>{label}</Text>
+          </View>
+        ))}
+      </View>
+
+      <Pressable style={styles.primary} onPress={() => pushPath(navigation, "/login")}>
+        <Text style={styles.primaryText}>Sign in</Text>
+      </Pressable>
+      <Pressable style={styles.secondary} onPress={() => pushPath(navigation, "/signup")}>
+        <Text style={styles.secondaryText}>Create owner account</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function createStyles(palette: import("../lib/brandTheme").BrandPalette) {
+  return StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 28,
+    justifyContent: "center",
+    backgroundColor: colors.bgPrimary,
+  },
+  eyebrow: {
+    color: palette.brand,
+    fontWeight: "700",
+    fontSize: 12,
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+    marginBottom: 10,
+  },
+  brandRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    marginBottom: 12,
+  },
+  brand: {
+    fontSize: 40,
+    fontWeight: "800",
+    color: colors.heading,
+  },
+  subtitle: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: colors.body,
+    marginBottom: 24,
+  },
+  pills: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 32 },
+  pill: {
+    backgroundColor: palette.brandSoft,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  pillText: { color: palette.brand, fontWeight: "600", fontSize: 12 },
+  primary: {
+    backgroundColor: palette.brand,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  primaryText: {
+    color: colors.white,
+    textAlign: "center",
+    fontWeight: "700",
+    fontSize: 16,
+  },
+  secondary: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  secondaryText: {
+    color: colors.heading,
+    textAlign: "center",
+    fontWeight: "600",
+    fontSize: 16,
+  },
+});
+}

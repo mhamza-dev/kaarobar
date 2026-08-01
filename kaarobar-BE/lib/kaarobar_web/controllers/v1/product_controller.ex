@@ -3,15 +3,29 @@ defmodule KaarobarWeb.V1.ProductController do
 
   alias Kaarobar.{Catalog, Inventory, Guardian, Repo}
   alias Kaarobar.Schemas.InventoryRecord
+  alias KaarobarWeb.Controllers.Helpers.ListFilters
 
-  def index(conn, _params) do
+  def index(conn, params) do
     user = Guardian.Plug.current_resource(conn)
     business_id = conn.assigns[:current_business_id]
 
     if is_nil(business_id) do
       conn |> put_status(:bad_request) |> json(%{error: "x-business-id required"})
     else
-      products = Catalog.list_products(business_id, conn.assigns.current_owner_id || user.id)
+      opts =
+        ListFilters.parse(params, [
+          :q,
+          :status,
+          :active,
+          :category_id,
+          :category_ids,
+          :category,
+          :product_kind
+        ])
+
+      products =
+        Catalog.list_products(business_id, conn.assigns.current_owner_id || user.id, opts)
+
       branch_id = conn.assigns[:current_branch_id]
       data = Enum.map(products, &Catalog.serialize_product(&1, branch_id))
       json(conn, %{data: data})

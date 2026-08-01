@@ -23,6 +23,8 @@ type Biz = {
   logo_url?: string | null;
   primary_color?: string | null;
   marketplace_description?: string | null;
+  appointments_enabled?: boolean;
+  commerce_mode?: string | null;
 };
 
 /** Buyer home — discover marketplace stores (`/app` when actor=consumer). */
@@ -197,7 +199,10 @@ export default function BuyerMarketDiscover() {
                           </p>
                         ) : null}
                         <span className="mt-auto pt-3 text-sm font-semibold text-brand">
-                          {t("marketplace.shopNow")} →
+                          {b.appointments_enabled || b.commerce_mode === "appointments"
+                            ? t("marketplace.bookNow")
+                            : t("marketplace.shopNow")}{" "}
+                          →
                         </span>
                       </div>
                     </article>

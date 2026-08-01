@@ -26,6 +26,7 @@ defmodule Kaarobar.Schemas.Business do
     field :logo_key, :string
     field :primary_color, :string
     field :marketplace_description, :string
+    field :appointments_enabled, :boolean, default: false
 
     belongs_to :owner, Kaarobar.Schemas.User
     belongs_to :online_branch, Kaarobar.Schemas.Branch
@@ -60,6 +61,7 @@ defmodule Kaarobar.Schemas.Business do
       :logo_key,
       :primary_color,
       :marketplace_description,
+      :appointments_enabled,
       :online_branch_id,
       :owner_id
     ])
@@ -68,6 +70,7 @@ defmodule Kaarobar.Schemas.Business do
     |> update_change(:marketplace_description, &blank_to_nil_text/1)
     |> update_change(:primary_color, &normalize_color/1)
     |> validate_required([:name, :owner_id])
+    |> maybe_default_appointments_enabled()
     |> maybe_validate_industry()
     |> validate_primary_color()
     |> validate_length(:tagline, max: 160)
@@ -126,6 +129,22 @@ defmodule Kaarobar.Schemas.Business do
       nil -> changeset
       "" -> put_change(changeset, :industry, nil)
       _ -> validate_inclusion(changeset, :industry, @industries)
+    end
+  end
+
+  defp maybe_default_appointments_enabled(changeset) do
+    industry = get_field(changeset, :industry)
+    explicit? = not is_nil(get_change(changeset, :appointments_enabled))
+
+    cond do
+      explicit? ->
+        changeset
+
+      industry in ~w(salon) and get_field(changeset, :appointments_enabled) != true ->
+        put_change(changeset, :appointments_enabled, true)
+
+      true ->
+        changeset
     end
   end
 end

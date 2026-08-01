@@ -538,6 +538,18 @@ const en: HelpCatalog = {
     when: "When standardizing promotional or transactional messages.",
     tips: ["Keep templates short for SMS/WhatsApp channels."],
   },
+  "page.appointments": {
+    title: "Appointments",
+    summary: "Staff day schedule for service bookings.",
+    what: "Lists appointments for the selected date (and optional staff). Complete or cancel bookings; completion can link a POS sale stub (SCH-FR-005).",
+    how: [
+      "Pick a date and optionally filter by staff.",
+      "Search or filter by status.",
+      "Tap Complete to advance a visit, or Cancel for Booked rows.",
+    ],
+    when: "On salon / appointments-enabled businesses during the service day.",
+    tips: ["Customers book from the marketplace Book flow; staff manage the day here."],
+  },
 };
 
 export default en;

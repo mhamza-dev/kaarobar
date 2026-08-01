@@ -3,24 +3,27 @@ defmodule KaarobarWeb.V1.SaleController do
 
   alias Kaarobar.Guardian
   alias Kaarobar.Pos
+  alias KaarobarWeb.Controllers.Helpers.ListFilters
 
   def index(conn, params) do
     user = Guardian.Plug.current_resource(conn)
     business_id = conn.assigns[:business_id]
     owner_id = conn.assigns[:owner_id] || user.id
     branch_id = conn.assigns[:branch_id]
-    source = params["source"]
+    opts = ListFilters.parse(params, [:q, :from, :to, :status, :source])
 
     if is_nil(business_id) do
       conn |> put_status(:bad_request) |> json(%{error: "business_required"})
     else
+      source = Keyword.get(opts, :source)
+
       # Online orders can be listed without branch; POS list still prefers branch
       if source != "online" and is_nil(branch_id) do
         conn |> put_status(:bad_request) |> json(%{error: "business_and_branch_required"})
       else
         data =
           branch_id
-          |> Pos.list_sales(owner_id, business_id, source: source)
+          |> Pos.list_sales(owner_id, business_id, opts)
           |> Enum.map(&serialize_sale/1)
 
         json(conn, %{data: data})

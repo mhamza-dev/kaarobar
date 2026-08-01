@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, getSession } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
+import ListToolbar from "@/components/app/ListToolbar";
 import {
   PageHeader,
   StatusBadge,
@@ -13,6 +14,12 @@ import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { detailRoutes } from "@/lib/navigation";
 import { canAccessBundle } from "@/lib/rbac";
+import {
+  applyStaffListFilters,
+  emptyStaffListFilters,
+  type ListFilterConfig,
+  type StaffListFilterState,
+} from "@/lib/listFilters";
 
 type SaleItem = {
   product_id: string;
@@ -61,6 +68,9 @@ export default function ReturnsPage() {
   const [refundMethod, setRefundMethod] = useState<"cash" | "card" | "wallet">("cash");
   const [pending, setPending] = useState<ReturnRow[]>([]);
   const [returns, setReturns] = useState<ReturnRow[]>([]);
+  const [returnFilters, setReturnFilters] = useState<StaffListFilterState>(
+    emptyStaffListFilters()
+  );
   const [tills, setTills] = useState<Till[]>([]);
   const [busy, setBusy] = useState(false);
 
@@ -166,6 +176,28 @@ export default function ReturnsPage() {
       setBusy(false);
     }
   }
+
+  const returnFilterConfig = useMemo<ListFilterConfig>(
+    () => ({
+      showDateRange: false,
+      statusOptions: [
+        { value: "pending", label: "Pending" },
+        { value: "approved", label: "Approved" },
+        { value: "rejected", label: "Rejected" },
+      ],
+    }),
+    []
+  );
+
+  const filteredReturns = useMemo(
+    () =>
+      applyStaffListFilters(returns, returnFilters, {
+        searchText: (r) =>
+          `${r.status} ${r.refund_amount} ${r.refund_method} ${r.sale_id} ${r.reason ?? ""}`,
+        status: (r) => r.status.toLowerCase(),
+      }),
+    [returns, returnFilters]
+  );
 
   return (
     <div className="space-y-6">
@@ -298,10 +330,13 @@ export default function ReturnsPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <DataTable
           maxHeight="22rem"
-          searchable
-          searchPlaceholder="Search returns…"
-          getSearchText={(r) =>
-            `${r.status} ${r.refund_amount} ${r.refund_method} ${r.sale_id} ${r.reason ?? ""}`
+          filters={
+            <ListToolbar
+              value={returnFilters}
+              onChange={setReturnFilters}
+              config={returnFilterConfig}
+              searchPlaceholder="Search returns…"
+            />
           }
           onRowClick={(r) => navigate(detailRoutes.saleReturn(r.id))}
           columns={[
@@ -351,7 +386,7 @@ export default function ReturnsPage() {
               ),
             },
           ]}
-          data={returns}
+          data={filteredReturns}
           rowKey={(r) => r.id}
           emptyTitle="No returns yet"
           toolbar={<span className="text-sm font-semibold text-heading">Recent returns</span>}

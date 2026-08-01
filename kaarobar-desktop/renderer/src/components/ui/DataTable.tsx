@@ -36,6 +36,8 @@ export type DataTableProps<T> = {
   searchPlaceholder?: string;
   /** Build the searchable string for a row. Required when `searchable` is true. */
   getSearchText?: (row: T) => string;
+  /** Optional listing filters slot rendered above the table toolbar (e.g. ListToolbar). */
+  filters?: ReactNode;
 };
 
 function toCssSize(value: string | number | undefined): string | undefined {
@@ -106,6 +108,7 @@ export default function DataTable<T>({
   searchable = false,
   searchPlaceholder = "Search…",
   getSearchText,
+  filters,
 }: DataTableProps<T>) {
   const [query, setQuery] = useState("");
 
@@ -129,6 +132,8 @@ export default function DataTable<T>({
   const showToolbar = Boolean(toolbar) || searchable;
 
   return (
+    <div className="flex flex-col gap-3">
+      {filters ? <div>{filters}</div> : null}
     <div
       className={`flex flex-col overflow-hidden rounded-md border border-border bg-card shadow-sm ${className}`}
     >
@@ -267,6 +272,7 @@ export default function DataTable<T>({
           </p>
         </div>
       ) : null}
+    </div>
     </div>
   );
 }

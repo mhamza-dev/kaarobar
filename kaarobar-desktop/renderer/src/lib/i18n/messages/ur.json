@@ -54,6 +54,20 @@
     "read": "پڑھا",
     "dismiss": "بند کریں"
   },
+  "listFilters": {
+    "title": "فلٹرز",
+    "description": "تاریخ، حالت، یا زمرے سے اس فہرست کو محدود کریں۔",
+    "filters": "فلٹرز",
+    "apply": "لاگو کریں",
+    "clear": "فلٹرز صاف کریں",
+    "clearAll": "سب صاف کریں",
+    "clearSearch": "تلاش صاف کریں",
+    "categories": "زمرے",
+    "source": "ذریعہ",
+    "noFields": "اس فہرست کے لیے کوئی اضافی فلٹر نہیں۔",
+    "khataOn": "کھاتہ آن",
+    "khataOff": "کھاتہ آف"
+  },
   "nav": {
     "overview": "جائزہ",
     "cashier": "کیشیئر",

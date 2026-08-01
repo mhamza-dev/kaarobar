@@ -42,8 +42,11 @@ kaarobar-desktop/out/
 
 # Mobile
 kaarobar-mobile/node_modules/
-kaarobar-mobile/.expo/
-kaarobar-mobile/dist/
+kaarobar-mobile/android/app/build/
+kaarobar-mobile/ios/Pods/
+kaarobar-customer/node_modules/
+kaarobar-customer/android/app/build/
+kaarobar-customer/ios/Pods/
 
 # Logs
 *.log

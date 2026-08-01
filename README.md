@@ -69,7 +69,8 @@ Business Owner · Admin · Branch Manager · Cashier · Inventory Manager · Acc
 ```
 POS/
 ├── kaarobar-web/       # Next.js — marketing + authenticated dashboard / browser POS
-├── kaarobar-mobile/    # Expo RN — owner/manager app + staff clock-in / leave / payslips
+├── kaarobar-mobile/    # React Native CLI — staff (POS, sales, products, customers, settings/ESS)
+├── kaarobar-customer/  # React Native CLI — consumer marketplace
 ├── kaarobar-desktop/   # Electron — offline-capable branch POS terminal
 ├── kaarobar-BE/        # Elixir/Phoenix API + PostgreSQL (modular monolith)
 ├── docs/               # ADRs and architecture notes
@@ -87,7 +88,7 @@ Clients are independently deployable (no shared npm packages). Theme tokens are 
 | BullMQ + Redis | **Oban** (Postgres-backed job queue) |
 | React web | **Next.js** web |
 | Electron POS + SQLite outbox | **Electron** + SQLite sync (offline) |
-| React Native | **Expo / React Native** |
+| React Native | **React Native CLI** (`kaarobar-mobile` staff + `kaarobar-customer`) |
 
 ```
 Clients (Web / Mobile / Desktop)
@@ -128,7 +129,8 @@ Shared cluster, tenant-isolated by ID. Every tenant-scoped table carries `owner_
 | Layer | Technology |
 |-------|------------|
 | Web | Next.js 16, React 19, Tailwind CSS 4 |
-| Mobile | Expo / React Native |
+| Mobile (staff) | React Native CLI (`kaarobar-mobile`) |
+| Mobile (customer) | React Native CLI (`kaarobar-customer`) |
 | Desktop | Electron |
 | API | Elixir, Phoenix, Ecto, Guardian, Oban, Argon2 |
 | Database | PostgreSQL 16 |
@@ -146,7 +148,7 @@ Shared cluster, tenant-isolated by ID. Every tenant-scoped table carries `owner_
 | Heading | `#0f172a` |
 | Sidebar | `#0b1220` |
 
-Brand assets: [`docs/brand/`](docs/brand/) · `KaarobarLogo` in web/desktop · Expo/Electron use `assets/icon.png`.
+Brand assets: [`docs/brand/`](docs/brand/) · `KaarobarLogo` in web/desktop · RN/Electron use `assets/icon.png`.
 
 ## Quick start
 
@@ -160,8 +162,11 @@ cd kaarobar-BE && mix deps.get && mix ecto.setup && mix phx.server
 # Web — http://localhost:3000 (landing when logged out, /app when logged in)
 cd kaarobar-web && npm install && npm run dev
 
-# Mobile
+# Staff mobile
 cd kaarobar-mobile && npm install && npm start
+
+# Customer mobile
+cd kaarobar-customer && npm install && npm start
 
 # Desktop POS
 cd kaarobar-desktop && npm install && npm start

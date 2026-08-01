@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, isConsumerSession } from "@/lib/api/client";
@@ -8,6 +8,7 @@ import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
+import ListToolbar from "@/components/app/ListToolbar";
 import {
   EmptyState,
   Field,
@@ -27,6 +28,12 @@ import {
   customerToForm,
   emptyCustomerForm,
 } from "@/lib/customers";
+import {
+  applyStaffListFilters,
+  emptyStaffListFilters,
+  type ListFilterConfig,
+  type StaffListFilterState,
+} from "@/lib/listFilters";
 import BuyerLoyalty from "@/components/buyer/BuyerLoyalty";
 
 type LedgerEntry = {
@@ -51,6 +58,7 @@ function StaffCustomersPage() {
   const toast = useToast();
   const router = useRouter();
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [filters, setFilters] = useState<StaffListFilterState>(emptyStaffListFilters());
   const [busy, setBusy] = useState(false);
   const [modal, setModal] = useState<"create" | "edit" | "loyalty" | null>(null);
   const [editing, setEditing] = useState<Customer | null>(null);
@@ -75,6 +83,26 @@ function StaffCustomersPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const filterConfig = useMemo<ListFilterConfig>(
+    () => ({
+      showDateRange: false,
+      statusOptions: [
+        { value: "khata_on", label: t("listFilters.khataOn") },
+        { value: "khata_off", label: t("listFilters.khataOff") },
+      ],
+    }),
+    [t]
+  );
+
+  const filteredCustomers = useMemo(
+    () =>
+      applyStaffListFilters(customers, filters, {
+        searchText: customerSearchText,
+        status: (c) => (c.khata_enabled ? "khata_on" : "khata_off"),
+      }),
+    [customers, filters]
+  );
 
   function openCreate() {
     setEditing(null);
@@ -230,9 +258,14 @@ function StaffCustomersPage() {
 
       <DataTable
         maxHeight="28rem"
-        searchable
-        searchPlaceholder={t("customers.search")}
-        getSearchText={customerSearchText}
+        filters={
+          <ListToolbar
+            value={filters}
+            onChange={setFilters}
+            config={filterConfig}
+            searchPlaceholder={t("customers.search")}
+          />
+        }
         columns={[
           {
             id: "name",
@@ -299,11 +332,16 @@ function StaffCustomersPage() {
             ),
           },
         ]}
-        data={customers}
+        data={filteredCustomers}
         rowKey={(c) => c.id}
         onRowClick={(c) => router.push(detailRoutes.customer(c.id))}
         emptyTitle={t("customers.emptyTitle")}
         emptyBody={t("customers.emptyBody")}
+        countLabel={(visible) =>
+          visible === customers.length
+            ? t("common.rows", { count: customers.length })
+            : `${visible} of ${customers.length}`
+        }
       />
 
       {ledgerCustomer ? (

@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, getSession } from "@/lib/api/client";
@@ -8,6 +8,7 @@ import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
+import ListToolbar from "@/components/app/ListToolbar";
 import {
   EmptyState,
   Field,
@@ -20,6 +21,12 @@ import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { detailRoutes } from "@/lib/navigation";
 import { canAccessBundle } from "@/lib/rbac";
+import {
+  applyStaffListFilters,
+  emptyStaffListFilters,
+  type ListFilterConfig,
+  type StaffListFilterState,
+} from "@/lib/listFilters";
 
 type Tab = "employees" | "attendance" | "leave" | "payroll";
 type ModalKind = "employee" | "invite" | "payroll" | null;
@@ -98,6 +105,12 @@ export default function HrPage() {
   const [leave, setLeave] = useState<Leave[]>([]);
   const [payroll, setPayroll] = useState<PayrollRun[]>([]);
   const [busy, setBusy] = useState(false);
+  const [attendanceFilters, setAttendanceFilters] = useState<StaffListFilterState>(
+    emptyStaffListFilters()
+  );
+  const [leaveFilters, setLeaveFilters] = useState<StaffListFilterState>(
+    emptyStaffListFilters()
+  );
 
   const [empForm, setEmpForm] = useState(emptyEmpForm);
   const [inviteForm, setInviteForm] = useState({
@@ -114,12 +127,23 @@ export default function HrPage() {
 
   const load = useCallback(async () => {
     try {
+      const attParams = new URLSearchParams();
+      if (attendanceFilters.from.trim()) attParams.set("from", attendanceFilters.from.trim());
+      if (attendanceFilters.to.trim()) attParams.set("to", attendanceFilters.to.trim());
+      const attQs = attParams.toString() ? `?${attParams}` : "";
+
+      const leaveParams = new URLSearchParams();
+      if (leaveFilters.statuses.length === 1) {
+        leaveParams.set("status", leaveFilters.statuses[0]);
+      }
+      const leaveQs = leaveParams.toString() ? `?${leaveParams}` : "";
+
       const requests: Promise<unknown>[] = [
         api<{ data: Employee[] }>("/employees"),
-        api<{ data: Attendance[] }>("/attendance"),
+        api<{ data: Attendance[] }>(`/attendance${attQs}`),
       ];
       if (canLeaveApprove) {
-        requests.push(api<{ data: Leave[] }>("/leave"));
+        requests.push(api<{ data: Leave[] }>(`/leave${leaveQs}`));
       }
       if (canSeePayroll) {
         requests.push(api<{ data: PayrollRun[] }>("/payroll"));
@@ -142,11 +166,65 @@ export default function HrPage() {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.loadFailed"));
     }
-  }, [canLeaveApprove, canSeePayroll, t, toast]);
+  }, [
+    attendanceFilters.from,
+    attendanceFilters.to,
+    leaveFilters.statuses,
+    canLeaveApprove,
+    canSeePayroll,
+    t,
+    toast,
+  ]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  const attendanceFilterConfig = useMemo<ListFilterConfig>(
+    () => ({
+      showDateRange: true,
+      categoryLabel: t("listFilters.source"),
+      categoryOptions: [
+        { value: "mobile", label: "Mobile" },
+        { value: "web", label: "Web" },
+        { value: "desktop", label: "Desktop" },
+      ],
+    }),
+    [t]
+  );
+
+  const leaveFilterConfig = useMemo<ListFilterConfig>(
+    () => ({
+      showDateRange: true,
+      statusOptions: [
+        { value: "Pending", label: "Pending" },
+        { value: "Approved", label: "Approved" },
+        { value: "Rejected", label: "Rejected" },
+      ],
+    }),
+    []
+  );
+
+  const filteredAttendance = useMemo(
+    () =>
+      applyStaffListFilters(attendance, attendanceFilters, {
+        searchText: (a) => `${a.date} ${a.employee_name ?? ""} ${a.source}`,
+        date: (a) => a.date,
+        category: (a) => a.source,
+      }),
+    [attendance, attendanceFilters]
+  );
+
+  const filteredLeave = useMemo(
+    () =>
+      applyStaffListFilters(leave, leaveFilters, {
+        searchText: (l) =>
+          `${l.employee_name ?? ""} ${l.type} ${l.status} ${l.reason ?? ""}`,
+        date: (l) => l.start_date,
+        status: (l) => l.status,
+      }),
+    [leave, leaveFilters]
+  );
 
   useEffect(() => {
     if (tab === "payroll" && !canSeePayroll) setTab("employees");
@@ -402,10 +480,13 @@ export default function HrPage() {
       {tab === "attendance" ? (
         <DataTable
           maxHeight="28rem"
-          searchable
-          searchPlaceholder="Search attendance…"
-          getSearchText={(a) =>
-            `${a.date} ${a.employee_name ?? ""} ${a.source}`
+          filters={
+            <ListToolbar
+              value={attendanceFilters}
+              onChange={setAttendanceFilters}
+              config={attendanceFilterConfig}
+              searchPlaceholder="Search attendance…"
+            />
           }
           columns={[
             { id: "date", header: "Date", cell: (a) => a.date },
@@ -428,7 +509,7 @@ export default function HrPage() {
             },
             { id: "source", header: "Source", cell: (a) => a.source },
           ]}
-          data={attendance}
+          data={filteredAttendance}
           rowKey={(a) => a.id}
           emptyTitle="No attendance yet"
           emptyBody="Staff clock in from the mobile ESS."
@@ -437,12 +518,18 @@ export default function HrPage() {
 
       {tab === "leave" ? (
         <div className="space-y-3">
-          {leave.length === 0 ? (
+          <ListToolbar
+            value={leaveFilters}
+            onChange={setLeaveFilters}
+            config={leaveFilterConfig}
+            searchPlaceholder="Search leave…"
+          />
+          {filteredLeave.length === 0 ? (
             <SurfaceCard>
               <EmptyState title="No leave requests" />
             </SurfaceCard>
           ) : (
-            leave.map((l) => (
+            filteredLeave.map((l) => (
               <SurfaceCard
                 key={l.id}
                 className="flex flex-wrap items-center justify-between gap-3 p-4 text-sm"

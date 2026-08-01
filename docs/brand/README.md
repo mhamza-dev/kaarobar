@@ -6,7 +6,7 @@ Canonical modular “K” logo (connectivity / multi-branch). Geometry is the pr
 |------|-----|
 | `kaarobar-icon.svg` | App icon / favicon (white mark on `#2d6df6`) |
 | `kaarobar-mark.svg` | Transparent mark; uses `currentColor` |
-| `kaarobar-icon.png` | Raster for Electron / Expo (regenerate from SVG when tools available) |
+| `kaarobar-icon.png` | Raster for Electron / React Native (regenerate from SVG when tools available) |
 
 Prefer the React `KaarobarLogo` component in web/desktop UI. Mobile uses the PNG/SVG under `assets/brand/`.
 

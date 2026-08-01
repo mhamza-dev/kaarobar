@@ -12,8 +12,8 @@ defmodule Kaarobar.Inventory do
     Kaarobar.Catalog.create_product(business_id, owner_id, attrs)
   end
 
-  def list_products(business_id, owner_id) do
-    Kaarobar.Catalog.list_products(business_id, owner_id)
+  def list_products(business_id, owner_id, opts \\ []) do
+    Kaarobar.Catalog.list_products(business_id, owner_id, opts)
   end
 
   def get_product(product_id, business_id, owner_id) do

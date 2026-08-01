@@ -23,12 +23,13 @@ defmodule KaarobarWeb.V1.MarketplaceController do
 
   def catalog(conn, %{"id" => id}) do
     case Marketplace.catalog(id) do
-      {:ok, %{business: business, branch_id: branch_id, products: products}} ->
+      {:ok, %{business: business, branch_id: branch_id, products: products, staff: staff}} ->
         json(conn, %{
           data: %{
             business: Marketplace.serialize_business(business),
             branch_id: branch_id,
-            products: products
+            products: products,
+            staff: staff
           }
         })
 

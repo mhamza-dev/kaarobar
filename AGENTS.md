@@ -63,7 +63,8 @@ The SRS describes **logical modules**. This repo implements them as:
 | DB | **PostgreSQL 16** (shared DB; tenant by ID) |
 | Jobs | **Oban** (Postgres-backed) |
 | Web | **Next.js** (`kaarobar-web`) |
-| Mobile | **Expo / React Native** (`kaarobar-mobile`) |
+| Mobile (staff) | **React Native CLI** (`kaarobar-mobile`) |
+| Mobile (customer) | **React Native CLI** (`kaarobar-customer`) |
 | Desktop POS | **Electron** + SQLite outbox (`kaarobar-desktop`) |
 
 Do **not** introduce NestJS, MongoDB, or BullMQ. Map SRS modules to Phoenix contexts:
@@ -169,7 +170,8 @@ POS/
 ├── AGENTS.md                 # this file
 ├── kaarobar-BE/              # Phoenix API
 ├── kaarobar-web/             # Next.js
-├── kaarobar-mobile/          # Expo
+├── kaarobar-mobile/          # React Native CLI — staff
+├── kaarobar-customer/        # React Native CLI — consumers
 ├── kaarobar-desktop/         # Electron POS
 ├── docs/srs/KRB-SRS-003.md   # authoritative requirements
 └── docs/requirements-index.md

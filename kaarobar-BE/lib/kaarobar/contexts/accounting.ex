@@ -546,6 +546,23 @@ defmodule Kaarobar.Accounting do
     end
   end
 
+  defp blank_to_nil(nil), do: nil
+  defp blank_to_nil(""), do: nil
+
+  defp blank_to_nil(v) when is_binary(v) do
+    s = String.trim(v)
+    if s == "", do: nil, else: s
+  end
+
+  defp blank_to_nil(v), do: v
+
+  defp escape_like(term) when is_binary(term) do
+    term
+    |> String.replace("\\", "\\\\")
+    |> String.replace("%", "\\%")
+    |> String.replace("_", "\\_")
+  end
+
   ## —— Auto-post (ACC-FR-004) ————————————————————————————————————
 
   def post_sale_journal(sale_id, business_id, owner_id, posted_by_id) do
@@ -1206,6 +1223,64 @@ defmodule Kaarobar.Accounting do
           supplier_name: doc.supplier && doc.supplier.name
         })
     end
+  end
+
+  def list_customers(business_id, owner_id, opts \\ []) do
+    q_term = blank_to_nil(opts[:q])
+    from_at = opts[:from]
+    to_at = opts[:to]
+    portal = opts[:portal_enabled]
+    khata = opts[:khata_enabled]
+
+    query =
+      from(c in Kaarobar.Schemas.Customer,
+        where: c.business_id == ^business_id and c.owner_id == ^owner_id,
+        order_by: [asc: c.name]
+      )
+
+    query =
+      case portal do
+        true -> where(query, [c], c.portal_enabled == true)
+        false -> where(query, [c], c.portal_enabled == false)
+        _ -> query
+      end
+
+    query =
+      case khata do
+        true -> where(query, [c], c.khata_enabled == true)
+        false -> where(query, [c], c.khata_enabled == false)
+        _ -> query
+      end
+
+    query =
+      if match?(%DateTime{}, from_at) do
+        where(query, [c], c.inserted_at >= ^from_at)
+      else
+        query
+      end
+
+    query =
+      if match?(%DateTime{}, to_at) do
+        where(query, [c], c.inserted_at <= ^to_at)
+      else
+        query
+      end
+
+    query =
+      if is_binary(q_term) do
+        like = "%#{escape_like(q_term)}%"
+
+        where(
+          query,
+          [c],
+          ilike(c.name, ^like) or ilike(coalesce(c.phone, ""), ^like) or
+            ilike(coalesce(c.email, ""), ^like) or ilike(coalesce(c.company_name, ""), ^like)
+        )
+      else
+        query
+      end
+
+    Repo.all(query)
   end
 
   def customer_balance(customer_id, business_id, owner_id) do

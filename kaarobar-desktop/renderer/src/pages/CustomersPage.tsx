@@ -1,11 +1,12 @@
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
+import ListToolbar from "@/components/app/ListToolbar";
 import {
   EmptyState,
   Field,
@@ -25,6 +26,12 @@ import {
   customerToForm,
   emptyCustomerForm,
 } from "@/lib/customers";
+import {
+  applyStaffListFilters,
+  emptyStaffListFilters,
+  type ListFilterConfig,
+  type StaffListFilterState,
+} from "@/lib/listFilters";
 
 type LedgerEntry = {
   kind: string;
@@ -40,6 +47,7 @@ export default function CustomersPage() {
   const toast = useToast();
   const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [filters, setFilters] = useState<StaffListFilterState>(emptyStaffListFilters());
   const [busy, setBusy] = useState(false);
   const [modal, setModal] = useState<"create" | "edit" | "loyalty" | null>(null);
   const [editing, setEditing] = useState<Customer | null>(null);
@@ -64,6 +72,26 @@ export default function CustomersPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const filterConfig = useMemo<ListFilterConfig>(
+    () => ({
+      showDateRange: false,
+      statusOptions: [
+        { value: "khata_on", label: t("listFilters.khataOn") },
+        { value: "khata_off", label: t("listFilters.khataOff") },
+      ],
+    }),
+    [t]
+  );
+
+  const filteredCustomers = useMemo(
+    () =>
+      applyStaffListFilters(customers, filters, {
+        searchText: customerSearchText,
+        status: (c) => (c.khata_enabled ? "khata_on" : "khata_off"),
+      }),
+    [customers, filters]
+  );
 
   function openCreate() {
     setEditing(null);
@@ -219,9 +247,14 @@ export default function CustomersPage() {
 
       <DataTable
         maxHeight="28rem"
-        searchable
-        searchPlaceholder={t("customers.search")}
-        getSearchText={customerSearchText}
+        filters={
+          <ListToolbar
+            value={filters}
+            onChange={setFilters}
+            config={filterConfig}
+            searchPlaceholder={t("customers.search")}
+          />
+        }
         columns={[
           {
             id: "name",
@@ -288,7 +321,7 @@ export default function CustomersPage() {
             ),
           },
         ]}
-        data={customers}
+        data={filteredCustomers}
         rowKey={(c) => c.id}
         onRowClick={(c) => navigate(detailRoutes.customer(c.id))}
         emptyTitle={t("customers.emptyTitle")}

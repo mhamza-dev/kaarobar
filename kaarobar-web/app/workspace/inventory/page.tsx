@@ -8,11 +8,7 @@ import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
-import ListingFilters, {
-  applyListingFilters,
-  emptyListingFilters,
-  type ListingFilterState,
-} from "@/components/app/ListingFilters";
+import ListToolbar from "@/components/app/ListToolbar";
 import {
   Field,
   PageHeader,
@@ -23,6 +19,12 @@ import {
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { detailRoutes } from "@/lib/navigation";
+import {
+  applyStaffListFilters,
+  emptyStaffListFilters,
+  type ListFilterConfig,
+  type StaffListFilterState,
+} from "@/lib/listFilters";
 
 type Tab = "stock" | "products" | "suppliers" | "pos" | "transfers" | "adjust";
 type ModalKind = "product" | "supplier" | "po" | null;
@@ -170,8 +172,8 @@ export default function InventoryPage() {
   const [productForm, setProductForm] = useState(emptyProductForm);
   const [productImage, setProductImage] = useState<File | null>(null);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
-  const [productFilters, setProductFilters] = useState<ListingFilterState>(
-    emptyListingFilters()
+  const [productFilters, setProductFilters] = useState<StaffListFilterState>(
+    emptyStaffListFilters()
   );
   const [supplierForm, setSupplierForm] = useState(emptySupplierForm);
   const [poForm, setPoForm] = useState({
@@ -555,13 +557,26 @@ export default function InventoryPage() {
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [products, categories]);
 
+  const productFilterConfig = useMemo<ListFilterConfig>(
+    () => ({
+      showDateRange: false,
+      categoryLabel: t("listFilters.categories"),
+      categoryOptions: productCategoryOptions,
+      statusOptions: [
+        { value: "goods", label: "Goods" },
+        { value: "service", label: "Service" },
+      ],
+    }),
+    [productCategoryOptions, t]
+  );
+
   const filteredProducts = useMemo(
     () =>
-      applyListingFilters(products, productFilters, {
+      applyStaffListFilters(products, productFilters, {
         searchText: (p) =>
           `${p.sku} ${p.name} ${p.barcode ?? ""} ${p.brand ?? ""} ${p.category ?? ""}`,
         category: (p) => p.category || "",
-        price: (p) => Number(p.price || 0),
+        status: (p) => p.product_kind || "goods",
       }),
     [products, productFilters]
   );
@@ -627,10 +642,10 @@ export default function InventoryPage() {
         <DataTable
           maxHeight="28rem"
           filters={
-            <ListingFilters
+            <ListToolbar
               value={productFilters}
               onChange={setProductFilters}
-              categoryOptions={productCategoryOptions}
+              config={productFilterConfig}
               searchPlaceholder="Search products by name, SKU, barcode…"
             />
           }

@@ -1,29 +1,38 @@
 defmodule KaarobarWeb.V1.ArApController do
   use KaarobarWeb, :controller
 
-  import Ecto.Query
-
   alias Kaarobar.Accounting
   alias Kaarobar.Guardian
   alias Kaarobar.Profiles
   alias Kaarobar.Repo
   alias Kaarobar.Schemas.Customer
+  alias KaarobarWeb.Controllers.Helpers.ListFilters
 
-  def list_customers(conn, _params) do
+  def list_customers(conn, params) do
     business_id = conn.assigns[:business_id]
     owner_id = conn.assigns[:owner_id]
 
+    opts =
+      ListFilters.parse(params, [:q, :from, :to, :portal_enabled, :khata_enabled, :status])
+      |> maybe_customer_status()
+
     data =
-      Customer
-      |> where([c], c.business_id == ^business_id and c.owner_id == ^owner_id)
-      |> order_by([c], asc: c.name)
-      |> Repo.all()
+      Accounting.list_customers(business_id, owner_id, opts)
       |> Enum.map(fn c ->
         balance = Accounting.customer_balance(c.id, business_id, owner_id)
         Map.merge(serialize_customer(c), %{balance: to_string(balance)})
       end)
 
     json(conn, %{data: data})
+  end
+
+  defp maybe_customer_status(opts) do
+    case Keyword.get(opts, :status) do
+      "portal" -> Keyword.put(Keyword.delete(opts, :status), :portal_enabled, true)
+      "khata" -> Keyword.put(Keyword.delete(opts, :status), :khata_enabled, true)
+      "active" -> Keyword.delete(opts, :status)
+      _ -> Keyword.delete(opts, :status)
+    end
   end
 
   def create_customer(conn, params) do

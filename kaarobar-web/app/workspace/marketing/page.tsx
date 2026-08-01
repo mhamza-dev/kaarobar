@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api/client";
@@ -8,10 +8,17 @@ import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
+import ListToolbar from "@/components/app/ListToolbar";
 import { Field, PageHeader, SurfaceCard, TabBar, fieldClass } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { detailRoutes } from "@/lib/navigation";
+import {
+  applyStaffListFilters,
+  emptyStaffListFilters,
+  type ListFilterConfig,
+  type StaffListFilterState,
+} from "@/lib/listFilters";
 
 type Campaign = {
   id: string;
@@ -97,6 +104,9 @@ export default function MarketingPage() {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("campaigns");
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [campaignFilters, setCampaignFilters] = useState<StaffListFilterState>(
+    emptyStaffListFilters()
+  );
   const [templates, setTemplates] = useState<MsgTemplate[]>([]);
   const [segments, setSegments] = useState<Segment[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -439,6 +449,34 @@ export default function MarketingPage() {
     { id: "tiers", label: "Loyalty tiers", infoKey: "tab.marketing.tiers" },
   ];
 
+  const campaignFilterConfig = useMemo<ListFilterConfig>(
+    () => ({
+      showDateRange: false,
+      statusOptions: [
+        { value: "Draft", label: t("marketing.statusDraft") },
+        { value: "Sent", label: t("marketing.statusSent") },
+      ],
+      categoryLabel: "Channel",
+      categoryOptions: [
+        { value: "email", label: "Email" },
+        { value: "sms", label: "SMS" },
+        { value: "whatsapp", label: "WhatsApp" },
+        { value: "push", label: "Push" },
+      ],
+    }),
+    [t]
+  );
+
+  const filteredCampaigns = useMemo(
+    () =>
+      applyStaffListFilters(campaigns, campaignFilters, {
+        searchText: (c) => `${c.name} ${c.title} ${c.status} ${c.channel || ""}`,
+        status: (c) => c.status,
+        category: (c) => c.channel || "email",
+      }),
+    [campaigns, campaignFilters]
+  );
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -478,9 +516,14 @@ export default function MarketingPage() {
 
           <DataTable
             maxHeight="24rem"
-            searchable
-            searchPlaceholder={t("marketing.search")}
-            getSearchText={(c) => `${c.name} ${c.title} ${c.status} ${c.channel || ""}`}
+            filters={
+              <ListToolbar
+                value={campaignFilters}
+                onChange={setCampaignFilters}
+                config={campaignFilterConfig}
+                searchPlaceholder={t("marketing.search")}
+              />
+            }
             onRowClick={(c) => router.push(detailRoutes.campaign(c.id))}
             columns={[
               {
@@ -549,7 +592,7 @@ export default function MarketingPage() {
                 ),
               },
             ]}
-            data={campaigns}
+            data={filteredCampaigns}
             rowKey={(c) => c.id}
             emptyTitle={t("marketing.emptyTitle")}
             emptyBody={t("marketing.emptyBody")}

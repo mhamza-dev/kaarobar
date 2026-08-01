@@ -110,7 +110,8 @@ defmodule KaarobarWeb.V1.BusinessController do
       tagline: b.tagline,
       logo_url: Kaarobar.Profiles.logo_url(b),
       primary_color: b.primary_color,
-      marketplace_description: b.marketplace_description
+      marketplace_description: b.marketplace_description,
+      appointments_enabled: Kaarobar.Appointments.appointments_enabled?(b)
     }
   end
 

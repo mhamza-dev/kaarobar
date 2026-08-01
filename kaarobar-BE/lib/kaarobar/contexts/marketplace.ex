@@ -6,7 +6,7 @@ defmodule Kaarobar.Marketplace do
   import Ecto.Query
 
   alias Kaarobar.{Catalog, CustomerPortal, Pos, Repo}
-  alias Kaarobar.Schemas.{Branch, Business, Product}
+  alias Kaarobar.Schemas.{Branch, Business, Employee, Product}
 
   def list_businesses(opts \\ []) do
     q = opts[:q]
@@ -64,7 +64,21 @@ defmodule Kaarobar.Marketplace do
         |> Repo.all()
         |> Enum.map(&Catalog.serialize_product(&1, branch_id))
 
-      {:ok, %{business: business, branch_id: branch_id, products: products}}
+      staff =
+        if Kaarobar.Appointments.appointments_enabled?(business) do
+          from(e in Employee,
+            where:
+              e.business_id == ^business.id and e.owner_id == ^business.owner_id and
+                e.status == "active",
+            order_by: [asc: e.name],
+            select: %{id: e.id, name: e.name}
+          )
+          |> Repo.all()
+        else
+          []
+        end
+
+      {:ok, %{business: business, branch_id: branch_id, products: products, staff: staff}}
     end
   end
 
@@ -182,7 +196,10 @@ defmodule Kaarobar.Marketplace do
       marketplace_description: b.marketplace_description,
       loyalty_earn_per_amount: to_string(b.loyalty_earn_per_amount || 100),
       loyalty_points_per_earn: b.loyalty_points_per_earn || 1,
-      loyalty_redeem_value: to_string(b.loyalty_redeem_value || 1)
+      loyalty_redeem_value: to_string(b.loyalty_redeem_value || 1),
+      appointments_enabled: Kaarobar.Appointments.appointments_enabled?(b),
+      commerce_mode:
+        if(Kaarobar.Appointments.appointments_enabled?(b), do: "appointments", else: "orders")
     }
   end
 

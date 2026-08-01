@@ -15,7 +15,7 @@ Publisher: **2ndHub Solutions**. Product family: **Kaarobar** — **Cloud** (sub
 | TEN-FR | Tenancy, Identity & Access | §5.1 | Must; industry presets; `marketing` role |
 | POS-FR | POS & Sales | §5.2 | Must incl. khata + loyalty points; coupons Should |
 | INV-FR | Inventory & Procurement | §5.3 | Must; recipes Should |
-| SCH-FR | Scheduling & Appointments | §5.4 | **All Should** (Phase B) |
+| SCH-FR | Scheduling & Appointments | §5.4 | **Should** (Phase B); backend promoted for salon — see [`docs/appointments.md`](appointments.md) |
 | ACC-FR | Accounting & Finance | §5.5 | Must; FBR production adapter Should |
 | HR-FR | HR & Payroll | §5.6 | Must; ESS + employee portal login |
 | RPT-FR | Reporting & Analytics | §5.7 | Must core; BI Should |
@@ -48,7 +48,7 @@ Approximately **~100 Must** functional requirements for the honest production ba
 
 **Phase A remaining (Should — implemented in code, not Must until Product promotes):** Customer Portal (`CUS-FR`, booking deferred), coupons, loyalty tiers, consent, named segments, SMS/WhatsApp adapters, role-home polish. See [`docs/crm.md`](crm.md).
 
-Portal / Helpdesk / Public API / appointments remain Should until Product promotes; Helpdesk / Public API / appointments are still Phase B.
+Portal / Helpdesk / Public API remain Should until Product promotes. Appointments backend is Should but implemented for salon (`docs/appointments.md`); Helpdesk / Public API are still Phase B.
 
 ## Key Must examples (shipped or accepted Partial)
 

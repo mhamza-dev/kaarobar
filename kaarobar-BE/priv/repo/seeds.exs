@@ -10,6 +10,7 @@ alias Kaarobar.{
 }
 
 alias Kaarobar.Schemas.{
+  Appointment,
   AttendanceRecord,
   CampaignPayment,
   CampaignSegment,
@@ -2719,6 +2720,7 @@ seed_crm_and_finance = fn owner, business, branches, products ->
         marketplace_enabled: true,
         online_branch_id: branch && branch.id,
         messaging_wallet_balance: Decimal.new("500.00"),
+        appointments_enabled: business.industry == "salon",
         marketplace_slug:
           business.name
           |> String.downcase()
@@ -3160,13 +3162,103 @@ seed_crm_and_finance = fn owner, business, branches, products ->
   :ok
 end
 
+seed_salon_appointments = fn owner, business, branches, products, employees ->
+  if business.industry != "salon" or branches == [] or products == [] or employees == [] do
+    :ok
+  else
+    business =
+      business
+      |> change(%{appointments_enabled: true})
+      |> Repo.update!()
+
+    branch = List.first(branches)
+
+    services =
+      Enum.filter(products, &(&1.product_kind in ["service", "combo"] and &1.is_active != false))
+
+    staff = Enum.take(employees, 3)
+    customers = from(c in Customer, where: c.business_id == ^business.id, limit: 5) |> Repo.all()
+
+    if services == [] or staff == [] do
+      :ok
+    else
+      existing =
+        from(a in Appointment, where: a.business_id == ^business.id, select: count(a.id))
+        |> Repo.one()
+
+      if existing > 0 do
+        :ok
+      else
+        today = Date.utc_today()
+
+        attrs =
+          for day_offset <- 0..4,
+              {staff_member, s_idx} <- Enum.with_index(staff),
+              slot <- 0..1 do
+            service = Enum.at(services, rem(day_offset + s_idx + slot, length(services)))
+            duration = service.duration_minutes || 30
+            hour = 10 + slot * 2 + s_idx
+            date = Date.add(today, day_offset)
+            starts = DateTime.new!(date, Time.new!(hour, 0, 0), "Etc/UTC")
+            ends = DateTime.add(starts, duration * 60, :second)
+            customer = if customers != [], do: Enum.at(customers, rem(day_offset + slot, length(customers)))
+
+            status =
+              cond do
+                day_offset == 0 and slot == 0 -> "CheckedIn"
+                day_offset < 0 -> "Completed"
+                true -> "Booked"
+              end
+
+            %{
+              owner_id: owner.id,
+              business_id: business.id,
+              branch_id: branch.id,
+              product_id: service.id,
+              staff_id: staff_member.id,
+              customer_id: customer && customer.id,
+              starts_at: starts,
+              ends_at: ends,
+              status: status,
+              booked_by: if(customer, do: "customer", else: "staff"),
+              notes: "Demo appointment",
+              inserted_at: seed_now,
+              updated_at: seed_now
+            }
+          end
+
+        # Avoid soft conflicts within the seed set (same staff overlapping)
+        deduped =
+          attrs
+          |> Enum.reduce([], fn row, acc ->
+            conflict? =
+              Enum.any?(acc, fn prev ->
+                prev.staff_id == row.staff_id and
+                  DateTime.compare(prev.starts_at, row.ends_at) == :lt and
+                  DateTime.compare(prev.ends_at, row.starts_at) == :gt
+              end)
+
+            if conflict?, do: acc, else: [row | acc]
+          end)
+          |> Enum.reverse()
+
+        _ = bulk_insert!.(Appointment, deduped, [])
+        IO.puts("    · seeded #{length(deduped)} appointments for #{business.name}")
+        :ok
+      end
+    end
+  end
+end
+
 Enum.each(owner_summaries, fn %{owner: owner, email: email, businesses: businesses} ->
   if email == "owner@kaarobar.local" do
     # Enrich every industry vertical for the primary owner
     Enum.each(businesses, fn
-      %{business: business, branches: branches, products: products} when branches != [] ->
+      %{business: business, branches: branches, products: products, employees: employees}
+      when branches != [] ->
         seed_crm_and_finance.(owner, business, branches, products)
-        IO.puts("  + enriched #{business.name} (CRM / AR-AP / PO / portal)")
+        seed_salon_appointments.(owner, business, branches, products, employees)
+        IO.puts("  + enriched #{business.name} (CRM / AR-AP / PO / portal / appointments)")
 
       _ ->
         :ok

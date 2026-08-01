@@ -13,6 +13,7 @@ import {
   Alert,
   EmptyState,
   PageHeader,
+  TabBar,
 } from "@/components/app/ui";
 import {
   applyListingFilters,
@@ -20,6 +21,7 @@ import {
   type ListingFilterState,
 } from "@/components/app/ListingFilters";
 import { BrandThemeScope } from "@/components/app/BrandTheme";
+import BuyerBookFlow from "@/components/buyer/BuyerBookFlow";
 import { BuyerProductGridSkeleton } from "@/components/buyer/BuyerSkeletons";
 import { useT } from "@/lib/i18n";
 
@@ -32,7 +34,11 @@ type Product = {
   description?: string | null;
   category?: string | null;
   category_ref?: { id: string; name: string; slug?: string } | null;
+  product_kind?: string | null;
+  duration_minutes?: number | null;
 };
+
+type StaffMember = { id: string; name: string };
 
 type StoreBiz = {
   id: string;
@@ -42,7 +48,16 @@ type StoreBiz = {
   primary_color?: string | null;
   marketplace_description?: string | null;
   industry?: string | null;
+  appointments_enabled?: boolean;
+  commerce_mode?: "appointments" | "orders" | string | null;
+  online_branch_id?: string | null;
 };
+
+type Mode = "shop" | "book";
+
+function isServiceProduct(p: Product): boolean {
+  return p.product_kind === "service" || p.product_kind === "combo";
+}
 
 function productCategory(p: Product): string {
   return p.category_ref?.name || p.category || "Uncategorized";
@@ -62,6 +77,8 @@ export default function MarketplaceStorePage() {
   const id = params.id;
   const [business, setBusiness] = useState<StoreBiz | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [branchId, setBranchId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<ListingFilterState>(emptyListingFilters());
@@ -69,6 +86,7 @@ export default function MarketplaceStorePage() {
   const [qty, setQty] = useState(1);
   const [adding, setAdding] = useState(false);
   const [quickAddingId, setQuickAddingId] = useState<string | null>(null);
+  const [mode, setMode] = useState<Mode>("shop");
   const signedIn = isConsumerSession();
 
   useEffect(() => {
@@ -77,16 +95,38 @@ export default function MarketplaceStorePage() {
       data: {
         business: StoreBiz;
         products: Product[];
+        staff?: StaffMember[];
+        branch_id?: string;
       };
     }>(`/marketplace/businesses/${id}/catalog`, {}, null)
       .then((res) => {
-        setBusiness(res.data.business);
-        setProducts(res.data.products || []);
+        const biz = res.data.business;
+        const list = res.data.products || [];
+        setBusiness(biz);
+        setProducts(list);
+        setStaff(res.data.staff || []);
+        setBranchId(res.data.branch_id || biz.online_branch_id || null);
+        const services = list.filter(isServiceProduct);
+        const goods = list.filter((p) => !isServiceProduct(p));
+        const canBook = !!biz.appointments_enabled && services.length > 0;
+        const canShop = goods.length > 0 || (!canBook && list.length > 0);
+        if (canBook && !canShop) setMode("book");
+        else if (canShop) setMode("shop");
         setError(null);
       })
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load store"))
       .finally(() => setLoading(false));
   }, [id]);
+
+  const services = useMemo(() => products.filter(isServiceProduct), [products]);
+  const goods = useMemo(() => products.filter((p) => !isServiceProduct(p)), [products]);
+  const canBook = !!business?.appointments_enabled && services.length > 0;
+  const canShop = goods.length > 0 || (!canBook && products.length > 0);
+  const showModeTabs = canBook && goods.length > 0;
+  const shopProducts = useMemo(() => {
+    if (canBook && goods.length > 0) return goods;
+    return products;
+  }, [canBook, goods, products]);
 
   useEffect(() => {
     setQty(1);
@@ -94,19 +134,19 @@ export default function MarketplaceStorePage() {
 
   const categoryOptions = useMemo(() => {
     const set = new Set<string>();
-    for (const p of products) set.add(productCategory(p));
+    for (const p of shopProducts) set.add(productCategory(p));
     return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [products]);
+  }, [shopProducts]);
 
   const filtered = useMemo(
     () =>
-      applyListingFilters(products, filters, {
+      applyListingFilters(shopProducts, filters, {
         searchText: (p) =>
           [p.name, p.sku, p.description, productCategory(p)].filter(Boolean).join(" "),
         category: productCategory,
         price: (p) => Number(p.price || 0),
       }),
-    [products, filters]
+    [shopProducts, filters]
   );
 
   const filtersActive =
@@ -230,8 +270,14 @@ export default function MarketplaceStorePage() {
                 <PageHeader
                   eyebrow={business?.industry || t("marketplace.eyebrow")}
                   title={business?.name || t("pages.catalogTitle")}
-                  description={business?.tagline || t("pages.catalogDesc")}
-                  infoKey="page.market.catalog"
+                  description={
+                    canBook && !canShop
+                      ? t("pages.catalogBookDesc")
+                      : business?.tagline || t("pages.catalogDesc")
+                  }
+                  infoKey={
+                    mode === "book" ? "page.market.book" : "page.market.catalog"
+                  }
                 />
                 {business?.marketplace_description ? (
                   <p className="mt-2 max-w-2xl text-sm leading-relaxed text-body">
@@ -239,7 +285,7 @@ export default function MarketplaceStorePage() {
                   </p>
                 ) : null}
               </div>
-              {storeCartCount > 0 ? (
+              {mode === "shop" && storeCartCount > 0 ? (
                 <Link href="/app/checkout">
                   <Button
                     className="gap-2 rounded-md px-5 py-2.5"
@@ -256,7 +302,39 @@ export default function MarketplaceStorePage() {
 
       {error ? <Alert tone="error">{error}</Alert> : null}
 
-      {!loading && products.length > 0 ? (
+      {!loading && showModeTabs ? (
+        <TabBar
+          aria-label={t("appointments.modeTabs")}
+          tabs={[
+            {
+              id: "shop" as const,
+              label: t("appointments.modeShop"),
+              infoKey: "tab.market.shop",
+            },
+            {
+              id: "book" as const,
+              label: t("appointments.modeBook"),
+              infoKey: "tab.market.book",
+            },
+          ]}
+          value={mode}
+          onChange={setMode}
+        />
+      ) : null}
+
+      {loading ? (
+        <BuyerProductGridSkeleton />
+      ) : mode === "book" && canBook ? (
+          <BuyerBookFlow
+            businessId={business!.id}
+            branchId={branchId}
+            services={services}
+            staff={staff}
+            accent={accent}
+          />
+      ) : mode === "shop" && canShop ? (
+        <>
+      {shopProducts.length > 0 ? (
         <div className="space-y-3">
           <div className="relative">
             <Search className="pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
@@ -315,9 +393,7 @@ export default function MarketplaceStorePage() {
         </div>
       ) : null}
 
-      {loading ? (
-        <BuyerProductGridSkeleton />
-      ) : products.length === 0 ? (
+      {shopProducts.length === 0 ? (
         <EmptyState
           title={t("marketplace.emptyCatalogTitle")}
           body={t("marketplace.emptyCatalogBody")}
@@ -501,6 +577,22 @@ export default function MarketplaceStorePage() {
           </div>
         ) : null}
       </Modal>
+        </>
+      ) : null}
+
+      {!loading && !canShop && !canBook ? (
+        <EmptyState
+          title={t("marketplace.emptyCatalogTitle")}
+          body={t("marketplace.emptyCatalogBody")}
+          action={
+            <Link href="/app">
+              <Button variant="secondary" className="rounded-md">
+                {t("marketplace.browseStores")}
+              </Button>
+            </Link>
+          }
+        />
+      ) : null}
     </BrandThemeScope>
   );
 }

@@ -1425,6 +1425,10 @@ defmodule Kaarobar.Pos do
 
   def list_sales(branch_id, owner_id, business_id, opts \\ []) do
     source = opts[:source]
+    status = blank_to_nil(opts[:status])
+    q_term = blank_to_nil(opts[:q])
+    from_at = opts[:from]
+    to_at = opts[:to]
 
     query =
       Sale
@@ -1442,6 +1446,42 @@ defmodule Kaarobar.Pos do
       |> then(fn q ->
         if is_binary(source) and source in ~w(pos online) do
           where(q, [s], s.source == ^source)
+        else
+          q
+        end
+      end)
+      |> then(fn q ->
+        if is_binary(status) and status != "" do
+          where(q, [s], s.status == ^status)
+        else
+          q
+        end
+      end)
+      |> then(fn q ->
+        if match?(%DateTime{}, from_at) do
+          where(q, [s], s.inserted_at >= ^from_at)
+        else
+          q
+        end
+      end)
+      |> then(fn q ->
+        if match?(%DateTime{}, to_at) do
+          where(q, [s], s.inserted_at <= ^to_at)
+        else
+          q
+        end
+      end)
+      |> then(fn q ->
+        if is_binary(q_term) do
+          like = "%#{escape_like(q_term)}%"
+
+          q
+          |> join(:left, [s], c in assoc(s, :customer), as: :customer)
+          |> where(
+            [s, customer: c],
+            ilike(s.invoice_number, ^like) or ilike(coalesce(s.notes, ""), ^like) or
+              ilike(coalesce(c.name, ""), ^like) or ilike(coalesce(c.phone, ""), ^like)
+          )
         else
           q
         end
@@ -1565,5 +1605,22 @@ defmodule Kaarobar.Pos do
 
   defp max_dec(a, b) do
     if Decimal.compare(a, b) == :lt, do: b, else: a
+  end
+
+  defp blank_to_nil(nil), do: nil
+  defp blank_to_nil(""), do: nil
+
+  defp blank_to_nil(v) when is_binary(v) do
+    s = String.trim(v)
+    if s == "", do: nil, else: s
+  end
+
+  defp blank_to_nil(v), do: v
+
+  defp escape_like(term) when is_binary(term) do
+    term
+    |> String.replace("\\", "\\\\")
+    |> String.replace("%", "\\%")
+    |> String.replace("_", "\\_")
   end
 end

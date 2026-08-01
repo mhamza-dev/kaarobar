@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, getSession } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
+import ListToolbar from "@/components/app/ListToolbar";
 import {
   Field,
   PageHeader,
@@ -15,6 +16,12 @@ import {
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { detailRoutes } from "@/lib/navigation";
+import {
+  applyStaffListFilters,
+  emptyStaffListFilters,
+  type ListFilterConfig,
+  type StaffListFilterState,
+} from "@/lib/listFilters";
 
 type Tab = "stock" | "products" | "suppliers" | "pos" | "transfers" | "adjust";
 type ModalKind = "product" | "supplier" | "po" | null;
@@ -162,6 +169,9 @@ export default function InventoryPage() {
   const [productForm, setProductForm] = useState(emptyProductForm);
   const [productImage, setProductImage] = useState<File | null>(null);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [productFilters, setProductFilters] = useState<StaffListFilterState>(
+    emptyStaffListFilters()
+  );
   const [supplierForm, setSupplierForm] = useState(emptySupplierForm);
   const [poForm, setPoForm] = useState({
     supplier_id: "",
@@ -533,6 +543,42 @@ export default function InventoryPage() {
           ? { label: t("inventory.newPo"), onClick: () => setModal("po") }
           : undefined;
 
+  const productCategoryOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const prod of products) {
+      if (prod.category?.trim()) set.add(prod.category.trim());
+    }
+    for (const c of categories) {
+      if (c.name?.trim()) set.add(c.name.trim());
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [products, categories]);
+
+  const productFilterConfig = useMemo<ListFilterConfig>(
+    () => ({
+      showDateRange: false,
+      categoryLabel: t("listFilters.categories"),
+      categoryOptions: productCategoryOptions,
+      statusOptions: [
+        { value: "goods", label: "Goods" },
+        { value: "service", label: "Service" },
+      ],
+    }),
+    [productCategoryOptions, t]
+  );
+
+  const filteredProducts = useMemo(
+    () =>
+      applyStaffListFilters(products, productFilters, {
+        searchText: (prod) =>
+          `${prod.sku} ${prod.name} ${prod.barcode ?? ""} ${prod.brand ?? ""} ${prod.category ?? ""}`,
+        category: (prod) => prod.category || "",
+        status: (prod) => prod.product_kind || "goods",
+      }),
+    [products, productFilters]
+  );
+
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -593,10 +639,13 @@ export default function InventoryPage() {
       {tab === "products" ? (
         <DataTable
           maxHeight="28rem"
-          searchable
-          searchPlaceholder="Search products by name, SKU, barcode…"
-          getSearchText={(p) =>
-            `${p.sku} ${p.name} ${p.barcode ?? ""} ${p.brand ?? ""} ${p.product_kind ?? ""}`
+          filters={
+            <ListToolbar
+              value={productFilters}
+              onChange={setProductFilters}
+              config={productFilterConfig}
+              searchPlaceholder="Search products by name, SKU, barcode…"
+            />
           }
           onRowClick={openEditProduct}
           columns={[
@@ -686,7 +735,7 @@ export default function InventoryPage() {
               ),
             },
           ]}
-          data={products}
+          data={filteredProducts}
           rowKey={(p) => p.id}
           emptyTitle="No products"
           emptyBody="Create a product to start stocking inventory."

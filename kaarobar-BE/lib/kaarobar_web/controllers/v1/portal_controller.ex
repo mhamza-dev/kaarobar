@@ -1,6 +1,8 @@
 defmodule KaarobarWeb.V1.PortalController do
   use KaarobarWeb, :controller
 
+  import Ecto.Query
+
   alias Kaarobar.CustomerPortal
   alias Kaarobar.Profiles
   alias Kaarobar.Repo
@@ -137,9 +139,159 @@ defmodule KaarobarWeb.V1.PortalController do
     end
   end
 
-  def bookings(conn, _params) do
-    json(conn, %{data: %{available: false, message: "booking_unavailable"}})
+  def bookings(conn, params) do
+    account = conn.assigns.portal_account
+    business_id = params["business_id"]
+
+    membership_ids =
+      CustomerPortal.list_memberships(account)
+      |> then(fn list ->
+        if is_binary(business_id) and business_id != "" do
+          Enum.filter(list, &(&1.business_id == business_id))
+        else
+          list
+        end
+      end)
+      |> Enum.map(& &1.id)
+
+    data =
+      if membership_ids == [] do
+        []
+      else
+        from(a in Kaarobar.Schemas.Appointment,
+          where: a.customer_id in ^membership_ids,
+          order_by: [asc: a.starts_at],
+          preload: [:product, :staff, :branch, :business]
+        )
+        |> Kaarobar.Repo.all()
+        |> Enum.map(&Kaarobar.Appointments.serialize/1)
+      end
+
+    json(conn, %{data: data, meta: %{available: true}})
   end
+
+  def book_appointment(conn, params) do
+    account = conn.assigns.portal_account
+    business_id = params["business_id"]
+
+    with true <- is_binary(business_id) and business_id != "",
+         {:ok, membership} <- CustomerPortal.resolve_membership(account, business_id),
+         %Kaarobar.Schemas.Business{} = business <- Repo.get(Kaarobar.Schemas.Business, business_id),
+         true <- Kaarobar.Appointments.appointments_enabled?(business) do
+      branch_id = params["branch_id"] || business.online_branch_id
+
+      attrs =
+        params
+        |> Map.put("customer_id", membership.id)
+        |> Map.put("booked_by", "customer")
+        |> Map.put("branch_id", branch_id)
+
+      case Kaarobar.Appointments.book(business.id, business.owner_id, attrs) do
+        {:ok, appt} ->
+          conn |> put_status(:created) |> json(%{data: Kaarobar.Appointments.serialize(appt)})
+
+        {:error, reason} ->
+          portal_appt_error(conn, reason)
+      end
+    else
+      false ->
+        cond do
+          not (is_binary(business_id) and business_id != "") ->
+            conn |> put_status(:bad_request) |> json(%{error: "business_required"})
+
+          true ->
+            conn |> put_status(:forbidden) |> json(%{error: "appointments_disabled"})
+        end
+
+      {:error, reason} ->
+        portal_appt_error(conn, reason)
+
+      nil ->
+        conn |> put_status(:not_found) |> json(%{error: "business_not_found"})
+    end
+  end
+
+  def appointment_slots(conn, params) do
+    account = conn.assigns.portal_account
+    business_id = params["business_id"]
+
+    with true <- is_binary(business_id) and business_id != "",
+         {:ok, _membership} <- CustomerPortal.resolve_membership(account, business_id),
+         %Kaarobar.Schemas.Business{} = business <- Repo.get(Kaarobar.Schemas.Business, business_id),
+         true <- Kaarobar.Appointments.appointments_enabled?(business) do
+      params = Map.put_new(params, "branch_id", business.online_branch_id)
+
+      case Kaarobar.Appointments.list_slots(business.id, business.owner_id, params) do
+        {:ok, slots} ->
+          json(conn, %{data: slots})
+
+        {:error, reason} ->
+          portal_appt_error(conn, reason)
+      end
+    else
+      false ->
+        cond do
+          not (is_binary(business_id) and business_id != "") ->
+            conn |> put_status(:bad_request) |> json(%{error: "business_required"})
+
+          true ->
+            conn |> put_status(:forbidden) |> json(%{error: "appointments_disabled"})
+        end
+
+      {:error, reason} ->
+        portal_appt_error(conn, reason)
+
+      nil ->
+        conn |> put_status(:not_found) |> json(%{error: "business_not_found"})
+    end
+  end
+
+  def cancel_appointment(conn, %{"id" => id}) do
+    account = conn.assigns.portal_account
+    membership_ids = CustomerPortal.list_memberships(account) |> Enum.map(& &1.id)
+
+    case Kaarobar.Appointments.get_appointment_for_customer(id, membership_ids) do
+      nil ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      appt ->
+        case Kaarobar.Appointments.cancel(appt, actor: :customer) do
+          {:ok, updated} -> json(conn, %{data: Kaarobar.Appointments.serialize(updated)})
+          {:error, reason} -> portal_appt_error(conn, reason)
+        end
+    end
+  end
+
+  def reschedule_appointment(conn, %{"id" => id} = params) do
+    account = conn.assigns.portal_account
+    membership_ids = CustomerPortal.list_memberships(account) |> Enum.map(& &1.id)
+
+    case Kaarobar.Appointments.get_appointment_for_customer(id, membership_ids) do
+      nil ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      appt ->
+        case Kaarobar.Appointments.reschedule(appt, params) do
+          {:ok, updated} -> json(conn, %{data: Kaarobar.Appointments.serialize(updated)})
+          {:error, reason} -> portal_appt_error(conn, reason)
+        end
+    end
+  end
+
+  defp portal_appt_error(conn, :appointments_disabled),
+    do: conn |> put_status(:forbidden) |> json(%{error: "appointments_disabled"})
+
+  defp portal_appt_error(conn, :conflict),
+    do: conn |> put_status(:conflict) |> json(%{error: "staff_conflict"})
+
+  defp portal_appt_error(conn, :invalid_transition),
+    do: conn |> put_status(:unprocessable_entity) |> json(%{error: "invalid_transition"})
+
+  defp portal_appt_error(conn, :business_not_found),
+    do: conn |> put_status(:not_found) |> json(%{error: "business_not_found"})
+
+  defp portal_appt_error(conn, reason),
+    do: conn |> put_status(:unprocessable_entity) |> json(%{error: to_string(reason)})
 
   def revoke_sessions(conn, _params) do
     account = conn.assigns.portal_account

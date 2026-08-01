@@ -1,42 +1,4 @@
 {
-  "expo": {
-    "name": "Kaarobar",
-    "slug": "kaarobar",
-    "version": "0.1.0",
-    "orientation": "portrait",
-    "scheme": "kaarobar",
-    "userInterfaceStyle": "light",
-    "icon": "./assets/icon.png",
-    "splash": {
-      "image": "./assets/icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#2d6df6"
-    },
-    "platforms": ["ios", "android"],
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/icon.png",
-        "backgroundColor": "#2d6df6"
-      }
-    },
-    "ios": {
-      "icon": "./assets/icon.png"
-    },
-    "plugins": [
-      "expo-router",
-      "expo-notifications",
-      [
-        "expo-camera",
-        {
-          "cameraPermission": "Allow Kaarobar to scan product barcodes."
-        }
-      ],
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "Allow Kaarobar to attach product photos."
-        }
-      ]
-    ]
-  }
+  "name": "KaarobarMobile",
+  "displayName": "KaarobarMobile"
 }
