@@ -121,10 +121,11 @@ const en: HelpCatalog = {
   },
   "page.marketing": {
     title: "Marketing",
-    summary: "Campaigns, segments, coupons, and loyalty tiers.",
-    what: "Helps you message customers, target segments, set up promo codes, and configure loyalty earn/redeem rates.",
+    summary: "Campaigns, message templates, segments, coupons, and loyalty tiers.",
+    what: "Helps you message customers with reusable templates, target segments, set up promo codes, and configure loyalty earn/redeem rates.",
     how: [
       "Create a draft campaign with audience and message.",
+      "Reuse templates with {{placeholders}} for consistent copy.",
       "Send when ready—delivery status appears on the campaign.",
       "Build segments and coupons for targeted offers.",
       "Set loyalty tiers based on points bands.",
@@ -402,6 +403,20 @@ const en: HelpCatalog = {
     tips: ["Fix attendance/leave issues before running payroll."],
   },
 
+  "page.marketing.template": {
+    title: "Message template",
+    summary: "Preview how a CRM template looks when sent to customers.",
+    what: "Shows the raw title/body placeholders and an interpolated preview using live business branding plus sample customer values.",
+    how: [
+      "Open a template from Marketing → Templates.",
+      "Review placeholders in the overview.",
+      "Check the customer preview with sample values.",
+      "Use Back to return to the Templates tab.",
+    ],
+    when: "When drafting reusable campaign messages or checking SMS length.",
+    tips: ["Placeholders are flat keys like {{business}} — nested {{customer.name}} is not supported."],
+  },
+
   "tab.marketing.campaigns": {
     title: "Campaigns",
     summary: "Draft and send customer messages.",
@@ -531,12 +546,13 @@ const en: HelpCatalog = {
     summary: "Reusable CRM message bodies with variables.",
     what: "Saved templates for campaigns and previews (business name, tagline, etc.).",
     how: [
-      "Create or edit a template with placeholders.",
-      "Preview with sample business variables.",
+      "Create a template in the modal with placeholders.",
+      "Browse available {{variables}} on the Templates tab.",
+      "Open a template to preview interpolated customer copy.",
       "Select the template when composing a campaign.",
     ],
     when: "When standardizing promotional or transactional messages.",
-    tips: ["Keep templates short for SMS/WhatsApp channels."],
+    tips: ["Keep templates short for SMS/WhatsApp channels.", "Only flat keys like {{name}} work — not {{customer.name}}."],
   },
   "page.appointments": {
     title: "Appointments",

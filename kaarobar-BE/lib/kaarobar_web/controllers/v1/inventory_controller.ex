@@ -269,6 +269,7 @@ defmodule KaarobarWeb.V1.InventoryController do
       from_branch_id: t.from_branch_id,
       to_branch_id: t.to_branch_id,
       notes: t.notes,
+      inserted_at: t.inserted_at,
       items:
         Enum.map(t.items || [], fn i ->
           %{product_id: i.product_id, quantity: to_string(i.quantity)}

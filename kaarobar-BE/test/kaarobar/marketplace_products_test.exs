@@ -204,4 +204,44 @@ defmodule Kaarobar.MarketplaceProductsTest do
     assert hd(page1).id != hd(page2).id
     assert meta2.next_cursor == nil or is_binary(meta2.next_cursor)
   end
+
+  test "CUS-FR-012 multi-value category and industry filters", %{
+    tea: tea,
+    cut: cut,
+    conn: conn
+  } do
+    %{data: by_csv_cat} = Marketplace.list_products(category: "Beverages,Services")
+    csv_cat_ids = Enum.map(by_csv_cat, & &1.id)
+    assert tea.id in csv_cat_ids
+    assert cut.id in csv_cat_ids
+
+    %{data: by_list_cat} = Marketplace.list_products(category: ["Beverages", "Services"])
+    list_cat_ids = Enum.map(by_list_cat, & &1.id)
+    assert tea.id in list_cat_ids
+    assert cut.id in list_cat_ids
+
+    %{data: by_csv_ind} = Marketplace.list_products(industry: "retail,salon")
+    csv_ind_ids = Enum.map(by_csv_ind, & &1.id)
+    assert tea.id in csv_ind_ids
+    assert cut.id in csv_ind_ids
+
+    %{data: by_list_ind} = Marketplace.list_products(industry: ["retail", "salon"])
+    list_ind_ids = Enum.map(by_list_ind, & &1.id)
+    assert tea.id in list_ind_ids
+    assert cut.id in list_ind_ids
+
+    # Blank / empty values do not filter
+    %{data: blank_cat} = Marketplace.list_products(category: "")
+    assert tea.id in Enum.map(blank_cat, & &1.id)
+    assert cut.id in Enum.map(blank_cat, & &1.id)
+
+    %{data: empty_list} = Marketplace.list_products(category: [])
+    assert tea.id in Enum.map(empty_list, & &1.id)
+
+    conn = get(conn, "/api/v1/marketplace/products?category=Beverages%2CServices")
+    body = json_response(conn, 200)
+    api_ids = Enum.map(body["data"], & &1["id"])
+    assert tea.id in api_ids
+    assert cut.id in api_ids
+  end
 end

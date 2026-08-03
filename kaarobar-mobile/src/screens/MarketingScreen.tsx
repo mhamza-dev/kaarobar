@@ -1,13 +1,25 @@
-import {useCallback, useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useBrandPalette } from "../lib/BrandThemeContext";
-import { View, Text, TextInput, ScrollView, Pressable, StyleSheet, Alert, Linking } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  ScrollView,
+  Pressable,
+  StyleSheet,
+  Alert,
+  Linking,
+} from "react-native";
 import { api, colors, getSession } from "../lib/api";
 import { canAccessRoute, isPlanFeatureLocked } from "../lib/rbac";
 import { t } from "../lib/i18n";
 import { useToast } from "../components/Toast";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
 import { replacePath, pushPath } from "../lib/nav";
+import SegmentedTabs from "../components/SegmentedTabs";
+import { FormModal } from "../components/FormModal";
+import { useTabParam } from "../hooks/useTabParam";
 
 type Campaign = {
   id: string;
@@ -21,7 +33,32 @@ type Campaign = {
   sent_at?: string | null;
   recipient_count?: number;
   delivery?: { notified: number; email_only: number; skipped: number };
-  recipients?: { id: string; customer_name?: string; channel_status: string }[];
+};
+
+type MsgTemplate = {
+  id: string;
+  name: string;
+  channel: string;
+  title_template: string;
+  body_template: string;
+  variables: Record<string, string>;
+};
+
+type TemplateVariable = {
+  key: string;
+  placeholder: string;
+  source: string;
+  example: string;
+};
+
+type Tab = "campaigns" | "templates";
+const MARKETING_TABS: readonly Tab[] = ["campaigns", "templates"];
+
+const emptyTplForm = {
+  name: "",
+  channel: "email",
+  title_template: "",
+  body_template: "",
 };
 
 export default function MarketingScreen() {
@@ -29,7 +66,14 @@ export default function MarketingScreen() {
   const palette = useBrandPalette();
   const styles = useMemo(() => createStyles(palette), [palette]);
   const toast = useToast();
+  const [tab, setTab] = useTabParam<Tab>("campaigns", MARKETING_TABS);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [templates, setTemplates] = useState<MsgTemplate[]>([]);
+  const [templateVars, setTemplateVars] = useState<TemplateVariable[]>([]);
+  const [sampleValues, setSampleValues] = useState<Record<string, string>>({
+    name: "Ayesha",
+    points: "120",
+  });
   const [form, setForm] = useState({
     name: "",
     title: "",
@@ -37,17 +81,31 @@ export default function MarketingScreen() {
     audience: "all",
     min_points: "",
   });
+  const [tplForm, setTplForm] = useState(emptyTplForm);
+  const [tplModal, setTplModal] = useState(false);
   const [detail, setDetail] = useState<Campaign | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const res = await api<{ data: Campaign[] }>("/crm/campaigns");
-      setCampaigns(res.data || []);
+      const [c, tpl, vars] = await Promise.all([
+        api<{ data: Campaign[] }>("/crm/campaigns"),
+        api<{ data: MsgTemplate[] }>("/crm/templates"),
+        api<{
+          data: {
+            variables: TemplateVariable[];
+            sample_values: Record<string, string>;
+          };
+        }>("/crm/templates/variables"),
+      ]);
+      setCampaigns(c.data || []);
+      setTemplates(tpl.data || []);
+      setTemplateVars(vars.data?.variables || []);
+      if (vars.data?.sample_values) setSampleValues(vars.data.sample_values);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load campaigns");
+      setError(err instanceof Error ? err.message : t("common.loadFailed"));
     }
   }, []);
 
@@ -67,9 +125,9 @@ export default function MarketingScreen() {
       }
       await load();
     })();
-  }, [load, toast]);
+  }, [load, navigation, toast]);
 
-  async function create() {
+  async function createCampaign() {
     setBusy(true);
     try {
       await api("/crm/campaigns", {
@@ -86,9 +144,31 @@ export default function MarketingScreen() {
         }),
       });
       setForm({ name: "", title: "", message: "", audience: "all", min_points: "" });
+      toast.success(t("marketing.drafted"));
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Create failed");
+      setError(err instanceof Error ? err.message : t("common.error"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function createTemplate() {
+    setBusy(true);
+    try {
+      await api("/crm/templates", {
+        method: "POST",
+        body: JSON.stringify({
+          ...tplForm,
+          variables: sampleValues,
+        }),
+      });
+      setTplForm(emptyTplForm);
+      setTplModal(false);
+      toast.success(t("marketing.templateSaved"));
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("common.error"));
     } finally {
       setBusy(false);
     }
@@ -134,7 +214,7 @@ export default function MarketingScreen() {
                   toast.success(t("marketing.checkoutOpened"));
                 }
               } catch (err) {
-                setError(err instanceof Error ? err.message : "Pay & send failed");
+                setError(err instanceof Error ? err.message : t("common.error"));
               } finally {
                 setBusy(false);
               }
@@ -158,9 +238,10 @@ export default function MarketingScreen() {
                 body: "{}",
               });
               setDetail(res.data);
+              toast.success(t("marketing.sentOk"));
               await load();
             } catch (err) {
-              setError(err instanceof Error ? err.message : "Send failed");
+              setError(err instanceof Error ? err.message : t("common.error"));
             } finally {
               setBusy(false);
             }
@@ -170,155 +251,247 @@ export default function MarketingScreen() {
     ]);
   }
 
+  const tabs = [
+    { id: "campaigns" as const, label: t("marketing.tabCampaigns") },
+    { id: "templates" as const, label: t("marketing.tabTemplates") },
+  ];
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
       <Text style={styles.title}>{t("pages.marketingTitle")}</Text>
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>{t("marketing.newCampaign")}</Text>
-        <TextInput
-          style={styles.input}
-          placeholder={t("marketing.internalName")}
-          placeholderTextColor={colors.muted}
-          value={form.name}
-          onChangeText={(v) => setForm({ ...form, name: v })}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder={t("marketing.notificationTitle")}
-          placeholderTextColor={colors.muted}
-          value={form.title}
-          onChangeText={(v) => setForm({ ...form, title: v })}
-        />
-        <TextInput
-          style={[styles.input, { minHeight: 80 }]}
-          placeholder={t("marketing.message")}
-          placeholderTextColor={colors.muted}
-          multiline
-          value={form.message}
-          onChangeText={(v) => setForm({ ...form, message: v })}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder={t("marketing.audience")}
-          placeholderTextColor={colors.muted}
-          value={form.audience}
-          onChangeText={(v) => setForm({ ...form, audience: v })}
-        />
-        {form.audience === "min_points" ? (
-          <TextInput
-            style={styles.input}
-            placeholder={t("marketing.minPoints")}
-            placeholderTextColor={colors.muted}
-            keyboardType="numeric"
-            value={form.min_points}
-            onChangeText={(v) => setForm({ ...form, min_points: v })}
-          />
-        ) : null}
-        <Pressable style={styles.primaryBtn} disabled={busy} onPress={() => void create()}>
-          <Text style={styles.primaryBtnText}>{t("marketing.saveDraft")}</Text>
-        </Pressable>
-      </View>
+      <SegmentedTabs tabs={tabs} value={tab} onChange={(id) => setTab(id as Tab)} />
 
-      {campaigns.map((c) => (
-        <View key={c.id} style={styles.card}>
-          <Text style={styles.cardTitle}>{c.name}</Text>
-          <Text style={styles.cardBody}>
-            {c.status} · {c.audience} · {c.recipient_count ?? 0} recipients
-          </Text>
-          <Text style={styles.cardBody}>{c.title}</Text>
-          <View style={styles.row}>
-            {c.status === "Draft" ? (
-              <Pressable style={styles.chip} onPress={() => send(c)}>
-                <Text style={styles.chipText}>
-                  {c.channel === "sms" || c.channel === "whatsapp"
-                    ? t("marketing.payAndSend")
-                    : t("marketing.send")}
-                </Text>
-              </Pressable>
-            ) : null}
+      {tab === "campaigns" ? (
+        <>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>{t("marketing.newCampaign")}</Text>
+            <TextInput
+              style={styles.input}
+              placeholder={t("marketing.internalName")}
+              placeholderTextColor={colors.muted}
+              value={form.name}
+              onChangeText={(v) => setForm({ ...form, name: v })}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder={t("marketing.notificationTitle")}
+              placeholderTextColor={colors.muted}
+              value={form.title}
+              onChangeText={(v) => setForm({ ...form, title: v })}
+            />
+            <TextInput
+              style={[styles.input, { minHeight: 80 }]}
+              placeholder={t("marketing.message")}
+              placeholderTextColor={colors.muted}
+              multiline
+              value={form.message}
+              onChangeText={(v) => setForm({ ...form, message: v })}
+            />
             <Pressable
-              style={styles.chip}
-              onPress={() =>
-                void api<{ data: Campaign }>(`/crm/campaigns/${c.id}`).then((r) => setDetail(r.data))
-              }
+              style={[styles.btn, { backgroundColor: palette.brand }, busy && { opacity: 0.6 }]}
+              onPress={() => void createCampaign()}
+              disabled={busy}
             >
-              <Text style={styles.chipText}>{t("marketing.detail")}</Text>
+              <Text style={[styles.btnText, { color: palette.brandForeground }]}>
+                {t("marketing.saveDraft")}
+              </Text>
             </Pressable>
           </View>
-        </View>
-      ))}
 
-      {detail ? (
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>{detail.name}</Text>
-          {detail.delivery ? (
-            <Text style={styles.cardBody}>
-              Notified {detail.delivery.notified} · Email {detail.delivery.email_only} · Skipped{" "}
-              {detail.delivery.skipped}
-            </Text>
-          ) : null}
-          <Text style={styles.cardBody}>{detail.message}</Text>
-          {(detail.recipients || []).map((r) => (
-            <Text key={r.id} style={styles.cardBody}>
-              {r.customer_name || r.id.slice(0, 8)} · {r.channel_status}
-            </Text>
+          {campaigns.map((c) => (
+            <Pressable key={c.id} style={styles.card} onPress={() => setDetail(c)}>
+              <Text style={styles.cardTitle}>{c.name}</Text>
+              <Text style={styles.meta}>
+                {c.status} · {c.channel || "email"} · {c.audience}
+              </Text>
+              {c.status === "Draft" ? (
+                <Pressable
+                  style={[styles.btnSecondary, { borderColor: palette.brand }]}
+                  onPress={() => void send(c)}
+                >
+                  <Text style={{ color: palette.brand, fontWeight: "700" }}>
+                    {isPaidChannel(c.channel) ? t("marketing.payAndSend") : t("marketing.send")}
+                  </Text>
+                </Pressable>
+              ) : null}
+            </Pressable>
           ))}
-          <Pressable onPress={() => setDetail(null)}>
-            <Text style={styles.link}>{t("common.close")}</Text>
-          </Pressable>
-        </View>
+
+          {detail ? (
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>{detail.name}</Text>
+              <Text style={styles.meta}>{detail.title}</Text>
+              <Text style={styles.body}>{detail.message}</Text>
+              <Pressable onPress={() => setDetail(null)}>
+                <Text style={{ color: palette.brand, fontWeight: "700", marginTop: 8 }}>
+                  {t("common.close")}
+                </Text>
+              </Pressable>
+            </View>
+          ) : null}
+        </>
       ) : null}
 
-      <Pressable style={styles.primaryBtn} onPress={() => pushPath(navigation, "/app/customers")}>
-        <Text style={styles.primaryBtnText}>{t("nav.customers")}</Text>
-      </Pressable>
+      {tab === "templates" ? (
+        <>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>{t("marketing.variablesTitle")}</Text>
+            <Text style={styles.body}>{t("marketing.variablesHint")}</Text>
+            {templateVars.map((v) => (
+              <View key={v.key} style={styles.varRow}>
+                <Text style={styles.varCode}>{v.placeholder}</Text>
+                <Text style={styles.meta}>
+                  {t(`marketing.var.${v.key}` as "marketing.var.business")}
+                  {v.example ? ` · ${v.example}` : ""}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          <Pressable
+            style={[styles.btn, { backgroundColor: palette.brand }]}
+            onPress={() => {
+              setTplForm(emptyTplForm);
+              setTplModal(true);
+            }}
+          >
+            <Text style={[styles.btnText, { color: palette.brandForeground }]}>
+              {t("marketing.newTemplate")}
+            </Text>
+          </Pressable>
+
+          {templates.length === 0 ? (
+            <Text style={styles.meta}>{t("marketing.templatesEmptyBody")}</Text>
+          ) : (
+            templates.map((tpl) => (
+              <Pressable
+                key={tpl.id}
+                style={styles.card}
+                onPress={() =>
+                  pushPath(navigation, `/app/marketing/templates/${tpl.id}`)
+                }
+              >
+                <Text style={styles.cardTitle}>{tpl.name}</Text>
+                <Text style={styles.meta}>{tpl.channel}</Text>
+                <Text style={styles.body}>{tpl.title_template}</Text>
+              </Pressable>
+            ))
+          )}
+        </>
+      ) : null}
+
+      <FormModal
+        visible={tplModal}
+        title={t("marketing.newTemplate")}
+        subtitle={t("marketing.variablesHint")}
+        onClose={() => setTplModal(false)}
+        onSubmit={() => void createTemplate()}
+        submitLabel={t("marketing.saveTemplate")}
+        busy={busy}
+      >
+        <TextInput
+          style={styles.input}
+          placeholder={t("common.name")}
+          placeholderTextColor={colors.muted}
+          value={tplForm.name}
+          onChangeText={(v) => setTplForm({ ...tplForm, name: v })}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder={t("marketing.channel")}
+          placeholderTextColor={colors.muted}
+          value={tplForm.channel}
+          onChangeText={(v) => setTplForm({ ...tplForm, channel: v })}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder={t("marketing.titleTemplate")}
+          placeholderTextColor={colors.muted}
+          value={tplForm.title_template}
+          onChangeText={(v) => setTplForm({ ...tplForm, title_template: v })}
+        />
+        <TextInput
+          style={[styles.input, { minHeight: 90 }]}
+          placeholder={t("marketing.bodyTemplate")}
+          placeholderTextColor={colors.muted}
+          multiline
+          value={tplForm.body_template}
+          onChangeText={(v) => setTplForm({ ...tplForm, body_template: v })}
+        />
+        <View style={styles.varChips}>
+          {templateVars.map((v) => (
+            <Pressable
+              key={v.key}
+              style={styles.chip}
+              onPress={() =>
+                setTplForm((f) => ({
+                  ...f,
+                  body_template: `${f.body_template}${f.body_template ? " " : ""}${v.placeholder}`,
+                }))
+              }
+            >
+              <Text style={styles.varCode}>{v.placeholder}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </FormModal>
     </ScrollView>
   );
 }
 
-function createStyles(palette: import("../lib/brandTheme").BrandPalette) {
+function createStyles(palette: { brand: string }) {
   return StyleSheet.create({
-  container: { flex: 1, padding: 24, backgroundColor: colors.bgPrimary },
-  title: { fontSize: 24, fontWeight: "800", color: colors.heading, marginBottom: 12 },
-  error: { color: colors.danger, marginBottom: 8 },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 8,
-    color: colors.heading,
-    backgroundColor: colors.bgSecondary,
-  },
-  primaryBtn: {
-    backgroundColor: palette.brand,
-    borderRadius: 8,
-    padding: 12,
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  primaryBtnText: { color: colors.white, fontWeight: "700" },
-  card: {
-    backgroundColor: colors.bgSecondary,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  cardTitle: { fontWeight: "700", color: colors.heading, marginBottom: 4 },
-  cardBody: { color: colors.body, fontSize: 13, marginBottom: 4 },
-  row: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 },
-  chip: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  chipText: { color: colors.heading, fontSize: 12, fontWeight: "600" },
-  link: { color: palette.brand, marginTop: 8, fontWeight: "600" },
-});
+    container: { flex: 1, backgroundColor: colors.bg, padding: 16 },
+    title: { fontSize: 22, fontWeight: "800", color: colors.heading, marginBottom: 12 },
+    error: { color: colors.danger, marginBottom: 8 },
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 14,
+      marginTop: 12,
+      gap: 8,
+    },
+    cardTitle: { fontSize: 16, fontWeight: "700", color: colors.heading },
+    meta: { fontSize: 13, color: colors.muted },
+    body: { fontSize: 14, color: colors.body, lineHeight: 20 },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      color: colors.heading,
+      backgroundColor: colors.bg,
+      marginTop: 6,
+    },
+    btn: {
+      marginTop: 10,
+      borderRadius: 10,
+      paddingVertical: 12,
+      alignItems: "center",
+    },
+    btnSecondary: {
+      marginTop: 8,
+      borderRadius: 10,
+      borderWidth: 1,
+      paddingVertical: 10,
+      alignItems: "center",
+    },
+    btnText: { fontWeight: "700" },
+    varRow: { marginTop: 8 },
+    varCode: { fontFamily: "Courier", fontWeight: "700", color: colors.heading },
+    varChips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 },
+    chip: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 8,
+      paddingHorizontal: 8,
+      paddingVertical: 6,
+      backgroundColor: colors.bg,
+    },
+  });
 }

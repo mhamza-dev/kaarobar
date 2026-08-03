@@ -1,28 +1,27 @@
 import { useCallback, useMemo, useState } from "react";
-import { useBrandPalette } from "../lib/BrandThemeContext";
 import {
   FlatList,
   Image,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
-import { api, colors } from "../lib/api";
-import BuyerNav from "./BuyerNav";
-import { BuyerDiscoverSkeleton } from "./BuyerSkeletons";
-import { BuyerEmptyPanel, BuyerHero } from "./BuyerLayout";
-import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
-import { pushPath } from "../lib/nav";
-import {
-  applyListingFilters,
-  emptyListingFilters,
-  type ListingFilterState,
-} from "../lib/listingFilters";
+import { api, colors } from "../lib/api";
 import { t } from "../lib/i18n";
+import { pushPath } from "../lib/nav";
+import { useBrandPalette } from "../lib/BrandThemeContext";
+import BuyerNav from "./BuyerNav";
+import { BuyerEmptyPanel, BuyerHero } from "./BuyerLayout";
+import { BuyerDiscoverSkeleton } from "./BuyerSkeletons";
+import BuyerProductFeed from "./BuyerProductFeed";
+import MarketplaceFilterBar from "./MarketplaceFilterBar";
+import {
+  emptyMarketplaceFeedFilters,
+  type MarketplaceFeedFilters,
+} from "../lib/marketplaceFeed";
 
 type Biz = {
   id: string;
@@ -37,23 +36,29 @@ type Biz = {
   commerce_mode?: string | null;
 };
 
-/** Buyer home on `/app/dashboard` — discover marketplace stores. */
+type Mode = "products" | "shops";
+
+/** Product-first Discover with Shops browse toggle. */
 export default function BuyerDiscover() {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const palette = useBrandPalette();
   const styles = useMemo(() => createStyles(palette), [palette]);
-  const [filters, setFilters] = useState<ListingFilterState>(emptyListingFilters());
+  const [mode, setMode] = useState<Mode>("products");
+  const [shopFilters, setShopFilters] = useState<MarketplaceFeedFilters>(
+    emptyMarketplaceFeedFilters()
+  );
   const [businesses, setBusinesses] = useState<Biz[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loadingShops, setLoadingShops] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
+      if (mode !== "shops") return;
       let cancelled = false;
       (async () => {
-        setLoading(true);
+        setLoadingShops(true);
         try {
-          const q = filters.search.trim();
+          const q = shopFilters.search.trim();
           const res = await api<{ data: Biz[] }>(
             `/marketplace/businesses${q ? `?q=${encodeURIComponent(q)}` : ""}`,
             {},
@@ -65,19 +70,19 @@ export default function BuyerDiscover() {
           }
         } catch (err) {
           if (!cancelled) {
-            setError(err instanceof Error ? err.message : "Failed to load");
+            setError(err instanceof Error ? err.message : t("common.loadFailed"));
           }
         } finally {
-          if (!cancelled) setLoading(false);
+          if (!cancelled) setLoadingShops(false);
         }
       })();
       return () => {
         cancelled = true;
       };
-    }, [filters.search])
+    }, [mode, shopFilters.search])
   );
 
-  const industryOptions = useMemo(() => {
+  const industries = useMemo(() => {
     const set = new Set<string>();
     for (const b of businesses) {
       if (b.industry?.trim()) set.add(b.industry.trim());
@@ -85,209 +90,196 @@ export default function BuyerDiscover() {
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [businesses]);
 
-  const filtered = useMemo(
+  const filteredShops = useMemo(
     () =>
-      applyListingFilters(businesses, { ...filters, search: "" }, {
-        searchText: () => "",
-        category: (b) => b.industry || "",
-      }),
-    [businesses, filters]
+      businesses.filter(
+        (b) =>
+          shopFilters.industries.length === 0 ||
+          shopFilters.industries.includes(b.industry ?? "")
+      ),
+    [businesses, shopFilters.industries]
   );
 
-  function toggleIndustry(cat: string) {
-    setFilters((prev) => ({
-      ...prev,
-      categories: prev.categories.includes(cat)
-        ? prev.categories.filter((c) => c !== cat)
-        : [...prev.categories, cat],
-    }));
-  }
-
-  return (
-    <View style={styles.container}>
-      <BuyerNav />
+  const hero = (
+    <View style={styles.heroWrap}>
       <BuyerHero
         eyebrow={t("marketplace.eyebrow")}
         title={t("pages.discoverTitle")}
-        description={t("pages.discoverDesc")}
-      >
-        <Text style={styles.heroExtra}>{t("marketplace.discoverHero")}</Text>
-      </BuyerHero>
-      <TextInput
-        style={styles.search}
-        placeholder={t("marketplace.searchStores")}
-        placeholderTextColor={colors.muted}
-        value={filters.search}
-        onChangeText={(search) => setFilters((f) => ({ ...f, search }))}
+        description={t("marketplace.discoverProductsHero")}
       />
-      {industryOptions.length > 0 ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chips}>
-          {industryOptions.map((cat) => {
-            const on = filters.categories.includes(cat);
-            return (
-              <Pressable
-                key={cat}
-                style={[styles.chip, on && styles.chipOn]}
-                onPress={() => toggleIndustry(cat)}
-              >
-                <Text style={[styles.chipText, on && styles.chipTextOn]}>{cat}</Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-      ) : null}
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      {loading ? (
-        <BuyerDiscoverSkeleton />
-      ) : (
-        <FlatList
-          data={filtered}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingBottom: 40, gap: 14 }}
-          ListEmptyComponent={
+      <View style={styles.modeRow}>
+        <Pressable
+          onPress={() => setMode("products")}
+          style={[styles.modeBtn, mode === "products" && styles.modeOn]}
+        >
+          <Text
+            style={[styles.modeText, mode === "products" && styles.modeTextOn]}
+          >
+            {t("marketplace.modeProducts")}
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => setMode("shops")}
+          style={[styles.modeBtn, mode === "shops" && styles.modeOn]}
+        >
+          <Text style={[styles.modeText, mode === "shops" && styles.modeTextOn]}>
+            {t("marketplace.modeShops")}
+          </Text>
+        </Pressable>
+      </View>
+      <BuyerNav />
+    </View>
+  );
+
+  if (mode === "products") {
+    return (
+      <View style={styles.root}>
+        <BuyerProductFeed ListHeaderComponent={hero} />
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.root}>
+      <FlatList
+        data={filteredShops}
+        keyExtractor={(b) => b.id}
+        contentContainerStyle={styles.shopList}
+        ListHeaderComponent={
+          <View>
+            {hero}
+            <View style={styles.shopFilters}>
+              <MarketplaceFilterBar
+                value={shopFilters}
+                onChange={setShopFilters}
+                industryOptions={industries}
+                showCategories={false}
+                searchPlaceholder={t("marketplace.searchStores")}
+              />
+            </View>
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+          </View>
+        }
+        ListEmptyComponent={
+          loadingShops ? (
+            <BuyerDiscoverSkeleton />
+          ) : (
             <BuyerEmptyPanel
-              title={
-                businesses.length === 0
-                  ? t("marketplace.emptyStoresTitle")
-                  : t("common.noResults")
-              }
+              title={t("marketplace.emptyStoresTitle")}
               body={
-                businesses.length === 0
-                  ? t("marketplace.emptyStoresBody")
-                  : t("marketplace.noFilterMatches")
+                shopFilters.search || shopFilters.industries.length > 0
+                  ? t("marketplace.noFilterMatches")
+                  : t("marketplace.emptyStoresBody")
               }
             />
-          }
-          renderItem={({ item }) => (
-            <Pressable
-              onPress={() =>
-                pushPath(
-                  navigation,
-                  `/app/market/${item.marketplace_slug || item.id}`
-                )
-              }
+          )
+        }
+        renderItem={({ item: b }) => (
+          <Pressable
+            style={styles.shopCard}
+            onPress={() =>
+              pushPath(navigation, `/app/market/${b.marketplace_slug || b.id}`)
+            }
+          >
+            <View
               style={[
-                styles.card,
-                item.primary_color
-                  ? { borderTopColor: item.primary_color, borderTopWidth: 4 }
-                  : { borderTopColor: palette.brand, borderTopWidth: 4 },
+                styles.shopBanner,
+                b.primary_color
+                  ? { backgroundColor: `${b.primary_color}22` }
+                  : null,
               ]}
             >
-              <View style={styles.cardRow}>
-                <View
-                  style={[
-                    styles.logo,
-                    item.primary_color
-                      ? { backgroundColor: `${item.primary_color}22` }
-                      : { backgroundColor: palette.brandSoft },
-                  ]}
-                >
-                  {item.logo_url ? (
-                    <Image source={{ uri: item.logo_url }} style={styles.logoImg} />
-                  ) : (
-                    <Text style={styles.logoLetter}>
-                      {(item.name || "?").slice(0, 1).toUpperCase()}
-                    </Text>
-                  )}
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.cardTitle}>{item.name}</Text>
-                  {item.tagline ? (
-                    <Text style={styles.tagline} numberOfLines={1}>
-                      {item.tagline}
-                    </Text>
-                  ) : null}
-                  <Text
-                    style={[
-                      styles.cardSub,
-                      item.primary_color
-                        ? { color: item.primary_color }
-                        : { color: palette.brand },
-                    ]}
-                  >
-                    {item.industry || "store"}
+              <View style={styles.logo}>
+                {b.logo_url ? (
+                  <Image source={{ uri: b.logo_url }} style={styles.logoImg} />
+                ) : (
+                  <Text style={styles.logoLetter}>
+                    {(b.name || "?").slice(0, 1).toUpperCase()}
                   </Text>
-                  {item.marketplace_description ? (
-                    <Text style={styles.desc} numberOfLines={2}>
-                      {item.marketplace_description}
-                    </Text>
-                  ) : null}
-                  <Text style={[styles.shopNow, { color: palette.brand }]}>
-                    {item.appointments_enabled || item.commerce_mode === "appointments"
-                      ? t("marketplace.bookNow")
-                      : t("marketplace.shopNow")}{" "}
-                    →
-                  </Text>
-                </View>
+                )}
               </View>
-            </Pressable>
-          )}
-        />
-      )}
+            </View>
+            <View style={styles.shopBody}>
+              <Text style={styles.shopName}>{b.name}</Text>
+              {b.tagline ? (
+                <Text style={styles.shopTag} numberOfLines={1}>
+                  {b.tagline}
+                </Text>
+              ) : null}
+              <Text style={[styles.shopCta, { color: palette.brand }]}>
+                {b.appointments_enabled || b.commerce_mode === "appointments"
+                  ? t("marketplace.bookNow")
+                  : t("marketplace.shopNow")}{" "}
+                →
+              </Text>
+            </View>
+          </Pressable>
+        )}
+      />
     </View>
   );
 }
 
-function createStyles(palette: import("../lib/brandTheme").BrandPalette) {
+function createStyles(palette: { brand: string }) {
   return StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgPrimary, padding: 16 },
-  heroExtra: { marginTop: 8, color: colors.body, fontSize: 13, lineHeight: 18 },
-  search: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-    borderRadius: colors.radiusLg,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: 10,
-    color: colors.heading,
-  },
-  chips: { maxHeight: 40, marginBottom: 12 },
-  chip: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginRight: 8,
-    backgroundColor: colors.card,
-  },
-  chipOn: { backgroundColor: palette.brand, borderColor: palette.brand },
-  chipText: { fontSize: 12, fontWeight: "700", color: colors.heading },
-  chipTextOn: { color: palette.brandForeground },
-  error: { color: colors.danger, marginBottom: 8 },
-  card: {
-    backgroundColor: colors.card,
-    borderRadius: colors.radiusLg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 14,
-    overflow: "hidden",
-  },
-  cardRow: { flexDirection: "row", gap: 12 },
-  logo: {
-    width: 60,
-    height: 60,
-    borderRadius: colors.radiusLg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.bgSecondary || colors.card,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  logoImg: { width: "100%", height: "100%" },
-  logoLetter: { fontSize: 20, fontWeight: "800", color: colors.heading },
-  cardTitle: { fontSize: 17, fontWeight: "800", color: colors.heading },
-  tagline: { marginTop: 2, color: colors.body, fontSize: 13 },
-  cardSub: {
-    marginTop: 6,
-    textTransform: "uppercase",
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 0.6,
-  },
-  desc: { marginTop: 6, color: colors.body, fontSize: 13 },
-  shopNow: { marginTop: 8, fontWeight: "700", fontSize: 13 },
-});
+    root: { flex: 1, backgroundColor: colors.bgPrimary },
+    heroWrap: { paddingBottom: 8 },
+    modeRow: {
+      flexDirection: "row",
+      marginHorizontal: 16,
+      marginBottom: 8,
+      padding: 4,
+      borderRadius: 8,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+      backgroundColor: colors.card,
+    },
+    modeBtn: {
+      flex: 1,
+      paddingVertical: 10,
+      borderRadius: 8,
+      alignItems: "center",
+    },
+    modeOn: { backgroundColor: palette.brand },
+    modeText: { fontWeight: "700", fontSize: 13, color: colors.body },
+    modeTextOn: { color: "#fff" },
+    shopList: { paddingBottom: 24 },
+    shopFilters: {
+      marginHorizontal: 16,
+      marginBottom: 12,
+      padding: 12,
+      borderRadius: 8,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+      backgroundColor: colors.card,
+    },
+    error: { color: colors.danger, marginHorizontal: 16, marginBottom: 8 },
+    shopCard: {
+      marginHorizontal: 16,
+      marginBottom: 12,
+      borderRadius: 8,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+      backgroundColor: colors.card,
+      overflow: "hidden",
+    },
+    shopBanner: { minHeight: 88, justifyContent: "flex-end", padding: 14 },
+    logo: {
+      width: 56,
+      height: 56,
+      borderRadius: 8,
+      backgroundColor: colors.card,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.border,
+      alignItems: "center",
+      justifyContent: "center",
+      overflow: "hidden",
+    },
+    logoImg: { width: "100%", height: "100%" },
+    logoLetter: { fontSize: 20, fontWeight: "800", color: colors.heading },
+    shopBody: { padding: 14, gap: 4 },
+    shopName: { fontSize: 17, fontWeight: "800", color: colors.heading },
+    shopTag: { fontSize: 13, color: colors.body },
+    shopCta: { marginTop: 6, fontWeight: "700", fontSize: 13 },
+  });
 }

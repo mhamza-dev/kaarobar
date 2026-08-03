@@ -1,23 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { isConsumerSession } from "@/lib/api/client";
-import BuyerProducts from "@/components/buyer/BuyerProducts";
 import { BuyerProductGridSkeleton } from "@/components/buyer/BuyerSkeletons";
 
+/** `/app/products` — alias redirect to Discover (product-first home). */
 export default function ProductsPage() {
   const router = useRouter();
-  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (!isConsumerSession()) {
-      router.replace("/app");
-      return;
-    }
-    setReady(true);
+    router.replace("/app");
   }, [router]);
 
-  if (!ready) return <BuyerProductGridSkeleton count={4} />;
-  return <BuyerProducts />;
+  return <BuyerProductGridSkeleton count={4} />;
 }

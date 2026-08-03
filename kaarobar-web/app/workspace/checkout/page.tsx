@@ -49,7 +49,7 @@ export default function CheckoutReviewPage() {
   const storeLabel =
     stores.length === 1
       ? stores[0].businessName
-      : t("marketplace.storesCount", { count: stores.length });
+      : t("marketplace.orderIncludesShops", { count: stores.length });
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -58,7 +58,11 @@ export default function CheckoutReviewPage() {
         title={t("pages.checkoutReviewTitle")}
         description={`${storeLabel} · ${itemCount} · ${t("pages.checkoutReviewDesc")}`}
         infoKey="page.checkout.review"
-      />
+      >
+        {stores.length > 1 ? (
+          <p className="mt-2 text-sm text-body">{t("marketplace.multiShopCartHint")}</p>
+        ) : null}
+      </BuyerHero>
 
       {stores.map((store) => {
         const accent = store.branding?.primaryColor || undefined;

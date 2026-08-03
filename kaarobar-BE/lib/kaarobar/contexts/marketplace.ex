@@ -35,12 +35,21 @@ defmodule Kaarobar.Marketplace do
   Cross-business product feed for the public marketplace (CUS-FR-012).
 
   Only active products from active, `marketplace_enabled` businesses.
-  Supports `q`, `category`, `industry`, `limit`, and offset-style `cursor`.
+  Supports `q`, `category`, `industry`, `min_price`, `max_price`, `limit`, and offset-style `cursor`.
+
+  `category` / `industry` accept a single string, comma-separated string, or list
+  of strings. Matching is case-insensitive (same as before); multiple values are
+  OR'd. Empty list = no filter.
+
+  `min_price` / `max_price` filter on the online-branch `product_branch_prices.price`.
+  Products with nil price are excluded when either bound is set.
   """
   def list_products(opts \\ []) do
     q = blank_to_nil(opts[:q])
-    category = blank_to_nil(opts[:category])
-    industry = blank_to_nil(opts[:industry])
+    categories = normalize_filter_values(opts[:category])
+    industries = normalize_filter_values(opts[:industry])
+    min_price = parse_decimal(opts[:min_price])
+    max_price = parse_decimal(opts[:max_price])
     limit = parse_limit(opts[:limit])
     offset = parse_cursor(opts[:cursor])
 
@@ -70,16 +79,23 @@ defmodule Kaarobar.Marketplace do
         query
       end
 
+    query = apply_or_ilike_filter(query, categories, :category)
+    query = apply_or_ilike_filter(query, industries, :industry)
+
     query =
-      if is_binary(category) do
-        from([p, _b, _pbp] in query, where: ilike(coalesce(p.category, ""), ^category))
+      if min_price do
+        from([_p, _b, pbp] in query,
+          where: not is_nil(pbp.price) and pbp.price >= ^min_price
+        )
       else
         query
       end
 
     query =
-      if is_binary(industry) do
-        from([_p, b, _pbp] in query, where: ilike(b.industry, ^industry))
+      if max_price do
+        from([_p, _b, pbp] in query,
+          where: not is_nil(pbp.price) and pbp.price <= ^max_price
+        )
       else
         query
       end
@@ -122,7 +138,10 @@ defmodule Kaarobar.Marketplace do
       business_id: b.id,
       business_name: b.name,
       business_slug: b.marketplace_slug,
-      industry: b.industry
+      industry: b.industry,
+      primary_color: b.primary_color,
+      logo_url: Kaarobar.Profiles.logo_url(b),
+      tagline: b.tagline
     }
   end
 
@@ -320,6 +339,45 @@ defmodule Kaarobar.Marketplace do
 
   defp blank_to_nil(v), do: v
 
+  defp normalize_filter_values(nil), do: []
+  defp normalize_filter_values(""), do: []
+
+  defp normalize_filter_values(v) when is_binary(v) do
+    v
+    |> String.split(",")
+    |> Enum.map(&String.trim/1)
+    |> Enum.reject(&(&1 == ""))
+  end
+
+  defp normalize_filter_values(v) when is_list(v) do
+    v
+    |> Enum.flat_map(&normalize_filter_values/1)
+  end
+
+  defp normalize_filter_values(_), do: []
+
+  defp apply_or_ilike_filter(query, [], _field), do: query
+
+  defp apply_or_ilike_filter(query, values, :category) do
+    condition =
+      Enum.reduce(values, nil, fn cat, acc ->
+        clause = dynamic([p, _b, _pbp], ilike(coalesce(p.category, ""), ^cat))
+        if is_nil(acc), do: clause, else: dynamic(^acc or ^clause)
+      end)
+
+    from(q in query, where: ^condition)
+  end
+
+  defp apply_or_ilike_filter(query, values, :industry) do
+    condition =
+      Enum.reduce(values, nil, fn ind, acc ->
+        clause = dynamic([_p, b, _pbp], ilike(b.industry, ^ind))
+        if is_nil(acc), do: clause, else: dynamic(^acc or ^clause)
+      end)
+
+    from(q in query, where: ^condition)
+  end
+
   defp escape_like(term) when is_binary(term) do
     term
     |> String.replace("\\", "\\\\")
@@ -338,6 +396,20 @@ defmodule Kaarobar.Marketplace do
   end
 
   defp parse_limit(_), do: @default_product_limit
+
+  defp parse_decimal(nil), do: nil
+  defp parse_decimal(%Decimal{} = d), do: d
+
+  defp parse_decimal(v) when is_binary(v) do
+    case Decimal.parse(String.trim(v)) do
+      {dec, _} -> dec
+      :error -> nil
+    end
+  end
+
+  defp parse_decimal(v) when is_integer(v), do: Decimal.new(v)
+  defp parse_decimal(v) when is_float(v), do: Decimal.from_float(v)
+  defp parse_decimal(_), do: nil
 
   defp parse_cursor(nil), do: 0
   defp parse_cursor(""), do: 0

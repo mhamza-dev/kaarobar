@@ -87,6 +87,8 @@ function StaffCustomersPage() {
   const filterConfig = useMemo<ListFilterConfig>(
     () => ({
       showDateRange: false,
+      showBalanceRange: true,
+      showCreditLimitRange: true,
       statusOptions: [
         { value: "khata_on", label: t("listFilters.khataOn") },
         { value: "khata_off", label: t("listFilters.khataOff") },
@@ -100,6 +102,8 @@ function StaffCustomersPage() {
       applyStaffListFilters(customers, filters, {
         searchText: customerSearchText,
         status: (c) => (c.khata_enabled ? "khata_on" : "khata_off"),
+        balance: (c) => c.balance,
+        creditLimit: (c) => c.credit_limit,
       }),
     [customers, filters]
   );

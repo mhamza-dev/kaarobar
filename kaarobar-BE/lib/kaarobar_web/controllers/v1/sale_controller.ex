@@ -10,7 +10,7 @@ defmodule KaarobarWeb.V1.SaleController do
     business_id = conn.assigns[:business_id]
     owner_id = conn.assigns[:owner_id] || user.id
     branch_id = conn.assigns[:branch_id]
-    opts = ListFilters.parse(params, [:q, :from, :to, :status, :source])
+    opts = ListFilters.parse(params, [:q, :from, :to, :status, :source, :amount_min, :amount_max, :limit, :cursor])
 
     if is_nil(business_id) do
       conn |> put_status(:bad_request) |> json(%{error: "business_required"})
@@ -21,12 +21,10 @@ defmodule KaarobarWeb.V1.SaleController do
       if source != "online" and is_nil(branch_id) do
         conn |> put_status(:bad_request) |> json(%{error: "business_and_branch_required"})
       else
-        data =
-          branch_id
-          |> Pos.list_sales(owner_id, business_id, opts)
-          |> Enum.map(&serialize_sale/1)
+        %{data: sales, meta: meta} =
+          Pos.list_sales(branch_id, owner_id, business_id, opts)
 
-        json(conn, %{data: data})
+        json(conn, %{data: Enum.map(sales, &serialize_sale/1), meta: meta})
       end
     end
   end

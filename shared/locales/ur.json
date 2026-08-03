@@ -66,7 +66,13 @@
     "source": "ذریعہ",
     "noFields": "اس فہرست کے لیے کوئی اضافی فلٹر نہیں۔",
     "khataOn": "کھاتہ آن",
-    "khataOff": "کھاتہ آف"
+    "khataOff": "کھاتہ آف",
+    "amountRange": "Amount range",
+    "balanceRange": "Balance range",
+    "creditLimitRange": "Credit limit range",
+    "paymentMethod": "Payment method",
+    "min": "Min",
+    "max": "Max"
   },
   "nav": {
     "overview": "جائزہ",
@@ -243,7 +249,26 @@
     "payNow": "ابھی ادا کریں",
     "paymentRecorded": "ادائیگی محفوظ ہو گئی",
     "paymentFailed": "ادائیگی ناکام",
-    "orderDetailTitle": "آرڈر کی تفصیل"
+    "orderDetailTitle": "آرڈر کی تفصیل",
+    "priceRange": "Price range",
+    "filtersDesc": "انڈسٹری اور زمرے سے مصنوعات محدود کریں۔",
+    "filters": "فلٹرز",
+    "filtersTitle": "فلٹرز",
+    "applyFilters": "فلٹرز لاگو کریں",
+    "filtersActive": "{count} فلٹرز فعال",
+    "allIndustries": "تمام انڈسٹریز",
+    "modeProducts": "پروڈکٹس",
+    "modeShops": "دکانیں",
+    "loadMore": "مزید لوڈ کریں",
+    "endOfResults": "آپ آخر تک پہنچ گئے۔",
+    "soldBy": "فروخت کنندہ",
+    "shopCardHint": "اس دکان سے مزید دیکھیں",
+    "bookThisService": "یہ سروس بک کریں",
+    "orderIncludesShops": "اس آرڈر میں {count} دکانیں شامل ہیں",
+    "shopsInCart": "کارٹ میں {count} دکانیں",
+    "multiShopCartHint": "آپ ایک چیک آؤٹ میں کئی دکانیں سے خرید سکتے ہیں۔ ہر دکان الگ پک اپ آرڈر ہے۔",
+    "discoverProductsHero": "ہر فہرست شدہ دکان کے پروڈکٹس دیکھیں۔ ایک یا کئی اسٹورز سے شامل کریں — چیک آؤٹ ہر دکان کا الگ پک اپ آرڈر بناتا ہے۔",
+    "backToDiscover": "ڈسکور پر واپس"
   },
   "appointments": {
     "modeTabs": "خریداری یا بکنگ",
@@ -352,7 +377,16 @@
     "transferFailed": "ٹرانسفر نہیں بن سکا",
     "confirmFailed": "تصدیق نہیں ہو سکی",
     "adjustFailed": "ایڈجسٹ نہیں ہو سکا",
-    "supplierFailed": "سپلائر محفوظ نہیں ہو سکا"
+    "supplierFailed": "سپلائر محفوظ نہیں ہو سکا",
+    "createTransfer": "Create transfer",
+    "transferModalTitle": "Create stock transfer",
+    "transferModalDesc": "Move multiple products to another branch. Stock updates after confirm.",
+    "toBranch": "To branch",
+    "selectToBranch": "Select destination branch",
+    "products": "Products",
+    "selectProducts": "Select products",
+    "quantities": "Quantities",
+    "confirm": "Confirm"
   },
   "pos": {
     "tillOpen": "ٹل کھل گیا",
@@ -697,7 +731,38 @@
     "channel": "چینل",
     "sentAt": "بھیجنے کا وقت",
     "delivery": "ترسیل",
-    "noRecipients": "ابھی کوئی وصول کنندہ نہیں۔"
+    "noRecipients": "ابھی کوئی وصول کنندہ نہیں۔",
+    "tabCampaigns": "مہمات",
+    "tabTemplates": "ٹیمپلیٹس",
+    "tabSegments": "سیگمنٹس",
+    "tabCoupons": "کوپن",
+    "tabTiers": "لوائلٹی سطحیں",
+    "newTemplate": "نیا ٹیمپلیٹ",
+    "saveTemplate": "ٹیمپلیٹ محفوظ کریں",
+    "templateSaved": "ٹیمپلیٹ محفوظ ہو گیا",
+    "templatesEmpty": "کوئی ٹیمپلیٹ نہیں",
+    "templatesEmptyBody": "ٹیمپلیٹ بنائیں یا لوڈ پر ڈیفالٹس کا انتظار کریں۔",
+    "titleTemplate": "عنوان ٹیمپلیٹ",
+    "bodyTemplate": "متن ٹیمپلیٹ",
+    "preview": "پیش نظارہ",
+    "variablesTitle": "دستیاب متغیرات",
+    "variablesHint": "عنوان اور متن میں {{business}} یا {{name}} جیسے سادہ پلیس ہولڈرز استعمال کریں۔",
+    "backToTemplates": "ٹیمپلیٹس پر واپس",
+    "templateFallback": "ٹیمپلیٹ",
+    "templatePreview": "گاہک پیش نظارہ",
+    "sampleValues": "نمونہ/انٹرپولیٹڈ اقدار کے ساتھ دکھایا گیا جیسا گاہک دیکھیں گے۔",
+    "charsCount": "{count} حروف",
+    "channelEmail": "ای میل",
+    "channelInApp": "اِن-ایپ",
+    "channelSms": "SMS",
+    "channelWhatsapp": "WhatsApp",
+    "var": {
+      "business": "کاروبار کا نام",
+      "tagline": "ٹیگ لائن",
+      "description": "مارکیٹ پلیس تفصیل",
+      "name": "گاہک کا نام (نمونہ)",
+      "points": "لوائلٹی پوائنٹس (نمونہ)"
+    }
   },
   "notifications": {
     "eyebrow": "ان باکس",
@@ -749,5 +814,10 @@
     "how": "استعمال کا طریقہ",
     "when": "کب استعمال کریں",
     "tips": "تجاویز"
+  },
+  "searchSelect": {
+    "search": "Search…",
+    "noMatches": "No matches",
+    "selected": "{count} selected"
   }
 }

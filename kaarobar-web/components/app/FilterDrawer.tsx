@@ -6,6 +6,7 @@ import { X } from "lucide-react";
 import Button from "@/components/ui/Button";
 import MultiSelect from "@/components/ui/MultiSelect";
 import DateRangeFields from "@/components/app/DateRangeFields";
+import NumberRangeFields from "@/components/app/NumberRangeFields";
 import { useT } from "@/lib/i18n";
 import {
   emptyStaffListFilters,
@@ -41,17 +42,30 @@ export default function FilterDrawer({
   const [draft, setDraft] = useState<StaffListFilterState>(value);
 
   const showDateRange = Boolean(config.showDateRange);
+  const showAmountRange = Boolean(config.showAmountRange);
+  const showBalanceRange = Boolean(config.showBalanceRange);
+  const showCreditLimitRange = Boolean(config.showCreditLimitRange);
   const categoryOptions = normalizeFilterOptions(config.categoryOptions);
   const statusOptions = config.statusOptions ?? [];
+  const paymentMethodOptions = config.paymentMethodOptions ?? [];
   const showCategories = categoryOptions.length > 0;
   const showStatus = statusOptions.length > 0;
+  const showPaymentMethods = paymentMethodOptions.length > 0;
+  const hasFields =
+    showDateRange ||
+    showAmountRange ||
+    showBalanceRange ||
+    showCreditLimitRange ||
+    showStatus ||
+    showCategories ||
+    showPaymentMethods;
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   useEffect(() => {
-    if (open) setDraft(value);
+    if (open) setDraft({ ...emptyStaffListFilters(), ...value });
   }, [open, value]);
 
   useEffect(() => {
@@ -127,6 +141,40 @@ export default function FilterDrawer({
             />
           ) : null}
 
+          {showAmountRange ? (
+            <NumberRangeFields
+              label={t("listFilters.amountRange")}
+              min={draft.amountMin}
+              max={draft.amountMax}
+              onMinChange={(amountMin) => setDraft((d) => ({ ...d, amountMin }))}
+              onMaxChange={(amountMax) => setDraft((d) => ({ ...d, amountMax }))}
+            />
+          ) : null}
+
+          {showBalanceRange ? (
+            <NumberRangeFields
+              label={t("listFilters.balanceRange")}
+              min={draft.balanceMin}
+              max={draft.balanceMax}
+              onMinChange={(balanceMin) => setDraft((d) => ({ ...d, balanceMin }))}
+              onMaxChange={(balanceMax) => setDraft((d) => ({ ...d, balanceMax }))}
+            />
+          ) : null}
+
+          {showCreditLimitRange ? (
+            <NumberRangeFields
+              label={t("listFilters.creditLimitRange")}
+              min={draft.creditLimitMin}
+              max={draft.creditLimitMax}
+              onMinChange={(creditLimitMin) =>
+                setDraft((d) => ({ ...d, creditLimitMin }))
+              }
+              onMaxChange={(creditLimitMax) =>
+                setDraft((d) => ({ ...d, creditLimitMax }))
+              }
+            />
+          ) : null}
+
           {showStatus ? (
             <MultiSelect
               label={config.statusLabel ?? t("common.status")}
@@ -145,7 +193,18 @@ export default function FilterDrawer({
             />
           ) : null}
 
-          {!showDateRange && !showStatus && !showCategories ? (
+          {showPaymentMethods ? (
+            <MultiSelect
+              label={t("listFilters.paymentMethod")}
+              options={paymentMethodOptions}
+              value={draft.paymentMethods}
+              onChange={(paymentMethods) =>
+                setDraft((d) => ({ ...d, paymentMethods }))
+              }
+            />
+          ) : null}
+
+          {!hasFields ? (
             <p className="text-sm text-muted">{t("listFilters.noFields")}</p>
           ) : null}
         </div>

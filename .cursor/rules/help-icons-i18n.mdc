@@ -1,20 +1,39 @@
 ---
-description: Always add PageHeader/TabBar info icons and EN/UR translations for new UI surfaces
+description: Always add PageHeader/TabBar info icons and translations for every platform locale
 alwaysApply: true
 ---
 
 # Help (i) icons + translations
 
-When you add or materially change a **page**, **tab**, or major buyer/staff surface in `kaarobar-web` (and desktop mirrors where applicable):
+When you add or materially change a **page**, **tab**, or major buyer/staff surface in `kaarobar-web` (and desktop/mobile mirrors where applicable):
+
+## Supported locales (all required)
+
+Ship help + UI strings for **every** locale in `LOCALES` (`kaarobar-web/lib/i18n/index.tsx`):
+
+| Code | Language | Direction |
+|------|----------|-----------|
+| `en` | English | LTR |
+| `ur` | Urdu | RTL |
+| `de` | Deutsch | LTR |
+| `pt-BR` | Português (Brasil) | LTR |
+| `es` | Español | LTR |
+| `fr` | Français | LTR |
+| `ar` | العربية | RTL |
+
+Do **not** ship English-only (or EN+UR-only) and leave the rest missing — missing catalog entries hide the (i) icon; missing message keys fall back to English and look unfinished.
+
+Canonical message source of truth when syncing: [`shared/locales/`](shared/locales/) (`en.json`, `ur.json`, `de.json`, `pt-BR.json`, `es.json`, `fr.json`, `ar.json`). Mirror into web / desktop / mobile copies as that app uses them.
 
 ## Info icon (required)
 
 1. Pass `infoKey` on `PageHeader` and on each `TabBar` / `Tabs` item.
-2. Add a matching topic in **both** [`kaarobar-web/lib/help/en.ts`](kaarobar-web/lib/help/en.ts) and [`kaarobar-web/lib/help/ur.ts`](kaarobar-web/lib/help/ur.ts).
-3. For staff features also used on desktop, mirror the same keys in [`kaarobar-desktop/renderer/src/lib/help/en.ts`](kaarobar-desktop/renderer/src/lib/help/en.ts) and `ur.ts`.
+2. Add a matching topic in **all** help catalogs under [`kaarobar-web/lib/help/`](kaarobar-web/lib/help/):
+   - `en.ts`, `ur.ts`, `de.ts`, `pt-BR.ts`, `es.ts`, `fr.ts`, `ar.ts`
+3. For staff features also used on desktop, mirror the **same keys** in [`kaarobar-desktop/renderer/src/lib/help/`](kaarobar-desktop/renderer/src/lib/help/) for every locale file above.
 4. Key naming: `page.<area>` for pages, `tab.<area>.<tab>` for tabs (e.g. `page.market.discover`, `tab.settings.branding`).
 5. Topic shape: `title`, `summary`, `what`, `how[]`, `when`, optional `tips[]`.
-6. If `infoKey` is set but the catalog entry is missing, the (i) icon **does not render** — always ship catalog + wire-up together.
+6. If `infoKey` is set but the catalog entry is missing for the active locale (and EN fallback is absent), the (i) icon **does not render** — always ship **all** locale catalogs + wire-up together.
 
 Example:
 
@@ -24,12 +43,16 @@ Example:
 
 ## Translations (required)
 
-1. Add user-visible strings to [`kaarobar-web/lib/i18n/messages/en.json`](kaarobar-web/lib/i18n/messages/en.json) and [`ur.json`](kaarobar-web/lib/i18n/messages/ur.json).
+1. Add user-visible strings to **every** file under [`kaarobar-web/lib/i18n/messages/`](kaarobar-web/lib/i18n/messages/):
+   - `en.json`, `ur.json`, `de.json`, `pt-BR.json`, `es.json`, `fr.json`, `ar.json`
 2. Prefer `useT()` / `t("…")` over hardcoded English in UI chrome (titles, descriptions, empty states, primary CTAs).
 3. Use `t("key", { count: n })` for interpolated strings.
+4. When the same chrome exists on desktop/mobile, update that app’s locale files too (`kaarobar-desktop/renderer/src/lib/i18n/messages/`, `kaarobar-mobile` i18n catalogs, and/or `shared/locales/`).
+5. RTL: `ur` and `ar` use RTL layout — avoid hard-coded `left`/`right` in new UI; prefer logical CSS (`ms`/`me`, `start`/`end`).
 
 ## Do not skip
 
 - New Settings / Marketing / Inventory tabs
 - New consumer marketplace routes (Discover, catalog, checkout, etc.)
 - Replacing a hardcoded title with i18n without adding `infoKey` when the surface is a full page/tab
+- Adding a key only to `en`/`ur` while omitting `de` / `pt-BR` / `es` / `fr` / `ar`

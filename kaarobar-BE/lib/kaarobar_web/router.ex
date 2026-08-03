@@ -303,10 +303,12 @@ defmodule KaarobarWeb.Router do
     delete "/crm/loyalty-tiers/:id", CrmController, :delete_tier
 
     get "/crm/templates", CrmController, :list_templates
+    get "/crm/templates/variables", CrmController, :list_template_variables
+    post "/crm/templates/preview", CrmController, :preview_template
     post "/crm/templates", CrmController, :create_template
+    get "/crm/templates/:id", CrmController, :show_template
     patch "/crm/templates/:id", CrmController, :update_template
     delete "/crm/templates/:id", CrmController, :delete_template
-    post "/crm/templates/preview", CrmController, :preview_template
 
     get "/crm/messaging-wallet", CrmController, :messaging_wallet
     post "/crm/messaging-wallet/top-up", CrmController, :top_up_wallet

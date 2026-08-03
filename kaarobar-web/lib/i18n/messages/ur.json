@@ -66,7 +66,13 @@
     "source": "ذریعہ",
     "noFields": "اس فہرست کے لیے کوئی اضافی فلٹر نہیں۔",
     "khataOn": "کھاتہ آن",
-    "khataOff": "کھاتہ آف"
+    "khataOff": "کھاتہ آف",
+    "amountRange": "Amount range",
+    "balanceRange": "Balance range",
+    "creditLimitRange": "Credit limit range",
+    "paymentMethod": "Payment method",
+    "min": "Min",
+    "max": "Max"
   },
   "nav": {
     "overview": "جائزہ",
@@ -94,7 +100,7 @@
     "products": "مصنوعات",
     "orders": "آرڈرز",
     "loyalty": "لائلٹی",
-    "account": "اکاؤنٹ"
+    "account": "اکاؤنٹس"
   },
   "auth": {
     "signInTitle": "سائن ان",
@@ -157,8 +163,8 @@
     "notificationsDesc": "چھٹی، پے رول، بلنگ اور مہمات کی اطلاعات۔",
     "openPos": "پی او ایس کھولیں",
     "manageSettings": "ترتیبات سنبھالیں",
-    "discoverTitle": "اسٹورز دریافت کریں",
-    "discoverDesc": "برانڈڈ Kaarobar کاروبار دیکھیں اور پک اپ آرڈر دیں۔",
+    "discoverTitle": "پروڈکٹس دریافت کریں",
+    "discoverDesc": "ہر مارکیٹ پلیس دکان کے پروڈکٹس دیکھیں۔ ایک چیک آؤٹ میں ایک یا کئی سے خریدیں۔",
     "catalogTitle": "اسٹور",
     "catalogDesc": "پک اپ / آرڈر اہیڈ · کارٹ میں شامل کریں",
     "catalogBookDesc": "سروس بک کریں · موزوں وقت منتخب کریں",
@@ -178,7 +184,7 @@
     "productsTitle": "تمام مصنوعات",
     "productsDesc": "ہر مارکیٹ پلیس اسٹور کی اشیاء ایک جگہ دیکھیں۔",
     "productDetailTitle": "مصنوعہ",
-    "buyerAccountTitle": "اکاؤنٹ",
+    "buyerAccountTitle": "اکاؤنٹس",
     "buyerAccountDesc": "آپ کے مارکیٹ پلیس پروفائل کا بیلنس، لائلٹی اور الرٹس۔",
     "appointmentDetailTitle": "اپائنٹمنٹ"
   },
@@ -212,12 +218,29 @@
     "loadingOrders": "آرڈرز لوڈ ہو رہے ہیں…",
     "onlineBadge": "آن لائن",
     "discoverHero": "پڑوسی اسٹورز سے خریدیں، لائلٹی کمائیں، اور تیار ہونے پر اٹھائیں۔",
+    "discoverProductsHero": "ہر فہرست شدہ دکان کے پروڈکٹس دیکھیں۔ ایک یا کئی اسٹورز سے شامل کریں — چیک آؤٹ ہر دکان کا الگ پک اپ آرڈر بناتا ہے۔",
     "productsHero": "ہر فہرست شدہ اسٹور کی مصنوعات تلاش کریں، پھر چیک آؤٹ کے لیے اسٹور کھولیں۔",
     "searchStores": "نام یا انڈسٹری سے تلاش کریں",
     "searchProducts": "مصنوعات تلاش کریں…",
     "searchAllProducts": "تمام مصنوعات تلاش کریں…",
     "filterIndustry": "انڈسٹری",
-    "filterCategory": "زمرہ / انڈسٹری",
+    "filterCategory": "زمرہ",
+    "allIndustries": "تمام انڈسٹریز",
+    "filters": "فلٹرز",
+    "filtersTitle": "فلٹرز",
+    "filtersDesc": "انڈسٹری اور زمرے سے مصنوعات محدود کریں۔",
+    "applyFilters": "فلٹرز لاگو کریں",
+    "filtersActive": "{count} فلٹرز فعال",
+    "modeProducts": "پروڈکٹس",
+    "modeShops": "دکانیں",
+    "loadMore": "مزید لوڈ کریں",
+    "endOfResults": "آپ آخر تک پہنچ گئے۔",
+    "soldBy": "فروخت کنندہ",
+    "shopCardHint": "اس دکان سے مزید دیکھیں",
+    "bookThisService": "یہ سروس بک کریں",
+    "orderIncludesShops": "اس آرڈر میں {count} دکانیں شامل ہیں",
+    "shopsInCart": "کارٹ میں {count} دکانیں",
+    "multiShopCartHint": "آپ ایک چیک آؤٹ میں کئی دکانیں سے خرید سکتے ہیں۔ ہر دکان الگ پک اپ آرڈر ہے۔",
     "shopNow": "ابھی خریدیں",
     "bookNow": "ابھی بک کریں",
     "emptyStoresTitle": "ابھی کوئی اسٹور نہیں",
@@ -229,6 +252,7 @@
     "productNotFoundBody": "یہ آئٹم ہٹا دی گئی ہو یا اب فہرست میں نہیں۔",
     "backToProducts": "مصنوعات پر واپس",
     "backToStore": "اسٹور پر واپس",
+    "backToDiscover": "ڈسکور پر واپس",
     "visitStore": "اسٹور دیکھیں",
     "noFilterMatches": "دوسری کیٹیگری یا تلاش آزمائیں۔",
     "clearFilters": "فلٹر صاف کریں",
@@ -283,7 +307,8 @@
     "accountAlertsBody": "اسٹورز سے آرڈر اپ ڈیٹس اور پیغامات۔",
     "accountGuest": "خریدار",
     "accountKhataHint": "اسٹور کریڈٹ چاہیے؟",
-    "accountKhataHintBody": "جب اسٹور آپ کے کنزیومر اکاؤنٹ کو کھاتہ سے جوڑے تو بیلنس سنک ہوتا ہے۔"
+    "accountKhataHintBody": "جب اسٹور آپ کے کنزیومر اکاؤنٹ کو کھاتہ سے جوڑے تو بیلنس سنک ہوتا ہے۔",
+    "priceRange": "Price range"
   },
   "appointments": {
     "modeTabs": "خریداری یا بکنگ",
@@ -395,7 +420,16 @@
     "transferFailed": "ٹرانسفر نہیں بن سکا",
     "confirmFailed": "تصدیق نہیں ہو سکی",
     "adjustFailed": "ایڈجسٹ نہیں ہو سکا",
-    "supplierFailed": "سپلائر محفوظ نہیں ہو سکا"
+    "supplierFailed": "سپلائر محفوظ نہیں ہو سکا",
+    "createTransfer": "Create transfer",
+    "transferModalTitle": "Create stock transfer",
+    "transferModalDesc": "Move multiple products to another branch. Stock updates after confirm.",
+    "toBranch": "To branch",
+    "selectToBranch": "Select destination branch",
+    "products": "Products",
+    "selectProducts": "Select products",
+    "quantities": "Quantities",
+    "confirm": "Confirm"
   },
   "pos": {
     "tillOpen": "ٹل کھل گیا",
@@ -740,7 +774,38 @@
     "channel": "چینل",
     "sentAt": "بھیجنے کا وقت",
     "delivery": "ترسیل",
-    "noRecipients": "ابھی کوئی وصول کنندہ نہیں۔"
+    "noRecipients": "ابھی کوئی وصول کنندہ نہیں۔",
+    "tabCampaigns": "مہمات",
+    "tabTemplates": "ٹیمپلیٹس",
+    "tabSegments": "سیگمنٹس",
+    "tabCoupons": "کوپن",
+    "tabTiers": "لوائلٹی سطحیں",
+    "newTemplate": "نیا ٹیمپلیٹ",
+    "saveTemplate": "ٹیمپلیٹ محفوظ کریں",
+    "templateSaved": "ٹیمپلیٹ محفوظ ہو گیا",
+    "templatesEmpty": "کوئی ٹیمپلیٹ نہیں",
+    "templatesEmptyBody": "ٹیمپلیٹ بنائیں یا لوڈ پر ڈیفالٹس کا انتظار کریں۔",
+    "titleTemplate": "عنوان ٹیمپلیٹ",
+    "bodyTemplate": "متن ٹیمپلیٹ",
+    "preview": "پیش نظارہ",
+    "variablesTitle": "دستیاب متغیرات",
+    "variablesHint": "عنوان اور متن میں {{business}} یا {{name}} جیسے سادہ پلیس ہولڈرز استعمال کریں۔",
+    "backToTemplates": "ٹیمپلیٹس پر واپس",
+    "templateFallback": "ٹیمپلیٹ",
+    "templatePreview": "گاہک پیش نظارہ",
+    "sampleValues": "نمونہ/انٹرپولیٹڈ اقدار کے ساتھ دکھایا گیا جیسا گاہک دیکھیں گے۔",
+    "charsCount": "{count} حروف",
+    "channelEmail": "ای میل",
+    "channelInApp": "اِن-ایپ",
+    "channelSms": "SMS",
+    "channelWhatsapp": "WhatsApp",
+    "var": {
+      "business": "کاروبار کا نام",
+      "tagline": "ٹیگ لائن",
+      "description": "مارکیٹ پلیس تفصیل",
+      "name": "گاہک کا نام (نمونہ)",
+      "points": "لوائلٹی پوائنٹس (نمونہ)"
+    }
   },
   "notifications": {
     "eyebrow": "ان باکس",
@@ -796,5 +861,10 @@
     "how": "استعمال کا طریقہ",
     "when": "کب استعمال کریں",
     "tips": "تجاویز"
+  },
+  "searchSelect": {
+    "search": "Search…",
+    "noMatches": "No matches",
+    "selected": "{count} selected"
   }
 }

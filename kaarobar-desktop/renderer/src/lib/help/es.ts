@@ -402,6 +402,20 @@ const catalog: HelpCatalog = {
     tips: ["Solucione problemas de asistencia/licencias antes de ejecutar la nómina."],
   },
 
+  "page.marketing.template": {
+    title: "Plantilla de mensaje",
+    summary: "Vista previa de cómo se ve una plantilla CRM al enviarla a clientes.",
+    what: "Muestra marcadores en bruto y una vista interpolada con branding del negocio y valores de muestra.",
+    how: [
+      "Abra una plantilla en Marketing → Plantillas.",
+      "Revise los marcadores en el resumen.",
+      "Compruebe la vista previa del cliente.",
+      "Atrás vuelve a la pestaña Plantillas.",
+    ],
+    when: "Al redactar mensajes de campaña reutilizables.",
+    tips: ["Los marcadores son claves planas como {{business}} — no se admite {{customer.name}}."],
+  },
+
   "tab.marketing.campaigns": {
     title: "Campañas",
     summary: "Redactar y enviar mensajes a los clientes.",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api/client";
@@ -12,7 +12,8 @@ import ListToolbar from "@/components/app/ListToolbar";
 import { Field, PageHeader, SurfaceCard, TabBar, fieldClass } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
-import { detailRoutes } from "@/lib/navigation";
+import { useTabQueryParam } from "@/lib/hooks/useTabQueryParam";
+import { detailRoutes, routes } from "@/lib/navigation";
 import {
   applyStaffListFilters,
   emptyStaffListFilters,
@@ -98,21 +99,51 @@ const emptyForm = {
 
 type Tab = "campaigns" | "templates" | "segments" | "coupons" | "tiers";
 
-export default function MarketingPage() {
+const MARKETING_TABS: readonly Tab[] = [
+  "campaigns",
+  "templates",
+  "segments",
+  "coupons",
+  "tiers",
+];
+
+type TemplateVariable = {
+  key: string;
+  placeholder: string;
+  source: string;
+  example: string;
+};
+
+const emptyTplForm = {
+  name: "",
+  channel: "email",
+  title_template: "",
+  body_template: "",
+};
+
+function MarketingPageInner() {
   const t = useT();
   const toast = useToast();
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("campaigns");
+  const [tab, setTab] = useTabQueryParam<Tab>("campaigns", MARKETING_TABS, {
+    basePath: routes.marketing,
+  });
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [campaignFilters, setCampaignFilters] = useState<StaffListFilterState>(
     emptyStaffListFilters()
   );
   const [templates, setTemplates] = useState<MsgTemplate[]>([]);
+  const [templateVars, setTemplateVars] = useState<TemplateVariable[]>([]);
+  const [sampleValues, setSampleValues] = useState<Record<string, string>>({
+    name: "Ayesha",
+    points: "120",
+  });
   const [segments, setSegments] = useState<Segment[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [busy, setBusy] = useState(false);
   const [modal, setModal] = useState(false);
+  const [tplModal, setTplModal] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [detail, setDetail] = useState<Campaign | null>(null);
   const [previewCount, setPreviewCount] = useState<number | null>(null);
@@ -120,12 +151,7 @@ export default function MarketingPage() {
     estimated_cost: string;
     unit_cost: string;
   } | null>(null);
-  const [tplForm, setTplForm] = useState({
-    name: "",
-    channel: "email",
-    title_template: "",
-    body_template: "",
-  });
+  const [tplForm, setTplForm] = useState(emptyTplForm);
   const [tplPreview, setTplPreview] = useState<{ title: string; message: string } | null>(null);
   const [segForm, setSegForm] = useState({ name: "", min_points: "", khata: false });
   const [couponForm, setCouponForm] = useState({
@@ -145,18 +171,26 @@ export default function MarketingPage() {
 
   const load = useCallback(async () => {
     try {
-      const [c, s, co, ti, tpl] = await Promise.all([
+      const [c, s, co, ti, tpl, vars] = await Promise.all([
         api<{ data: Campaign[] }>("/crm/campaigns"),
         api<{ data: Segment[] }>("/crm/segments"),
         api<{ data: Coupon[] }>("/crm/coupons"),
         api<{ data: Tier[] }>("/crm/loyalty-tiers"),
         api<{ data: MsgTemplate[] }>("/crm/templates"),
+        api<{
+          data: {
+            variables: TemplateVariable[];
+            sample_values: Record<string, string>;
+          };
+        }>("/crm/templates/variables"),
       ]);
       setCampaigns(c.data || []);
       setSegments(s.data || []);
       setCoupons(co.data || []);
       setTiers(ti.data || []);
       setTemplates(tpl.data || []);
+      setTemplateVars(vars.data?.variables || []);
+      if (vars.data?.sample_values) setSampleValues(vars.data.sample_values);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.loadFailed"));
     }
@@ -259,6 +293,19 @@ export default function MarketingPage() {
     });
   }
 
+  function openTplModal() {
+    setTplForm(emptyTplForm);
+    setTplPreview(null);
+    setTplModal(true);
+  }
+
+  function insertTplVar(placeholder: string) {
+    setTplForm((f) => ({
+      ...f,
+      body_template: `${f.body_template}${f.body_template ? " " : ""}${placeholder}`,
+    }));
+  }
+
   async function previewTemplate() {
     try {
       const res = await api<{ data: { title: string; message: string } }>(
@@ -269,7 +316,7 @@ export default function MarketingPage() {
             channel: tplForm.channel,
             title_template: tplForm.title_template,
             body_template: tplForm.body_template,
-            variables: { name: "Ayesha", points: "120" },
+            variables: sampleValues,
           }),
         }
       );
@@ -287,13 +334,14 @@ export default function MarketingPage() {
         method: "POST",
         body: JSON.stringify({
           ...tplForm,
-          variables: { name: "Customer", points: "100" },
+          variables: sampleValues,
         }),
       });
-      setTplForm({ name: "", channel: "email", title_template: "", body_template: "" });
+      setTplForm(emptyTplForm);
       setTplPreview(null);
+      setTplModal(false);
       await load();
-      toast.success("Template saved");
+      toast.success(t("marketing.templateSaved"));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.error"));
     } finally {
@@ -442,11 +490,11 @@ export default function MarketingPage() {
   }
 
   const tabs: { id: Tab; label: string; infoKey?: string }[] = [
-    { id: "campaigns", label: "Campaigns", infoKey: "tab.marketing.campaigns" },
-    { id: "templates", label: "Templates", infoKey: "tab.marketing.templates" },
-    { id: "segments", label: "Segments", infoKey: "tab.marketing.segments" },
-    { id: "coupons", label: "Coupons", infoKey: "tab.marketing.coupons" },
-    { id: "tiers", label: "Loyalty tiers", infoKey: "tab.marketing.tiers" },
+    { id: "campaigns", label: t("marketing.tabCampaigns"), infoKey: "tab.marketing.campaigns" },
+    { id: "templates", label: t("marketing.tabTemplates"), infoKey: "tab.marketing.templates" },
+    { id: "segments", label: t("marketing.tabSegments"), infoKey: "tab.marketing.segments" },
+    { id: "coupons", label: t("marketing.tabCoupons"), infoKey: "tab.marketing.coupons" },
+    { id: "tiers", label: t("marketing.tabTiers"), infoKey: "tab.marketing.tiers" },
   ];
 
   const campaignFilterConfig = useMemo<ListFilterConfig>(
@@ -456,7 +504,7 @@ export default function MarketingPage() {
         { value: "Draft", label: t("marketing.statusDraft") },
         { value: "Sent", label: t("marketing.statusSent") },
       ],
-      categoryLabel: "Channel",
+      categoryLabel: t("marketing.channel"),
       categoryOptions: [
         { value: "email", label: "Email" },
         { value: "sms", label: "SMS" },
@@ -487,7 +535,9 @@ export default function MarketingPage() {
         action={
           tab === "campaigns"
             ? { label: t("marketing.newCampaign"), onClick: () => setModal(true) }
-            : undefined
+            : tab === "templates"
+              ? { label: t("marketing.newTemplate"), onClick: openTplModal }
+              : undefined
         }
         secondaryAction={{
           label: t("nav.customers"),
@@ -601,91 +651,61 @@ export default function MarketingPage() {
       ) : null}
 
       {tab === "templates" ? (
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="space-y-4">
           <SurfaceCard className="space-y-3 p-4">
-            <h3 className="font-semibold text-heading">New template</h3>
-            <form onSubmit={createTemplate} className="grid gap-3">
-              <Field label="Name">
-                <input
-                  className={fieldClass}
-                  required
-                  value={tplForm.name}
-                  onChange={(e) => setTplForm({ ...tplForm, name: e.target.value })}
-                />
-              </Field>
-              <Field label="Channel">
-                <select
-                  className={fieldClass}
-                  value={tplForm.channel}
-                  onChange={(e) => setTplForm({ ...tplForm, channel: e.target.value })}
+            <h3 className="font-semibold text-heading">{t("marketing.variablesTitle")}</h3>
+            <p className="text-sm text-body">{t("marketing.variablesHint")}</p>
+            <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {templateVars.map((v) => (
+                <li
+                  key={v.key}
+                  className="rounded-md border border-border bg-bg-tertiary px-3 py-2 text-sm"
                 >
-                  <option value="email">Email</option>
-                  <option value="in_app">In-app</option>
-                  <option value="sms">SMS</option>
-                  <option value="whatsapp">WhatsApp</option>
-                </select>
-              </Field>
-              <Field label="Title template">
-                <input
-                  className={fieldClass}
-                  required
-                  value={tplForm.title_template}
-                  onChange={(e) => setTplForm({ ...tplForm, title_template: e.target.value })}
-                  placeholder="{{business}} offer for {{name}}"
-                />
-              </Field>
-              <Field label="Body template">
-                <textarea
-                  className={fieldClass}
-                  required
-                  rows={4}
-                  value={tplForm.body_template}
-                  onChange={(e) => setTplForm({ ...tplForm, body_template: e.target.value })}
-                  placeholder="Hi {{name}}, … Use {{points}} for loyalty."
-                />
-              </Field>
-              <div className="flex gap-2">
-                <Button type="button" variant="secondary" onClick={() => void previewTemplate()}>
-                  Preview
-                </Button>
-                <Button type="submit" loading={busy}>
-                  Save template
-                </Button>
-              </div>
-            </form>
-            {tplPreview ? (
-              <div className="rounded-md border border-border bg-white p-3 text-sm shadow-sm">
-                <p className="text-xs font-semibold uppercase text-muted">
-                  Preview ({tplForm.channel})
-                </p>
-                <p className="mt-2 font-bold text-heading">{tplPreview.title}</p>
-                <p className="mt-1 whitespace-pre-wrap text-body">{tplPreview.message}</p>
-                {tplForm.channel === "sms" ? (
-                  <p className="mt-2 text-xs text-muted">
-                    {tplPreview.message.length} characters
+                  <code className="font-semibold text-heading">{v.placeholder}</code>
+                  <p className="mt-1 text-xs text-muted">
+                    {t(`marketing.var.${v.key}` as "marketing.var.business")}
+                    {v.example ? ` · ${v.example}` : ""}
                   </p>
-                ) : null}
-              </div>
-            ) : null}
-          </SurfaceCard>
-          <SurfaceCard className="space-y-3 p-4">
-            <h3 className="font-semibold text-heading">Saved templates</h3>
-            <ul className="divide-y divide-border">
-              {templates.length === 0 ? (
-                <li className="py-3 text-sm text-body">No templates yet — defaults will seed on load.</li>
-              ) : (
-                templates.map((tpl) => (
-                  <li key={tpl.id} className="py-3 text-sm">
-                    <p className="font-semibold text-heading">
-                      {tpl.name}{" "}
-                      <span className="text-xs font-normal text-muted">· {tpl.channel}</span>
-                    </p>
-                    <p className="text-body">{tpl.title_template}</p>
-                  </li>
-                ))
-              )}
+                </li>
+              ))}
             </ul>
           </SurfaceCard>
+
+          <DataTable
+            maxHeight="24rem"
+            onRowClick={(tpl) => router.push(detailRoutes.template(tpl.id))}
+            columns={[
+              {
+                id: "name",
+                header: t("common.name"),
+                cell: (tpl) => (
+                  <Link
+                    href={detailRoutes.template(tpl.id)}
+                    className="font-semibold text-brand underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {tpl.name}
+                  </Link>
+                ),
+              },
+              {
+                id: "channel",
+                header: t("marketing.channel"),
+                cell: (tpl) => tpl.channel,
+              },
+              {
+                id: "title",
+                header: t("marketing.titleTemplate"),
+                cell: (tpl) => (
+                  <span className="line-clamp-1 text-body">{tpl.title_template}</span>
+                ),
+              },
+            ]}
+            data={templates}
+            rowKey={(tpl) => tpl.id}
+            emptyTitle={t("marketing.templatesEmpty")}
+            emptyBody={t("marketing.templatesEmptyBody")}
+          />
         </div>
       ) : null}
 
@@ -1069,6 +1089,107 @@ export default function MarketingPage() {
           ) : null}
         </form>
       </Modal>
+
+      <Modal
+        isOpen={tplModal}
+        onClose={() => setTplModal(false)}
+        title={t("marketing.newTemplate")}
+        description={t("marketing.variablesHint")}
+        size="lg"
+        footer={
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button type="button" variant="secondary" onClick={() => void previewTemplate()}>
+              {t("marketing.preview")}
+            </Button>
+            <Button type="submit" form="template-form" loading={busy}>
+              {t("marketing.saveTemplate")}
+            </Button>
+          </div>
+        }
+      >
+        <form id="template-form" onSubmit={createTemplate} className="grid gap-3">
+          <Field label={t("common.name")}>
+            <input
+              className={fieldClass}
+              required
+              value={tplForm.name}
+              onChange={(e) => setTplForm({ ...tplForm, name: e.target.value })}
+            />
+          </Field>
+          <Field label={t("marketing.channel")}>
+            <select
+              className={fieldClass}
+              value={tplForm.channel}
+              onChange={(e) => setTplForm({ ...tplForm, channel: e.target.value })}
+            >
+              <option value="email">{t("marketing.channelEmail")}</option>
+              <option value="in_app">{t("marketing.channelInApp")}</option>
+              <option value="sms">{t("marketing.channelSms")}</option>
+              <option value="whatsapp">{t("marketing.channelWhatsapp")}</option>
+            </select>
+          </Field>
+          <Field label={t("marketing.titleTemplate")}>
+            <input
+              className={fieldClass}
+              required
+              value={tplForm.title_template}
+              onChange={(e) => setTplForm({ ...tplForm, title_template: e.target.value })}
+              placeholder="{{business}} offer for {{name}}"
+            />
+          </Field>
+          <Field label={t("marketing.bodyTemplate")}>
+            <textarea
+              className={fieldClass}
+              required
+              rows={4}
+              value={tplForm.body_template}
+              onChange={(e) => setTplForm({ ...tplForm, body_template: e.target.value })}
+              placeholder="Hi {{name}}, … Use {{points}} for loyalty."
+            />
+          </Field>
+          {templateVars.length > 0 ? (
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase text-muted">
+                {t("marketing.variablesTitle")}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {templateVars.map((v) => (
+                  <button
+                    key={v.key}
+                    type="button"
+                    className="rounded-md border border-border bg-bg-tertiary px-2 py-1 font-mono text-xs text-heading hover:border-brand"
+                    onClick={() => insertTplVar(v.placeholder)}
+                  >
+                    {v.placeholder}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {tplPreview ? (
+            <div className="rounded-md border border-border bg-white p-3 text-sm shadow-sm">
+              <p className="text-xs font-semibold uppercase text-muted">
+                {t("marketing.preview")} ({tplForm.channel})
+              </p>
+              <p className="mt-2 font-bold text-heading">{tplPreview.title}</p>
+              <p className="mt-1 whitespace-pre-wrap text-body">{tplPreview.message}</p>
+              {tplForm.channel === "sms" ? (
+                <p className="mt-2 text-xs text-muted">
+                  {t("marketing.charsCount", { count: tplPreview.message.length })}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+        </form>
+      </Modal>
     </div>
+  );
+}
+
+export default function MarketingPage() {
+  return (
+    <Suspense fallback={<p className="text-sm text-body">Loading…</p>}>
+      <MarketingPageInner />
+    </Suspense>
   );
 }

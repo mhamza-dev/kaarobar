@@ -3,6 +3,7 @@ defmodule KaarobarWeb.V1.ReturnController do
 
   alias Kaarobar.Guardian
   alias Kaarobar.Pos
+  alias KaarobarWeb.Controllers.Helpers.ListFilters
 
   def index(conn, params) do
     user = Guardian.Plug.current_resource(conn)
@@ -14,17 +15,19 @@ defmodule KaarobarWeb.V1.ReturnController do
       conn |> put_status(:bad_request) |> json(%{error: "business_and_branch_required"})
     else
       opts =
-        case params["status"] do
-          nil -> []
-          status -> [status: status]
-        end
+        ListFilters.parse(params, [
+          :status,
+          :amount_min,
+          :amount_max,
+          :payment_method,
+          :limit,
+          :cursor
+        ])
 
-      data =
-        branch_id
-        |> Pos.list_returns(owner_id, business_id, opts)
-        |> Enum.map(&serialize/1)
+      %{data: returns, meta: meta} =
+        Pos.list_returns(branch_id, owner_id, business_id, opts)
 
-      json(conn, %{data: data})
+      json(conn, %{data: Enum.map(returns, &serialize/1), meta: meta})
     end
   end
 

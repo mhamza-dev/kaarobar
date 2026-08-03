@@ -181,18 +181,18 @@ defmodule Kaarobar.ListFiltersTest do
     biz_b: biz_b,
     cust_a: cust_a
   } do
-    found = Accounting.list_customers(biz_a.id, owner_a.id, q: "Ali")
-    assert Enum.map(found, & &1.id) == [cust_a.id]
+    found = Accounting.list_customers(biz_a.id, owner_a.id, q: "Ali").data
+    assert Enum.map(found, fn {c, _} -> c.id end) == [cust_a.id]
 
-    khata = Accounting.list_customers(biz_a.id, owner_a.id, khata_enabled: true)
-    assert Enum.map(khata, & &1.id) == [cust_a.id]
+    khata = Accounting.list_customers(biz_a.id, owner_a.id, khata_enabled: true).data
+    assert Enum.map(khata, fn {c, _} -> c.id end) == [cust_a.id]
 
-    portal = Accounting.list_customers(biz_a.id, owner_a.id, portal_enabled: true)
-    assert Enum.map(portal, & &1.id) == [cust_a.id]
+    portal = Accounting.list_customers(biz_a.id, owner_a.id, portal_enabled: true).data
+    assert Enum.map(portal, fn {c, _} -> c.id end) == [cust_a.id]
 
     # SEC-NFR-001
-    b_list = Accounting.list_customers(biz_b.id, owner_b.id, q: "Ali")
-    refute Enum.any?(b_list, &(&1.id == cust_a.id))
+    b_list = Accounting.list_customers(biz_b.id, owner_b.id, q: "Ali").data
+    refute Enum.any?(b_list, fn {c, _} -> c.id == cust_a.id end)
   end
 
   test "sales filter by q and status — tenant scoped", %{
@@ -203,10 +203,10 @@ defmodule Kaarobar.ListFiltersTest do
     branch_a: branch_a,
     sale: sale
   } do
-    by_q = Pos.list_sales(branch_a.id, owner_a.id, biz_a.id, q: "Ali")
+    by_q = Pos.list_sales(branch_a.id, owner_a.id, biz_a.id, q: "Ali").data
     assert Enum.any?(by_q, &(&1.id == sale.id))
 
-    by_status = Pos.list_sales(branch_a.id, owner_a.id, biz_a.id, status: sale.status)
+    by_status = Pos.list_sales(branch_a.id, owner_a.id, biz_a.id, status: sale.status).data
     assert Enum.any?(by_status, &(&1.id == sale.id))
 
     today = Date.utc_today()
@@ -214,12 +214,12 @@ defmodule Kaarobar.ListFiltersTest do
     to_at = DateTime.new!(today, ~T[23:59:59], "Etc/UTC")
 
     by_range =
-      Pos.list_sales(branch_a.id, owner_a.id, biz_a.id, from: from_at, to: to_at)
+      Pos.list_sales(branch_a.id, owner_a.id, biz_a.id, from: from_at, to: to_at).data
 
     assert Enum.any?(by_range, &(&1.id == sale.id))
 
     # SEC-NFR-001
-    b_sales = Pos.list_sales(nil, owner_b.id, biz_b.id, q: sale.invoice_number)
+    b_sales = Pos.list_sales(nil, owner_b.id, biz_b.id, q: sale.invoice_number).data
     refute Enum.any?(b_sales, &(&1.id == sale.id))
   end
 

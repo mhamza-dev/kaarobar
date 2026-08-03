@@ -823,6 +823,56 @@ defmodule Kaarobar.Crm do
     end
   end
 
+  @doc """
+  Canonical CRM template placeholders (CRM-FR-002).
+
+  Flat `{{key}}` keys only — no nested `{{customer.name}}` syntax.
+  `business` / `tagline` / `description` resolve from the tenant business at preview;
+  `name` / `points` are sample customer fields for preview and stored defaults.
+  """
+  def list_template_variables(business_id) when is_binary(business_id) do
+    live = business_template_vars(business_id)
+    sample = %{"name" => "Ayesha", "points" => "120"}
+
+    variables = [
+      %{
+        "key" => "business",
+        "placeholder" => "{{business}}",
+        "source" => "business",
+        "example" => live["business"] || "Store"
+      },
+      %{
+        "key" => "tagline",
+        "placeholder" => "{{tagline}}",
+        "source" => "business",
+        "example" => live["tagline"] || ""
+      },
+      %{
+        "key" => "description",
+        "placeholder" => "{{description}}",
+        "source" => "business",
+        "example" => live["description"] || ""
+      },
+      %{
+        "key" => "name",
+        "placeholder" => "{{name}}",
+        "source" => "customer_sample",
+        "example" => sample["name"]
+      },
+      %{
+        "key" => "points",
+        "placeholder" => "{{points}}",
+        "source" => "customer_sample",
+        "example" => sample["points"]
+      }
+    ]
+
+    %{
+      variables: variables,
+      sample_values: Map.merge(live, sample)
+    }
+  end
+
   def render_template(title_t, body_t, vars) when is_map(vars) do
     %{
       title: replace_vars(title_t || "", vars),

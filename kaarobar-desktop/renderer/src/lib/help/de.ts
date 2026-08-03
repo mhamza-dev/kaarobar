@@ -402,6 +402,20 @@ const catalog: HelpCatalog = {
     tips: ["Beheben Sie Anwesenheits-/Urlaubsprobleme, bevor Sie die Gehaltsabrechnung durchführen."],
   },
 
+  "page.marketing.template": {
+    title: "Nachrichtenvorlage",
+    summary: "Vorschau, wie eine CRM-Vorlage für Kunden aussieht.",
+    what: "Zeigt Rohplatzhalter und eine interpolierte Vorschau mit Geschäftsbranding und Beispielkundenwerten.",
+    how: [
+      "Öffnen Sie eine Vorlage unter Marketing → Vorlagen.",
+      "Prüfen Sie Platzhalter in der Übersicht.",
+      "Prüfen Sie die Kundenvorschau mit Beispielwerten.",
+      "Zurück führt zum Vorlagen-Tab.",
+    ],
+    when: "Beim Erstellen wiederverwendbarer Kampagnennachrichten.",
+    tips: ["Platzhalter sind flache Schlüssel wie {{business}} — {{customer.name}} wird nicht unterstützt."],
+  },
+
   "tab.marketing.campaigns": {
     title: "Kampagnen",
     summary: "Verfassen und versenden Sie Kundennachrichten.",

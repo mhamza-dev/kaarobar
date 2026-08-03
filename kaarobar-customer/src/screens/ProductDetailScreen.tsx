@@ -146,16 +146,16 @@ export default function ProductDetailScreen() {
   if (error && !product) {
     return (
       <View style={styles.container}>
-        <Pressable onPress={() => pushPath(navigation, "/app/products")}>
+        <Pressable onPress={() => pushPath(navigation, "/app/dashboard")}>
           <Text style={[styles.back, { color: palette.brand }]}>
-            {t("marketplace.backToProducts")}
+            {t("marketplace.backToDiscover")}
           </Text>
         </Pressable>
         <BuyerEmptyPanel
           title={t("marketplace.productNotFound")}
           body={t("marketplace.productNotFoundBody")}
           actionLabel={t("marketplace.browseProducts")}
-          onAction={() => pushPath(navigation, "/app/products")}
+          onAction={() => pushPath(navigation, "/app/dashboard")}
         />
       </View>
     );
@@ -163,12 +163,15 @@ export default function ProductDetailScreen() {
 
   if (!product || !business) return null;
 
+  const isService =
+    product.product_kind === "service" || product.product_kind === "combo";
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.topRow}>
-        <Pressable onPress={() => pushPath(navigation, storeHref)}>
+        <Pressable onPress={() => pushPath(navigation, "/app/dashboard")}>
           <Text style={[styles.back, { color: palette.brand }]}>
-            ← {business.name || t("marketplace.backToStore")}
+            ← {t("marketplace.backToDiscover")}
           </Text>
         </Pressable>
         {cartCount > 0 ? (
@@ -200,18 +203,15 @@ export default function ProductDetailScreen() {
         <View style={styles.body}>
           <Text style={styles.cat}>{marketplaceProductCategory(product)}</Text>
           <Text style={styles.title}>{product.name}</Text>
-          <Pressable onPress={() => pushPath(navigation, storeHref)}>
-            <Text style={[styles.storeLink, { color: palette.brand }]}>
-              {business.name}
-            </Text>
-          </Pressable>
-          {business.tagline ? (
-            <Text style={styles.tagline}>{business.tagline}</Text>
-          ) : null}
           <Text style={styles.price}>Rs {formatMarketplacePrice(product.price)}</Text>
 
-          {product.product_kind === "service" || product.product_kind === "combo" ? (
-            <Text style={[styles.badge, { backgroundColor: palette.brandSoft, color: palette.brand }]}>
+          {isService ? (
+            <Text
+              style={[
+                styles.badge,
+                { backgroundColor: palette.brandSoft, color: palette.brand },
+              ]}
+            >
               {product.duration_minutes
                 ? t("appointments.minutes", { count: product.duration_minutes })
                 : t("appointments.service")}
@@ -225,50 +225,100 @@ export default function ProductDetailScreen() {
           )}
           {product.sku ? <Text style={styles.muted}>SKU · {product.sku}</Text> : null}
 
-          <View style={styles.qtyBlock}>
-            <Text style={styles.qtyLabel}>{t("marketplace.quantity")}</Text>
-            <View style={styles.stepper}>
-              <Pressable
-                style={[styles.stepBtn, qty <= 1 && styles.stepDisabled]}
-                disabled={qty <= 1}
-                onPress={() => setQty((q) => Math.max(1, q - 1))}
-              >
-                <Text style={styles.stepText}>−</Text>
-              </Pressable>
-              <Text style={styles.qtyValue}>{qty}</Text>
-              <Pressable
-                style={styles.stepBtn}
-                onPress={() => setQty((q) => Math.min(99, q + 1))}
-              >
-                <Text style={styles.stepText}>+</Text>
-              </Pressable>
-            </View>
-            <View style={{ marginStart: "auto" }}>
-              <Text style={styles.qtyLabel}>{t("marketplace.lineTotal")}</Text>
-              <Text style={styles.priceSm}>Rs {formatMarketplacePrice(lineTotal)}</Text>
-            </View>
-          </View>
+          {!isService ? (
+            <>
+              <View style={styles.qtyBlock}>
+                <Text style={styles.qtyLabel}>{t("marketplace.quantity")}</Text>
+                <View style={styles.stepper}>
+                  <Pressable
+                    style={[styles.stepBtn, qty <= 1 && styles.stepDisabled]}
+                    disabled={qty <= 1}
+                    onPress={() => setQty((q) => Math.max(1, q - 1))}
+                  >
+                    <Text style={styles.stepText}>−</Text>
+                  </Pressable>
+                  <Text style={styles.qtyValue}>{qty}</Text>
+                  <Pressable
+                    style={styles.stepBtn}
+                    onPress={() => setQty((q) => Math.min(99, q + 1))}
+                  >
+                    <Text style={styles.stepText}>+</Text>
+                  </Pressable>
+                </View>
+                <View style={{ marginStart: "auto" }}>
+                  <Text style={styles.qtyLabel}>{t("marketplace.lineTotal")}</Text>
+                  <Text style={styles.priceSm}>
+                    Rs {formatMarketplacePrice(lineTotal)}
+                  </Text>
+                </View>
+              </View>
 
-          <Pressable
-            style={[
-              styles.addBtn,
-              { backgroundColor: palette.brand, opacity: adding ? 0.6 : 1 },
-            ]}
-            disabled={adding}
-            onPress={() => void handleAdd()}
-          >
-            {adding ? (
-              <ActivityIndicator color={palette.brandForeground} />
-            ) : (
+              <Pressable
+                style={[
+                  styles.addBtn,
+                  { backgroundColor: palette.brand, opacity: adding ? 0.6 : 1 },
+                ]}
+                disabled={adding}
+                onPress={() => void handleAdd()}
+              >
+                {adding ? (
+                  <ActivityIndicator color={palette.brandForeground} />
+                ) : (
+                  <Text style={[styles.addText, { color: palette.brandForeground }]}>
+                    {qty > 1
+                      ? t("marketplace.addQtyToCart", { count: qty })
+                      : t("marketplace.addToCart")}
+                  </Text>
+                )}
+              </Pressable>
+            </>
+          ) : (
+            <Pressable
+              style={[styles.addBtn, { backgroundColor: palette.brand }]}
+              onPress={() => pushPath(navigation, storeHref)}
+            >
               <Text style={[styles.addText, { color: palette.brandForeground }]}>
-                {qty > 1
-                  ? t("marketplace.addQtyToCart", { count: qty })
-                  : t("marketplace.addToCart")}
+                {t("marketplace.bookThisService")}
               </Text>
-            )}
-          </Pressable>
+            </Pressable>
+          )}
         </View>
       </BuyerCard>
+
+      <Pressable onPress={() => pushPath(navigation, storeHref)} style={{ marginTop: 12 }}>
+        <BuyerCard accent={accent} style={styles.shopCard}>
+          <Text style={styles.soldBy}>{t("marketplace.soldBy")}</Text>
+          <View style={styles.shopRow}>
+            <View
+              style={[
+                styles.shopLogo,
+                accent ? { backgroundColor: `${accent}18` } : null,
+              ]}
+            >
+              {business.logo_url ? (
+                <Image source={{ uri: business.logo_url }} style={styles.shopLogoImg} />
+              ) : (
+                <Text style={styles.shopLetter}>
+                  {(business.name || "?").slice(0, 1).toUpperCase()}
+                </Text>
+              )}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.shopName}>{business.name}</Text>
+              {business.tagline ? (
+                <Text style={styles.tagline} numberOfLines={1}>
+                  {business.tagline}
+                </Text>
+              ) : business.industry ? (
+                <Text style={styles.muted}>{business.industry}</Text>
+              ) : null}
+              <Text style={[styles.shopHint, { color: palette.brand }]}>
+                {t("marketplace.shopCardHint")} →
+              </Text>
+            </View>
+          </View>
+        </BuyerCard>
+      </Pressable>
     </ScrollView>
   );
 }
@@ -358,4 +408,29 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   addText: { fontWeight: "700", fontSize: 16 },
+  shopCard: { padding: 14 },
+  soldBy: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: colors.muted,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    marginBottom: 10,
+  },
+  shopRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  shopLogo: {
+    width: 52,
+    height: 52,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+    backgroundColor: colors.card,
+  },
+  shopLogoImg: { width: "100%", height: "100%" },
+  shopLetter: { fontSize: 18, fontWeight: "800", color: colors.heading },
+  shopName: { fontSize: 16, fontWeight: "800", color: colors.heading },
+  shopHint: { marginTop: 4, fontWeight: "700", fontSize: 13 },
 });

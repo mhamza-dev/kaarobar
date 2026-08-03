@@ -1,5 +1,5 @@
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
@@ -9,9 +9,11 @@ import ActionMenu from "@/components/ui/ActionMenu";
 import { EmptyState, Field, PageHeader, TabBar, fieldClass } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
-import { detailRoutes } from "@/lib/navigation";
+import { useTabQueryParam } from "@/lib/hooks/useTabQueryParam";
+import { detailRoutes, routes } from "@/lib/navigation";
 
 type Tab = "coa" | "journals" | "tb" | "pl" | "bs" | "gl" | "ar" | "ap";
+const ACCOUNTING_TABS: readonly Tab[] = ["coa", "journals", "tb", "pl", "bs", "gl", "ar", "ap"];
 
 type Account = { id: string; code: string; name: string; type: string };
 type Journal = {
@@ -60,10 +62,18 @@ type AgingRow = {
 };
 
 export default function AccountingPage() {
+  return (
+    <Suspense fallback={<p className="text-sm text-body">Loading…</p>}>
+      <AccountingPageInner />
+    </Suspense>
+  );
+}
+
+function AccountingPageInner() {
   const t = useT();
   const toast = useToast();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>("tb");
+  const [tab, setTab] = useTabQueryParam<Tab>("tb", ACCOUNTING_TABS, { pathname: routes.accounting });
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [journals, setJournals] = useState<Journal[]>([]);
   const [tb, setTb] = useState<TbRow[]>([]);

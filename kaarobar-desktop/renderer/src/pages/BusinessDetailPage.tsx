@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { Suspense, useCallback, useEffect, useState, type CSSProperties } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "@/lib/api/client";
 import { routes } from "@/lib/navigation";
+import { useTabQueryParam } from "@/lib/hooks/useTabQueryParam";
 import {
   DetailFieldGrid,
   DetailSection,
@@ -41,6 +42,7 @@ type Branch = {
 };
 
 type DetailTab = "details" | "branches" | "branding";
+const DETAIL_TABS: readonly DetailTab[] = ["details", "branches", "branding"];
 
 const INDUSTRIES = [
   "retail",
@@ -53,12 +55,20 @@ const INDUSTRIES = [
 ] as const;
 
 export default function BusinessDetailPage() {
+  return (
+    <Suspense fallback={<p className="text-sm text-body">Loading…</p>}>
+      <BusinessDetailPageInner />
+    </Suspense>
+  );
+}
+
+function BusinessDetailPageInner() {
   const { id } = useParams<{ id: string }>();
   const t = useT();
   const toast = useToast();
   const [business, setBusiness] = useState<Business | null>(null);
   const [branches, setBranches] = useState<Branch[]>([]);
-  const [tab, setTab] = useState<DetailTab>("details");
+  const [tab, setTab] = useTabQueryParam<DetailTab>("details", DETAIL_TABS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);

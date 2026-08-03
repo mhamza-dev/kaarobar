@@ -79,7 +79,7 @@
     "products": "مصنوعات",
     "orders": "آرڈرز",
     "loyalty": "لائلٹی",
-    "account": "اکاؤنٹ"
+    "account": "اکاؤنٹس"
   },
   "auth": {
     "signInTitle": "سائن ان",
@@ -149,8 +149,8 @@
     "businessDetailDesc": "برانڈنگ، مارکیٹ پلیس، اور برانچز۔",
     "appointmentsTitle": "اپائنٹمنٹس",
     "appointmentsDesc": "سروسز کا روزانہ شیڈول — بک، مکمل، یا منسوخ کریں۔",
-    "discoverTitle": "اسٹورز دریافت کریں",
-    "discoverDesc": "برانڈڈ کاروبار دیکھیں — خریدیں یا بک کریں۔",
+    "discoverTitle": "Discover products",
+    "discoverDesc": "Browse branded Kaarobar businesses — shop or book by store.",
     "catalogBookDesc": "سروس بک کریں · اپنے لیے وقت چنیں",
     "checkoutReviewTitle": "کارٹ جائزہ",
     "checkoutReviewDesc": "مقدار درست کریں، پھر رابطہ اور ادائیگی پر جائیں۔",
@@ -166,7 +166,7 @@
     "productsTitle": "تمام مصنوعات",
     "productsDesc": "ہر مارکیٹ پلیس اسٹور کی اشیاء ایک جگہ۔",
     "productDetailTitle": "مصنوعہ",
-    "buyerAccountTitle": "اکاؤنٹ",
+    "buyerAccountTitle": "اکاؤنٹس",
     "buyerAccountDesc": "بیلنس، لائلٹی، اور الرٹس۔",
     "appointmentDetailTitle": "اپائنٹمنٹ"
   },
@@ -225,7 +225,16 @@
     "transferFailed": "ٹرانسفر نہیں بن سکا",
     "confirmFailed": "تصدیق نہیں ہو سکی",
     "adjustFailed": "ایڈجسٹ نہیں ہو سکا",
-    "supplierFailed": "سپلائر محفوظ نہیں ہو سکا"
+    "supplierFailed": "سپلائر محفوظ نہیں ہو سکا",
+    "createTransfer": "Create transfer",
+    "transferModalTitle": "Create stock transfer",
+    "transferModalDesc": "Move multiple products to another branch. Stock updates after confirm.",
+    "toBranch": "To branch",
+    "selectToBranch": "Select destination branch",
+    "products": "Products",
+    "selectProducts": "Select products",
+    "quantities": "Quantities",
+    "confirm": "Confirm"
   },
   "pos": {
     "tillOpen": "ٹل کھل گیا",
@@ -562,6 +571,11 @@
     "searchStores": "نام یا صنعت سے تلاش",
     "noFilterMatches": "دوسری کیٹیگری یا تلاش آزمائیں۔",
     "clearFilters": "فلٹر صاف کریں",
+    "filters": "فلٹرز",
+    "filtersTitle": "فلٹرز",
+    "filtersDesc": "انڈسٹری اور زمرے سے مصنوعات محدود کریں۔",
+    "applyFilters": "فلٹرز لاگو کریں",
+    "filtersActive": "{count} فلٹرز فعال",
     "productsCount": "{count} مصنوعات",
     "emptyCatalogTitle": "کوئی مصنوعات نہیں",
     "emptyCatalogBody": "اس اسٹور نے ابھی کیٹلاگ شائع نہیں کی۔ جلد واپس آئیں یا دوسرے اسٹورز دیکھیں۔",
@@ -633,7 +647,37 @@
     "accountAlertsBody": "آرڈر اپ ڈیٹس اور اسٹور پیغامات۔",
     "accountGuest": "خریدار",
     "accountKhataHint": "اسٹور کریڈٹ چاہیے؟",
-    "accountKhataHintBody": "جب اسٹور آپ کے کنزیومر اکاؤنٹ کو کھاتہ سے جوڑے گا تو بیلنس سنک ہوگا۔"
+    "accountKhataHintBody": "جب اسٹور آپ کے کنزیومر اکاؤنٹ کو کھاتہ سے جوڑے گا تو بیلنس سنک ہوگا۔",
+    "orderIncludesShops": "اس آرڈر میں {count} دکانیں شامل ہیں",
+    "multiShopCartHint": "آپ ایک چیک آؤٹ میں کئی دکانیں سے خرید سکتے ہیں۔ ہر دکان الگ پک اپ آرڈر ہے۔",
+    "filterIndustry": "صنعت",
+    "filterCategory": "کیٹیگری",
+    "allIndustries": "تمام انڈسٹریز",
+    "modeProducts": "پروڈکٹس",
+    "modeShops": "دکانیں",
+    "loadMore": "مزید لوڈ کریں",
+    "endOfResults": "آپ آخر تک پہنچ گئے۔",
+    "soldBy": "فروخت کنندہ",
+    "shopCardHint": "اس دکان سے مزید دیکھیں",
+    "bookThisService": "یہ سروس بک کریں",
+    "backToDiscover": "ڈسکور پر واپس",
+    "discoverProductsHero": "ہر فہرست شدہ دکان کے پروڈکٹس دیکھیں۔ ایک یا کئی اسٹورز سے شامل کریں — چیک آؤٹ ہر دکان کا الگ پک اپ آرڈر بناتا ہے۔",
+    "storeSubtotal": "Store subtotal",
+    "pickupContact": "Pickup contact",
+    "pickupNotes": "Pickup notes",
+    "pickupNotesPlaceholder": "e.g. ready after 5pm, ask for counter 2",
+    "payment": "Payment",
+    "paymentStubHint": "Card / wallet capture is stubbed for demo — placing the order records the sale.",
+    "ordersToPlace": "Orders to place",
+    "multiStoreCheckoutHint": "Each store is a separate pickup order with the same contact details.",
+    "backToCart": "Back to cart",
+    "loadingOrders": "Loading orders…",
+    "priceRange": "Price range",
+    "shopsInCart": "کارٹ میں {count} دکانیں",
+    "view": "View",
+    "lineItems": "Items",
+    "stores": "Stores",
+    "loyaltyDetailDesc": "Earn and redeem rates for this store."
   },
   "businesses": {
     "eyebrow": "مالک",
@@ -712,7 +756,13 @@
     "source": "ذریعہ",
     "noFields": "اس فہرست کے لیے کوئی اضافی فلٹر نہیں۔",
     "khataOn": "کھاتہ آن",
-    "khataOff": "کھاتہ آف"
+    "khataOff": "کھاتہ آف",
+    "amountRange": "Amount range",
+    "balanceRange": "Balance range",
+    "creditLimitRange": "Credit limit range",
+    "paymentMethod": "Payment method",
+    "min": "Min",
+    "max": "Max"
   },
   "appointments": {
     "modeTabs": "خریداری یا بکنگ",
@@ -768,5 +818,10 @@
     "emptyScheduleBody": "تاریخ بدلیں یا گاہک بکنگ کا انتظار کریں۔",
     "disabledTitle": "اپائنٹمنٹس فعال نہیں",
     "disabledBody": "سیلون یا سروس بزنس کے لیے اپائنٹمنٹس فعال کریں تاکہ شیڈول یہاں نظر آئے۔"
+  },
+  "searchSelect": {
+    "search": "Search…",
+    "noMatches": "No matches",
+    "selected": "{count} selected"
   }
 }

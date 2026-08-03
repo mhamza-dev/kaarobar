@@ -121,10 +121,11 @@ const en: HelpCatalog = {
   },
   "page.marketing": {
     title: "Marketing",
-    summary: "Campaigns, segments, coupons, and loyalty tiers.",
-    what: "Helps you message customers, target segments, set up promo codes, and configure loyalty earn/redeem rates.",
+    summary: "Campaigns, message templates, segments, coupons, and loyalty tiers.",
+    what: "Helps you message customers with reusable templates, target segments, set up promo codes, and configure loyalty earn/redeem rates.",
     how: [
       "Create a draft campaign with audience and message.",
+      "Reuse templates with {{placeholders}} for consistent copy.",
       "Send when ready—delivery status appears on the campaign.",
       "Build segments and coupons for targeted offers.",
       "Set loyalty tiers based on points bands.",
@@ -402,6 +403,20 @@ const en: HelpCatalog = {
     tips: ["Fix attendance/leave issues before running payroll."],
   },
 
+  "page.marketing.template": {
+    title: "Message template",
+    summary: "Preview how a CRM template looks when sent to customers.",
+    what: "Shows the raw title/body placeholders and an interpolated preview using live business branding plus sample customer values.",
+    how: [
+      "Open a template from Marketing → Templates.",
+      "Review placeholders in the overview.",
+      "Check the customer preview with sample values.",
+      "Use Back to return to the Templates tab.",
+    ],
+    when: "When drafting reusable campaign messages or checking SMS length.",
+    tips: ["Placeholders are flat keys like {{business}} — nested {{customer.name}} is not supported."],
+  },
+
   "tab.marketing.campaigns": {
     title: "Campaigns",
     summary: "Draft and send customer messages.",
@@ -511,26 +526,28 @@ const en: HelpCatalog = {
     summary: "Reusable CRM message bodies with variables.",
     what: "Saved templates for campaigns and previews (business name, tagline, etc.).",
     how: [
-      "Create or edit a template with placeholders.",
-      "Preview with sample business variables.",
+      "Create a template in the modal with placeholders.",
+      "Browse available {{variables}} on the Templates tab.",
+      "Open a template to preview interpolated customer copy.",
       "Select the template when composing a campaign.",
     ],
     when: "When standardizing promotional or transactional messages.",
-    tips: ["Keep templates short for SMS/WhatsApp channels."],
+    tips: ["Keep templates short for SMS/WhatsApp channels.", "Only flat keys like {{name}} work — not {{customer.name}}."],
   },
 
   "page.market.discover": {
-    title: "Discover stores",
-    summary: "Browse marketplace businesses and start a pickup order.",
-    what: "Lists Kaarobar businesses that publish a marketplace storefront with branding.",
+    title: "Discover products",
+    summary: "Browse products from every marketplace shop, or switch to Shops.",
+    what: "Product-first feed across marketplace-enabled businesses, with search, industry/category filters, and pagination. A Shops tab lists storefronts.",
     how: [
-      "Search by name or filter by industry chips.",
-      "Open a store to browse its catalog.",
-      "Or open Products to shop across every listed store.",
-      "Add items from one or more stores to your cart.",
+      "Search products and filter by industry or category.",
+      "Load more to page through results.",
+      "Open a product for detail and the selling shop.",
+      "Switch to Shops to browse by storefront.",
+      "Add items from one or many shops — checkout places one pickup order per shop.",
     ],
-    when: "Whenever you want to order pickup from a listed store.",
-    tips: ["Stores appear after the owner enables marketplace and branding."],
+    when: "Whenever you want to find items without browsing stores one by one.",
+    tips: ["Use Shops when you already know which storefront to visit."],
   },
   "page.market.products": {
     title: "All products",
@@ -679,16 +696,16 @@ const en: HelpCatalog = {
     tips: ["Linked customer profiles sync identity from your consumer account."],
   },
   "page.buyer.account": {
-    title: "Account",
+    title: "Accounts",
     summary: "Your marketplace profile hub.",
     what: "Shortcuts to Balance/khata, Loyalty, and Alerts, plus sign-out.",
     how: [
-      "Open Account from the marketplace nav.",
+      "Open Accounts from the marketplace nav.",
       "Jump to Balance, Loyalty, or Alerts.",
       "Sign out when finished on a shared device.",
     ],
     when: "To manage profile-linked marketplace tools.",
-    tips: ["The header avatar also opens Account."],
+    tips: ["The header avatar also opens Accounts."],
   },
   "page.buyer.appointmentDetail": {
     title: "Appointment detail",

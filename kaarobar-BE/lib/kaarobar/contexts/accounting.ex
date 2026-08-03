@@ -1231,37 +1231,82 @@ defmodule Kaarobar.Accounting do
     to_at = opts[:to]
     portal = opts[:portal_enabled]
     khata = opts[:khata_enabled]
+    credit_min = opts[:credit_limit_min]
+    credit_max = opts[:credit_limit_max]
+    balance_min = opts[:balance_min]
+    balance_max = opts[:balance_max]
+
+    balance_sq =
+      from(i in Kaarobar.Schemas.ArInvoice,
+        where: i.status in ["open", "partial"],
+        group_by: i.customer_id,
+        select: %{
+          customer_id: i.customer_id,
+          balance: coalesce(sum(i.balance_due), 0)
+        }
+      )
 
     query =
       from(c in Kaarobar.Schemas.Customer,
+        left_join: bal in subquery(balance_sq),
+        on: bal.customer_id == c.id,
         where: c.business_id == ^business_id and c.owner_id == ^owner_id,
-        order_by: [asc: c.name]
+        order_by: [asc: c.name],
+        select: %{customer: c, balance: coalesce(bal.balance, 0)}
       )
 
     query =
       case portal do
-        true -> where(query, [c], c.portal_enabled == true)
-        false -> where(query, [c], c.portal_enabled == false)
+        true -> where(query, [c, _bal], c.portal_enabled == true)
+        false -> where(query, [c, _bal], c.portal_enabled == false)
         _ -> query
       end
 
     query =
       case khata do
-        true -> where(query, [c], c.khata_enabled == true)
-        false -> where(query, [c], c.khata_enabled == false)
+        true -> where(query, [c, _bal], c.khata_enabled == true)
+        false -> where(query, [c, _bal], c.khata_enabled == false)
         _ -> query
       end
 
     query =
       if match?(%DateTime{}, from_at) do
-        where(query, [c], c.inserted_at >= ^from_at)
+        where(query, [c, _bal], c.inserted_at >= ^from_at)
       else
         query
       end
 
     query =
       if match?(%DateTime{}, to_at) do
-        where(query, [c], c.inserted_at <= ^to_at)
+        where(query, [c, _bal], c.inserted_at <= ^to_at)
+      else
+        query
+      end
+
+    query =
+      if match?(%Decimal{}, credit_min) do
+        where(query, [c, _bal], coalesce(c.credit_limit, 0) >= ^credit_min)
+      else
+        query
+      end
+
+    query =
+      if match?(%Decimal{}, credit_max) do
+        where(query, [c, _bal], coalesce(c.credit_limit, 0) <= ^credit_max)
+      else
+        query
+      end
+
+    query =
+      if match?(%Decimal{}, balance_min) do
+        where(query, [_c, bal], coalesce(bal.balance, 0) >= ^balance_min)
+      else
+        query
+      end
+
+    query =
+      if match?(%Decimal{}, balance_max) do
+        where(query, [_c, bal], coalesce(bal.balance, 0) <= ^balance_max)
       else
         query
       end
@@ -1272,7 +1317,7 @@ defmodule Kaarobar.Accounting do
 
         where(
           query,
-          [c],
+          [c, _bal],
           ilike(c.name, ^like) or ilike(coalesce(c.phone, ""), ^like) or
             ilike(coalesce(c.email, ""), ^like) or ilike(coalesce(c.company_name, ""), ^like)
         )
@@ -1280,7 +1325,15 @@ defmodule Kaarobar.Accounting do
         query
       end
 
-    Repo.all(query)
+    page = KaarobarWeb.Controllers.Helpers.ListFilters.paginate(query, opts)
+
+    customers =
+      Enum.map(page.data, fn
+        %{customer: c, balance: bal} -> {c, bal}
+        c -> {c, nil}
+      end)
+
+    %{data: customers, meta: page.meta}
   end
 
   def customer_balance(customer_id, business_id, owner_id) do

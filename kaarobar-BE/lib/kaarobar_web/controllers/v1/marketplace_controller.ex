@@ -42,11 +42,14 @@ defmodule KaarobarWeb.V1.MarketplaceController do
   end
 
   def products(conn, params) do
+    # category / industry: single string, comma-separated, or repeated list params
     result =
       Marketplace.list_products(
         q: params["q"],
         category: params["category"],
         industry: params["industry"],
+        min_price: params["min_price"],
+        max_price: params["max_price"],
         limit: params["limit"],
         cursor: params["cursor"]
       )

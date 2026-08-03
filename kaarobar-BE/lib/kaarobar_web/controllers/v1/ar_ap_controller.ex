@@ -13,17 +13,39 @@ defmodule KaarobarWeb.V1.ArApController do
     owner_id = conn.assigns[:owner_id]
 
     opts =
-      ListFilters.parse(params, [:q, :from, :to, :portal_enabled, :khata_enabled, :status])
+      ListFilters.parse(params, [
+        :q,
+        :from,
+        :to,
+        :portal_enabled,
+        :khata_enabled,
+        :status,
+        :balance_min,
+        :balance_max,
+        :credit_limit_min,
+        :credit_limit_max,
+        :limit,
+        :cursor
+      ])
       |> maybe_customer_status()
 
+    %{data: rows, meta: meta} = Accounting.list_customers(business_id, owner_id, opts)
+
     data =
-      Accounting.list_customers(business_id, owner_id, opts)
-      |> Enum.map(fn c ->
-        balance = Accounting.customer_balance(c.id, business_id, owner_id)
-        Map.merge(serialize_customer(c), %{balance: to_string(balance)})
+      Enum.map(rows, fn
+        {c, bal} when not is_nil(bal) ->
+          Map.merge(serialize_customer(c), %{balance: to_string(bal)})
+
+        {c, _} ->
+          balance = Accounting.customer_balance(c.id, business_id, owner_id)
+          Map.merge(serialize_customer(c), %{balance: to_string(balance)})
+
+        c ->
+          balance = Accounting.customer_balance(c.id, business_id, owner_id)
+          Map.merge(serialize_customer(c), %{balance: to_string(balance)})
       end)
 
-    json(conn, %{data: data})
+    json(conn, %{data: data, meta: meta})
   end
 
   defp maybe_customer_status(opts) do

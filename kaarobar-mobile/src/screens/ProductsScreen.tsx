@@ -19,10 +19,20 @@ import { pickImageFromLibrary } from "../lib/imagePicker";
 import { canAccessRoute } from "../lib/rbac";
 import { useNavigation } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
+import { SearchSelect, SearchMultiSelect } from "../components/SearchSelect";
 import { replacePath } from "../lib/nav";
+import { useTabParam } from "../hooks/useTabParam";
 
 type Tab = "stock" | "products" | "suppliers" | "pos" | "transfers" | "adjust";
-type ModalKind = "product" | "supplier" | null;
+const PRODUCT_TABS: readonly Tab[] = [
+  "stock",
+  "products",
+  "suppliers",
+  "pos",
+  "transfers",
+  "adjust",
+];
+type ModalKind = "product" | "supplier" | "transfer" | null;
 
 type Product = { id: string; sku: string; name: string; price?: string };
 type StockRow = {
@@ -59,7 +69,7 @@ export default function InventoryScreen() {
   const palette = useBrandPalette();
   const styles = useMemo(() => createStyles(palette), [palette]);
   const [session, setLocal] = useState<Session | null>(null);
-  const [tab, setTab] = useState<Tab>("stock");
+  const [tab, setTab] = useTabParam<Tab>("stock", PRODUCT_TABS);
   const [modal, setModal] = useState<ModalKind>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [productFilters, setProductFilters] = useState(emptyStaffFilters());
@@ -106,11 +116,16 @@ export default function InventoryScreen() {
     product_id: "",
     quantity_received: "",
   });
-  const [transferForm, setTransferForm] = useState({
+  const [transferForm, setTransferForm] = useState<{
+    to_branch_id: string;
+    product_ids: string[];
+    quantities: Record<string, string>;
+  }>({
     to_branch_id: "",
-    product_id: "",
-    quantity: "1",
+    product_ids: [],
+    quantities: {},
   });
+  const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
   const [adjustForm, setAdjustForm] = useState({
     product_id: "",
     quantity_delta: "",
@@ -120,7 +135,7 @@ export default function InventoryScreen() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const [p, s, sup, poList, tr] = await Promise.all([
+      const [p, s, sup, poList, tr, br] = await Promise.all([
         api<{ data: Product[] }>("/products"),
         api<{ data: StockRow[] }>("/app/inventory").catch(() => ({ data: [] as StockRow[] })),
         api<{ data: Supplier[] }>("/suppliers").catch(() => ({ data: [] as Supplier[] })),
@@ -130,12 +145,18 @@ export default function InventoryScreen() {
         api<{ data: Transfer[] }>("/inventory/transfers").catch(() => ({
           data: [] as Transfer[],
         })),
+        session?.business_id
+          ? api<{ data: { id: string; name: string }[] }>(
+              `/businesses/${session.business_id}/branches`
+            ).catch(() => ({ data: [] as { id: string; name: string }[] }))
+          : Promise.resolve({ data: [] as { id: string; name: string }[] }),
       ]);
       setProducts(p.data || []);
       setStock(s.data || []);
       setSuppliers(sup.data || []);
       setPos(poList.data || []);
       setTransfers(tr.data || []);
+      setBranches(br.data || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load");
     }
@@ -287,20 +308,25 @@ export default function InventoryScreen() {
 
   async function createTransfer() {
     try {
+      if (!transferForm.to_branch_id || transferForm.product_ids.length === 0) {
+        setError("Select branch and products");
+        return;
+      }
+      const items = transferForm.product_ids.map((product_id) => ({
+        product_id,
+        quantity: transferForm.quantities[product_id] || "1",
+      }));
       await api("/inventory/transfers", {
         method: "POST",
         body: JSON.stringify({
           from_branch_id: session?.branch_id,
           to_branch_id: transferForm.to_branch_id,
-          items: [
-            {
-              product_id: transferForm.product_id,
-              quantity: transferForm.quantity,
-            },
-          ],
+          items,
         }),
       });
       setMessage("Transfer created");
+      setModal(null);
+      setTransferForm({ to_branch_id: "", product_ids: [], quantities: {} });
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Transfer failed");
@@ -523,52 +549,20 @@ export default function InventoryScreen() {
 
       {tab === "transfers" ? (
         <View style={styles.card}>
-          <TextInput
-            style={styles.input}
-            placeholder="To branch ID"
-            value={transferForm.to_branch_id}
-            onChangeText={(v) =>
-              setTransferForm({ ...transferForm, to_branch_id: v })
-            }
-            placeholderTextColor={colors.muted}
-            autoCapitalize="none"
-          />
           <Pressable
-            style={styles.chip}
-            onPress={() =>
-              products[0] &&
-              setTransferForm({ ...transferForm, product_id: products[0].id })
-            }
+            style={styles.btn}
+            onPress={() => {
+              setTransferForm({ to_branch_id: "", product_ids: [], quantities: {} });
+              setModal("transfer");
+            }}
           >
-            <Text style={styles.chipText}>Use first product</Text>
-          </Pressable>
-          <TextInput
-            style={styles.input}
-            value={transferForm.product_id}
-            onChangeText={(v) =>
-              setTransferForm({ ...transferForm, product_id: v })
-            }
-            placeholder="Product ID"
-            placeholderTextColor={colors.muted}
-            autoCapitalize="none"
-          />
-          <TextInput
-            style={styles.input}
-            value={transferForm.quantity}
-            onChangeText={(v) =>
-              setTransferForm({ ...transferForm, quantity: v })
-            }
-            placeholder="Qty"
-            keyboardType="decimal-pad"
-            placeholderTextColor={colors.muted}
-          />
-          <Pressable style={styles.btn} onPress={createTransfer}>
             <Text style={styles.btnText}>Create transfer</Text>
           </Pressable>
           {transfers.map((t) => (
             <View key={t.id} style={styles.row}>
               <Text style={[styles.body, { flex: 1 }]}>
-                {t.status} · {t.items?.[0]?.quantity || "?"} units
+                {t.status} ·{" "}
+                {(t.items || []).map((i) => i.quantity).join(", ") || "?"} units
               </Text>
               {t.status === "pending" ? (
                 <Pressable style={styles.btn} onPress={() => confirmTransfer(t.id)}>
@@ -740,6 +734,66 @@ export default function InventoryScreen() {
           onChangeText={(v) => setSupplierForm({ ...supplierForm, catalogs: v })}
           placeholderTextColor={colors.muted}
         />
+      </FormModal>
+
+      <FormModal
+        visible={modal === "transfer"}
+        title="Create transfer"
+        onClose={() => setModal(null)}
+        onSubmit={createTransfer}
+        submitLabel="Create transfer"
+      >
+        <SearchSelect
+          label="To branch"
+          options={branches
+            .filter((b) => b.id !== session?.branch_id)
+            .map((b) => ({ value: b.id, label: b.name }))}
+          value={transferForm.to_branch_id || null}
+          onChange={(to_branch_id) =>
+            setTransferForm((f) => ({ ...f, to_branch_id: to_branch_id || "" }))
+          }
+          placeholder="Select branch"
+        />
+        <View style={{ height: 12 }} />
+        <SearchMultiSelect
+          label="Products"
+          options={products.map((p) => ({
+            value: p.id,
+            label: `${p.name} (${p.sku})`,
+          }))}
+          value={transferForm.product_ids}
+          onChange={(product_ids) =>
+            setTransferForm((f) => {
+              const quantities = { ...f.quantities };
+              for (const id of product_ids) {
+                if (!quantities[id]) quantities[id] = "1";
+              }
+              return { ...f, product_ids, quantities };
+            })
+          }
+          placeholder="Select products"
+        />
+        {transferForm.product_ids.map((id) => {
+          const p = products.find((x) => x.id === id);
+          return (
+            <View key={id} style={{ marginTop: 10 }}>
+              <Text style={styles.body}>{p?.name || id}</Text>
+              <TextInput
+                style={styles.input}
+                value={transferForm.quantities[id] || "1"}
+                onChangeText={(v) =>
+                  setTransferForm((f) => ({
+                    ...f,
+                    quantities: { ...f.quantities, [id]: v },
+                  }))
+                }
+                keyboardType="decimal-pad"
+                placeholder="Qty"
+                placeholderTextColor={colors.muted}
+              />
+            </View>
+          );
+        })}
       </FormModal>
 
       <BarcodeScannerModal

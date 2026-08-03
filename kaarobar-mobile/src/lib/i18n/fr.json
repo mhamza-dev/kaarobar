@@ -200,7 +200,16 @@
     "transferFailed": "Transfer failed",
     "confirmFailed": "Confirm failed",
     "adjustFailed": "Adjust failed",
-    "supplierFailed": "Supplier failed"
+    "supplierFailed": "Supplier failed",
+    "createTransfer": "Créer un transfert",
+    "transferModalTitle": "Créer un transfert de stock",
+    "transferModalDesc": "Déplacez plusieurs produits vers une autre succursale. Le stock est mis à jour après confirmation.",
+    "toBranch": "Succursale de destination",
+    "selectToBranch": "Sélectionner la succursale de destination",
+    "products": "Produits",
+    "selectProducts": "Sélectionner des produits",
+    "quantities": "Quantités",
+    "confirm": "Confirmer"
   },
   "pos": {
     "tillOpen": "Till opened",
@@ -473,7 +482,38 @@
     "payAndSendConfirm": "Pay and send “{name}” to the selected audience?",
     "payAndSendDone": "Payment confirmed — campaign sent",
     "checkoutOpened": "Checkout opened in a new tab",
-    "payHint": "Opt-in consent is required. SMS and WhatsApp use Pay & send checkout."
+    "payHint": "Opt-in consent is required. SMS and WhatsApp use Pay & send checkout.",
+    "tabCampaigns": "Campagnes",
+    "tabTemplates": "Modèles",
+    "tabSegments": "Segments",
+    "tabCoupons": "Coupons",
+    "tabTiers": "Niveaux de fidélité",
+    "newTemplate": "Nouveau modèle",
+    "saveTemplate": "Enregistrer le modèle",
+    "templateSaved": "Modèle enregistré",
+    "templatesEmpty": "Aucun modèle",
+    "templatesEmptyBody": "Créez un modèle ou attendez les modèles par défaut au chargement.",
+    "titleTemplate": "Modèle de titre",
+    "bodyTemplate": "Modèle de corps",
+    "preview": "Aperçu",
+    "variablesTitle": "Variables disponibles",
+    "variablesHint": "Utilisez des variables plates comme {{business}} ou {{name}} dans le titre et le corps.",
+    "backToTemplates": "Retour aux modèles",
+    "templateFallback": "Modèle",
+    "templatePreview": "Aperçu client",
+    "sampleValues": "Affiché avec des valeurs d’exemple/interpolées comme les clients les verraient.",
+    "charsCount": "{count} caractères",
+    "channelEmail": "E-mail",
+    "channelInApp": "In-app",
+    "channelSms": "SMS",
+    "channelWhatsapp": "WhatsApp",
+    "var": {
+      "business": "Nom de l’entreprise",
+      "tagline": "Slogan",
+      "description": "Description marketplace",
+      "name": "Nom du client (exemple)",
+      "points": "Points de fidélité (exemple)"
+    }
   },
   "notifications": {
     "eyebrow": "Inbox",
@@ -537,7 +577,26 @@
     "allCategories": "All",
     "noDescription": "No description available.",
     "pickupHint": "Pickup · add to cart",
-    "close": "Close"
+    "close": "Close",
+    "priceRange": "Fourchette de prix",
+    "filtersDesc": "Affinez les produits par secteur, catégorie et prix.",
+    "filters": "Filtres",
+    "filtersTitle": "Filtres",
+    "applyFilters": "Appliquer les filtres",
+    "filtersActive": "{count} filtres actifs",
+    "allIndustries": "Tous les secteurs",
+    "modeProducts": "Produits",
+    "modeShops": "Boutiques",
+    "loadMore": "Charger plus",
+    "endOfResults": "Fin des résultats.",
+    "soldBy": "Vendu par",
+    "shopCardHint": "Voir plus de cette boutique",
+    "bookThisService": "Réserver ce service",
+    "orderIncludesShops": "Cette commande inclut {count} boutiques",
+    "shopsInCart": "{count} boutiques dans le panier",
+    "multiShopCartHint": "Vous pouvez acheter dans plusieurs boutiques en un seul paiement. Chaque boutique est une commande de retrait séparée.",
+    "discoverProductsHero": "Parcourez les produits de toutes les boutiques listées. Ajoutez depuis une ou plusieurs — le paiement crée une commande de retrait par boutique.",
+    "backToDiscover": "Retour à Découvrir"
   },
   "businesses": {
     "new": "New business",
@@ -606,7 +665,7 @@
   },
   "listFilters": {
     "title": "Filters",
-    "description": "Narrow this list by date, status, or category.",
+    "description": "Affinez cette liste par date, statut, catégorie ou montant.",
     "filters": "Filters",
     "apply": "Apply",
     "clear": "Clear filters",
@@ -616,7 +675,13 @@
     "source": "Source",
     "noFields": "No advanced filters for this list.",
     "khataOn": "Khata on",
-    "khataOff": "Khata off"
+    "khataOff": "Khata off",
+    "amountRange": "Plage de montant",
+    "balanceRange": "Plage de solde",
+    "creditLimitRange": "Plage de limite de crédit",
+    "paymentMethod": "Mode de paiement",
+    "min": "Min.",
+    "max": "Max."
   },
   "appointments": {
     "modeTabs": "Shop or book",
@@ -669,5 +734,10 @@
     "emptyScheduleBody": "Change the date or wait for customer bookings.",
     "disabledTitle": "Appointments not enabled",
     "disabledBody": "Enable appointments for salon or service businesses to see the schedule here."
+  },
+  "searchSelect": {
+    "search": "Rechercher…",
+    "noMatches": "Aucun résultat",
+    "selected": "{count} sélectionné(s)"
   }
 }

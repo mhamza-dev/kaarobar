@@ -17,8 +17,10 @@ import SegmentedTabs from "../components/SegmentedTabs";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
 import { replacePath, pushPath } from "../lib/nav";
+import { useTabParam } from "../hooks/useTabParam";
 
 type Tab = "clock" | "leave" | "payslips";
+const ATTENDANCE_TABS: readonly Tab[] = ["clock", "leave", "payslips"];
 
 type EssData = {
   employee: { id: string; name: string; employee_code: string; position?: string; profile_pic_url?: string | null };
@@ -49,7 +51,7 @@ export default function EssScreen() {
   const palette = useBrandPalette();
   const styles = useMemo(() => createStyles(palette), [palette]);
   const [session, setLocal] = useState<Session | null>(null);
-  const [tab, setTab] = useState<Tab>("clock");
+  const [tab, setTab] = useTabParam<Tab>("clock", ATTENDANCE_TABS);
   const [data, setData] = useState<EssData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);

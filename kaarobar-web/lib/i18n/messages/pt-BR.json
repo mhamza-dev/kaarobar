@@ -56,7 +56,7 @@
   },
   "listFilters": {
     "title": "Filtros",
-    "description": "Restrinja esta lista por data, status ou categoria.",
+    "description": "Restrinja esta lista por data, status, categoria ou valor.",
     "filters": "Filtros",
     "apply": "Aplicar",
     "clear": "Limpar filtros",
@@ -66,7 +66,13 @@
     "source": "Fonte",
     "noFields": "Sem filtros avançados para esta lista.",
     "khataOn": "Khata ativado",
-    "khataOff": "Khata desativado"
+    "khataOff": "Khata desativado",
+    "amountRange": "Faixa de valor",
+    "balanceRange": "Faixa de saldo",
+    "creditLimitRange": "Faixa de limite de crédito",
+    "paymentMethod": "Forma de pagamento",
+    "min": "Mín.",
+    "max": "Máx."
   },
   "nav": {
     "overview": "Visão geral",
@@ -283,7 +289,26 @@
     "accountAlertsBody": "Order updates and messages from stores.",
     "accountGuest": "Shopper",
     "accountKhataHint": "Need store credit?",
-    "accountKhataHintBody": "Balances sync when a store links your consumer account to khata."
+    "accountKhataHintBody": "Balances sync when a store links your consumer account to khata.",
+    "priceRange": "Faixa de preço",
+    "filtersDesc": "Filtre produtos por setor, categoria e preço.",
+    "filters": "Filtros",
+    "filtersTitle": "Filtros",
+    "applyFilters": "Aplicar filtros",
+    "filtersActive": "{count} filtros ativos",
+    "allIndustries": "Todos os setores",
+    "modeProducts": "Produtos",
+    "modeShops": "Lojas",
+    "loadMore": "Carregar mais",
+    "endOfResults": "Você chegou ao fim.",
+    "soldBy": "Vendido por",
+    "shopCardHint": "Ver mais desta loja",
+    "bookThisService": "Agendar este serviço",
+    "orderIncludesShops": "Este pedido inclui {count} lojas",
+    "shopsInCart": "{count} lojas no carrinho",
+    "multiShopCartHint": "Você pode comprar de várias lojas em um checkout. Cada loja é um pedido de retirada separado.",
+    "discoverProductsHero": "Navegue pelos produtos de todas as lojas listadas. Adicione de uma ou várias — o checkout cria um pedido de retirada por loja.",
+    "backToDiscover": "Voltar para Descobrir"
   },
   "appointments": {
     "modeTabs": "Compre ou reserve",
@@ -395,7 +420,16 @@
     "transferFailed": "Falha na transferência",
     "confirmFailed": "Falha na confirmação",
     "adjustFailed": "Falha no ajuste",
-    "supplierFailed": "Fornecedor falhou"
+    "supplierFailed": "Fornecedor falhou",
+    "createTransfer": "Criar transferência",
+    "transferModalTitle": "Criar transferência de estoque",
+    "transferModalDesc": "Mova vários produtos para outra filial. O estoque é atualizado após a confirmação.",
+    "toBranch": "Filial de destino",
+    "selectToBranch": "Selecionar filial de destino",
+    "products": "Produtos",
+    "selectProducts": "Selecionar produtos",
+    "quantities": "Quantidades",
+    "confirm": "Confirmar"
   },
   "pos": {
     "tillOpen": "Até a abertura",
@@ -740,7 +774,38 @@
     "channel": "Canal",
     "sentAt": "Enviado em",
     "delivery": "Entrega",
-    "noRecipients": "Nenhum destinatário registrado ainda."
+    "noRecipients": "Nenhum destinatário registrado ainda.",
+    "tabCampaigns": "Campanhas",
+    "tabTemplates": "Modelos",
+    "tabSegments": "Segmentos",
+    "tabCoupons": "Cupons",
+    "tabTiers": "Níveis de fidelidade",
+    "newTemplate": "Novo modelo",
+    "saveTemplate": "Salvar modelo",
+    "templateSaved": "Modelo salvo",
+    "templatesEmpty": "Nenhum modelo",
+    "templatesEmptyBody": "Crie um modelo ou aguarde os padrões no carregamento.",
+    "titleTemplate": "Modelo de título",
+    "bodyTemplate": "Modelo de corpo",
+    "preview": "Prévia",
+    "variablesTitle": "Variáveis disponíveis",
+    "variablesHint": "Use marcadores simples como {{business}} ou {{name}} no título e no corpo.",
+    "backToTemplates": "Voltar aos modelos",
+    "templateFallback": "Modelo",
+    "templatePreview": "Prévia do cliente",
+    "sampleValues": "Mostrada com valores de exemplo/interpolados como os clientes veriam.",
+    "charsCount": "{count} caracteres",
+    "channelEmail": "E-mail",
+    "channelInApp": "No app",
+    "channelSms": "SMS",
+    "channelWhatsapp": "WhatsApp",
+    "var": {
+      "business": "Nome do negócio",
+      "tagline": "Slogan",
+      "description": "Descrição do marketplace",
+      "name": "Nome do cliente (exemplo)",
+      "points": "Pontos de fidelidade (exemplo)"
+    }
   },
   "notifications": {
     "eyebrow": "Caixa de entrada",
@@ -796,5 +861,10 @@
     "how": "Como usar",
     "when": "Quando usar",
     "tips": "Dicas"
+  },
+  "searchSelect": {
+    "search": "Pesquisar…",
+    "noMatches": "Nenhuma correspondência",
+    "selected": "{count} selecionado(s)"
   }
 }

@@ -457,6 +457,13 @@ defmodule Kaarobar.Inventory do
     create_goods_receipt(purchase_order_id, branch_id, owner_id, business_id, received_by_id, attrs)
   end
 
+  @doc """
+  Create a pending inter-branch stock transfer (INV-FR-003).
+
+  Confirmation moves on-hand quantities only — no GL/journal post. Inventory
+  valuation stays on stock records (`avg_cost`); GRN is the path that enqueues
+  accounting journals.
+  """
   def create_transfer(business_id, owner_id, params) do
     Multi.new()
     |> Multi.insert(:transfer, fn _ ->
@@ -510,6 +517,11 @@ defmodule Kaarobar.Inventory do
     end
   end
 
+  @doc """
+  Confirm a pending transfer: atomic stock deltas from → to branch (INV-FR-003).
+
+  Stock-only by design — does not enqueue journal entries (unlike GRN).
+  """
   def confirm_transfer(transfer_id, owner_id) do
     transfer =
       Repo.get_by(StockTransfer, id: transfer_id, owner_id: owner_id)
@@ -764,11 +776,57 @@ defmodule Kaarobar.Inventory do
 
   # --- Suppliers ---
 
-  def list_suppliers(business_id, owner_id) do
-    Supplier
-    |> where([s], s.business_id == ^business_id and s.owner_id == ^owner_id)
-    |> order_by([s], asc: s.name)
-    |> Repo.all()
+  def list_suppliers(business_id, owner_id, opts \\ []) do
+    q_term =
+      case opts[:q] do
+        v when is_binary(v) ->
+          trimmed = String.trim(v)
+          if trimmed == "", do: nil, else: trimmed
+
+        _ ->
+          nil
+      end
+
+    payment_methods = opts[:payment_methods]
+    credit_min = opts[:credit_limit_min]
+    credit_max = opts[:credit_limit_max]
+
+    query =
+      Supplier
+      |> where([s], s.business_id == ^business_id and s.owner_id == ^owner_id)
+      |> order_by([s], asc: s.name)
+
+    query =
+      if is_binary(q_term) do
+        like = "%#{String.replace(q_term, "%", "\\%")}%"
+        where(query, [s], ilike(s.name, ^like) or ilike(coalesce(s.phone, ""), ^like))
+      else
+        query
+      end
+
+    query =
+      if is_list(payment_methods) and payment_methods != [] do
+        where(query, [s], s.payment_method in ^payment_methods)
+      else
+        query
+      end
+
+    query =
+      if match?(%Decimal{}, credit_min) do
+        where(query, [s], coalesce(s.credit_limit, 0) >= ^credit_min)
+      else
+        query
+      end
+
+    query =
+      if match?(%Decimal{}, credit_max) do
+        where(query, [s], coalesce(s.credit_limit, 0) <= ^credit_max)
+      else
+        query
+      end
+
+    page = KaarobarWeb.Controllers.Helpers.ListFilters.paginate(query, opts)
+    %{data: page.data, meta: page.meta}
   end
 
   def get_supplier(id, business_id, owner_id) do

@@ -205,7 +205,16 @@
     "transferFailed": "Transfer failed",
     "confirmFailed": "Confirm failed",
     "adjustFailed": "Adjust failed",
-    "supplierFailed": "Supplier failed"
+    "supplierFailed": "Supplier failed",
+    "createTransfer": "Crear transferencia",
+    "transferModalTitle": "Crear transferencia de stock",
+    "transferModalDesc": "Mueve varios productos a otra sucursal. El stock se actualiza tras confirmar.",
+    "toBranch": "Sucursal destino",
+    "selectToBranch": "Seleccionar sucursal destino",
+    "products": "Productos",
+    "selectProducts": "Seleccionar productos",
+    "quantities": "Cantidades",
+    "confirm": "Confirmar"
   },
   "pos": {
     "tillOpen": "Till opened",
@@ -542,7 +551,26 @@
     "allCategories": "All",
     "noDescription": "No description available.",
     "pickupHint": "Pickup · add to cart",
-    "close": "Close"
+    "close": "Close",
+    "priceRange": "Rango de precio",
+    "filtersDesc": "Filtra productos por industria, categoría y precio.",
+    "filters": "Filtros",
+    "filtersTitle": "Filtros",
+    "applyFilters": "Aplicar filtros",
+    "filtersActive": "{count} filtros activos",
+    "allIndustries": "Todas las industrias",
+    "modeProducts": "Productos",
+    "modeShops": "Tiendas",
+    "loadMore": "Cargar más",
+    "endOfResults": "Has llegado al final.",
+    "soldBy": "Vendido por",
+    "shopCardHint": "Ver más de esta tienda",
+    "bookThisService": "Reservar este servicio",
+    "orderIncludesShops": "Este pedido incluye {count} tiendas",
+    "shopsInCart": "{count} tiendas en el carrito",
+    "multiShopCartHint": "Puedes comprar en varias tiendas en un solo pago. Cada tienda es un pedido de recogida aparte.",
+    "discoverProductsHero": "Explora productos de todas las tiendas listadas. Añade desde una o varias — el checkout crea un pedido de recogida por tienda.",
+    "backToDiscover": "Volver a Descubrir"
   },
   "businesses": {
     "new": "New business",
@@ -611,7 +639,7 @@
   },
   "listFilters": {
     "title": "Filters",
-    "description": "Narrow this list by date, status, or category.",
+    "description": "Filtra esta lista por fecha, estado, categoría o importe.",
     "filters": "Filters",
     "apply": "Apply",
     "clear": "Clear filters",
@@ -621,7 +649,13 @@
     "source": "Source",
     "noFields": "No advanced filters for this list.",
     "khataOn": "Khata on",
-    "khataOff": "Khata off"
+    "khataOff": "Khata off",
+    "amountRange": "Rango de importe",
+    "balanceRange": "Rango de saldo",
+    "creditLimitRange": "Rango de límite de crédito",
+    "paymentMethod": "Método de pago",
+    "min": "Mín.",
+    "max": "Máx."
   },
   "appointments": {
     "modeTabs": "Shop or book",
@@ -674,5 +708,10 @@
     "emptyScheduleBody": "Change the date or wait for customer bookings.",
     "disabledTitle": "Appointments not enabled",
     "disabledBody": "Enable appointments for salon or service businesses to see the schedule here."
+  },
+  "searchSelect": {
+    "search": "Buscar…",
+    "noMatches": "Sin coincidencias",
+    "selected": "{count} seleccionados"
   }
 }

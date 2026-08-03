@@ -56,7 +56,7 @@
   },
   "listFilters": {
     "title": "المرشحات",
-    "description": "قم بتضييق هذه القائمة حسب التاريخ أو الحالة أو الفئة.",
+    "description": "ضيّق هذه القائمة حسب التاريخ أو الحالة أو الفئة أو المبلغ.",
     "filters": "المرشحات",
     "apply": "تطبيق",
     "clear": "مسح عوامل التصفية",
@@ -66,7 +66,13 @@
     "source": "المصدر",
     "noFields": "لا توجد مرشحات متقدمة لهذه القائمة.",
     "khataOn": "Khata قيد التشغيل",
-    "khataOff": "Khata متوقف"
+    "khataOff": "Khata متوقف",
+    "amountRange": "نطاق المبلغ",
+    "balanceRange": "نطاق الرصيد",
+    "creditLimitRange": "نطاق حد الائتمان",
+    "paymentMethod": "طريقة الدفع",
+    "min": "الحد الأدنى",
+    "max": "الحد الأقصى"
   },
   "nav": {
     "overview": "نظرة عامة",
@@ -207,7 +213,16 @@
     "transferFailed": "فشل النقل",
     "confirmFailed": "فشل التأكيد",
     "adjustFailed": "فشل الضبط",
-    "supplierFailed": "فشل المورد"
+    "supplierFailed": "فشل المورد",
+    "createTransfer": "إنشاء تحويل",
+    "transferModalTitle": "إنشاء تحويل مخزون",
+    "transferModalDesc": "انقل عدة منتجات إلى فرع آخر. يتم تحديث المخزون بعد التأكيد.",
+    "toBranch": "الفرع الوجهة",
+    "selectToBranch": "اختر الفرع الوجهة",
+    "products": "المنتجات",
+    "selectProducts": "اختر المنتجات",
+    "quantities": "الكميات",
+    "confirm": "تأكيد"
   },
   "pos": {
     "tillOpen": "حتى الفتح",
@@ -488,7 +503,38 @@
     "payAndSendConfirm": "الدفع وإرسال \"{name}\" إلى الجمهور المحدد؟",
     "payAndSendDone": "تم تأكيد الدفع - تم إرسال الحملة",
     "checkoutOpened": "تم فتح Checkout في علامة تبويب جديدة",
-    "payHint": "موافقة الاشتراك مطلوبة. تستخدم الرسائل النصية القصيرة وWhatsApp الدفع وإرسال الدفع."
+    "payHint": "موافقة الاشتراك مطلوبة. تستخدم الرسائل النصية القصيرة وWhatsApp الدفع وإرسال الدفع.",
+    "tabCampaigns": "الحملات",
+    "tabTemplates": "القوالب",
+    "tabSegments": "الشرائح",
+    "tabCoupons": "القسائم",
+    "tabTiers": "مستويات الولاء",
+    "newTemplate": "قالب جديد",
+    "saveTemplate": "حفظ القالب",
+    "templateSaved": "تم حفظ القالب",
+    "templatesEmpty": "لا توجد قوالب",
+    "templatesEmptyBody": "أنشئ قالباً أو انتظر القوالب الافتراضية عند التحميل.",
+    "titleTemplate": "قالب العنوان",
+    "bodyTemplate": "قالب النص",
+    "preview": "معاينة",
+    "variablesTitle": "المتغيرات المتاحة",
+    "variablesHint": "استخدم عناصر نائبة مسطحة مثل {{business}} أو {{name}} في العنوان والنص.",
+    "backToTemplates": "العودة إلى القوالب",
+    "templateFallback": "قالب",
+    "templatePreview": "معاينة العميل",
+    "sampleValues": "يُعرض بقيم نموذجية/مستبدلة كما يراها العملاء.",
+    "charsCount": "{count} حرفاً",
+    "channelEmail": "البريد",
+    "channelInApp": "داخل التطبيق",
+    "channelSms": "SMS",
+    "channelWhatsapp": "WhatsApp",
+    "var": {
+      "business": "اسم النشاط",
+      "tagline": "الشعار",
+      "description": "وصف السوق",
+      "name": "اسم العميل (عينة)",
+      "points": "نقاط الولاء (عينة)"
+    }
   },
   "notifications": {
     "eyebrow": "البريد الوارد",
@@ -605,5 +651,31 @@
     "saveBranding": "حفظ العلامة التجارية",
     "marketplaceDesc": "وصف السوق",
     "previewButton": "الزر الأساسي"
+  },
+  "searchSelect": {
+    "search": "بحث…",
+    "noMatches": "لا توجد نتائج",
+    "selected": "{count} محدد"
+  },
+  "marketplace": {
+    "priceRange": "نطاق السعر",
+    "filtersDesc": "ضيّق المنتجات حسب الصناعة والفئة والسعر.",
+    "filters": "عوامل التصفية",
+    "filtersTitle": "عوامل التصفية",
+    "applyFilters": "تطبيق التصفية",
+    "filtersActive": "{count} عوامل تصفية نشطة",
+    "allIndustries": "كل الصناعات",
+    "modeProducts": "المنتجات",
+    "modeShops": "المتاجر",
+    "loadMore": "تحميل المزيد",
+    "endOfResults": "وصلت إلى نهاية النتائج.",
+    "soldBy": "يُباع بواسطة",
+    "shopCardHint": "عرض المزيد من هذا المتجر",
+    "bookThisService": "احجز هذه الخدمة",
+    "orderIncludesShops": "يشمل هذا الطلب {count} متاجر",
+    "shopsInCart": "{count} متاجر في السلة",
+    "multiShopCartHint": "يمكنك الشراء من عدة متاجر في عملية دفع واحدة. كل متجر طلب استلام منفصل.",
+    "discoverProductsHero": "تصفح منتجات كل المتاجر المدرجة. أضف من متجر واحد أو أكثر — الدفع ينشئ طلب استلام لكل متجر.",
+    "backToDiscover": "العودة إلى الاكتشاف"
   }
 }

@@ -3,20 +3,28 @@ defmodule KaarobarWeb.V1.SupplierController do
 
   alias Kaarobar.Inventory
   alias Kaarobar.Schemas.Supplier
+  alias KaarobarWeb.Controllers.Helpers.ListFilters
 
-  def index(conn, _params) do
+  def index(conn, params) do
     business_id = conn.assigns[:business_id]
     owner_id = conn.assigns[:owner_id]
 
     if is_nil(business_id) do
       conn |> put_status(:bad_request) |> json(%{error: "business_required"})
     else
-      data =
-        business_id
-        |> Inventory.list_suppliers(owner_id)
-        |> Enum.map(&serialize/1)
+      opts =
+        ListFilters.parse(params, [
+          :q,
+          :payment_method,
+          :credit_limit_min,
+          :credit_limit_max,
+          :limit,
+          :cursor
+        ])
 
-      json(conn, %{data: data})
+      %{data: suppliers, meta: meta} = Inventory.list_suppliers(business_id, owner_id, opts)
+
+      json(conn, %{data: Enum.map(suppliers, &serialize/1), meta: meta})
     end
   end
 

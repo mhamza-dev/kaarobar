@@ -125,14 +125,15 @@ export default function CheckoutReviewScreen() {
       <BuyerHero
         eyebrow={t("marketplace.checkoutEyebrow")}
         title={t("pages.checkoutReviewTitle")}
-        description={t("pages.checkoutReviewDesc")}
+        description={
+          stores.length === 1
+            ? `${stores[0].businessName} · ${itemCount}`
+            : `${t("marketplace.orderIncludesShops", { count: stores.length })} · ${itemCount}`
+        }
       />
-      <Text style={styles.sub}>
-        {stores.length === 1
-          ? stores[0].businessName
-          : t("marketplace.storesCount", { count: stores.length })}{" "}
-        · {itemCount}
-      </Text>
+      {stores.length > 1 ? (
+        <Text style={styles.hint}>{t("marketplace.multiShopCartHint")}</Text>
+      ) : null}
 
       <FlatList
         data={stores}
@@ -171,6 +172,7 @@ function createStyles(palette: import("../lib/brandTheme").BrandPalette) {
   container: { flex: 1, backgroundColor: colors.bgPrimary, padding: 16 },
   linkInline: { color: palette.brand, fontWeight: "700" },
   sub: { color: colors.body, marginBottom: 12, marginTop: -4 },
+  hint: { color: colors.body, fontSize: 13, marginBottom: 12, lineHeight: 18 },
   storeCard: {
     backgroundColor: colors.card,
     borderRadius: colors.radiusLg,

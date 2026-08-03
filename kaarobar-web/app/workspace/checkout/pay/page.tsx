@@ -153,10 +153,14 @@ export default function CheckoutPayPage() {
         description={
           stores.length === 1
             ? `${stores[0].businessName} · Rs ${money(subtotal)}`
-            : `${stores.length} · Rs ${money(subtotal)} · ${t("pages.checkoutPayDesc")}`
+            : `${t("marketplace.orderIncludesShops", { count: stores.length })} · Rs ${money(subtotal)}`
         }
         infoKey="page.checkout.pay"
-      />
+      >
+        {stores.length > 1 ? (
+          <p className="mt-2 text-sm text-body">{t("marketplace.multiShopCartHint")}</p>
+        ) : null}
+      </BuyerHero>
 
       {stores.length > 1 ? (
         <BuyerCard className="space-y-2 p-4">

@@ -18,6 +18,7 @@ import NotificationsScreen from "../screens/NotificationsScreen";
 import BusinessesScreen from "../screens/BusinessesScreen";
 import BusinessDetailScreen from "../screens/BusinessDetailScreen";
 import MarketingScreen from "../screens/MarketingScreen";
+import TemplateDetailScreen from "../screens/TemplateDetailScreen";
 import ReturnsScreen from "../screens/ReturnsScreen";
 import DashboardScreen from "../screens/DashboardScreen";
 
@@ -74,6 +75,11 @@ function SettingsNavigator() {
         name="Marketing"
         component={MarketingScreen}
         options={{ title: t("nav.marketing") }}
+      />
+      <SettingsStack.Screen
+        name="TemplateDetail"
+        component={TemplateDetailScreen}
+        options={{ title: t("marketing.templateFallback") }}
       />
       <SettingsStack.Screen
         name="Returns"

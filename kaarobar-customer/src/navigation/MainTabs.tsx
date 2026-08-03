@@ -6,7 +6,6 @@ import { colors } from "../lib/api";
 import { useBrandPalette } from "../lib/BrandThemeContext";
 import { t } from "../lib/i18n";
 import DiscoverScreen from "../screens/DiscoverScreen";
-import ProductsScreen from "../screens/ProductsScreen";
 import ProductDetailScreen from "../screens/ProductDetailScreen";
 import OrdersScreen from "../screens/OrdersScreen";
 import OrderDetailScreen from "../screens/OrderDetailScreen";
@@ -21,7 +20,6 @@ import KhataScreen from "../screens/KhataScreen";
 
 const Tab = createBottomTabNavigator();
 const DiscoverStack = createNativeStackNavigator();
-const ProductsStack = createNativeStackNavigator();
 const OrdersStack = createNativeStackNavigator();
 const AccountStack = createNativeStackNavigator();
 
@@ -58,34 +56,6 @@ function DiscoverNavigator() {
         options={{ title: t("pages.checkoutPayTitle") }}
       />
     </DiscoverStack.Navigator>
-  );
-}
-
-function ProductsNavigator() {
-  return (
-    <ProductsStack.Navigator>
-      <ProductsStack.Screen
-        name="ProductsHome"
-        component={ProductsScreen}
-        options={{ title: t("nav.products") }}
-      />
-      <ProductsStack.Screen
-        name="ProductDetail"
-        component={ProductDetailScreen}
-        options={{ title: t("pages.productDetailTitle") }}
-      />
-      <ProductsStack.Screen
-        name="Store"
-        component={StoreScreen}
-        options={{ title: t("marketplace.store") }}
-      />
-      <ProductsStack.Screen name="Cart" component={CartScreen} options={{ title: t("pos.cart") }} />
-      <ProductsStack.Screen
-        name="CheckoutPay"
-        component={CheckoutPayScreen}
-        options={{ title: t("pages.checkoutPayTitle") }}
-      />
-    </ProductsStack.Navigator>
   );
 }
 
@@ -155,11 +125,11 @@ export default function MainTabs() {
         }}
       />
       <Tab.Screen
-        name="Products"
-        component={ProductsNavigator}
+        name="Account"
+        component={AccountNavigator}
         options={{
           headerShown: false,
-          tabBarLabel: ({ color }) => <TabLabel label={t("nav.products")} color={color} />,
+          tabBarLabel: ({ color }) => <TabLabel label={t("nav.account")} color={color} />,
         }}
       />
       <Tab.Screen
@@ -176,14 +146,6 @@ export default function MainTabs() {
         options={{
           title: t("nav.loyalty"),
           tabBarLabel: ({ color }) => <TabLabel label={t("nav.loyalty")} color={color} />,
-        }}
-      />
-      <Tab.Screen
-        name="Account"
-        component={AccountNavigator}
-        options={{
-          headerShown: false,
-          tabBarLabel: ({ color }) => <TabLabel label={t("nav.account")} color={color} />,
         }}
       />
     </Tab.Navigator>

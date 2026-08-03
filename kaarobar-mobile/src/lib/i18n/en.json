@@ -200,7 +200,16 @@
     "transferFailed": "Transfer failed",
     "confirmFailed": "Confirm failed",
     "adjustFailed": "Adjust failed",
-    "supplierFailed": "Supplier failed"
+    "supplierFailed": "Supplier failed",
+    "createTransfer": "Create transfer",
+    "transferModalTitle": "Create stock transfer",
+    "transferModalDesc": "Move multiple products to another branch. Stock updates after confirm.",
+    "toBranch": "To branch",
+    "selectToBranch": "Select destination branch",
+    "products": "Products",
+    "selectProducts": "Select products",
+    "quantities": "Quantities",
+    "confirm": "Confirm"
   },
   "pos": {
     "tillOpen": "Till opened",
@@ -473,7 +482,38 @@
     "payAndSendConfirm": "Pay and send “{name}” to the selected audience?",
     "payAndSendDone": "Payment confirmed — campaign sent",
     "checkoutOpened": "Checkout opened in a new tab",
-    "payHint": "Opt-in consent is required. SMS and WhatsApp use Pay & send checkout."
+    "payHint": "Opt-in consent is required. SMS and WhatsApp use Pay & send checkout.",
+    "tabCampaigns": "Campaigns",
+    "tabTemplates": "Templates",
+    "tabSegments": "Segments",
+    "tabCoupons": "Coupons",
+    "tabTiers": "Loyalty tiers",
+    "newTemplate": "New template",
+    "saveTemplate": "Save template",
+    "templateSaved": "Template saved",
+    "templatesEmpty": "No templates",
+    "templatesEmptyBody": "Create a template or wait for defaults to seed on load.",
+    "titleTemplate": "Title template",
+    "bodyTemplate": "Body template",
+    "preview": "Preview",
+    "variablesTitle": "Available variables",
+    "variablesHint": "Use flat placeholders like {{business}} or {{name}} in title and body. Business fields resolve from branding; name and points use sample values for preview.",
+    "backToTemplates": "Back to templates",
+    "templateFallback": "Template",
+    "templatePreview": "Customer preview",
+    "sampleValues": "Shown with sample/interpolated values as customers would see them.",
+    "charsCount": "{count} characters",
+    "channelEmail": "Email",
+    "channelInApp": "In-app",
+    "channelSms": "SMS",
+    "channelWhatsapp": "WhatsApp",
+    "var": {
+      "business": "Business name",
+      "tagline": "Business tagline",
+      "description": "Marketplace description",
+      "name": "Customer name (sample)",
+      "points": "Loyalty points (sample)"
+    }
   },
   "notifications": {
     "eyebrow": "Inbox",
@@ -537,7 +577,26 @@
     "allCategories": "All",
     "noDescription": "No description available.",
     "pickupHint": "Pickup · add to cart",
-    "close": "Close"
+    "close": "Close",
+    "priceRange": "Price range",
+    "filtersDesc": "Narrow products by industry, category, and price.",
+    "filters": "Filters",
+    "filtersTitle": "Filters",
+    "applyFilters": "Apply filters",
+    "filtersActive": "{count} filters active",
+    "allIndustries": "All industries",
+    "modeProducts": "Products",
+    "modeShops": "Shops",
+    "loadMore": "Load more",
+    "endOfResults": "You have reached the end.",
+    "soldBy": "Sold by",
+    "shopCardHint": "See more from this shop",
+    "bookThisService": "Book this service",
+    "orderIncludesShops": "This order includes {count} shops",
+    "shopsInCart": "{count} shops in cart",
+    "multiShopCartHint": "You can buy from several shops in one checkout. Each shop is a separate pickup order.",
+    "discoverProductsHero": "Browse products from every listed shop. Add from one or many stores — checkout places a pickup order per shop.",
+    "backToDiscover": "Back to Discover"
   },
   "businesses": {
     "new": "New business",
@@ -606,7 +665,7 @@
   },
   "listFilters": {
     "title": "Filters",
-    "description": "Narrow this list by date, status, or category.",
+    "description": "Narrow this list by date, status, category, or amount.",
     "filters": "Filters",
     "apply": "Apply",
     "clear": "Clear filters",
@@ -616,7 +675,13 @@
     "source": "Source",
     "noFields": "No advanced filters for this list.",
     "khataOn": "Khata on",
-    "khataOff": "Khata off"
+    "khataOff": "Khata off",
+    "amountRange": "Amount range",
+    "balanceRange": "Balance range",
+    "creditLimitRange": "Credit limit range",
+    "paymentMethod": "Payment method",
+    "min": "Min",
+    "max": "Max"
   },
   "appointments": {
     "modeTabs": "Shop or book",
@@ -669,5 +734,10 @@
     "emptyScheduleBody": "Change the date or wait for customer bookings.",
     "disabledTitle": "Appointments not enabled",
     "disabledBody": "Enable appointments for salon or service businesses to see the schedule here."
+  },
+  "searchSelect": {
+    "search": "Search…",
+    "noMatches": "No matches",
+    "selected": "{count} selected"
   }
 }

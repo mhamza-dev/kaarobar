@@ -9,7 +9,7 @@ import { t } from "../lib/i18n";
 
 /**
  * Compact cart chrome for discover/store screens.
- * Primary navigation is React Navigation bottom tabs (≤5).
+ * Primary navigation is React Navigation bottom tabs (Discover, Accounts, Orders, Loyalty).
  */
 export default function BuyerNav() {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();

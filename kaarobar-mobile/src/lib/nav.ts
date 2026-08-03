@@ -41,6 +41,7 @@ export function pushPath(
   if (path === "/app/ess" || path === "/app/attendance") {
     navigation.navigate("Settings" as never, {
       screen: "Attendance",
+      params,
     } as never);
     return;
   }
@@ -80,6 +81,15 @@ export function pushPath(
   if (path === "/app/marketing") {
     navigation.navigate("Settings" as never, {
       screen: "Marketing",
+      params,
+    } as never);
+    return;
+  }
+  if (path.startsWith("/app/marketing/templates/")) {
+    const id = path.split("/").pop();
+    navigation.navigate("Settings" as never, {
+      screen: "TemplateDetail",
+      params: { id },
     } as never);
     return;
   }
@@ -98,7 +108,7 @@ export function pushPath(
     return;
   }
   if (path === "/app/inventory" || path === "/app/products") {
-    navigation.navigate("Products" as never);
+    navigation.navigate("Products" as never, params as never);
     return;
   }
   if (path === "/app/customers") {

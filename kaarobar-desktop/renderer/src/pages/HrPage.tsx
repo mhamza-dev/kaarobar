@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, getSession } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
@@ -16,7 +16,8 @@ import {
 } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
-import { detailRoutes } from "@/lib/navigation";
+import { useTabQueryParam } from "@/lib/hooks/useTabQueryParam";
+import { detailRoutes, routes } from "@/lib/navigation";
 import { canAccessBundle } from "@/lib/rbac";
 import {
   applyStaffListFilters,
@@ -26,6 +27,7 @@ import {
 } from "@/lib/listFilters";
 
 type Tab = "employees" | "attendance" | "leave" | "payroll";
+const HR_TABS: readonly Tab[] = ["employees", "attendance", "leave", "payroll"];
 type ModalKind = "employee" | "invite" | "payroll" | null;
 
 const emptyEmpForm = {
@@ -87,6 +89,14 @@ type PayrollRun = {
 };
 
 export default function HrPage() {
+  return (
+    <Suspense fallback={<p className="text-sm text-body">Loading…</p>}>
+      <HrPageInner />
+    </Suspense>
+  );
+}
+
+function HrPageInner() {
   const t = useT();
   const navigate = useNavigate();
   const toast = useToast();
@@ -94,7 +104,10 @@ export default function HrPage() {
   const canLeaveApprove = canAccessBundle(session, "leave_approve");
   const canPayrollApprove = canAccessBundle(session, "payroll_approve");
   const canSeePayroll = canPayrollApprove;
-  const [tab, setTab] = useState<Tab>("employees");
+  const [tab, setTab] = useTabQueryParam<Tab>("employees", HR_TABS, {
+    pathname: routes.hr,
+    isAllowed: (next) => next !== "payroll" || canSeePayroll,
+  });
   const [modal, setModal] = useState<ModalKind>(null);
   const [editingEmployeeId, setEditingEmployeeId] = useState<string | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);

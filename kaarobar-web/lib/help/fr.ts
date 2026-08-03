@@ -402,6 +402,20 @@ const catalog: HelpCatalog = {
     tips: ["Résolvez les problèmes de présence/congés avant d’exécuter la paie."],
   },
 
+  "page.marketing.template": {
+    title: "Modèle de message",
+    summary: "Aperçu de l’apparence d’un modèle CRM pour les clients.",
+    what: "Affiche les variables brutes et un aperçu interpolé avec la marque et des valeurs d’exemple.",
+    how: [
+      "Ouvrez un modèle dans Marketing → Modèles.",
+      "Vérifiez les variables dans l’aperçu.",
+      "Contrôlez l’aperçu client.",
+      "Retour rouvre l’onglet Modèles.",
+    ],
+    when: "Lors de la rédaction de messages de campagne réutilisables.",
+    tips: ["Les variables sont des clés plates comme {{business}} — {{customer.name}} n’est pas pris en charge."],
+  },
+
   "tab.marketing.campaigns": {
     title: "Campagnes",
     summary: "Rédiger et envoyer des messages clients.",

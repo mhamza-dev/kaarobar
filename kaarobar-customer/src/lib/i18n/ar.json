@@ -205,7 +205,16 @@
     "transferFailed": "Transfer failed",
     "confirmFailed": "Confirm failed",
     "adjustFailed": "Adjust failed",
-    "supplierFailed": "Supplier failed"
+    "supplierFailed": "Supplier failed",
+    "createTransfer": "إنشاء تحويل",
+    "transferModalTitle": "إنشاء تحويل مخزون",
+    "transferModalDesc": "انقل عدة منتجات إلى فرع آخر. يتم تحديث المخزون بعد التأكيد.",
+    "toBranch": "الفرع الوجهة",
+    "selectToBranch": "اختر الفرع الوجهة",
+    "products": "المنتجات",
+    "selectProducts": "اختر المنتجات",
+    "quantities": "الكميات",
+    "confirm": "تأكيد"
   },
   "pos": {
     "tillOpen": "Till opened",
@@ -542,7 +551,26 @@
     "allCategories": "All",
     "noDescription": "No description available.",
     "pickupHint": "Pickup · add to cart",
-    "close": "Close"
+    "close": "Close",
+    "priceRange": "نطاق السعر",
+    "filtersDesc": "ضيّق المنتجات حسب الصناعة والفئة والسعر.",
+    "filters": "عوامل التصفية",
+    "filtersTitle": "عوامل التصفية",
+    "applyFilters": "تطبيق التصفية",
+    "filtersActive": "{count} عوامل تصفية نشطة",
+    "allIndustries": "كل الصناعات",
+    "modeProducts": "المنتجات",
+    "modeShops": "المتاجر",
+    "loadMore": "تحميل المزيد",
+    "endOfResults": "وصلت إلى نهاية النتائج.",
+    "soldBy": "يُباع بواسطة",
+    "shopCardHint": "عرض المزيد من هذا المتجر",
+    "bookThisService": "احجز هذه الخدمة",
+    "orderIncludesShops": "يشمل هذا الطلب {count} متاجر",
+    "shopsInCart": "{count} متاجر في السلة",
+    "multiShopCartHint": "يمكنك الشراء من عدة متاجر في عملية دفع واحدة. كل متجر طلب استلام منفصل.",
+    "discoverProductsHero": "تصفح منتجات كل المتاجر المدرجة. أضف من متجر واحد أو أكثر — الدفع ينشئ طلب استلام لكل متجر.",
+    "backToDiscover": "العودة إلى الاكتشاف"
   },
   "businesses": {
     "new": "New business",
@@ -611,7 +639,7 @@
   },
   "listFilters": {
     "title": "Filters",
-    "description": "Narrow this list by date, status, or category.",
+    "description": "ضيّق هذه القائمة حسب التاريخ أو الحالة أو الفئة أو المبلغ.",
     "filters": "Filters",
     "apply": "Apply",
     "clear": "Clear filters",
@@ -621,7 +649,13 @@
     "source": "Source",
     "noFields": "No advanced filters for this list.",
     "khataOn": "Khata on",
-    "khataOff": "Khata off"
+    "khataOff": "Khata off",
+    "amountRange": "نطاق المبلغ",
+    "balanceRange": "نطاق الرصيد",
+    "creditLimitRange": "نطاق حد الائتمان",
+    "paymentMethod": "طريقة الدفع",
+    "min": "الحد الأدنى",
+    "max": "الحد الأقصى"
   },
   "appointments": {
     "modeTabs": "Shop or book",
@@ -674,5 +708,10 @@
     "emptyScheduleBody": "Change the date or wait for customer bookings.",
     "disabledTitle": "Appointments not enabled",
     "disabledBody": "Enable appointments for salon or service businesses to see the schedule here."
+  },
+  "searchSelect": {
+    "search": "بحث…",
+    "noMatches": "لا توجد نتائج",
+    "selected": "{count} محدد"
   }
 }

@@ -14,7 +14,6 @@ import {
   LogOut,
   Megaphone,
   Menu,
-  Package,
   Receipt,
   Settings,
   ShoppingBag,
@@ -88,7 +87,12 @@ function NavbarCartLink({ sticky = false }: { sticky?: boolean }) {
 
 function buyerNavActive(pathname: string, href: string) {
   if (href === "/app") {
-    return pathname === "/app" || pathname.startsWith("/app/market/");
+    return (
+      pathname === "/app" ||
+      pathname.startsWith("/app/market/") ||
+      pathname === "/app/products" ||
+      pathname.startsWith("/app/products/")
+    );
   }
   if (href === "/app/account") {
     return (
@@ -105,9 +109,6 @@ function buyerNavActive(pathname: string, href: string) {
   }
   if (href === "/app/sales") {
     return pathname === "/app/sales" || pathname.startsWith("/app/sales/");
-  }
-  if (href === "/app/products") {
-    return pathname === "/app/products" || pathname.startsWith("/app/products/");
   }
   return pathname === href || pathname.startsWith(`${href}/`);
 }
@@ -343,11 +344,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   {buyerNav.map((item) => {
                     const active = buyerNavActive(pathname, item.href);
                     const Icon =
-                      item.icon === "inventory"
-                        ? Package
-                        : item.icon === "pos"
-                          ? ShoppingBag
-                          : icons[item.icon];
+                      item.icon === "pos" ? ShoppingBag : icons[item.icon];
                     return (
                       <Link
                         key={item.href}
@@ -399,11 +396,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     {buyerNav.map((item) => {
                       const active = buyerNavActive(pathname, item.href);
                       const Icon =
-                        item.icon === "inventory"
-                          ? Package
-                          : item.icon === "pos"
-                            ? ShoppingBag
-                            : icons[item.icon];
+                        item.icon === "pos" ? ShoppingBag : icons[item.icon];
                       return (
                         <Link
                           key={item.href}

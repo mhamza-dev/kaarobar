@@ -56,7 +56,7 @@
   },
   "listFilters": {
     "title": "Filtres",
-    "description": "Limitez cette liste par date, statut ou catégorie.",
+    "description": "Affinez cette liste par date, statut, catégorie ou montant.",
     "filters": "Filtres",
     "apply": "Appliquer",
     "clear": "Effacer les filtres",
@@ -66,7 +66,13 @@
     "source": "Source",
     "noFields": "Aucun filtre avancé pour cette liste.",
     "khataOn": "Khata activé",
-    "khataOff": "Khata désactivé"
+    "khataOff": "Khata désactivé",
+    "amountRange": "Plage de montant",
+    "balanceRange": "Plage de solde",
+    "creditLimitRange": "Plage de limite de crédit",
+    "paymentMethod": "Mode de paiement",
+    "min": "Min.",
+    "max": "Max."
   },
   "nav": {
     "overview": "Présentation",
@@ -243,7 +249,26 @@
     "payNow": "Payer maintenant",
     "paymentRecorded": "Paiement enregistré",
     "paymentFailed": "ÉChec du paiement",
-    "orderDetailTitle": "Détail de la commande"
+    "orderDetailTitle": "Détail de la commande",
+    "priceRange": "Fourchette de prix",
+    "filtersDesc": "Affinez les produits par secteur, catégorie et prix.",
+    "filters": "Filtres",
+    "filtersTitle": "Filtres",
+    "applyFilters": "Appliquer les filtres",
+    "filtersActive": "{count} filtres actifs",
+    "allIndustries": "Tous les secteurs",
+    "modeProducts": "Produits",
+    "modeShops": "Boutiques",
+    "loadMore": "Charger plus",
+    "endOfResults": "Fin des résultats.",
+    "soldBy": "Vendu par",
+    "shopCardHint": "Voir plus de cette boutique",
+    "bookThisService": "Réserver ce service",
+    "orderIncludesShops": "Cette commande inclut {count} boutiques",
+    "shopsInCart": "{count} boutiques dans le panier",
+    "multiShopCartHint": "Vous pouvez acheter dans plusieurs boutiques en un seul paiement. Chaque boutique est une commande de retrait séparée.",
+    "discoverProductsHero": "Parcourez les produits de toutes les boutiques listées. Ajoutez depuis une ou plusieurs — le paiement crée une commande de retrait par boutique.",
+    "backToDiscover": "Retour à Découvrir"
   },
   "appointments": {
     "modeTabs": "Boutique ou livre",
@@ -352,7 +377,16 @@
     "transferFailed": "Échec du transfert",
     "confirmFailed": "ÉChec de la confirmation",
     "adjustFailed": "Échec de l'ajustement",
-    "supplierFailed": "ÉChec du fournisseur"
+    "supplierFailed": "ÉChec du fournisseur",
+    "createTransfer": "Créer un transfert",
+    "transferModalTitle": "Créer un transfert de stock",
+    "transferModalDesc": "Déplacez plusieurs produits vers une autre succursale. Le stock est mis à jour après confirmation.",
+    "toBranch": "Succursale de destination",
+    "selectToBranch": "Sélectionner la succursale de destination",
+    "products": "Produits",
+    "selectProducts": "Sélectionner des produits",
+    "quantities": "Quantités",
+    "confirm": "Confirmer"
   },
   "pos": {
     "tillOpen": "Jusqu'à ouverture",
@@ -697,7 +731,38 @@
     "channel": "Canal",
     "sentAt": "Envoyé à",
     "delivery": "Livraison",
-    "noRecipients": "Aucun destinataire n'a encore été enregistré."
+    "noRecipients": "Aucun destinataire n'a encore été enregistré.",
+    "tabCampaigns": "Campagnes",
+    "tabTemplates": "Modèles",
+    "tabSegments": "Segments",
+    "tabCoupons": "Coupons",
+    "tabTiers": "Niveaux de fidélité",
+    "newTemplate": "Nouveau modèle",
+    "saveTemplate": "Enregistrer le modèle",
+    "templateSaved": "Modèle enregistré",
+    "templatesEmpty": "Aucun modèle",
+    "templatesEmptyBody": "Créez un modèle ou attendez les modèles par défaut au chargement.",
+    "titleTemplate": "Modèle de titre",
+    "bodyTemplate": "Modèle de corps",
+    "preview": "Aperçu",
+    "variablesTitle": "Variables disponibles",
+    "variablesHint": "Utilisez des variables plates comme {{business}} ou {{name}} dans le titre et le corps.",
+    "backToTemplates": "Retour aux modèles",
+    "templateFallback": "Modèle",
+    "templatePreview": "Aperçu client",
+    "sampleValues": "Affiché avec des valeurs d’exemple/interpolées comme les clients les verraient.",
+    "charsCount": "{count} caractères",
+    "channelEmail": "E-mail",
+    "channelInApp": "In-app",
+    "channelSms": "SMS",
+    "channelWhatsapp": "WhatsApp",
+    "var": {
+      "business": "Nom de l’entreprise",
+      "tagline": "Slogan",
+      "description": "Description marketplace",
+      "name": "Nom du client (exemple)",
+      "points": "Points de fidélité (exemple)"
+    }
   },
   "notifications": {
     "eyebrow": "Boîte de réception",
@@ -749,5 +814,10 @@
     "how": "Comment l'utiliser",
     "when": "Quand l'utiliser",
     "tips": "Conseils"
+  },
+  "searchSelect": {
+    "search": "Rechercher…",
+    "noMatches": "Aucun résultat",
+    "selected": "{count} sélectionné(s)"
   }
 }

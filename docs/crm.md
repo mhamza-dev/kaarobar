@@ -23,7 +23,8 @@ Customer flags: `marketing_opt_in_email`, `marketing_opt_in_sms`, `marketing_opt
 ### Message templates
 
 - Table: `crm_message_templates` (`name`, `channel`, `title_template`, `body_template`, `variables`)
-- CRUD: `/api/v1/crm/templates`; preview: `POST /api/v1/crm/templates/preview`
+- CRUD: `/api/v1/crm/templates`; show: `GET /api/v1/crm/templates/:id`; preview: `POST /api/v1/crm/templates/preview`
+- Variables catalog: `GET /api/v1/crm/templates/variables` — flat `{{key}}` placeholders (`business`, `tagline`, `description`, sample `name`/`points`) with live examples (CRM-FR-002)
 - Preview merges live business branding vars: `{{business}}`, `{{tagline}}`, `{{description}}` (plus request `variables`)
 - Defaults seeded per business on first list
 - Channel `in_app` delivers to portal `customer_account_id` when linked (legacy `customers.user_id` still supported)

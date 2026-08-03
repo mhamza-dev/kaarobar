@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, getSession } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
@@ -15,16 +15,21 @@ import {
 } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
-import { detailRoutes } from "@/lib/navigation";
+import { useTabQueryParam } from "@/lib/hooks/useTabQueryParam";
+import { detailRoutes, routes } from "@/lib/navigation";
 import {
   applyStaffListFilters,
   emptyStaffListFilters,
   type ListFilterConfig,
   type StaffListFilterState,
 } from "@/lib/listFilters";
+import { formatLocalDateTime } from "@/lib/datetime";
+import SearchSelect from "@/components/ui/SearchSelect";
+import SearchMultiSelect from "@/components/ui/SearchMultiSelect";
 
 type Tab = "stock" | "products" | "suppliers" | "pos" | "transfers" | "adjust";
-type ModalKind = "product" | "supplier" | "po" | null;
+const INVENTORY_TABS: readonly Tab[] = ["stock", "products", "suppliers", "pos", "transfers", "adjust"];
+type ModalKind = "product" | "supplier" | "po" | "transfer" | null;
 
 const emptyProductForm = {
   sku: "",
@@ -148,14 +153,27 @@ type PO = {
 type Transfer = {
   id: string;
   status: string;
+  from_branch_id?: string;
+  to_branch_id?: string;
+  inserted_at?: string;
   items: { product_id: string; quantity: string }[];
 };
 
+type BranchOpt = { id: string; name: string };
+
 export default function InventoryPage() {
+  return (
+    <Suspense fallback={<p className="text-sm text-body">Loading…</p>}>
+      <InventoryPageInner />
+    </Suspense>
+  );
+}
+
+function InventoryPageInner() {
   const t = useT();
   const toast = useToast();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>("stock");
+  const [tab, setTab] = useTabQueryParam<Tab>("stock", INVENTORY_TABS, { pathname: routes.inventory });
   const [modal, setModal] = useState<ModalKind>(null);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [editingSupplierId, setEditingSupplierId] = useState<string | null>(null);
@@ -184,11 +202,16 @@ export default function InventoryPage() {
     product_id: "",
     quantity_received: "",
   });
-  const [transferForm, setTransferForm] = useState({
+  const [transferForm, setTransferForm] = useState<{
+    to_branch_id: string;
+    product_ids: string[];
+    quantities: Record<string, string>;
+  }>({
     to_branch_id: "",
-    product_id: "",
-    quantity: "1",
+    product_ids: [],
+    quantities: {},
   });
+  const [branches, setBranches] = useState<BranchOpt[]>([]);
   const [adjustForm, setAdjustForm] = useState({
     product_id: "",
     quantity_delta: "",
@@ -197,7 +220,8 @@ export default function InventoryPage() {
 
   const load = useCallback(async () => {
     try {
-      const [p, s, sup, poList, tr, cats] = await Promise.all([
+      const session = getSession();
+      const [p, s, sup, poList, tr, cats, br] = await Promise.all([
         api<{ data: Product[] }>("/products"),
         api<{ data: StockRow[] }>("/inventory").catch(() => ({ data: [] })),
         api<{ data: Supplier[] }>("/suppliers").catch(() => ({ data: [] })),
@@ -206,6 +230,11 @@ export default function InventoryPage() {
         api<{ data: { id: string; name: string }[] }>("/categories").catch(() => ({
           data: [],
         })),
+        session?.business_id
+          ? api<{ data: BranchOpt[] }>(
+              `/businesses/${session.business_id}/branches`
+            ).catch(() => ({ data: [] }))
+          : Promise.resolve({ data: [] as BranchOpt[] }),
       ]);
       setProducts(p.data || []);
       setStock(s.data || []);
@@ -213,6 +242,7 @@ export default function InventoryPage() {
       setPos(poList.data || []);
       setTransfers(tr.data || []);
       setCategories(cats.data || []);
+      setBranches(br.data || []);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.loadFailed"));
     }
@@ -221,6 +251,18 @@ export default function InventoryPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const branchOptions = useMemo(() => {
+    const session = getSession();
+    return (branches || [])
+      .filter((b) => b.id !== session?.branch_id)
+      .map((b) => ({ value: b.id, label: b.name }));
+  }, [branches]);
+
+  const productOptions = useMemo(
+    () => products.map((p) => ({ value: p.id, label: `${p.name} (${p.sku})` })),
+    [products]
+  );
 
   function openNewProduct() {
     setEditingProductId(null);
@@ -475,21 +517,30 @@ export default function InventoryPage() {
   async function createTransfer(e: React.FormEvent) {
     e.preventDefault();
     const session = getSession();
+    if (!transferForm.to_branch_id) {
+      toast.error(t("inventory.selectToBranch"));
+      return;
+    }
+    if (transferForm.product_ids.length === 0) {
+      toast.error(t("inventory.selectProducts"));
+      return;
+    }
+    const items = transferForm.product_ids.map((product_id) => ({
+      product_id,
+      quantity: transferForm.quantities[product_id] || "1",
+    }));
     try {
       await api("/inventory/transfers", {
         method: "POST",
         body: JSON.stringify({
           from_branch_id: session?.branch_id,
           to_branch_id: transferForm.to_branch_id,
-          items: [
-            {
-              product_id: transferForm.product_id,
-              quantity: transferForm.quantity,
-            },
-          ],
+          items,
         }),
       });
       toast.success(t("inventory.transferCreated"));
+      setModal(null);
+      setTransferForm({ to_branch_id: "", product_ids: [], quantities: {} });
       await load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("inventory.transferFailed"));
@@ -965,59 +1016,47 @@ export default function InventoryPage() {
 
       {tab === "transfers" ? (
         <div className="space-y-4">
-          <SurfaceCard className="p-5">
-            <form onSubmit={createTransfer} className="grid gap-3 md:grid-cols-4">
-              <input
-                className={fieldClass}
-                placeholder="To branch ID"
-                value={transferForm.to_branch_id}
-                onChange={(e) =>
-                  setTransferForm({ ...transferForm, to_branch_id: e.target.value })
-                }
-                required
-              />
-              <select
-                className={fieldClass}
-                value={transferForm.product_id}
-                onChange={(e) =>
-                  setTransferForm({ ...transferForm, product_id: e.target.value })
-                }
-                required
-              >
-                <option value="">Product</option>
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-              <input
-                className={fieldClass}
-                placeholder="Qty"
-                value={transferForm.quantity}
-                onChange={(e) =>
-                  setTransferForm({ ...transferForm, quantity: e.target.value })
-                }
-              />
-              <Button type="submit">Create transfer</Button>
-            </form>
-          </SurfaceCard>
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              onClick={() => {
+                setTransferForm({ to_branch_id: "", product_ids: [], quantities: {} });
+                setModal("transfer");
+              }}
+            >
+              {t("inventory.createTransfer")}
+            </Button>
+          </div>
           <div className="space-y-2">
-            {transfers.map((t) => (
-              <SurfaceCard
-                key={t.id}
-                className="flex flex-wrap items-center justify-between gap-2 px-4 py-3"
-              >
-                <span className="text-sm text-heading">
-                  {t.status} · {t.items?.[0]?.quantity || "?"} units
-                </span>
-                {t.status === "pending" ? (
-                  <Button size="sm" onClick={() => confirmTransfer(t.id)}>
-                    Confirm
-                  </Button>
-                ) : null}
-              </SurfaceCard>
-            ))}
+            {transfers.map((tr) => {
+              const qty = (tr.items || [])
+                .map((i) => i.quantity)
+                .join(", ");
+              const names = (tr.items || [])
+                .map((i) => products.find((p) => p.id === i.product_id)?.name || i.product_id)
+                .join(", ");
+              return (
+                <SurfaceCard
+                  key={tr.id}
+                  className="flex flex-wrap items-center justify-between gap-2 px-4 py-3"
+                >
+                  <div className="min-w-0 space-y-0.5">
+                    <p className="text-sm font-semibold text-heading">
+                      {tr.status} · {qty} units
+                    </p>
+                    <p className="truncate text-xs text-muted">{names}</p>
+                    <p className="text-xs text-muted">
+                      {formatLocalDateTime(tr.inserted_at)}
+                    </p>
+                  </div>
+                  {tr.status === "pending" ? (
+                    <Button size="sm" onClick={() => confirmTransfer(tr.id)}>
+                      {t("inventory.confirm")}
+                    </Button>
+                  ) : null}
+                </SurfaceCard>
+              );
+            })}
           </div>
         </div>
       ) : null}
@@ -1650,6 +1689,80 @@ export default function InventoryPage() {
             <Button type="submit" loading={busy}>
               Create PO
             </Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={modal === "transfer"}
+        onClose={() => setModal(null)}
+        title={t("inventory.transferModalTitle")}
+        description={t("inventory.transferModalDesc")}
+        size="lg"
+      >
+        <form onSubmit={createTransfer} className="space-y-4">
+          <SearchSelect
+            label={t("inventory.toBranch")}
+            options={branchOptions}
+            value={transferForm.to_branch_id || null}
+            onChange={(to_branch_id) =>
+              setTransferForm((f) => ({ ...f, to_branch_id: to_branch_id || "" }))
+            }
+            placeholder={t("inventory.selectToBranch")}
+            searchPlaceholder={t("searchSelect.search")}
+          />
+          <SearchMultiSelect
+            label={t("inventory.products")}
+            options={productOptions}
+            value={transferForm.product_ids}
+            onChange={(product_ids) =>
+              setTransferForm((f) => {
+                const quantities = { ...f.quantities };
+                for (const id of product_ids) {
+                  if (!quantities[id]) quantities[id] = "1";
+                }
+                return { ...f, product_ids, quantities };
+              })
+            }
+            placeholder={t("inventory.selectProducts")}
+            searchPlaceholder={t("searchSelect.search")}
+          />
+          {transferForm.product_ids.length > 0 ? (
+            <div className="space-y-2">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-muted">
+                {t("inventory.quantities")}
+              </p>
+              {transferForm.product_ids.map((id) => {
+                const p = products.find((x) => x.id === id);
+                return (
+                  <div key={id} className="flex items-center gap-3">
+                    <span className="min-w-0 flex-1 truncate text-sm text-heading">
+                      {p?.name || id}
+                    </span>
+                    <input
+                      type="number"
+                      min="0.001"
+                      step="any"
+                      className={`${fieldClass} w-28`}
+                      value={transferForm.quantities[id] || "1"}
+                      onChange={(e) =>
+                        setTransferForm((f) => ({
+                          ...f,
+                          quantities: { ...f.quantities, [id]: e.target.value },
+                        }))
+                      }
+                      required
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setModal(null)}>
+              {t("common.cancel")}
+            </Button>
+            <Button type="submit">{t("inventory.createTransfer")}</Button>
           </div>
         </form>
       </Modal>

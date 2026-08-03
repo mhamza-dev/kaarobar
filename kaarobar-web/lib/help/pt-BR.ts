@@ -402,6 +402,20 @@ const catalog: HelpCatalog = {
     tips: ["Corrija problemas de frequência/licença antes de executar a folha de pagamento."],
   },
 
+  "page.marketing.template": {
+    title: "Modelo de mensagem",
+    summary: "Prévia de como um modelo CRM aparece para os clientes.",
+    what: "Mostra marcadores brutos e uma prévia interpolada com branding e valores de exemplo.",
+    how: [
+      "Abra um modelo em Marketing → Modelos.",
+      "Revise os marcadores na visão geral.",
+      "Confira a prévia do cliente.",
+      "Voltar restaura a aba Modelos.",
+    ],
+    when: "Ao redigir mensagens de campanha reutilizáveis.",
+    tips: ["Marcadores são chaves simples como {{business}} — {{customer.name}} não é suportado."],
+  },
+
   "tab.marketing.campaigns": {
     title: "Campanhas",
     summary: "Elabore e envie mensagens aos clientes.",

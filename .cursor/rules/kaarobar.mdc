@@ -15,6 +15,6 @@ Before implementing, read **[`AGENTS.md`](AGENTS.md)** and the authoritative SRS
 4. **Money integrity** — Posted journals are immutable (reversals only). Stock updates are atomic deltas. Offline sales use idempotent `client_txn_id`.
 5. **Traceability** — Name satisfied SRS IDs in tests/PR notes; update `docs/` when behavior changes. Keep diffs focused.
 6. **Seeds stay in sync** — After **any** schema/DB change (migration, new/changed columns, enums, associations), update [`kaarobar-BE/priv/repo/seeds.exs`](kaarobar-BE/priv/repo/seeds.exs) in the **same** change set so `mix ecto.reset` / demo data still boots. Cover new fields with realistic demo values (branding, wallets, notifications, statuses, etc.).
-7. **Help (i) + i18n** — New pages/tabs need `infoKey` + EN/UR help catalog entries and UI strings in `lib/i18n/messages/{en,ur}.json`. See [`.cursor/rules/help-icons-i18n.mdc`](help-icons-i18n.mdc).
+7. **Help (i) + i18n** — New pages/tabs need `infoKey` + help catalog entries and UI strings for **all** platform locales (`en`, `ur`, `de`, `pt-BR`, `es`, `fr`, `ar`). See [`.cursor/rules/help-icons-i18n.mdc`](help-icons-i18n.mdc).
 
 If code and SRS conflict, ask the human — do not silently diverge.

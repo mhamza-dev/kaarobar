@@ -56,7 +56,7 @@
   },
   "listFilters": {
     "title": "Filtros",
-    "description": "Limite esta lista por fecha, estado o categoría.",
+    "description": "Filtra esta lista por fecha, estado, categoría o importe.",
     "filters": "Filtros",
     "apply": "Aplicar",
     "clear": "Borrar filtros",
@@ -66,7 +66,13 @@
     "source": "Fuente",
     "noFields": "No hay filtros avanzados para esta lista.",
     "khataOn": "Khata en",
-    "khataOff": "Khata desactivado"
+    "khataOff": "Khata desactivado",
+    "amountRange": "Rango de importe",
+    "balanceRange": "Rango de saldo",
+    "creditLimitRange": "Rango de límite de crédito",
+    "paymentMethod": "Método de pago",
+    "min": "Mín.",
+    "max": "Máx."
   },
   "nav": {
     "overview": "Descripción general",
@@ -207,7 +213,16 @@
     "transferFailed": "Error en la transferencia",
     "confirmFailed": "Confirmación fallida",
     "adjustFailed": "Error al ajustar",
-    "supplierFailed": "Error del proveedor"
+    "supplierFailed": "Error del proveedor",
+    "createTransfer": "Crear transferencia",
+    "transferModalTitle": "Crear transferencia de stock",
+    "transferModalDesc": "Mueve varios productos a otra sucursal. El stock se actualiza tras confirmar.",
+    "toBranch": "Sucursal destino",
+    "selectToBranch": "Seleccionar sucursal destino",
+    "products": "Productos",
+    "selectProducts": "Seleccionar productos",
+    "quantities": "Cantidades",
+    "confirm": "Confirmar"
   },
   "pos": {
     "tillOpen": "Hasta que se abra",
@@ -488,7 +503,38 @@
     "payAndSendConfirm": "¿Pagar y enviar “{name}” a la audiencia seleccionada?",
     "payAndSendDone": "Pago confirmado: campaña enviada",
     "checkoutOpened": "Pago abierto en una pestaña nueva",
-    "payHint": "Se requiere consentimiento de suscripción. SMS y WhatsApp utilizan Pagar y enviar pago."
+    "payHint": "Se requiere consentimiento de suscripción. SMS y WhatsApp utilizan Pagar y enviar pago.",
+    "tabCampaigns": "Campañas",
+    "tabTemplates": "Plantillas",
+    "tabSegments": "Segmentos",
+    "tabCoupons": "Cupones",
+    "tabTiers": "Niveles de lealtad",
+    "newTemplate": "Nueva plantilla",
+    "saveTemplate": "Guardar plantilla",
+    "templateSaved": "Plantilla guardada",
+    "templatesEmpty": "Sin plantillas",
+    "templatesEmptyBody": "Cree una plantilla o espere a que se carguen las predeterminadas.",
+    "titleTemplate": "Plantilla de título",
+    "bodyTemplate": "Plantilla de cuerpo",
+    "preview": "Vista previa",
+    "variablesTitle": "Variables disponibles",
+    "variablesHint": "Use marcadores planos como {{business}} o {{name}} en el título y el cuerpo.",
+    "backToTemplates": "Volver a plantillas",
+    "templateFallback": "Plantilla",
+    "templatePreview": "Vista previa del cliente",
+    "sampleValues": "Mostrada con valores de muestra/interpolados como los verían los clientes.",
+    "charsCount": "{count} caracteres",
+    "channelEmail": "Correo",
+    "channelInApp": "En la app",
+    "channelSms": "SMS",
+    "channelWhatsapp": "WhatsApp",
+    "var": {
+      "business": "Nombre del negocio",
+      "tagline": "Eslogan",
+      "description": "Descripción del marketplace",
+      "name": "Nombre del cliente (muestra)",
+      "points": "Puntos de lealtad (muestra)"
+    }
   },
   "notifications": {
     "eyebrow": "Bandeja de entrada",
@@ -605,5 +651,31 @@
     "saveBranding": "Guardar marca",
     "marketplaceDesc": "Descripción del mercado",
     "previewButton": "Botón principal"
+  },
+  "searchSelect": {
+    "search": "Buscar…",
+    "noMatches": "Sin coincidencias",
+    "selected": "{count} seleccionados"
+  },
+  "marketplace": {
+    "priceRange": "Rango de precio",
+    "filtersDesc": "Filtra productos por industria, categoría y precio.",
+    "filters": "Filtros",
+    "filtersTitle": "Filtros",
+    "applyFilters": "Aplicar filtros",
+    "filtersActive": "{count} filtros activos",
+    "allIndustries": "Todas las industrias",
+    "modeProducts": "Productos",
+    "modeShops": "Tiendas",
+    "loadMore": "Cargar más",
+    "endOfResults": "Has llegado al final.",
+    "soldBy": "Vendido por",
+    "shopCardHint": "Ver más de esta tienda",
+    "bookThisService": "Reservar este servicio",
+    "orderIncludesShops": "Este pedido incluye {count} tiendas",
+    "shopsInCart": "{count} tiendas en el carrito",
+    "multiShopCartHint": "Puedes comprar en varias tiendas en un solo pago. Cada tienda es un pedido de recogida aparte.",
+    "discoverProductsHero": "Explora productos de todas las tiendas listadas. Añade desde una o varias — el checkout crea un pedido de recogida por tienda.",
+    "backToDiscover": "Volver a Descubrir"
   }
 }

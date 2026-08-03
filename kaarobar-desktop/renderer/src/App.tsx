@@ -27,6 +27,7 @@ import SaleDetailPage from "@/pages/SaleDetailPage";
 import ProductDetailPage from "@/pages/ProductDetailPage";
 import SupplierDetailPage from "@/pages/SupplierDetailPage";
 import CampaignDetailPage from "@/pages/CampaignDetailPage";
+import TemplateDetailPage from "@/pages/TemplateDetailPage";
 import ArInvoiceDetailPage from "@/pages/ArInvoiceDetailPage";
 import ReturnDetailPage from "@/pages/ReturnDetailPage";
 import JournalDetailPage from "@/pages/JournalDetailPage";
@@ -63,6 +64,7 @@ export default function App() {
                 <Route path="accounting/journals/:id" element={<JournalDetailPage />} />
                 <Route path="marketing" element={<MarketingPage />} />
                 <Route path="marketing/campaigns/:id" element={<CampaignDetailPage />} />
+                <Route path="marketing/templates/:id" element={<TemplateDetailPage />} />
                 <Route path="hr" element={<HrPage />} />
                 <Route path="hr/employees/:id" element={<EmployeeDetailPage />} />
                 <Route path="hr/payroll/:id" element={<PayrollDetailPage />} />

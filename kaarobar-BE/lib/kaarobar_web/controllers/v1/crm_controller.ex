@@ -258,6 +258,19 @@ defmodule KaarobarWeb.V1.CrmController do
     json(conn, %{data: data})
   end
 
+  # CRM-FR-002 — canonical {{key}} placeholders for campaign message templates
+  def list_template_variables(conn, _params) do
+    data = Crm.list_template_variables(conn.assigns.business_id)
+    json(conn, %{data: data})
+  end
+
+  def show_template(conn, %{"id" => id}) do
+    case Crm.get_template(id, conn.assigns.business_id) do
+      nil -> conn |> put_status(:not_found) |> json(%{error: "not_found"})
+      t -> json(conn, %{data: serialize_template(t)})
+    end
+  end
+
   def create_template(conn, params) do
     case Crm.create_template(conn.assigns.business_id, params) do
       {:ok, t} -> conn |> put_status(:created) |> json(%{data: serialize_template(t)})

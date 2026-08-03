@@ -1390,6 +1390,9 @@ defmodule Kaarobar.Pos do
 
   def list_returns(branch_id, owner_id, business_id, opts \\ []) do
     status = Keyword.get(opts, :status)
+    amount_min = opts[:amount_min]
+    amount_max = opts[:amount_max]
+    payment_methods = opts[:payment_methods]
 
     query =
       SaleReturn
@@ -1402,16 +1405,50 @@ defmodule Kaarobar.Pos do
 
     query =
       if status do
-        where(query, [r], r.status == ^status)
+        statuses =
+          status
+          |> to_string()
+          |> String.split(",")
+          |> Enum.map(&String.trim/1)
+          |> Enum.reject(&(&1 == ""))
+
+        cond do
+          length(statuses) > 1 -> where(query, [r], r.status in ^statuses)
+          length(statuses) == 1 -> where(query, [r], r.status == ^hd(statuses))
+          true -> query
+        end
       else
         query
       end
 
-    Repo.all(query)
+    query =
+      if match?(%Decimal{}, amount_min) do
+        where(query, [r], r.refund_amount >= ^amount_min)
+      else
+        query
+      end
+
+    query =
+      if match?(%Decimal{}, amount_max) do
+        where(query, [r], r.refund_amount <= ^amount_max)
+      else
+        query
+      end
+
+    query =
+      if is_list(payment_methods) and payment_methods != [] do
+        where(query, [r], r.refund_method in ^payment_methods)
+      else
+        query
+      end
+
+    page = KaarobarWeb.Controllers.Helpers.ListFilters.paginate(query, opts)
+    %{data: page.data, meta: page.meta}
   end
 
   def list_pending_returns(branch_id, owner_id, business_id) do
-    list_returns(branch_id, owner_id, business_id, status: "PendingApproval")
+    %{data: data} = list_returns(branch_id, owner_id, business_id, status: "PendingApproval")
+    data
   end
 
   def get_return(return_id, owner_id) do
@@ -1429,6 +1466,8 @@ defmodule Kaarobar.Pos do
     q_term = blank_to_nil(opts[:q])
     from_at = opts[:from]
     to_at = opts[:to]
+    amount_min = opts[:amount_min]
+    amount_max = opts[:amount_max]
 
     query =
       Sale
@@ -1452,7 +1491,18 @@ defmodule Kaarobar.Pos do
       end)
       |> then(fn q ->
         if is_binary(status) and status != "" do
-          where(q, [s], s.status == ^status)
+          # CSV multi-status
+          statuses =
+            status
+            |> String.split(",")
+            |> Enum.map(&String.trim/1)
+            |> Enum.reject(&(&1 == ""))
+
+          cond do
+            length(statuses) > 1 -> where(q, [s], s.status in ^statuses)
+            length(statuses) == 1 -> where(q, [s], s.status == ^hd(statuses))
+            true -> q
+          end
         else
           q
         end
@@ -1467,6 +1517,20 @@ defmodule Kaarobar.Pos do
       |> then(fn q ->
         if match?(%DateTime{}, to_at) do
           where(q, [s], s.inserted_at <= ^to_at)
+        else
+          q
+        end
+      end)
+      |> then(fn q ->
+        if match?(%Decimal{}, amount_min) do
+          where(q, [s], s.total_amount >= ^amount_min)
+        else
+          q
+        end
+      end)
+      |> then(fn q ->
+        if match?(%Decimal{}, amount_max) do
+          where(q, [s], s.total_amount <= ^amount_max)
         else
           q
         end
@@ -1489,7 +1553,10 @@ defmodule Kaarobar.Pos do
       |> order_by([s], desc: s.inserted_at)
       |> preload([:items, :payments, :customer])
 
-    Repo.all(query)
+    page =
+      KaarobarWeb.Controllers.Helpers.ListFilters.paginate(query, opts)
+
+    %{data: page.data, meta: page.meta}
   end
 
   def get_sale(sale_id, owner_id) do

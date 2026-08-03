@@ -1,8 +1,10 @@
 defmodule Kaarobar.PosTest do
   use Kaarobar.DataCase
 
+  import Ecto.Query
+
   alias Kaarobar.{Accounts, Inventory, Pos, Tenancy}
-  alias Kaarobar.Schemas.{InventoryRecord, ProductBranchPrice}
+  alias Kaarobar.Schemas.{InventoryRecord, JournalEntry, ProductBranchPrice}
   alias Kaarobar.Repo
 
   setup do
@@ -234,6 +236,64 @@ defmodule Kaarobar.PosTest do
     to = Inventory.get_inventory(branch_b.id, product.id, owner.id, business.id)
     assert Decimal.eq?(from.quantity_on_hand, Decimal.new("7"))
     assert Decimal.eq?(to.quantity_on_hand, Decimal.new("3"))
+  end
+
+  test "INV-FR-003 multi-item transfer confirm is stock-only (no journal)", %{
+    owner: owner,
+    business: business,
+    branch: branch,
+    product: product
+  } do
+    {:ok, branch_b} = Tenancy.create_branch(business.id, owner, %{name: "Outlet C"})
+
+    {:ok, product2} =
+      Inventory.create_product(business.id, owner.id, %{
+        sku: "MULTI-#{System.unique_integer()}",
+        name: "Second SKU",
+        tax_rate: "0",
+        is_active: true
+      })
+
+    {:ok, _} = Inventory.set_branch_price(product2.id, branch.id, owner.id, business.id, "50")
+
+    %InventoryRecord{}
+    |> InventoryRecord.changeset(%{
+      branch_id: branch.id,
+      product_id: product2.id,
+      owner_id: owner.id,
+      business_id: business.id,
+      quantity_on_hand: Decimal.new("10"),
+      avg_cost: Decimal.new("20")
+    })
+    |> Repo.insert!()
+
+    before_journals =
+      from(j in JournalEntry, where: j.owner_id == ^owner.id, select: count(j.id))
+      |> Repo.one()
+
+    assert {:ok, transfer} =
+             Inventory.create_transfer(business.id, owner.id, %{
+               from_branch_id: branch.id,
+               to_branch_id: branch_b.id,
+               items: [
+                 %{product_id: product.id, quantity: "1"},
+                 %{product_id: product2.id, quantity: "2"}
+               ]
+             })
+
+    assert {:ok, _} = Inventory.confirm_transfer(transfer.id, owner.id)
+
+    to_p1 = Inventory.get_inventory(branch_b.id, product.id, owner.id, business.id)
+    to_p2 = Inventory.get_inventory(branch_b.id, product2.id, owner.id, business.id)
+    assert Decimal.eq?(to_p1.quantity_on_hand, Decimal.new("1"))
+    assert Decimal.eq?(to_p2.quantity_on_hand, Decimal.new("2"))
+    assert Decimal.eq?(to_p2.avg_cost, Decimal.new("20"))
+
+    after_journals =
+      from(j in JournalEntry, where: j.owner_id == ^owner.id, select: count(j.id))
+      |> Repo.one()
+
+    assert after_journals == before_journals
   end
 
   test "INV-FR stock adjustment audits and blocks negative stock", %{

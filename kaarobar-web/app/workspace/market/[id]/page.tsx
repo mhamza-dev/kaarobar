@@ -196,7 +196,7 @@ export default function MarketplaceStorePage() {
   return (
     <BrandThemeScope primaryColor={accent} className="space-y-6">
       <div className="space-y-3">
-        <BuyerBackLink href="/app">{t("marketplace.allStores")}</BuyerBackLink>
+        <BuyerBackLink href="/app">{t("marketplace.backToDiscover")}</BuyerBackLink>
         <BuyerHero
           eyebrow={business?.industry || t("marketplace.eyebrow")}
           title={business?.name || t("pages.catalogTitle")}

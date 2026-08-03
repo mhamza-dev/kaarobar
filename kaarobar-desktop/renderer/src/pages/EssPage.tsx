@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { api, getSession } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
 import ProfilePicEditor from "@/components/app/ProfilePicEditor";
 import { PageHeader, SurfaceCard, TabBar, fieldClass } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
+import { useTabQueryParam } from "@/lib/hooks/useTabQueryParam";
+import { routes } from "@/lib/navigation";
 
 type EssData = {
   employee?: {
@@ -48,9 +50,20 @@ function formatDateTime(iso?: string | null) {
 }
 
 export default function EssPage() {
+  return (
+    <Suspense fallback={<p className="text-sm text-body">Loading…</p>}>
+      <EssPageInner />
+    </Suspense>
+  );
+}
+
+type EssTab = "clock" | "leave" | "payslips";
+const ESS_TABS: readonly EssTab[] = ["clock", "leave", "payslips"];
+
+function EssPageInner() {
   const t = useT();
   const toast = useToast();
-  const [tab, setTab] = useState<"clock" | "leave" | "payslips">("clock");
+  const [tab, setTab] = useTabQueryParam<EssTab>("clock", ESS_TABS, { pathname: routes.ess });
   const [data, setData] = useState<EssData | null>(null);
   const [loading, setLoading] = useState(true);
   const [leaveType, setLeaveType] = useState("annual");

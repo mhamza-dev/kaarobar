@@ -43,6 +43,7 @@ export const detailRoutes = {
     `/app/market/${businessId}/product/${productId}`,
   supplier: (id: string) => `/app/inventory/suppliers/${id}`,
   campaign: (id: string) => `/app/marketing/campaigns/${id}`,
+  template: (id: string) => `/app/marketing/templates/${id}`,
   arInvoice: (id: string) => `/app/accounting/ar/${id}`,
   apBill: (id: string) => `/app/accounting/ap/${id}`,
   journal: (id: string) => `/app/accounting/journals/${id}`,
@@ -55,10 +56,9 @@ export const detailRoutes = {
 /** Buyer marketplace primary nav (consumer sessions). */
 export const buyerNav = [
   { href: "/app", titleKey: "nav.discover", icon: "pos" as const },
-  { href: "/app/products", titleKey: "nav.products", icon: "inventory" as const },
+  { href: "/app/account", titleKey: "nav.account", icon: "profile" as const },
   { href: "/app/sales", titleKey: "nav.orders", icon: "sales" as const },
   { href: "/app/customers", titleKey: "nav.loyalty", icon: "customers" as const },
-  { href: "/app/account", titleKey: "nav.account", icon: "profile" as const },
 ] as const;
 
 export const appNav = [

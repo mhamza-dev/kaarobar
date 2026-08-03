@@ -39,8 +39,9 @@ export function pushPath(
     return;
   }
   if (path === "/app/products") {
-    navigation.navigate("Products" as never, {
-      screen: "ProductsHome",
+    // Products route is an alias of Discover (product-first home).
+    navigation.navigate("Discover" as never, {
+      screen: "DiscoverHome",
     } as never);
     return;
   }
@@ -75,9 +76,7 @@ export function pushPath(
 
   const productParts = productPathParts(path);
   if (productParts) {
-    // Both Discover and Products stacks register ProductDetail; Products is the
-    // canonical entry for the cross-store feed and works from any tab.
-    navigation.navigate("Products" as never, {
+    navigation.navigate("Discover" as never, {
       screen: "ProductDetail",
       params: { ...productParts, ...params },
     } as never);

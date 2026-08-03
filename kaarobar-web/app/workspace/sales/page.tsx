@@ -13,9 +13,11 @@ import { useT } from "@/lib/i18n";
 import {
   applyStaffListFilters,
   emptyStaffListFilters,
+  staffListFilterQuery,
   type ListFilterConfig,
   type StaffListFilterState,
 } from "@/lib/listFilters";
+import { formatLocalDateTime } from "@/lib/datetime";
 import BuyerOrders from "@/components/buyer/BuyerOrders";
 
 type SaleRow = {
@@ -80,6 +82,7 @@ function StaffSalesListPage() {
   const filterConfig = useMemo<ListFilterConfig>(
     () => ({
       showDateRange: true,
+      showAmountRange: true,
       categoryLabel: t("listFilters.source"),
       categoryOptions: [
         { value: "pos", label: "POS" },
@@ -94,16 +97,17 @@ function StaffSalesListPage() {
     try {
       const source =
         filters.categories.length === 1 ? filters.categories[0] : null;
-      const q =
-        source && (source === "online" || source === "pos")
-          ? `?source=${encodeURIComponent(source)}`
-          : "";
-      const res = await api<{ data: SaleRow[] }>(`/sales${q}`);
+      const qs = staffListFilterQuery(filters, {
+        ...(source === "online" || source === "pos" ? { source } : {}),
+      });
+      const res = await api<{ data: SaleRow[]; meta?: { next_cursor?: string | null } }>(
+        `/sales${qs}`
+      );
       setSales(res.data || []);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to load sales");
     }
-  }, [toast, filters.categories]);
+  }, [toast, filters]);
 
   useEffect(() => {
     void load();
@@ -116,6 +120,7 @@ function StaffSalesListPage() {
         date: (s) => s.inserted_at,
         status: (s) => s.status,
         category: (s) => s.source || "pos",
+        amount: (s) => s.total_amount,
       }),
     [sales, filters]
   );
@@ -204,7 +209,7 @@ function StaffSalesListPage() {
             {
               id: "when",
               header: "When",
-              cell: (s) => (s.inserted_at ? String(s.inserted_at).slice(0, 16) : "—"),
+              cell: (s) => formatLocalDateTime(s.inserted_at),
             },
           ]}
           data={filteredSales}
