@@ -11,6 +11,7 @@ import {
   EmptyState,
   Field,
   PageHeader,
+  StatusBadge,
   SurfaceCard,
   TabBar,
   fieldClass,
@@ -90,6 +91,83 @@ type PayrollRun = {
   payslips: Payslip[];
 };
 
+function payrollStatusTone(
+  status: string
+): "info" | "success" | "warning" | "danger" {
+  switch (status) {
+    case "Approved":
+    case "Posted":
+    case "Disbursed":
+      return "success";
+    case "PendingApproval":
+      return "warning";
+    case "Rejected":
+      return "danger";
+    default:
+      return "info";
+  }
+}
+
+function displayAmount(value: string | number | null | undefined): string {
+  if (value == null || value === "") return "—";
+  return formatDecimal(value);
+}
+
+function payrollNetTotal(run: PayrollRun): number {
+  return (run.payslips ?? []).reduce((sum, p) => sum + Number(p.net_pay || 0), 0);
+}
+
+function PayslipMeta({
+  earnings,
+  deductions,
+}: {
+  earnings?: Record<string, string>;
+  deductions?: Record<string, string>;
+}) {
+  if (!earnings && !deductions) return null;
+
+  const items: { label: string; value: string }[] = [];
+  if (earnings) {
+    items.push({
+      label: "Credited",
+      value: `${earnings.credited_hours ?? "—"}h / ${earnings.expected_hours ?? "—"}h`,
+    });
+    items.push({
+      label: "Leave",
+      value: `${earnings.leave_hours ?? "0"}h`,
+    });
+    items.push({
+      label: "Base",
+      value: displayAmount(earnings.base_pay),
+    });
+    items.push({
+      label: "OT pay",
+      value: formatDecimal(earnings.overtime_pay ?? "0"),
+    });
+  }
+  if (deductions) {
+    items.push({
+      label: "Tax",
+      value: formatDecimal(deductions.income_tax ?? "0"),
+    });
+    items.push({
+      label: "EOBI",
+      value: formatDecimal(deductions.eobi ?? "0"),
+    });
+  }
+
+  return (
+    <div className="flex flex-wrap gap-x-4 gap-y-1 border-s-2 border-border/70 ps-3 text-xs text-muted">
+      {items.map((item) => (
+        <span key={item.label} className="inline-flex items-baseline gap-1.5">
+          <span className="font-medium text-muted">{item.label}</span>
+          <span className="tabular-nums text-body">{item.value}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export default function HrPage() {
   return (
     <Suspense fallback={<p className="text-sm text-body">Loading…</p>}>
@@ -134,6 +212,7 @@ function HrPageInner() {
   const [periodEnd, setPeriodEnd] = useState(() =>
     new Date().toISOString().slice(0, 10)
   );
+  const [selectedPayrollId, setSelectedPayrollId] = useState<string | null>(null);
 
   const attendanceParams = useMemo(() => {
     const attParams = new URLSearchParams();
@@ -199,6 +278,21 @@ function HrPageInner() {
     },
     enabled: tab === "payroll" && canSeePayroll,
   });
+
+  const selectedPayroll = useMemo(
+    () => payroll.find((run) => run.id === selectedPayrollId) ?? null,
+    [payroll, selectedPayrollId]
+  );
+
+  useEffect(() => {
+    if (payroll.length === 0) {
+      if (selectedPayrollId !== null) setSelectedPayrollId(null);
+      return;
+    }
+    if (!payroll.some((run) => run.id === selectedPayrollId)) {
+      setSelectedPayrollId(payroll[0].id);
+    }
+  }, [payroll, selectedPayrollId]);
 
   async function refreshHr() {
     await queryClient.invalidateQueries({ queryKey: hrKeys.all });
@@ -338,7 +432,7 @@ function HrPageInner() {
     ev.preventDefault();
     setBusy(true);
     try {
-      await api("/payroll", {
+      const res = await api<{ data: PayrollRun }>("/payroll", {
         method: "POST",
         body: JSON.stringify({
           period_start: periodStart,
@@ -347,6 +441,7 @@ function HrPageInner() {
       });
       toast.success(t("hr.payrollRun"));
       setModal(null);
+      setSelectedPayrollId(res.data.id);
       setTab("payroll");
       await refreshHr();
     } catch (err) {
@@ -600,123 +695,203 @@ function HrPageInner() {
 
       {tab === "payroll" ? (
         <div className="space-y-4">
-          <p className="text-sm text-body">
-            Pay is computed from clocked hours and approved leave (Mon–Sat × 8h). Incomplete shifts
-            do not count until clock-out.
-          </p>
-          {payroll.map((run) => (
-            <SurfaceCard key={run.id} className="space-y-3 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="text-heading">
-                  <Link
-                    to={detailRoutes.payroll(run.id)}
-                    className="font-semibold text-brand underline"
-                  >
-                    {run.period_start} → {run.period_end}
-                  </Link>{" "}
-                  <span className="text-body">· {run.status}</span>
-                  {run.journal_entry_id ? (
-                    <span className="text-body"> · posted to ledger</span>
-                  ) : null}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {run.status === "Draft" || run.status === "Rejected" ? (
-                    <>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => payrollAction(run.id, "recalculate")}
-                      >
-                        Recalculate
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => payrollAction(run.id, "submit")}
-                      >
-                        Submit
-                      </Button>
-                    </>
-                  ) : null}
-                  {run.status === "PendingApproval" && canPayrollApprove ? (
-                    <>
-                      <Button size="sm" onClick={() => payrollAction(run.id, "approve")}>
-                        Approve & post
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => payrollAction(run.id, "reject")}
-                      >
-                        Reject
-                      </Button>
-                    </>
-                  ) : null}
-                </div>
-              </div>
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="text-body">
-                    <th className="py-1">Employee</th>
-                    <th className="py-1">Days</th>
-                    <th className="py-1">Hours</th>
-                    <th className="py-1">OT</th>
-                    <th className="py-1">Factor</th>
-                    <th className="py-1">Gross</th>
-                    <th className="py-1">Net</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {run.payslips?.map((s) => (
-                    <Fragment key={s.id}>
-                      <tr className="border-t border-border text-heading">
-                        <td className="py-2">
-                          {s.employee_name || s.employee_code || s.id.slice(0, 8)}
-                        </td>
-                        <td className="py-2">{s.days_worked ?? "—"}</td>
-                        <td className="py-2">{s.earnings?.worked_hours ?? "—"}</td>
-                        <td className="py-2">{s.overtime_hours ?? s.earnings?.ot_hours ?? "—"}</td>
-                        <td className="py-2">{s.earnings?.attendance_factor ?? "—"}</td>
-                        <td className="py-2 tabular-nums">{formatDecimal(s.gross_pay)}</td>
-                        <td className="py-2 tabular-nums">{formatDecimal(s.net_pay)}</td>
-                      </tr>
-                      {s.earnings || s.deductions ? (
-                        <tr className="border-t border-border/60 text-xs text-body">
-                          <td colSpan={7} className="pb-3 pt-0">
-                            {s.earnings ? (
-                              <span>
-                                Credited {s.earnings.credited_hours ?? "—"}h / expected{" "}
-                                {s.earnings.expected_hours ?? "—"}h · leave{" "}
-                                {s.earnings.leave_hours ?? "0"}h · base{" "}
-                                {s.earnings.base_pay != null
-                                  ? formatDecimal(s.earnings.base_pay)
-                                  : "—"}{" "}
-                                · OT pay {formatDecimal(s.earnings.overtime_pay ?? "0")}
-                              </span>
-                            ) : null}
-                            {s.deductions ? (
-                              <span className="ml-2">
-                                · Tax {formatDecimal(s.deductions.income_tax ?? "0")} · EOBI{" "}
-                                {formatDecimal(s.deductions.eobi ?? "0")}
-                              </span>
-                            ) : null}
-                          </td>
-                        </tr>
-                      ) : null}
-                    </Fragment>
-                  ))}
-                </tbody>
-              </table>
-            </SurfaceCard>
-          ))}
+          <p className="text-sm text-body">{t("hr.payrollComputeHint")}</p>
           {payroll.length === 0 ? (
             <SurfaceCard>
               <EmptyState
-                title="No payroll runs"
-                body="Draft a run for the current period to generate payslips."
+                title={t("hr.noPayrollRuns")}
+                body={t("hr.noPayrollRunsBody")}
               />
             </SurfaceCard>
-          ) : null}
+          ) : (
+            <div className="grid gap-4 lg:grid-cols-[minmax(16rem,20rem)_minmax(0,1fr)]">
+              <SurfaceCard className="max-h-[min(80vh,42rem)] overflow-y-auto p-2">
+                <div
+                  role="listbox"
+                  aria-label={t("hr.payrollListLabel")}
+                  className="space-y-1"
+                >
+                  {payroll.map((run) => {
+                    const selected = run.id === selectedPayrollId;
+                    const slipCount = run.payslips?.length ?? 0;
+                    return (
+                      <button
+                        key={run.id}
+                        type="button"
+                        role="option"
+                        aria-selected={selected}
+                        onClick={() => setSelectedPayrollId(run.id)}
+                        className={`w-full rounded-md border px-3 py-2.5 text-start transition ${
+                          selected
+                            ? "border-brand bg-brand-light ring-2 ring-brand/20"
+                            : "border-transparent hover:border-border hover:bg-bg-tertiary"
+                        }`}
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <span className="min-w-0 font-semibold text-heading">
+                            {run.period_start} → {run.period_end}
+                          </span>
+                          <StatusBadge tone={payrollStatusTone(run.status)}>
+                            {run.status === "PendingApproval"
+                              ? t("hr.pendingApproval")
+                              : run.status}
+                          </StatusBadge>
+                        </div>
+                        <p className="mt-1 text-xs text-muted">
+                          {t("hr.payslipSummary", {
+                            count: slipCount,
+                            net: displayAmount(payrollNetTotal(run)),
+                          })}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </SurfaceCard>
+
+              <SurfaceCard className="max-h-[min(80vh,42rem)] space-y-3 overflow-y-auto p-4">
+                {selectedPayroll ? (
+                  <>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <h3 className="font-semibold text-heading">
+                          {selectedPayroll.period_start} → {selectedPayroll.period_end}
+                        </h3>
+                        <StatusBadge tone={payrollStatusTone(selectedPayroll.status)}>
+                          {selectedPayroll.status === "PendingApproval"
+                            ? t("hr.pendingApproval")
+                            : selectedPayroll.status}
+                        </StatusBadge>
+                        {selectedPayroll.journal_entry_id ? (
+                          <span className="text-xs text-muted">
+                            {t("hr.postedToLedger")}
+                          </span>
+                        ) : null}
+                        <Link
+                          to={detailRoutes.payroll(selectedPayroll.id)}
+                          className="text-xs font-medium text-brand underline"
+                        >
+                          {t("hr.openPayrollDetail")}
+                        </Link>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedPayroll.status === "Draft" ||
+                        selectedPayroll.status === "Rejected" ? (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                payrollAction(selectedPayroll.id, "recalculate")
+                              }
+                            >
+                              Recalculate
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => payrollAction(selectedPayroll.id, "submit")}
+                            >
+                              Submit
+                            </Button>
+                          </>
+                        ) : null}
+                        {selectedPayroll.status === "PendingApproval" &&
+                        canPayrollApprove ? (
+                          <>
+                            <Button
+                              size="sm"
+                              onClick={() => payrollAction(selectedPayroll.id, "approve")}
+                            >
+                              Approve & post
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => payrollAction(selectedPayroll.id, "reject")}
+                            >
+                              Reject
+                            </Button>
+                          </>
+                        ) : null}
+                      </div>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[40rem] text-left text-sm">
+                        <thead>
+                          <tr className="border-b border-border text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
+                            <th className="py-2 pe-3 font-bold">Employee</th>
+                            <th className="py-2 pe-3 text-end font-bold">Days</th>
+                            <th className="py-2 pe-3 text-end font-bold">Hours</th>
+                            <th className="py-2 pe-3 text-end font-bold">OT</th>
+                            <th className="py-2 pe-3 text-end font-bold">Factor</th>
+                            <th className="py-2 pe-3 text-end font-bold">Gross</th>
+                            <th className="py-2 text-end font-bold">Net</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedPayroll.payslips?.map((s) => {
+                            const name =
+                              s.employee_name || s.employee_code || s.id.slice(0, 8);
+                            const code =
+                              s.employee_name && s.employee_code
+                                ? s.employee_code
+                                : null;
+                            const ot = s.overtime_hours ?? s.earnings?.ot_hours;
+                            return (
+                              <Fragment key={s.id}>
+                                <tr className="border-t border-border text-heading">
+                                  <td className="py-2.5 pe-3 align-top">
+                                    <div className="font-medium leading-snug">{name}</div>
+                                    {code ? (
+                                      <div className="mt-0.5 text-xs text-muted">{code}</div>
+                                    ) : null}
+                                  </td>
+                                  <td className="py-2.5 pe-3 text-end align-top tabular-nums">
+                                    {s.days_worked ?? "—"}
+                                  </td>
+                                  <td className="py-2.5 pe-3 text-end align-top tabular-nums">
+                                    {displayAmount(s.earnings?.worked_hours)}
+                                  </td>
+                                  <td className="py-2.5 pe-3 text-end align-top tabular-nums">
+                                    {displayAmount(ot)}
+                                  </td>
+                                  <td className="py-2.5 pe-3 text-end align-top tabular-nums">
+                                    {displayAmount(s.earnings?.attendance_factor)}
+                                  </td>
+                                  <td className="py-2.5 pe-3 text-end align-top tabular-nums">
+                                    {displayAmount(s.gross_pay)}
+                                  </td>
+                                  <td className="py-2.5 text-end align-top font-medium tabular-nums">
+                                    {displayAmount(s.net_pay)}
+                                  </td>
+                                </tr>
+                                {s.earnings || s.deductions ? (
+                                  <tr>
+                                    <td colSpan={7} className="pb-3 pt-0">
+                                      <PayslipMeta
+                                        earnings={s.earnings}
+                                        deductions={s.deductions}
+                                      />
+                                    </td>
+                                  </tr>
+                                ) : null}
+                              </Fragment>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                ) : (
+                  <EmptyState
+                    title={t("hr.selectPayroll")}
+                    body={t("hr.selectPayrollBody")}
+                  />
+                )}
+              </SurfaceCard>
+            </div>
+          )}
         </div>
       ) : null}
 

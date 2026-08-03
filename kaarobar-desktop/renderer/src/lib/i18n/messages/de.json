@@ -405,7 +405,17 @@
     "leaveRejected": "Urlaub abgelehnt",
     "searchEmployees": "Mitarbeiter suchen…",
     "searchAttendance": "Anwesenheit suchen…",
-    "searchLeave": "Urlaub suchen…"
+    "searchLeave": "Urlaub suchen…",
+    "payrollComputeHint": "Die Vergütung wird aus gestempelten Stunden und genehmigtem Urlaub berechnet (Mo–Sa × 8 Std.). Unvollständige Schichten zählen erst nach dem Ausstempeln.",
+    "noPayrollRuns": "Keine Lohnläufe",
+    "noPayrollRunsBody": "Erstellen Sie einen Entwurf für den aktuellen Zeitraum, um Gehaltsabrechnungen zu erzeugen.",
+    "selectPayroll": "Lohnlauf auswählen",
+    "selectPayrollBody": "Wählen Sie einen Lauf aus der Liste, um Abrechnungen und Aktionen zu sehen.",
+    "payrollListLabel": "Lohnläufe",
+    "payslipSummary": "{count} Abrechnungen · Rs {net} netto",
+    "postedToLedger": "Im Hauptbuch gebucht",
+    "pendingApproval": "Freigabe ausstehend",
+    "openPayrollDetail": "Vollständige Seite öffnen"
   },
   "reports": {
     "eyebrow": "Einblicke",

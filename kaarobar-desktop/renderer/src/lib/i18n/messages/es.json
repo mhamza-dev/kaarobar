@@ -405,7 +405,17 @@
     "leaveRejected": "Licencia rechazada",
     "searchEmployees": "Buscar empleados…",
     "searchAttendance": "Buscar asistencia…",
-    "searchLeave": "Buscar permisos…"
+    "searchLeave": "Buscar permisos…",
+    "payrollComputeHint": "El pago se calcula a partir de horas fichadas y permisos aprobados (lun–sáb × 8h). Los turnos incompletos no cuentan hasta el clock-out.",
+    "noPayrollRuns": "Sin nóminas",
+    "noPayrollRunsBody": "Cree un borrador del periodo actual para generar recibos.",
+    "selectPayroll": "Seleccione una nómina",
+    "selectPayrollBody": "Elija una ejecución de la lista para ver recibos y acciones.",
+    "payrollListLabel": "Nóminas",
+    "payslipSummary": "{count} recibos · Rs {net} neto",
+    "postedToLedger": "Contabilizado en el libro",
+    "pendingApproval": "Pendiente de aprobación",
+    "openPayrollDetail": "Abrir página completa"
   },
   "reports": {
     "eyebrow": "Perspectivas",

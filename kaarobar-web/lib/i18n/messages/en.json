@@ -612,7 +612,17 @@
     "leaveRejected": "Leave rejected",
     "searchEmployees": "Search employees…",
     "searchAttendance": "Search attendance…",
-    "searchLeave": "Search leave…"
+    "searchLeave": "Search leave…",
+    "payrollComputeHint": "Pay is computed from clocked hours and approved leave (Mon–Sat × 8h). Incomplete shifts do not count until clock-out.",
+    "noPayrollRuns": "No payroll runs",
+    "noPayrollRunsBody": "Draft a run for the current period to generate payslips.",
+    "selectPayroll": "Select a payroll run",
+    "selectPayrollBody": "Choose a run from the list to view payslips and actions.",
+    "payrollListLabel": "Payroll runs",
+    "payslipSummary": "{count} payslips · Rs {net} net",
+    "postedToLedger": "Posted to ledger",
+    "pendingApproval": "Pending approval",
+    "openPayrollDetail": "Open full page"
   },
   "reports": {
     "eyebrow": "Insights",

@@ -13,6 +13,7 @@ import {
 import { pickImageFromLibrary } from "../lib/imagePicker";
 import { api, colors, getSession, type Session } from "../lib/api";
 import { canAccessRoute } from "../lib/rbac";
+import { formatDecimal } from "../lib/decimal";
 import SegmentedTabs from "../components/SegmentedTabs";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
@@ -307,16 +308,20 @@ export default function EssScreen() {
                   {p.period_start} → {p.period_end}
                 </Text>
                 <Text style={styles.cardBody}>
-                  Gross {p.gross_pay} · Net {p.net_pay}
+                  Gross {formatDecimal(p.gross_pay)} · Net {formatDecimal(p.net_pay)}
                 </Text>
                 <Text style={styles.row}>
                   Hours {p.earnings?.worked_hours || "0"} · OT{" "}
                   {p.overtime_hours || p.earnings?.ot_hours || "0"} · Factor{" "}
-                  {p.earnings?.attendance_factor || "—"}
+                  {p.earnings?.attendance_factor != null &&
+                  p.earnings.attendance_factor !== ""
+                    ? formatDecimal(p.earnings.attendance_factor)
+                    : "—"}
                 </Text>
                 {p.deductions ? (
                   <Text style={styles.row}>
-                    Tax {p.deductions.income_tax || "0"} · EOBI {p.deductions.eobi || "0"}
+                    Tax {formatDecimal(p.deductions.income_tax || "0")} · EOBI{" "}
+                    {formatDecimal(p.deductions.eobi || "0")}
                   </Text>
                 ) : null}
               </View>

@@ -405,7 +405,17 @@
     "leaveRejected": "Congé rejeté",
     "searchEmployees": "Rechercher des employés…",
     "searchAttendance": "Rechercher la présence…",
-    "searchLeave": "Rechercher les congés…"
+    "searchLeave": "Rechercher les congés…",
+    "payrollComputeHint": "La paie est calculée à partir des heures pointées et des congés approuvés (lun–sam × 8h). Les quarts incomplets ne comptent qu’après le pointage de sortie.",
+    "noPayrollRuns": "Aucune paie",
+    "noPayrollRunsBody": "Créez un brouillon pour la période en cours afin de générer les bulletins.",
+    "selectPayroll": "Sélectionnez une paie",
+    "selectPayrollBody": "Choisissez un cycle dans la liste pour voir les bulletins et les actions.",
+    "payrollListLabel": "Cycles de paie",
+    "payslipSummary": "{count} bulletins · Rs {net} net",
+    "postedToLedger": "Comptabilisé au grand livre",
+    "pendingApproval": "En attente d’approbation",
+    "openPayrollDetail": "Ouvrir la page complète"
   },
   "reports": {
     "eyebrow": "Connaissances",

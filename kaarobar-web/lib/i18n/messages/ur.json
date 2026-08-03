@@ -612,7 +612,17 @@
     "leaveRejected": "چھٹی مسترد ہوئی",
     "searchEmployees": "ملازمین تلاش…",
     "searchAttendance": "حاضری تلاش…",
-    "searchLeave": "چھٹی تلاش…"
+    "searchLeave": "چھٹی تلاش…",
+    "payrollComputeHint": "تنخواہ گھڑی ہوئی گھنٹوں اور منظور شدہ چھٹی سے نکلتی ہے (پیر–ہفتہ × 8 گھنٹے)۔ نامکمل شفٹ کلک آؤٹ تک شمار نہیں ہوتیں۔",
+    "noPayrollRuns": "کوئی پے رول رن نہیں",
+    "noPayrollRunsBody": "پے سلپ بنانے کے لیے موجودہ مدت کا مسودہ رن بنائیں۔",
+    "selectPayroll": "پے رول رن منتخب کریں",
+    "selectPayrollBody": "پے سلپ اور کارروائیاں دیکھنے کے لیے فہرست سے ایک رن چنیں۔",
+    "payrollListLabel": "پے رول رنز",
+    "payslipSummary": "{count} پے سلپ · Rs {net} خالص",
+    "postedToLedger": "لیجر میں درج",
+    "pendingApproval": "منظوری زیر",
+    "openPayrollDetail": "مکمل صفحہ کھولیں"
   },
   "reports": {
     "eyebrow": "تجزیہ",

@@ -405,7 +405,17 @@
     "leaveRejected": "تم رفض الإجازة",
     "searchEmployees": "ابحث عن الموظفين…",
     "searchAttendance": "ابحث في الحضور…",
-    "searchLeave": "ابحث في الإجازات…"
+    "searchLeave": "ابحث في الإجازات…",
+    "payrollComputeHint": "يُحسب الأجر من ساعات الحضور والإجازات المعتمدة (الإثنين–السبت × 8 ساعات). الورديات غير المكتملة لا تُحتسب حتى تسجيل الخروج.",
+    "noPayrollRuns": "لا توجد دورات رواتب",
+    "noPayrollRunsBody": "أنشئ مسودة للفترة الحالية لإنشاء كشوف الرواتب.",
+    "selectPayroll": "اختر دورة رواتب",
+    "selectPayrollBody": "اختر دورة من القائمة لعرض الكشوف والإجراءات.",
+    "payrollListLabel": "دورات الرواتب",
+    "payslipSummary": "{count} كشف · Rs {net} صافي",
+    "postedToLedger": "مُرحَّل إلى الدفتر",
+    "pendingApproval": "بانتظار الموافقة",
+    "openPayrollDetail": "فتح الصفحة الكاملة"
   },
   "reports": {
     "eyebrow": "الرؤى",

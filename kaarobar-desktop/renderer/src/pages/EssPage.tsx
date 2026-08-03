@@ -322,7 +322,10 @@ function EssPageInner() {
                   <p className="text-body">
                     Hours {p.earnings?.worked_hours || "0"} · OT{" "}
                     {p.overtime_hours || p.earnings?.ot_hours || "0"} · Factor{" "}
-                    {p.earnings?.attendance_factor || "—"}
+                    {p.earnings?.attendance_factor != null &&
+                    p.earnings.attendance_factor !== ""
+                      ? formatDecimal(p.earnings.attendance_factor)
+                      : "—"}
                   </p>
                   {p.deductions ? (
                     <p className="text-body">

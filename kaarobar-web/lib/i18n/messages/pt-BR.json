@@ -612,7 +612,17 @@
     "leaveRejected": "Deixar rejeitado",
     "searchEmployees": "Pesquisar funcionários…",
     "searchAttendance": "Pesquisar presença…",
-    "searchLeave": "Pesquisar licenças…"
+    "searchLeave": "Pesquisar licenças…",
+    "payrollComputeHint": "O pagamento é calculado a partir das horas registradas e licenças aprovadas (seg–sáb × 8h). Turnos incompletos não contam até o clock-out.",
+    "noPayrollRuns": "Nenhuma folha de pagamento",
+    "noPayrollRunsBody": "Crie um rascunho do período atual para gerar holerites.",
+    "selectPayroll": "Selecione uma folha",
+    "selectPayrollBody": "Escolha uma execução na lista para ver holerites e ações.",
+    "payrollListLabel": "Folhas de pagamento",
+    "payslipSummary": "{count} holerites · Rs {net} líquido",
+    "postedToLedger": "Lançado no razão",
+    "pendingApproval": "Aguardando aprovação",
+    "openPayrollDetail": "Abrir página completa"
   },
   "reports": {
     "eyebrow": "Percepções",
