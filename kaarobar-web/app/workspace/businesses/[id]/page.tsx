@@ -12,6 +12,7 @@ import {
   previewStaffBrand,
 } from "@/components/app/BrandTheme";
 import Button from "@/components/ui/Button";
+import Select from "@/components/ui/Select";
 import {
   Field,
   PageHeader,
@@ -325,19 +326,14 @@ export default function BusinessDetailPage() {
               />
             </Field>
             <Field label={t("businesses.industry")}>
-              <select
-                className={fieldClass}
+              <Select
                 value={business.industry || "general"}
-                onChange={(e) =>
-                  setBusiness({ ...business, industry: e.target.value })
-                }
-              >
-                {INDUSTRIES.map((ind) => (
-                  <option key={ind} value={ind}>
-                    {t(`businesses.industries.${ind}`)}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setBusiness({ ...business, industry: v })}
+                options={INDUSTRIES.map((ind) => ({
+                  value: ind,
+                  label: t(`businesses.industries.${ind}`),
+                }))}
+              />
             </Field>
             <Field label={t("businesses.tagline")}>
               <input
@@ -428,25 +424,22 @@ export default function BusinessDetailPage() {
             />
           </Field>
           <Field label={t("businesses.onlineBranch")}>
-            <select
-              className={fieldClass}
+            <Select
               value={business.online_branch_id || ""}
-              onChange={(e) =>
+              onChange={(v) =>
                 setBusiness({
                   ...business,
-                  online_branch_id: e.target.value || null,
+                  online_branch_id: v || null,
                 })
               }
-            >
-              <option value="">{t("businesses.selectBranch")}</option>
-              {branches
-                .filter((b) => b.is_active !== false)
-                .map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-            </select>
+              placeholder={t("businesses.selectBranch")}
+              options={[
+                { value: "", label: t("businesses.selectBranch") },
+                ...branches
+                  .filter((b) => b.is_active !== false)
+                  .map((b) => ({ value: b.id, label: b.name })),
+              ]}
+            />
           </Field>
         </SurfaceCard>
 

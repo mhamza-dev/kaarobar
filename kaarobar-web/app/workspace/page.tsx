@@ -19,6 +19,7 @@ import DashboardCharts, {
 import { KpiCard, PageHeader, SurfaceCard } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
+import { formatDecimal } from "@/lib/decimal";
 import BuyerMarketDiscover from "@/components/buyer/BuyerMarketDiscover";
 
 type Dashboard = {
@@ -161,7 +162,7 @@ function StaffDashboardPage() {
                 { label: "HR & payroll", href: routes.hr, body: "Attendance and payslips" },
               ]
             : [
-                { label: "Sales today", href: routes.reports, body: dashboard?.sales_today ?? "—" },
+                { label: "Sales today", href: routes.reports, body: dashboard?.sales_today != null ? formatDecimal(dashboard.sales_today) : "—" },
                 { label: "Low stock", href: routes.inventory, body: String(dashboard?.low_stock_count ?? "—") },
               ];
 
@@ -185,14 +186,14 @@ function StaffDashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
           label={t("dashboard.salesToday")}
-          value={dashboard?.sales_today ?? "—"}
+          value={dashboard?.sales_today != null ? formatDecimal(dashboard.sales_today) : "—"}
           hint={t("dashboard.salesTodayHint")}
           tone="brand"
           icon={<TrendingUp className="h-5 w-5" />}
         />
         <KpiCard
           label={t("dashboard.cashPosition")}
-          value={dashboard?.cash_position ?? "—"}
+          value={dashboard?.cash_position != null ? formatDecimal(dashboard.cash_position) : "—"}
           hint={t("dashboard.cashPositionHint")}
           tone="success"
           icon={<Banknote className="h-5 w-5" />}

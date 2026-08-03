@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { api, getSession } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
+import Select from "@/components/ui/Select";
 import {
   PageHeader,
   StatusBadge,
@@ -10,6 +11,7 @@ import {
   fieldClass,
 } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
+import { formatDecimal } from "@/lib/decimal";
 import { useT } from "@/lib/i18n";
 import { detailRoutes } from "@/lib/navigation";
 import { canAccessBundle } from "@/lib/rbac";
@@ -140,7 +142,9 @@ export default function ReturnsPage() {
           items,
         }),
       });
-      toast.success(`${t("returns.returnSubmitted")} · ${res.data.refund_amount}`);
+      toast.success(
+        `${t("returns.returnSubmitted")} · ${formatDecimal(res.data.refund_amount)}`
+      );
       setSale(null);
       setSaleId("");
       await reload();
@@ -219,7 +223,7 @@ export default function ReturnsPage() {
         {sale ? (
           <form onSubmit={submitReturn} className="mt-4 space-y-3">
             <p className="text-sm text-heading">
-              Invoice {sale.invoice_number} · Total Rs {sale.total_amount}
+              Invoice {sale.invoice_number} · Total Rs {formatDecimal(sale.total_amount)}
             </p>
             <ul className="space-y-2 text-sm">
               {sale.items.map((item) => (
@@ -242,17 +246,19 @@ export default function ReturnsPage() {
               ))}
             </ul>
             <div className="flex flex-wrap gap-3">
-              <select
-                className="rounded-md border border-border px-3 py-2"
+              <Select
                 value={refundMethod}
-                onChange={(e) =>
-                  setRefundMethod(e.target.value as "cash" | "card" | "wallet")
+                onChange={(v) =>
+                  setRefundMethod(v as "cash" | "card" | "wallet")
                 }
-              >
-                <option value="cash">Cash refund</option>
-                <option value="card">Card refund</option>
-                <option value="wallet">Wallet refund</option>
-              </select>
+                options={[
+                  { value: "cash", label: "Cash refund" },
+                  { value: "card", label: "Card refund" },
+                  { value: "wallet", label: "Wallet refund" },
+                ]}
+                className="w-auto"
+                triggerClassName="border-border"
+              />
               <input
                 className="min-w-48 flex-1 rounded-md border border-border px-3 py-2"
                 placeholder="Reason"
@@ -288,7 +294,7 @@ export default function ReturnsPage() {
                       to={detailRoutes.saleReturn(r.id)}
                       className="font-semibold text-brand underline"
                     >
-                      Rs {r.refund_amount}
+                      Rs {formatDecimal(r.refund_amount)}
                     </Link>
                     <span>· {r.refund_method}</span>
                     <StatusBadge tone="warning">{r.status}</StatusBadge>
@@ -340,7 +346,7 @@ export default function ReturnsPage() {
           exportTitle="Recent returns"
           getExportRow={(r) => ({
             status: r.status,
-            amount: r.refund_amount,
+            amount: formatDecimal(r.refund_amount),
             method: r.refund_method,
             sale: r.sale_id,
           })}
@@ -379,7 +385,7 @@ export default function ReturnsPage() {
                   className="tabular-nums font-medium text-brand underline"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {r.refund_amount}
+                  {formatDecimal(r.refund_amount)}
                 </Link>
               ),
             },
@@ -421,10 +427,19 @@ export default function ReturnsPage() {
           exportTitle="Till history"
           getExportRow={(row) => ({
             status: row.status,
-            opening: row.opening_cash,
-            expected: row.expected_cash ?? "",
-            closing: row.closing_cash ?? "",
-            over: row.over_short ?? "",
+            opening: formatDecimal(row.opening_cash),
+            expected:
+              row.expected_cash != null && row.expected_cash !== ""
+                ? formatDecimal(row.expected_cash)
+                : "",
+            closing:
+              row.closing_cash != null && row.closing_cash !== ""
+                ? formatDecimal(row.closing_cash)
+                : "",
+            over:
+              row.over_short != null && row.over_short !== ""
+                ? formatDecimal(row.over_short)
+                : "",
           })}
           exportColumns={[
             { key: "status", header: "Status" },
@@ -439,14 +454,20 @@ export default function ReturnsPage() {
               id: "opening",
               header: "Opening",
               align: "right",
-              cell: (row) => <span className="tabular-nums">{row.opening_cash}</span>,
+              cell: (row) => (
+                <span className="tabular-nums">{formatDecimal(row.opening_cash)}</span>
+              ),
             },
             {
               id: "expected",
               header: "Expected",
               align: "right",
               cell: (row) => (
-                <span className="tabular-nums">{row.expected_cash ?? "—"}</span>
+                <span className="tabular-nums">
+                  {row.expected_cash != null && row.expected_cash !== ""
+                    ? formatDecimal(row.expected_cash)
+                    : "—"}
+                </span>
               ),
             },
             {
@@ -454,7 +475,11 @@ export default function ReturnsPage() {
               header: "Closing",
               align: "right",
               cell: (row) => (
-                <span className="tabular-nums">{row.closing_cash ?? "—"}</span>
+                <span className="tabular-nums">
+                  {row.closing_cash != null && row.closing_cash !== ""
+                    ? formatDecimal(row.closing_cash)
+                    : "—"}
+                </span>
               ),
             },
             {
@@ -462,7 +487,11 @@ export default function ReturnsPage() {
               header: "Over/short",
               align: "right",
               cell: (row) => (
-                <span className="tabular-nums">{row.over_short ?? "—"}</span>
+                <span className="tabular-nums">
+                  {row.over_short != null && row.over_short !== ""
+                    ? formatDecimal(row.over_short)
+                    : "—"}
+                </span>
               ),
             },
           ]}

@@ -8,6 +8,7 @@ import Button from "@/components/ui/Button";
 import { Alert, EmptyState } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
+import { formatDecimal } from "@/lib/decimal";
 
 export type BookableService = {
   id: string;
@@ -37,10 +38,6 @@ type Slot = {
 
 type Step = "service" | "staff" | "slot" | "confirm";
 
-function formatPrice(price?: string | number | null): string {
-  const n = Number(price || 0);
-  return Number.isFinite(n) ? n.toFixed(2) : "0.00";
-}
 
 function formatSlotTime(iso: string): string {
   try {
@@ -285,7 +282,7 @@ export default function BuyerBookFlow({
                 </p>
               ) : null}
               <p className="mt-auto pt-3 text-lg font-bold text-heading">
-                Rs {formatPrice(s.price)}
+                Rs {formatDecimal(s.price)}
               </p>
             </button>
           ))}
@@ -431,7 +428,7 @@ export default function BuyerBookFlow({
                 count: slot.duration_minutes || service.duration_minutes || 30,
               })}
               {" · "}
-              Rs {formatPrice(service.price)}
+              Rs {formatDecimal(service.price)}
             </p>
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-heading">
@@ -441,7 +438,7 @@ export default function BuyerBookFlow({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}
-                className="w-full rounded-md border border-border bg-bg-primary px-3 py-2 text-sm text-heading outline-none focus:border-brand/40 focus:ring-2 focus:ring-brand/15"
+                className="w-full rounded-md border border-border bg-bg-primary px-3 py-2 text-sm text-heading outline-none focus:border-brand/40"
                 placeholder={t("appointments.notesPlaceholder")}
               />
             </label>

@@ -13,6 +13,7 @@ import { api, colors, getSession, type Session } from "../lib/api";
 import { uuid } from "../lib/uuid";
 import { t } from "../lib/i18n";
 import { canAccessRoute } from "../lib/rbac";
+import { formatDecimal } from "../lib/decimal";
 import { BarcodeScannerModal } from "../components/BarcodeScannerModal";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
@@ -46,10 +47,6 @@ type Till = {
   opening_cash: string;
   over_short?: string | null;
 };
-
-function money(n: number) {
-  return n.toFixed(2);
-}
 
 function round2(n: number) {
   return Math.round(n * 100) / 100;
@@ -143,7 +140,7 @@ export default function PosScreen() {
   const total = round2(subtotal - discount + tax);
 
   useEffect(() => {
-    setPayCash(money(total));
+    setPayCash(formatDecimal(total));
     setPayCard("");
     setPayWallet("");
     setPayKhata("");
@@ -238,7 +235,7 @@ export default function PosScreen() {
     if (khata > 0) payments.push({ method: "khata", amount: round2(khata) });
     const paySum = round2(payments.reduce((s, p) => s + p.amount, 0));
     if (payments.length === 0 || Math.abs(paySum - total) > 0.001) {
-      setMessage(`Payments must total ${money(total)} (got ${money(paySum)})`);
+      setMessage(`Payments must total ${formatDecimal(total)} (got ${formatDecimal(paySum)})`);
       return;
     }
     if (khata > 0 && !customerId) {
@@ -297,7 +294,7 @@ export default function PosScreen() {
         <Text style={styles.section}>Till</Text>
         {till ? (
           <>
-            <Text style={styles.body}>Open · float Rs {till.opening_cash}</Text>
+            <Text style={styles.body}>Open · float Rs {formatDecimal(till.opening_cash)}</Text>
             <View style={styles.row}>
               <TextInput
                 style={[styles.input, { flex: 1, marginBottom: 0 }]}
@@ -360,7 +357,7 @@ export default function PosScreen() {
               <Text style={styles.productName}>{p.name}</Text>
               <Text style={styles.sku}>{p.sku}</Text>
               <View style={styles.productFooter}>
-                <Text style={styles.productPrice}>Rs {p.price ?? "0.00"}</Text>
+                <Text style={styles.productPrice}>Rs {formatDecimal(p.price)}</Text>
                 {inCart ? (
                   <Text style={styles.qtyChip}>×{inCart.quantity}</Text>
                 ) : null}
@@ -409,15 +406,15 @@ export default function PosScreen() {
                   <Text style={styles.qtyBtnText}>+</Text>
                 </Pressable>
                 <Text style={styles.lineTotal}>
-                  {money(l.quantity * l.unit_price)}
+                  {formatDecimal(l.quantity * l.unit_price)}
                 </Text>
               </View>
             </View>
           ))
         )}
         <View style={styles.totals}>
-          <Text style={styles.body}>{t("common.subtotal")} {money(subtotal)}</Text>
-          <Text style={styles.body}>{t("common.tax")} {money(tax)}</Text>
+          <Text style={styles.body}>{t("common.subtotal")} {formatDecimal(subtotal)}</Text>
+          <Text style={styles.body}>{t("common.tax")} {formatDecimal(tax)}</Text>
           <View style={styles.row}>
             <Text style={[styles.body, { width: 88, marginBottom: 0 }]}>{t("pos.discount")}</Text>
             <TextInput
@@ -440,7 +437,7 @@ export default function PosScreen() {
               placeholderTextColor={colors.muted}
             />
           </View>
-          <Text style={styles.total}>{t("common.total")} Rs {money(total)}</Text>
+          <Text style={styles.total}>{t("common.total")} Rs {formatDecimal(total)}</Text>
         </View>
 
         <Text style={styles.payLabel}>Customer</Text>
@@ -506,10 +503,10 @@ export default function PosScreen() {
           ) : null}
           {receipt.items.map((item, i) => (
             <Text key={`${item.name}-${i}`} style={styles.body}>
-              {item.name} × {item.quantity} · {item.line_total}
+              {item.name} × {item.quantity} · {formatDecimal(item.line_total)}
             </Text>
           ))}
-          <Text style={styles.total}>Total Rs {receipt.total_amount}</Text>
+          <Text style={styles.total}>Total Rs {formatDecimal(receipt.total_amount)}</Text>
           {receipt.payments.map((p, i) => (
             <Text key={`${p.method}-${i}`} style={styles.body}>
               {p.method}: {p.amount}

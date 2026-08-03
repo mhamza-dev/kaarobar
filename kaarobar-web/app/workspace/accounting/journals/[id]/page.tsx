@@ -7,6 +7,7 @@ import { detailRoutes, routes } from "@/lib/navigation";
 import { DetailFieldGrid, DetailSection, DetailShell } from "@/components/app/DetailShell";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
+import { formatDecimal } from "@/lib/decimal";
 import Link from "next/link";
 
 type Journal = {
@@ -121,8 +122,8 @@ export default function JournalDetailPage() {
                     "—"
                   ),
                 },
-                { label: "Total debit", value: `Rs ${totalDr.toFixed(2)}` },
-                { label: "Total credit", value: `Rs ${totalCr.toFixed(2)}` },
+                { label: "Total debit", value: `Rs ${formatDecimal(totalDr)}` },
+                { label: "Total credit", value: `Rs ${formatDecimal(totalCr)}` },
               ]}
             />
           </DetailSection>
@@ -146,8 +147,8 @@ export default function JournalDetailPage() {
                       ) : null}
                     </td>
                     <td className="py-2 text-body">{l.memo || "—"}</td>
-                    <td className="py-2 text-right tabular-nums">{l.debit}</td>
-                    <td className="py-2 text-right tabular-nums">{l.credit}</td>
+                    <td className="py-2 text-right tabular-nums">{formatDecimal(l.debit)}</td>
+                    <td className="py-2 text-right tabular-nums">{formatDecimal(l.credit)}</td>
                   </tr>
                 ))}
               </tbody>

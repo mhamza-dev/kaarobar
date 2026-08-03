@@ -21,6 +21,7 @@ import {
 } from "@/components/buyer/BuyerLayout";
 import { BuyerArSkeleton } from "@/components/buyer/BuyerSkeletons";
 import { useT } from "@/lib/i18n";
+import { formatDecimal } from "@/lib/decimal";
 import { portalKeys } from "@/lib/queryClient";
 
 type Invoice = {
@@ -159,7 +160,7 @@ export default function BuyerAr() {
                           {b.business_name || businessName(b.business_id)}
                         </p>
                         <p className="mt-2 text-2xl font-bold text-heading">
-                          Rs {b.balance}
+                          Rs {formatDecimal(b.balance)}
                         </p>
                       </BuyerCard>
                     </li>
@@ -190,7 +191,7 @@ export default function BuyerAr() {
                             </div>
                             <p className="mt-1 text-sm text-body">
                               {inv.business_name || businessName(inv.business_id)} ·{" "}
-                              {t("marketplace.due")} Rs {inv.balance_due}
+                              {t("marketplace.due")} Rs {formatDecimal(inv.balance_due)}
                             </p>
                           </div>
                           <span className="text-sm font-semibold text-brand">
@@ -224,7 +225,7 @@ export default function BuyerAr() {
               loading={payMutation.isPending}
               onClick={() => payMutation.mutate(selected)}
             >
-              {t("marketplace.payNow")} · Rs {selected.balance_due}
+              {t("marketplace.payNow")} · Rs {formatDecimal(selected.balance_due)}
             </Button>
           ) : null
         }
@@ -241,14 +242,14 @@ export default function BuyerAr() {
               <div className="flex justify-between gap-4">
                 <dt className="text-body">{t("common.total")}</dt>
                 <dd className="font-semibold text-heading">
-                  Rs {selected.total_amount}
+                  Rs {formatDecimal(selected.total_amount)}
                 </dd>
               </div>
             ) : null}
             <div className="flex justify-between gap-4">
               <dt className="text-body">{t("marketplace.balanceDue")}</dt>
               <dd className="text-lg font-bold text-heading">
-                Rs {selected.balance_due}
+                Rs {formatDecimal(selected.balance_due)}
               </dd>
             </div>
             {selected.due_date ? (

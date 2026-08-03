@@ -7,6 +7,7 @@ import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { canAccessBundle } from "@/lib/rbac";
 import { getSession } from "@/lib/api/client";
+import { formatDecimal } from "@/lib/decimal";
 
 type ReturnDetail = {
   id: string;
@@ -71,7 +72,7 @@ export default function ReturnDetailPage() {
       backHref={routes.returns}
       backLabel="Back to returns"
       eyebrow="Return"
-      title={ret ? `Return · Rs ${ret.refund_amount}` : "Return"}
+      title={ret ? `Return · Rs ${formatDecimal(ret.refund_amount)}` : "Return"}
       subtitle={ret?.reason || undefined}
       status={
         ret
@@ -115,7 +116,7 @@ export default function ReturnDetailPage() {
                   ),
                 },
                 { label: "Refund method", value: ret.refund_method },
-                { label: "Refund amount", value: `Rs ${ret.refund_amount}` },
+                { label: "Refund amount", value: `Rs ${formatDecimal(ret.refund_amount)}` },
                 { label: "Till", value: ret.till_id || "—" },
                 { label: "Rejection reason", value: ret.rejection_reason || "—" },
               ]}
@@ -142,7 +143,7 @@ export default function ReturnDetailPage() {
                       </Link>
                     </td>
                     <td className="py-2 text-right">{i.quantity}</td>
-                    <td className="py-2 text-right">Rs {i.amount}</td>
+                    <td className="py-2 text-right">Rs {formatDecimal(i.amount)}</td>
                   </tr>
                 ))}
               </tbody>

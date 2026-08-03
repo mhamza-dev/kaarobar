@@ -8,6 +8,7 @@ import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
+import Select from "@/components/ui/Select";
 import { Field, PageHeader, SurfaceCard, TabBar, fieldClass } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
@@ -19,6 +20,7 @@ import {
   type ListFilterConfig,
   type StaffListFilterState,
 } from "@/lib/listFilters";
+import { formatDecimal } from "@/lib/decimal";
 type Campaign = {
   id: string;
   name: string;
@@ -905,25 +907,36 @@ function MarketingPageInner() {
                 />
               </Field>
               <Field label="Type">
-                <select
-                  className={fieldClass}
+                <Select
                   value={couponForm.discount_type}
-                  onChange={(e) =>
-                    setCouponForm({ ...couponForm, discount_type: e.target.value })
+                  onChange={(v) =>
+                    setCouponForm({ ...couponForm, discount_type: v })
                   }
-                >
-                  <option value="percent">Percent</option>
-                  <option value="fixed">Fixed</option>
-                </select>
+                  options={[
+                    { value: "percent", label: "Percent" },
+                    { value: "fixed", label: "Fixed" },
+                  ]}
+                  triggerClassName="border-border bg-bg-secondary/80"
+                />
               </Field>
               <Field label="Value">
                 <input
                   className={fieldClass}
                   required
+                  type="number"
+                  step="0.01"
+                  min={0}
                   value={couponForm.discount_value}
                   onChange={(e) =>
                     setCouponForm({ ...couponForm, discount_value: e.target.value })
                   }
+                  onBlur={() => {
+                    if (!couponForm.discount_value.trim()) return;
+                    setCouponForm({
+                      ...couponForm,
+                      discount_value: formatDecimal(couponForm.discount_value),
+                    });
+                  }}
                 />
               </Field>
               <Field label="Usage limit">
@@ -938,8 +951,18 @@ function MarketingPageInner() {
               <Field label="Min cart">
                 <input
                   className={fieldClass}
+                  type="number"
+                  step="0.01"
+                  min={0}
                   value={couponForm.min_cart}
                   onChange={(e) => setCouponForm({ ...couponForm, min_cart: e.target.value })}
+                  onBlur={() => {
+                    if (!couponForm.min_cart.trim()) return;
+                    setCouponForm({
+                      ...couponForm,
+                      min_cart: formatDecimal(couponForm.min_cart),
+                    });
+                  }}
                 />
               </Field>
               <label className="flex items-center gap-2 text-sm text-body">
@@ -967,7 +990,7 @@ function MarketingPageInner() {
                 cell: (c) =>
                   c.discount_type === "percent"
                     ? `${c.discount_value}%`
-                    : `Rs ${c.discount_value}`,
+                    : `Rs ${formatDecimal(c.discount_value)}`,
               },
               {
                 id: "usage",
@@ -1093,18 +1116,18 @@ function MarketingPageInner() {
             />
           </Field>
           <Field label="Template (optional)">
-            <select
-              className={fieldClass}
+            <Select
               value={form.template_id}
-              onChange={(e) => applyTemplate(e.target.value)}
-            >
-              <option value="">None — write freely</option>
-              {templates.map((tpl) => (
-                <option key={tpl.id} value={tpl.id}>
-                  {tpl.name} ({tpl.channel})
-                </option>
-              ))}
-            </select>
+              onChange={(v) => applyTemplate(v)}
+              options={[
+                { value: "", label: "None — write freely" },
+                ...templates.map((tpl) => ({
+                  value: tpl.id,
+                  label: `${tpl.name} (${tpl.channel})`,
+                })),
+              ]}
+              triggerClassName="border-border bg-bg-secondary/80"
+            />
           </Field>
           <Field label={t("marketing.notificationTitle")}>
             <input
@@ -1129,16 +1152,17 @@ function MarketingPageInner() {
             <p className="mt-1 whitespace-pre-wrap text-body">{form.message || "Message body…"}</p>
           </div>
           <Field label="Channel">
-            <select
-              className={fieldClass}
+            <Select
               value={form.channel}
-              onChange={(e) => setForm({ ...form, channel: e.target.value })}
-            >
-              <option value="email">Email</option>
-              <option value="in_app">In-app</option>
-              <option value="sms">SMS</option>
-              <option value="whatsapp">WhatsApp</option>
-            </select>
+              onChange={(v) => setForm({ ...form, channel: v })}
+              options={[
+                { value: "email", label: "Email" },
+                { value: "in_app", label: "In-app" },
+                { value: "sms", label: "SMS" },
+                { value: "whatsapp", label: "WhatsApp" },
+              ]}
+              triggerClassName="border-border bg-bg-secondary/80"
+            />
           </Field>
           <Field label="Budget (PKR)">
             <input
@@ -1153,19 +1177,24 @@ function MarketingPageInner() {
               }
               value={form.budget_amount}
               onChange={(e) => setForm({ ...form, budget_amount: e.target.value })}
+              onBlur={() => {
+                if (!form.budget_amount.trim()) return;
+                setForm({ ...form, budget_amount: formatDecimal(form.budget_amount) });
+              }}
             />
           </Field>
           <Field label={t("marketing.audience")}>
-            <select
-              className={fieldClass}
+            <Select
               value={form.audience}
-              onChange={(e) => setForm({ ...form, audience: e.target.value })}
-            >
-              <option value="all">{t("marketing.audienceAll")}</option>
-              <option value="khata">{t("marketing.audienceKhata")}</option>
-              <option value="min_points">{t("marketing.audienceMinPoints")}</option>
-              <option value="segment">Named segment</option>
-            </select>
+              onChange={(v) => setForm({ ...form, audience: v })}
+              options={[
+                { value: "all", label: t("marketing.audienceAll") },
+                { value: "khata", label: t("marketing.audienceKhata") },
+                { value: "min_points", label: t("marketing.audienceMinPoints") },
+                { value: "segment", label: "Named segment" },
+              ]}
+              triggerClassName="border-border bg-bg-secondary/80"
+            />
           </Field>
           {form.audience === "min_points" ? (
             <Field label={t("marketing.minPoints")}>
@@ -1180,38 +1209,32 @@ function MarketingPageInner() {
           ) : null}
           {form.audience === "segment" ? (
             <Field label="Segment">
-              <select
-                className={fieldClass}
+              <Select
+                name="segment_id"
                 required
                 value={form.segment_id}
-                onChange={(e) => setForm({ ...form, segment_id: e.target.value })}
-              >
-                <option value="">Select…</option>
-                {segments.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setForm({ ...form, segment_id: v })}
+                placeholder="Select…"
+                options={segments.map((s) => ({ value: s.id, label: s.name }))}
+                triggerClassName="border-border bg-bg-secondary/80"
+              />
             </Field>
           ) : null}
           <Field label="Link coupon (optional)">
-            <select
-              className={fieldClass}
+            <Select
               value={form.coupon_id}
-              onChange={(e) => setForm({ ...form, coupon_id: e.target.value })}
-            >
-              <option value="">None</option>
-              {coupons.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.code}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => setForm({ ...form, coupon_id: v })}
+              options={[
+                { value: "", label: "None" },
+                ...coupons.map((c) => ({ value: c.id, label: c.code })),
+              ]}
+              triggerClassName="border-border bg-bg-secondary/80"
+            />
           </Field>
           {costPreview ? (
             <p className="text-sm text-body">
-              Est. cost Rs {costPreview.estimated_cost} (Rs {costPreview.unit_cost}/msg)
+              Est. cost Rs {formatDecimal(costPreview.estimated_cost)} (Rs{" "}
+              {formatDecimal(costPreview.unit_cost)}/msg)
               {!costPreview.can_send ? (
                 <span className="text-danger"> · Over budget</span>
               ) : null}
@@ -1247,16 +1270,17 @@ function MarketingPageInner() {
             />
           </Field>
           <Field label={t("marketing.channel")}>
-            <select
-              className={fieldClass}
+            <Select
               value={tplForm.channel}
-              onChange={(e) => setTplForm({ ...tplForm, channel: e.target.value })}
-            >
-              <option value="email">{t("marketing.channelEmail")}</option>
-              <option value="in_app">{t("marketing.channelInApp")}</option>
-              <option value="sms">{t("marketing.channelSms")}</option>
-              <option value="whatsapp">{t("marketing.channelWhatsapp")}</option>
-            </select>
+              onChange={(v) => setTplForm({ ...tplForm, channel: v })}
+              options={[
+                { value: "email", label: t("marketing.channelEmail") },
+                { value: "in_app", label: t("marketing.channelInApp") },
+                { value: "sms", label: t("marketing.channelSms") },
+                { value: "whatsapp", label: t("marketing.channelWhatsapp") },
+              ]}
+              triggerClassName="border-border bg-bg-secondary/80"
+            />
           </Field>
           <Field label={t("marketing.titleTemplate")}>
             <input

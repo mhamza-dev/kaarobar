@@ -5,6 +5,7 @@ import { Filter, Search, X } from "lucide-react";
 import Button from "@/components/ui/Button";
 import FilterDrawer from "@/components/app/FilterDrawer";
 import { useT } from "@/lib/i18n";
+import { formatDecimal } from "@/lib/decimal";
 import {
   countAdvancedFilters,
   emptyStaffListFilters,
@@ -111,14 +112,18 @@ export default function ListToolbar({
   if (config.showAmountRange && (value.amountMin || value.amountMax)) {
     summaryChips.push({
       key: "amount",
-      label: `${t("listFilters.amountRange")}: ${value.amountMin || "…"}–${value.amountMax || "…"}`,
+      label: `${t("listFilters.amountRange")}: ${
+        value.amountMin ? formatDecimal(value.amountMin) : "…"
+      }–${value.amountMax ? formatDecimal(value.amountMax) : "…"}`,
       clear: () => onChange({ ...value, amountMin: "", amountMax: "" }),
     });
   }
   if (config.showBalanceRange && (value.balanceMin || value.balanceMax)) {
     summaryChips.push({
       key: "balance",
-      label: `${t("listFilters.balanceRange")}: ${value.balanceMin || "…"}–${value.balanceMax || "…"}`,
+      label: `${t("listFilters.balanceRange")}: ${
+        value.balanceMin ? formatDecimal(value.balanceMin) : "…"
+      }–${value.balanceMax ? formatDecimal(value.balanceMax) : "…"}`,
       clear: () => onChange({ ...value, balanceMin: "", balanceMax: "" }),
     });
   }
@@ -128,7 +133,9 @@ export default function ListToolbar({
   ) {
     summaryChips.push({
       key: "credit",
-      label: `${t("listFilters.creditLimitRange")}: ${value.creditLimitMin || "…"}–${value.creditLimitMax || "…"}`,
+      label: `${t("listFilters.creditLimitRange")}: ${
+        value.creditLimitMin ? formatDecimal(value.creditLimitMin) : "…"
+      }–${value.creditLimitMax ? formatDecimal(value.creditLimitMax) : "…"}`,
       clear: () =>
         onChange({ ...value, creditLimitMin: "", creditLimitMax: "" }),
     });
@@ -146,7 +153,7 @@ export default function ListToolbar({
               value={value.search}
               onChange={(e) => onChange({ ...value, search: e.target.value })}
               placeholder={searchPlaceholder ?? t("common.search")}
-              className="w-full rounded-md border border-border bg-card py-2.5 pe-9 ps-9 text-sm text-heading outline-none transition placeholder:text-muted focus:border-brand/40 focus:ring-1 focus:ring-brand/20"
+              className="w-full rounded-md border border-border bg-card py-2.5 pe-9 ps-9 text-sm text-heading outline-none transition placeholder:text-muted focus:border-brand/40"
             />
             {value.search ? (
               <button

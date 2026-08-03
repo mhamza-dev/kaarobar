@@ -14,6 +14,7 @@ import { useToast } from "./Toast";
 import { useNavigation } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
 import { pushPath } from "../lib/nav";
+import { formatDecimal } from "../lib/decimal";
 
 export type BookableService = {
   id: string;
@@ -44,8 +45,7 @@ type Slot = {
 type Step = "service" | "staff" | "slot" | "confirm";
 
 function formatPrice(price?: string | number | null) {
-  const n = Number(price || 0);
-  return Number.isFinite(n) ? n.toFixed(2) : "0.00";
+  return formatDecimal(price);
 }
 
 function formatSlotTime(iso: string) {

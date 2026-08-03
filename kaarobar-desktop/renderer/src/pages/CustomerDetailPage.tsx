@@ -5,6 +5,7 @@ import { routes } from "@/lib/navigation";
 import { DetailFieldGrid, DetailSection, DetailShell } from "@/components/app/DetailShell";
 import ProfilePicEditor from "@/components/app/ProfilePicEditor";
 import type { Customer } from "@/lib/customers";
+import { formatDecimal } from "@/lib/decimal";
 
 type LedgerEntry = {
   kind: string;
@@ -94,7 +95,7 @@ export default function CustomerDetailPage() {
                 { label: "NTN", value: customer.ntn || "—" },
                 { label: "Address", value: customer.address || "—" },
                 { label: "Loyalty points", value: String(customer.loyalty_points ?? 0) },
-                { label: "Balance", value: customer.balance ? `Rs ${customer.balance}` : "—" },
+                { label: "Balance", value: customer.balance ? `Rs ${formatDecimal(customer.balance)}` : "—" },
                 {
                   label: "Email opt-in",
                   value: customer.marketing_opt_in_email ? "Yes" : "No",
@@ -126,8 +127,8 @@ export default function CustomerDetailPage() {
                       <td className="py-2 pr-2 whitespace-nowrap">{e.date}</td>
                       <td className="py-2 pr-2 font-mono text-xs">{e.reference}</td>
                       <td className="py-2 pr-2">{e.description}</td>
-                      <td className="py-2 pr-2 text-right tabular-nums">{e.debit}</td>
-                      <td className="py-2 text-right tabular-nums">{e.credit}</td>
+                      <td className="py-2 pr-2 text-right tabular-nums">{formatDecimal(e.debit)}</td>
+                      <td className="py-2 text-right tabular-nums">{formatDecimal(e.credit)}</td>
                     </tr>
                   ))}
                 </tbody>

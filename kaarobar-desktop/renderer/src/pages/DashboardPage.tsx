@@ -16,6 +16,7 @@ import DashboardCharts, {
 } from "@/components/app/DashboardCharts";
 import { KpiCard, PageHeader } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
+import { formatDecimal } from "@/lib/decimal";
 import { useT } from "@/lib/i18n";
 
 type Dashboard = {
@@ -133,14 +134,22 @@ export default function AppDashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
           label={t("dashboard.salesToday")}
-          value={dashboard?.sales_today ?? "—"}
+          value={
+            dashboard?.sales_today != null
+              ? formatDecimal(dashboard.sales_today)
+              : "—"
+          }
           hint={t("dashboard.salesTodayHint")}
           tone="brand"
           icon={<TrendingUp className="h-5 w-5" />}
         />
         <KpiCard
           label={t("dashboard.cashPosition")}
-          value={dashboard?.cash_position ?? "—"}
+          value={
+            dashboard?.cash_position != null
+              ? formatDecimal(dashboard.cash_position)
+              : "—"
+          }
           hint={t("dashboard.cashPositionHint")}
           tone="success"
           icon={<Banknote className="h-5 w-5" />}

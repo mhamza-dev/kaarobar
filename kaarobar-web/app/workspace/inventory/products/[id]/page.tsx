@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { api } from "@/lib/api/client";
 import { routes } from "@/lib/navigation";
 import { DetailFieldGrid, DetailSection, DetailShell } from "@/components/app/DetailShell";
+import { formatDecimal } from "@/lib/decimal";
 
 type Product = {
   id: string;
@@ -68,8 +69,8 @@ export default function ProductDetailPage() {
               { label: "SKU", value: product.sku },
               { label: "Barcode", value: product.barcode || "—" },
               { label: "Category", value: product.category_name || "—" },
-              { label: "Price", value: product.price ? `Rs ${product.price}` : "—" },
-              { label: "Cost", value: product.cost ? `Rs ${product.cost}` : "—" },
+              { label: "Price", value: product.price ? `Rs ${formatDecimal(product.price)}` : "—" },
+              { label: "Cost", value: product.cost ? `Rs ${formatDecimal(product.cost)}` : "—" },
               {
                 label: "Stock",
                 value:

@@ -1,10 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import {
+  AlertTriangle,
+  Banknote,
+  RotateCcw,
+  Ticket,
+} from "lucide-react";
 import { api } from "@/lib/api/client";
+import DateRangeFields from "@/components/app/DateRangeFields";
 import DataTable from "@/components/ui/DataTable";
-import { Field, PageHeader, fieldClass } from "@/components/app/ui";
+import { KpiCard, PageHeader } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
+import { formatDecimal } from "@/lib/decimal";
 import { useT } from "@/lib/i18n";
 
 type DayRow = { date: string; total: string; count: number };
@@ -54,7 +62,7 @@ export default function ReportsPage() {
   }, [load]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <PageHeader
         eyebrow={t("reports.eyebrow")}
         title={t("pages.reportsTitle")}
@@ -63,40 +71,46 @@ export default function ReportsPage() {
       />
 
       {branch ? (
-        <div className="grid gap-3 sm:grid-cols-4">
-          {(
-            [
-              [t("dashboard.salesToday"), branch.sales_today],
-              [t("reports.tickets"), String(branch.sales_count_today)],
-              [t("dashboard.lowStock"), String(branch.low_stock_count)],
-              [t("reports.pendingReturns"), String(branch.pending_returns)],
-            ] as const
-          ).map(([label, value]) => (
-            <div key={label} className="rounded-md border border-border bg-card p-4">
-              <p className="text-sm text-body">{label}</p>
-              <p className="mt-1 text-xl font-semibold text-heading">{value}</p>
-            </div>
-          ))}
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <KpiCard
+            label={t("dashboard.salesToday")}
+            value={formatDecimal(branch.sales_today)}
+            tone="brand"
+            icon={<Banknote className="h-5 w-5" />}
+          />
+          <KpiCard
+            label={t("reports.tickets")}
+            value={branch.sales_count_today}
+            tone="success"
+            icon={<Ticket className="h-5 w-5" />}
+          />
+          <KpiCard
+            label={t("dashboard.lowStock")}
+            value={branch.low_stock_count}
+            tone="warning"
+            icon={<AlertTriangle className="h-5 w-5" />}
+          />
+          <KpiCard
+            label={t("reports.pendingReturns")}
+            value={branch.pending_returns}
+            tone="danger"
+            icon={<RotateCcw className="h-5 w-5" />}
+          />
         </div>
       ) : null}
 
-      <div className="flex flex-wrap gap-3">
-        <Field label={t("common.from")}>
-          <input
-            type="date"
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            className={fieldClass}
-          />
-        </Field>
-        <Field label={t("common.to")}>
-          <input
-            type="date"
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            className={fieldClass}
-          />
-        </Field>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-lg font-bold text-heading">{t("reports.salesByDay")}</h2>
+          <p className="mt-1 text-sm text-body">{t("reports.salesByDayDesc")}</p>
+        </div>
+        <DateRangeFields
+          from={from}
+          to={to}
+          onFromChange={setFrom}
+          onToChange={setTo}
+          className="w-full max-w-md sm:w-auto sm:min-w-[16rem]"
+        />
       </div>
 
       <DataTable
@@ -110,7 +124,9 @@ export default function ReportsPage() {
             id: "sales",
             header: t("dashboard.salesToday"),
             align: "right",
-            cell: (d) => <span className="tabular-nums font-medium">{d.total}</span>,
+            cell: (d) => (
+              <span className="tabular-nums font-medium">{formatDecimal(d.total)}</span>
+            ),
           },
           {
             id: "tickets",
@@ -122,37 +138,38 @@ export default function ReportsPage() {
         data={days}
         rowKey={(d) => d.date}
         emptyTitle={t("reports.noSalesInRange")}
-        toolbar={<span className="text-sm font-semibold text-heading">{t("reports.salesByDay")}</span>}
       />
 
-      <DataTable
-        maxHeight="22rem"
-        searchable
-        searchPlaceholder={t("reports.searchLowStock")}
-        getSearchText={(r) => `${r.sku} ${r.name} ${r.quantity_on_hand}`}
-        columns={[
-          {
-            id: "sku",
-            header: t("common.sku"),
-            cell: (r) => <span className="font-medium tabular-nums">{r.sku}</span>,
-          },
-          { id: "name", header: t("common.name"), cell: (r) => r.name },
-          {
-            id: "qty",
-            header: t("inventory.onHand"),
-            align: "right",
-            cell: (r) => (
-              <span className="tabular-nums font-semibold text-warning">
-                {r.quantity_on_hand}
-              </span>
-            ),
-          },
-        ]}
-        data={lowStock}
-        rowKey={(r) => r.product_id}
-        emptyTitle={t("reports.nothingBelowThreshold")}
-        toolbar={<span className="text-sm font-semibold text-heading">{t("reports.lowStock")}</span>}
-      />
+      <div>
+        <h2 className="mb-4 text-lg font-bold text-heading">{t("reports.lowStock")}</h2>
+        <DataTable
+          maxHeight="22rem"
+          searchable
+          searchPlaceholder={t("reports.searchLowStock")}
+          getSearchText={(r) => `${r.sku} ${r.name} ${r.quantity_on_hand}`}
+          columns={[
+            {
+              id: "sku",
+              header: t("common.sku"),
+              cell: (r) => <span className="font-medium tabular-nums">{r.sku}</span>,
+            },
+            { id: "name", header: t("common.name"), cell: (r) => r.name },
+            {
+              id: "qty",
+              header: t("inventory.onHand"),
+              align: "right",
+              cell: (r) => (
+                <span className="tabular-nums font-semibold text-warning">
+                  {formatDecimal(r.quantity_on_hand)}
+                </span>
+              ),
+            },
+          ]}
+          data={lowStock}
+          rowKey={(r) => r.product_id}
+          emptyTitle={t("reports.nothingBelowThreshold")}
+        />
+      </div>
     </div>
   );
 }

@@ -91,6 +91,17 @@
     "min": "Min",
     "max": "Max"
   },
+  "dateRange": {
+    "placeholder": "Select dates",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "lastWeek": "Last week",
+    "lastMonth": "Last month",
+    "lastQuarter": "Last quarter",
+    "reset": "Reset",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month"
+  },
   "nav": {
     "overview": "Overview",
     "cashier": "Cashier",
@@ -422,6 +433,9 @@
     "addProduct": "Add product",
     "editProduct": "Edit product",
     "newProduct": "New product",
+    "barcode": "Barcode",
+    "barcodePlaceholder": "Scan, type, or generate",
+    "generateBarcode": "Generate",
     "addSupplier": "Add supplier",
     "editSupplier": "Edit supplier",
     "newPo": "New purchase order",
@@ -603,6 +617,7 @@
   "reports": {
     "eyebrow": "Insights",
     "salesByDay": "Sales by day",
+    "salesByDayDesc": "Ticket totals and counts for the selected range.",
     "lowStock": "Low stock",
     "tickets": "Tickets",
     "pendingReturns": "Pending returns",

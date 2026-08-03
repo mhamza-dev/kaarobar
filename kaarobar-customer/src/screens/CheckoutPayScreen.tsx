@@ -16,6 +16,7 @@ import { useBrandPalette } from "../lib/BrandThemeContext";
 import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
 import { replacePath, pushPath } from "../lib/nav";
+import { formatDecimal } from "../lib/decimal";
 
 export default function CheckoutPayScreen() {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
@@ -127,7 +128,7 @@ export default function CheckoutPayScreen() {
         {stores.length === 1
           ? `Pickup from ${stores[0].businessName}`
           : `${stores.length} store pickups`}{" "}
-        · Rs {subtotal.toFixed(2)}
+        · Rs {formatDecimal(subtotal)}
       </Text>
       {stores.length > 1 ? (
         <View style={styles.summary}>
@@ -135,7 +136,7 @@ export default function CheckoutPayScreen() {
             const total = s.lines.reduce((a, l) => a + l.quantity * l.price, 0);
             return (
               <Text key={s.businessId} style={styles.summaryRow}>
-                {s.businessName} · Rs {total.toFixed(2)}
+                {s.businessName} · Rs {formatDecimal(total)}
               </Text>
             );
           })}

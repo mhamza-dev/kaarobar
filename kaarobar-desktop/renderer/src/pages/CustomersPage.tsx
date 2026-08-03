@@ -14,6 +14,7 @@ import {
   fieldClass,
 } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
+import { formatDecimal } from "@/lib/decimal";
 import { useT } from "@/lib/i18n";
 import { detailRoutes } from "@/lib/navigation";
 import {
@@ -257,8 +258,8 @@ export default function CustomersPage() {
           phone: c.phone || "",
           cnic: c.cnic || "",
           khata: c.khata_enabled ? "on" : "off",
-          balance: c.balance || "0",
-          credit: c.credit_limit || "",
+          balance: formatDecimal(c.balance || "0"),
+          credit: c.credit_limit ? formatDecimal(c.credit_limit) : "",
           points: String(c.loyalty_points ?? 0),
         })}
         exportColumns={[
@@ -289,11 +290,14 @@ export default function CustomersPage() {
             header: t("customers.khata"),
             cell: (c) => (c.khata_enabled ? t("customers.khataOn") : t("customers.khataOff")),
           },
-          { id: "balance", header: t("customers.balance"), cell: (c) => c.balance || "0" },
+          { id: "balance", header: t("customers.balance"), cell: (c) => formatDecimal(c.balance || "0") },
           {
             id: "credit",
             header: t("customers.creditLimit"),
-            cell: (c) => c.credit_limit || "—",
+            cell: (c) =>
+              c.credit_limit != null && c.credit_limit !== ""
+                ? formatDecimal(c.credit_limit)
+                : "—",
           },
           {
             id: "points",
@@ -352,7 +356,7 @@ export default function CustomersPage() {
                 {t("customers.ledgerTitle", { name: ledgerCustomer.name })}
               </h3>
               <p className="text-sm text-body">
-                {t("customers.balanceDue", { amount: ledgerBalance })}
+                {t("customers.balanceDue", { amount: formatDecimal(ledgerBalance) })}
               </p>
             </div>
             <Button size="sm" variant="secondary" onClick={() => setLedgerCustomer(null)}>
@@ -372,8 +376,15 @@ export default function CustomersPage() {
               <Field label={t("common.amount")}>
                 <input
                   className={fieldClass}
+                  type="number"
+                  step="0.01"
+                  min={0}
                   value={payAmount}
                   onChange={(e) => setPayAmount(e.target.value)}
+                  onBlur={() => {
+                    if (!payAmount.trim()) return;
+                    setPayAmount(formatDecimal(payAmount));
+                  }}
                 />
               </Field>
               <Button size="sm" loading={busy} onClick={() => void receivePayment()}>
@@ -400,8 +411,8 @@ export default function CustomersPage() {
                     <td className="py-2">{e.kind}</td>
                     <td className="py-2">{e.reference}</td>
                     <td className="py-2">{e.description}</td>
-                    <td className="py-2">{e.debit}</td>
-                    <td className="py-2">{e.credit}</td>
+                    <td className="py-2 tabular-nums">{formatDecimal(e.debit)}</td>
+                    <td className="py-2 tabular-nums">{formatDecimal(e.credit)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -450,7 +461,13 @@ export default function CustomersPage() {
               <Field key={f.key} label={t(f.labelKey)}>
                 <input
                   className={fieldClass}
-                  type={f.type || "text"}
+                  type={
+                    f.key === "credit_limit"
+                      ? "number"
+                      : f.type || "text"
+                  }
+                  step={f.key === "credit_limit" ? "0.01" : undefined}
+                  min={f.key === "credit_limit" ? 0 : undefined}
                   required={
                     f.required ||
                     (f.key === "portal_password" &&
@@ -465,7 +482,24 @@ export default function CustomersPage() {
                       : undefined
                   }
                   value={String(form[f.key] ?? "")}
-                  onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      [f.key]: e.target.value,
+                    })
+                  }
+                  onBlur={
+                    f.key === "credit_limit"
+                      ? (e) => {
+                          const v = e.target.value.trim();
+                          if (!v) return;
+                          setForm({
+                            ...form,
+                            credit_limit: formatDecimal(v),
+                          });
+                        }
+                      : undefined
+                  }
                 />
                 {f.hintKey ? (
                   <p className="mt-1 text-xs text-muted">{t(f.hintKey)}</p>

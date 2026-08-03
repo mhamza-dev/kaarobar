@@ -23,7 +23,11 @@ Ship help + UI strings for **every** locale in `LOCALES` (`kaarobar-web/lib/i18n
 
 Do **not** ship English-only (or EN+UR-only) and leave the rest missing — missing catalog entries hide the (i) icon; missing message keys fall back to English and look unfinished.
 
-Canonical message source of truth when syncing: [`shared/locales/`](shared/locales/) (`en.json`, `ur.json`, `de.json`, `pt-BR.json`, `es.json`, `fr.json`, `ar.json`). Mirror into web / desktop / mobile copies as that app uses them.
+Each app owns its locale catalogs — edit them directly (no shared locale package):
+- Web: [`kaarobar-web/lib/i18n/messages/`](kaarobar-web/lib/i18n/messages/)
+- Desktop: [`kaarobar-desktop/renderer/src/lib/i18n/messages/`](kaarobar-desktop/renderer/src/lib/i18n/messages/)
+- Mobile / customer: their `lib/i18n/` catalogs
+When the same chrome exists on multiple apps, update each app’s files in the same change.
 
 ## Info icon (required)
 
@@ -47,7 +51,7 @@ Example:
    - `en.json`, `ur.json`, `de.json`, `pt-BR.json`, `es.json`, `fr.json`, `ar.json`
 2. Prefer `useT()` / `t("…")` over hardcoded English in UI chrome (titles, descriptions, empty states, primary CTAs).
 3. Use `t("key", { count: n })` for interpolated strings.
-4. When the same chrome exists on desktop/mobile, update that app’s locale files too (`kaarobar-desktop/renderer/src/lib/i18n/messages/`, `kaarobar-mobile` i18n catalogs, and/or `shared/locales/`).
+4. When the same chrome exists on desktop/mobile/customer, update that app’s locale files too.
 5. RTL: `ur` and `ar` use RTL layout — avoid hard-coded `left`/`right` in new UI; prefer logical CSS (`ms`/`me`, `start`/`end`).
 
 ## Do not skip

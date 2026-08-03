@@ -8,6 +8,7 @@ import { detailRoutes, routes } from "@/lib/navigation";
 import { DetailFieldGrid, DetailSection, DetailShell } from "@/components/app/DetailShell";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
+import { formatDecimal } from "@/lib/decimal";
 
 type ArInvoice = {
   id: string;
@@ -137,8 +138,8 @@ export default function ArInvoiceDetailPage() {
                 },
                 { label: "Invoice date", value: invoice.invoice_date || "—" },
                 { label: "Due date", value: invoice.due_date || "—" },
-                { label: "Total", value: `Rs ${invoice.total_amount}` },
-                { label: "Balance due", value: `Rs ${invoice.balance_due}` },
+                { label: "Total", value: `Rs ${formatDecimal(invoice.total_amount)}` },
+                { label: "Balance due", value: `Rs ${formatDecimal(invoice.balance_due)}` },
               ]}
             />
           </DetailSection>
@@ -154,7 +155,7 @@ export default function ArInvoiceDetailPage() {
                     {p.method}
                     {p.paid_at ? ` · ${String(p.paid_at).slice(0, 16)}` : ""}
                   </span>
-                  <span className="font-semibold">Rs {p.amount}</span>
+                  <span className="font-semibold">Rs {formatDecimal(p.amount)}</span>
                 </li>
               ))}
             </ul>

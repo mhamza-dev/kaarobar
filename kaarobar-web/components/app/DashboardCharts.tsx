@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import { SurfaceCard } from "@/components/app/ui";
 import { useT } from "@/lib/i18n";
+import { formatDecimal } from "@/lib/decimal";
 
 export type SalesDayRow = { date: string; total: string; count: number };
 
@@ -65,14 +66,6 @@ export function fillSalesDays(
   return out;
 }
 
-function formatMoney(n: number) {
-  if (!Number.isFinite(n)) return "0";
-  return n.toLocaleString(undefined, {
-    maximumFractionDigits: 2,
-    minimumFractionDigits: 0,
-  });
-}
-
 function ChartTooltip({
   active,
   payload,
@@ -88,7 +81,7 @@ function ChartTooltip({
 }) {
   if (!active || !payload?.length) return null;
   const raw = payload[0]?.value ?? 0;
-  const display = valueKey === "total" ? formatMoney(raw) : String(raw);
+  const display = valueKey === "total" ? formatDecimal(raw) : String(raw);
   return (
     <div className="rounded-md border border-border bg-card px-3 py-2 text-sm shadow-md">
       <p className="font-medium text-heading">{label}</p>
@@ -133,7 +126,7 @@ export default function DashboardCharts({ points, loading }: DashboardChartsProp
               {t("dashboard.rangeRevenue")}
             </p>
             <p className="mt-0.5 text-lg font-semibold tabular-nums text-heading">
-              {formatMoney(totals.revenue)}
+              {formatDecimal(totals.revenue)}
             </p>
           </div>
         </div>
@@ -164,7 +157,7 @@ export default function DashboardCharts({ points, loading }: DashboardChartsProp
                   axisLine={false}
                   tickLine={false}
                   width={48}
-                  tickFormatter={(v) => formatMoney(Number(v))}
+                  tickFormatter={(v) => formatDecimal(Number(v))}
                 />
                 <Tooltip
                   content={

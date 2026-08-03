@@ -6,6 +6,7 @@ import {
   LOCALE_NATIVE_LABELS,
   type Locale,
 } from "@/lib/i18n";
+import Select from "@/components/ui/Select";
 
 export default function LanguageSwitcher({
   className = "",
@@ -21,18 +22,18 @@ export default function LanguageSwitcher({
       {!compact ? (
         <span className="text-xs font-medium text-rail-muted">{t("common.language")}</span>
       ) : null}
-      <select
-        className="rounded-md border border-rail-border bg-card px-2 py-1.5 text-xs font-semibold text-heading outline-none transition hover:bg-rail-hover focus:border-brand"
+      <Select
+        size="sm"
+        className="w-auto"
         value={locale}
-        onChange={(e) => setLocale(e.target.value as Locale)}
+        onChange={(v) => setLocale(v as Locale)}
         aria-label={t("common.language")}
-      >
-        {LOCALES.map((code) => (
-          <option key={code} value={code} lang={code}>
-            {LOCALE_NATIVE_LABELS[code]}
-          </option>
-        ))}
-      </select>
+        options={LOCALES.map((code) => ({
+          value: code,
+          label: LOCALE_NATIVE_LABELS[code],
+        }))}
+        triggerClassName="border-rail-border bg-card font-semibold hover:bg-rail-hover focus:border-brand"
+      />
     </label>
   );
 }

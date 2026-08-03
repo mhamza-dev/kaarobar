@@ -18,6 +18,7 @@ import {
   type Session,
 } from "../lib/api";
 import { canAccess } from "../lib/rbac";
+import { formatDecimal } from "../lib/decimal";
 import { getLocale, loadLocale, setLocale, t, type Locale } from "../lib/i18n";
 import { useToast } from "../components/Toast";
 import KaarobarLogo from "../components/KaarobarLogo";
@@ -380,8 +381,8 @@ export default function DashboardScreen() {
 
       <View style={styles.grid}>
         {[
-          { label: t("desktop.salesToday"), value: dash?.sales_today ?? "—" },
-          { label: t("desktop.cashPosition"), value: dash?.cash_position ?? "—" },
+          { label: t("desktop.salesToday"), value: dash?.sales_today != null ? formatDecimal(dash.sales_today) : "—" },
+          { label: t("desktop.cashPosition"), value: dash?.cash_position != null ? formatDecimal(dash.cash_position) : "—" },
           { label: t("desktop.lowStock"), value: String(dash?.low_stock_count ?? "—") },
           { label: t("desktop.approvals"), value: String(dash?.pending_approvals ?? "—") },
         ].map((card) => (
@@ -434,7 +435,7 @@ export default function DashboardScreen() {
           <View style={styles.summaryRow}>
             <View style={styles.summaryCard}>
               <Text style={styles.cardLabel}>{t("dashboard.rangeRevenue")}</Text>
-              <Text style={styles.cardValue}>{rangeRevenue.toLocaleString()}</Text>
+              <Text style={styles.cardValue}>{formatDecimal(rangeRevenue)}</Text>
             </View>
             <View style={styles.summaryCard}>
               <Text style={styles.cardLabel}>{t("dashboard.rangeOrders")}</Text>
@@ -444,7 +445,7 @@ export default function DashboardScreen() {
 
           {selectedPoint ? (
             <Text style={styles.selectedHint}>
-              {selectedPoint.date}: {selectedPoint.total.toLocaleString()} ·{" "}
+              {selectedPoint.date}: {formatDecimal(selectedPoint.total)} ·{" "}
               {selectedPoint.count} {t("reports.tickets")}
             </Text>
           ) : null}

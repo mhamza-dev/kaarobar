@@ -8,7 +8,7 @@ type Business = { id: string; name: string; industry?: string };
 type Branch = { id: string; name: string; business_id: string };
 
 const selectClass =
-  "h-9 max-w-[min(42vw,220px)] appearance-none truncate rounded-md border border-rail-border bg-card py-1.5 pl-8 pr-7 text-xs font-semibold text-heading outline-none transition hover:bg-rail-hover focus:border-brand focus:ring-1 focus:ring-brand";
+  "h-9 max-w-[min(42vw,220px)] appearance-none truncate rounded-md border border-rail-border bg-card py-1.5 pl-8 pr-7 text-xs font-semibold text-heading outline-none transition hover:bg-rail-hover focus:border-brand";
 
 export default function TenantSwitcher() {
   const [businesses, setBusinesses] = useState<Business[]>([]);

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, getSession } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
+import Select from "@/components/ui/Select";
 import {
   Alert,
   EmptyState,
@@ -194,18 +195,15 @@ export default function AppointmentsPage() {
           />
         </Field>
         <Field label={t("appointments.staffFilter")}>
-          <select
+          <Select
             value={staffId}
-            onChange={(e) => setStaffId(e.target.value)}
-            className={fieldClass}
-          >
-            <option value="">{t("appointments.allStaff")}</option>
-            {employees.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.name}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => setStaffId(v)}
+            placeholder={t("appointments.allStaff")}
+            options={[
+              { value: "", label: t("appointments.allStaff") },
+              ...employees.map((e) => ({ value: e.id, label: e.name })),
+            ]}
+          />
         </Field>
       </div>
 

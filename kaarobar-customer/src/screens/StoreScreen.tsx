@@ -27,6 +27,7 @@ import { t } from "../lib/i18n";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
 import { replacePath, pushPath } from "../lib/nav";
+import { formatDecimal } from "../lib/decimal";
 
 type Product = {
   id: string;
@@ -67,8 +68,7 @@ function productCategory(p: Product) {
 }
 
 function formatPrice(price?: string | number | null) {
-  const n = Number(price || 0);
-  return Number.isFinite(n) ? n.toFixed(2) : "0.00";
+  return formatDecimal(price);
 }
 
 export default function MarketStoreScreen() {

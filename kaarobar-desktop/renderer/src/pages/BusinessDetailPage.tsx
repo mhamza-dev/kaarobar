@@ -15,6 +15,7 @@ import {
 } from "@/components/app/BrandTheme";
 import { Field, TabBar, fieldClass } from "@/components/app/ui";
 import Button from "@/components/ui/Button";
+import Select from "@/components/ui/Select";
 import Modal from "@/components/modals/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
@@ -289,17 +290,12 @@ function BusinessDetailPageInner() {
                     />
                   </Field>
                   <Field label={t("businesses.industry")}>
-                    <select
-                      className={fieldClass}
+                    <Select
                       value={form.industry}
-                      onChange={(e) => setForm({ ...form, industry: e.target.value })}
-                    >
-                      {INDUSTRIES.map((ind) => (
-                        <option key={ind} value={ind}>
-                          {ind}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(v) => setForm({ ...form, industry: v })}
+                      options={INDUSTRIES.map((ind) => ({ value: ind, label: ind }))}
+                      triggerClassName="border-border bg-bg-secondary/80"
+                    />
                   </Field>
                   <Field label={t("businesses.taxJurisdiction")}>
                     <input

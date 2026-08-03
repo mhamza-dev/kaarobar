@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
 import { colors } from "../lib/api";
 import { useBrandPalette } from "../lib/BrandThemeContext";
+import { formatDecimal } from "../lib/decimal";
 
 /** Shared marketplace page hero. */
 export function BuyerHero({
@@ -105,8 +106,7 @@ export function BuyerEmptyPanel({
 }
 
 export function formatMarketplacePrice(price?: string | number | null): string {
-  const n = Number(price || 0);
-  return Number.isFinite(n) ? n.toFixed(2) : "0.00";
+  return formatDecimal(price);
 }
 
 export function marketplaceProductCategory(p: {

@@ -19,11 +19,9 @@ import {
   BuyerHero,
 } from "@/components/buyer/BuyerLayout";
 import { useT } from "@/lib/i18n";
+import { formatDecimal } from "@/lib/decimal";
 import { ShoppingCart } from "lucide-react";
 
-function money(n: number) {
-  return n.toFixed(2);
-}
 
 export default function CheckoutPayPage() {
   const router = useRouter();
@@ -108,7 +106,7 @@ export default function CheckoutPayPage() {
             }),
           });
           placed.push(
-            `${store.businessName}: ${res.data.invoice_number} (Rs ${res.data.total_amount})`
+            `${store.businessName}: ${res.data.invoice_number} (Rs ${formatDecimal(res.data.total_amount)})`
           );
           clearStore(store.businessId);
         } catch (err) {
@@ -152,8 +150,8 @@ export default function CheckoutPayPage() {
         title={t("pages.checkoutPayTitle")}
         description={
           stores.length === 1
-            ? `${stores[0].businessName} · Rs ${money(subtotal)}`
-            : `${t("marketplace.orderIncludesShops", { count: stores.length })} · Rs ${money(subtotal)}`
+            ? `${stores[0].businessName} · Rs ${formatDecimal(subtotal)}`
+            : `${t("marketplace.orderIncludesShops", { count: stores.length })} · Rs ${formatDecimal(subtotal)}`
         }
         infoKey="page.checkout.pay"
       >
@@ -173,7 +171,7 @@ export default function CheckoutPayPage() {
               return (
                 <li key={s.businessId} className="flex justify-between gap-2">
                   <span className="font-medium text-heading">{s.businessName}</span>
-                  <span className="tabular-nums">Rs {money(total)}</span>
+                  <span className="tabular-nums">Rs {formatDecimal(total)}</span>
                 </li>
               );
             })}
@@ -243,7 +241,7 @@ export default function CheckoutPayPage() {
 
         <div className="flex items-center justify-between border-t border-border pt-3 font-bold text-heading">
           <span>{t("common.total")}</span>
-          <span>Rs {money(subtotal)}</span>
+          <span>Rs {formatDecimal(subtotal)}</span>
         </div>
 
         <Button className="w-full rounded-md" disabled={busy} loading={busy} onClick={() => void placeOrder()}>

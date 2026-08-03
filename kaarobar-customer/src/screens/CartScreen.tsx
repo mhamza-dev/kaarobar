@@ -10,6 +10,7 @@ import type { NavigationProp, ParamListBase } from "@react-navigation/native";
 import { pushPath } from "../lib/nav";
 import { useMemo } from "react";
 import { FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { formatDecimal } from "../lib/decimal";
 
 function StoreSection({
   store,
@@ -37,7 +38,7 @@ function StoreSection({
       <View style={styles.storeHead}>
         <View style={{ flex: 1 }}>
           <Text style={styles.storeName}>{store.businessName}</Text>
-          <Text style={styles.storeSub}>Rs {storeTotal.toFixed(2)}</Text>
+          <Text style={styles.storeSub}>Rs {formatDecimal(storeTotal)}</Text>
         </View>
         <Pressable
           onPress={() => pushPath(navigation, `/app/market/${store.businessId}`)}
@@ -57,7 +58,7 @@ function StoreSection({
           )}
           <View style={{ flex: 1 }}>
             <Text style={styles.name}>{line.name}</Text>
-            <Text style={styles.price}>Rs {line.price.toFixed(2)}</Text>
+            <Text style={styles.price}>Rs {formatDecimal(line.price)}</Text>
             <View style={styles.qtyRow}>
               <Pressable
                 style={styles.qtyBtn}
@@ -82,7 +83,7 @@ function StoreSection({
             </View>
           </View>
           <Text style={styles.lineTotal}>
-            Rs {(line.quantity * line.price).toFixed(2)}
+            Rs {formatDecimal(line.quantity * line.price)}
           </Text>
         </View>
       ))}
@@ -150,7 +151,7 @@ export default function CheckoutReviewScreen() {
         ListFooterComponent={
           <View style={styles.footer}>
             <Text style={styles.total}>
-              {t("marketplace.grandTotal")} · Rs {subtotal.toFixed(2)}
+              {t("marketplace.grandTotal")} · Rs {formatDecimal(subtotal)}
             </Text>
             <Pressable
               style={[styles.cta, { backgroundColor: footerPalette.brand }]}

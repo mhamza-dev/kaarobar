@@ -1,10 +1,12 @@
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { api, getSession } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
+import Select from "@/components/ui/Select";
 import ProfilePicEditor from "@/components/app/ProfilePicEditor";
 import { PageHeader, SurfaceCard, TabBar, fieldClass } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
+import { formatDecimal } from "@/lib/decimal";
 import { useTabQueryParam } from "@/lib/hooks/useTabQueryParam";
 import { routes } from "@/lib/navigation";
 
@@ -235,15 +237,16 @@ function EssPageInner() {
             <form className="grid max-w-xl gap-3" onSubmit={(e) => void submitLeave(e)}>
               <label className="block text-sm">
                 <span className="mb-1.5 block font-medium text-heading">Type</span>
-                <select
-                  className={fieldClass}
+                <Select
                   value={leaveType}
-                  onChange={(e) => setLeaveType(e.target.value)}
-                >
-                  <option value="annual">annual</option>
-                  <option value="sick">sick</option>
-                  <option value="other">other</option>
-                </select>
+                  onChange={(v) => setLeaveType(v)}
+                  options={[
+                    { value: "annual", label: "annual" },
+                    { value: "sick", label: "sick" },
+                    { value: "other", label: "other" },
+                  ]}
+                  triggerClassName="border-border bg-bg-secondary/80"
+                />
               </label>
               <label className="block text-sm">
                 <span className="mb-1.5 block font-medium text-heading">Start date</span>
@@ -314,7 +317,7 @@ function EssPageInner() {
                     {p.period_start || "—"} → {p.period_end || "—"}
                   </p>
                   <p className="text-body">
-                    Gross {p.gross_pay} · Net {p.net_pay}
+                    Gross {formatDecimal(p.gross_pay)} · Net {formatDecimal(p.net_pay)}
                   </p>
                   <p className="text-body">
                     Hours {p.earnings?.worked_hours || "0"} · OT{" "}
@@ -323,7 +326,8 @@ function EssPageInner() {
                   </p>
                   {p.deductions ? (
                     <p className="text-body">
-                      Tax {p.deductions.income_tax || "0"} · EOBI {p.deductions.eobi || "0"}
+                      Tax {formatDecimal(p.deductions.income_tax || "0")} · EOBI{" "}
+                      {formatDecimal(p.deductions.eobi || "0")}
                     </p>
                   ) : null}
                 </div>

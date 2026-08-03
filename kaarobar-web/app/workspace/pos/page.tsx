@@ -22,6 +22,7 @@ import { StatusBadge, fieldClass } from "@/components/app/ui";
 import SaleReceiptModal, { type ReceiptSale } from "@/components/app/SaleReceiptModal";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
+import { formatDecimal } from "@/lib/decimal";
 
 type Product = {
   id: string;
@@ -76,9 +77,6 @@ type Customer = {
   loyalty_points?: number;
 };
 
-function money(n: number) {
-  return n.toFixed(2);
-}
 
 const MAX_LINE_QTY = 99_999;
 
@@ -127,7 +125,7 @@ function CartQtyInput({
           e.currentTarget.blur();
         }
       }}
-      className="h-8 w-14 rounded-md border border-border bg-card text-center text-sm font-bold tabular-nums text-heading outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+      className="h-8 w-14 rounded-md border border-border bg-card text-center text-sm font-bold tabular-nums text-heading outline-none focus:border-brand"
     />
   );
 }
@@ -325,7 +323,7 @@ export default function PosPage() {
   const total = round2(subtotal - discount + tax);
 
   useEffect(() => {
-    setPayCash(money(total));
+    setPayCash(formatDecimal(total));
     setPayCard("");
     setPayWallet("");
     setPayKhata("");
@@ -334,10 +332,10 @@ export default function PosPage() {
 
   function setPayMethod(method: PayMethod) {
     setPayFocus(method);
-    setPayCash(method === "cash" ? money(total) : "");
-    setPayCard(method === "card" ? money(total) : "");
-    setPayWallet(method === "wallet" ? money(total) : "");
-    setPayKhata(method === "khata" ? money(total) : "");
+    setPayCash(method === "cash" ? formatDecimal(total) : "");
+    setPayCard(method === "card" ? formatDecimal(total) : "");
+    setPayWallet(method === "wallet" ? formatDecimal(total) : "");
+    setPayKhata(method === "khata" ? formatDecimal(total) : "");
   }
 
   function buildPayments() {
@@ -452,7 +450,7 @@ export default function PosPage() {
     const payments = buildPayments();
     const paySum = round2(payments.reduce((s, p) => s + p.amount, 0));
     if (payments.length === 0 || Math.abs(paySum - total) > 0.001) {
-      toast.warning(`${t("common.total")}: ${money(total)} / ${money(paySum)}`);
+      toast.warning(`${t("common.total")}: ${formatDecimal(total)} / ${formatDecimal(paySum)}`);
       return;
     }
     const khataAmt = payments.find((p) => p.method === "khata")?.amount || 0;
@@ -536,7 +534,7 @@ export default function PosPage() {
                       {t("pos.tillOpenLabel")}
                     </p>
                     <p className="text-sm font-semibold tabular-nums text-heading">
-                      {t("pos.floatAmount", { amount: till.opening_cash })}
+                      {t("pos.floatAmount", { amount: formatDecimal(till.opening_cash) })}
                     </p>
                   </div>
                 </div>
@@ -552,6 +550,12 @@ export default function PosPage() {
                     <input
                       value={closingCash}
                       onChange={(e) => setClosingCash(e.target.value)}
+                      onBlur={(e) => {
+                        if (e.target.value.trim() === "") return;
+                        setClosingCash(formatDecimal(e.target.value));
+                      }}
+                      type="number"
+                      step="0.01"
                       inputMode="decimal"
                       placeholder="0.00"
                       aria-label={t("pos.closingCash")}
@@ -594,6 +598,12 @@ export default function PosPage() {
                     <input
                       value={openingCash}
                       onChange={(e) => setOpeningCash(e.target.value)}
+                      onBlur={(e) => {
+                        if (e.target.value.trim() === "") return;
+                        setOpeningCash(formatDecimal(e.target.value));
+                      }}
+                      type="number"
+                      step="0.01"
                       inputMode="decimal"
                       placeholder="0.00"
                       aria-label={t("pos.openingCash")}
@@ -667,7 +677,7 @@ export default function PosPage() {
                 <div className="mt-0.5 text-xs text-muted">{p.sku}</div>
                 <div className="mt-3 flex items-end justify-between">
                   <span className="text-base font-bold text-heading">
-                    Rs {p.price ?? "0.00"}
+                    Rs {formatDecimal(p.price)}
                   </span>
                   {inCart ? (
                     <StatusBadge tone="info">×{inCart.quantity}</StatusBadge>
@@ -722,14 +732,14 @@ export default function PosPage() {
                             <p className="text-xs text-muted">{l.modifier_labels.join(", ")}</p>
                           ) : null}
                           <p className="text-xs text-muted">
-                            Rs {money(l.unit_price)} each
+                            Rs {formatDecimal(l.unit_price)} each
                             {l.product.duration_minutes
                               ? ` · ${l.product.duration_minutes} min`
                               : ""}
                           </p>
                         </div>
                         <strong className="text-sm text-heading">
-                          {money(l.quantity * l.unit_price)}
+                          {formatDecimal(l.quantity * l.unit_price)}
                         </strong>
                       </div>
                       <div className="mt-3 flex items-center gap-2">
@@ -773,11 +783,11 @@ export default function PosPage() {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between text-body">
                 <span>{t("common.subtotal")}</span>
-                <strong className="text-heading">{money(subtotal)}</strong>
+                <strong className="text-heading">{formatDecimal(subtotal)}</strong>
               </div>
               <div className="flex justify-between text-body">
                 <span>{t("common.tax")}</span>
-                <strong className="text-heading">{money(tax)}</strong>
+                <strong className="text-heading">{formatDecimal(tax)}</strong>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <label className="text-xs text-muted">
@@ -785,7 +795,13 @@ export default function PosPage() {
                   <input
                     value={discountInput}
                     onChange={(e) => setDiscountInput(e.target.value)}
+                    onBlur={(e) => {
+                      if (e.target.value.trim() === "") return;
+                      setDiscountInput(formatDecimal(e.target.value));
+                    }}
                     className={`${fieldClass} mt-1`}
+                    type="number"
+                    step="0.01"
                     inputMode="decimal"
                     placeholder="0"
                   />
@@ -806,7 +822,13 @@ export default function PosPage() {
                   <input
                     value={taxInput}
                     onChange={(e) => setTaxInput(e.target.value)}
+                    onBlur={(e) => {
+                      if (e.target.value.trim() === "") return;
+                      setTaxInput(formatDecimal(e.target.value));
+                    }}
                     className={`${fieldClass} mt-1`}
+                    type="number"
+                    step="0.01"
                     inputMode="decimal"
                     placeholder="0"
                   />
@@ -814,7 +836,7 @@ export default function PosPage() {
               </div>
               <div className="flex items-end justify-between pt-1">
                 <span className="text-base font-semibold text-heading">{t("pos.totalBill")}</span>
-                <strong className="text-2xl font-bold text-heading">Rs {money(total)}</strong>
+                <strong className="text-2xl font-bold text-heading">Rs {formatDecimal(total)}</strong>
               </div>
             </div>
 
@@ -936,7 +958,7 @@ export default function PosPage() {
         <div className="space-y-4">
           <div className="flex items-end justify-between rounded-md border border-border bg-bg-tertiary/50 px-4 py-3">
             <span className="text-sm font-medium text-body">{t("pos.totalBill")}</span>
-            <strong className="text-xl font-bold text-heading">Rs {money(total)}</strong>
+            <strong className="text-xl font-bold text-heading">Rs {formatDecimal(total)}</strong>
           </div>
           <div className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted">
@@ -1006,9 +1028,19 @@ export default function PosPage() {
                   else if (payFocus === "wallet") setPayWallet(v);
                   else setPayKhata(v);
                 }}
+                onBlur={(e) => {
+                  if (e.target.value.trim() === "") return;
+                  const v = formatDecimal(e.target.value);
+                  if (payFocus === "cash") setPayCash(v);
+                  else if (payFocus === "card") setPayCard(v);
+                  else if (payFocus === "wallet") setPayWallet(v);
+                  else setPayKhata(v);
+                }}
                 className={`${fieldClass} mt-1.5 text-base font-semibold tabular-nums`}
+                type="number"
+                step="0.01"
                 inputMode="decimal"
-                placeholder={money(total)}
+                placeholder={formatDecimal(total)}
               />
             </label>
           </div>
@@ -1186,7 +1218,7 @@ export default function PosPage() {
                           }`}
                       >
                         {m.name}
-                        {Number(m.price_delta) > 0 ? ` +${m.price_delta}` : ""}
+                        {Number(m.price_delta) > 0 ? ` +${formatDecimal(m.price_delta)}` : ""}
                       </button>
                     );
                   })}

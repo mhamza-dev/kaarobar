@@ -341,7 +341,7 @@ export default function DataTable<T>({
                       onFilterChange!({ ...filterState!, search: e.target.value })
                     }
                     placeholder={searchPlaceholder || t("common.search")}
-                    className="w-full rounded-md border border-border bg-card py-2 pe-9 ps-9 text-sm text-heading outline-none transition placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand-soft"
+                    className="w-full rounded-md border border-border bg-card py-2 pe-9 ps-9 text-sm text-heading outline-none transition placeholder:text-muted focus:border-brand"
                   />
                   {filterState!.search ? (
                     <button
@@ -365,7 +365,7 @@ export default function DataTable<T>({
                     value={legacyQuery}
                     onChange={(e) => setLegacyQuery(e.target.value)}
                     placeholder={searchPlaceholder || t("common.search")}
-                    className="w-full rounded-md border border-border bg-card py-2 pl-9 pr-9 text-sm text-heading outline-none transition placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand-soft"
+                    className="w-full rounded-md border border-border bg-card py-2 pl-9 pr-9 text-sm text-heading outline-none transition placeholder:text-muted focus:border-brand"
                   />
                   {legacyQuery ? (
                     <button

@@ -6,6 +6,7 @@ import { DetailFieldGrid, DetailSection, DetailShell } from "@/components/app/De
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { canAccessBundle } from "@/lib/rbac";
+import { formatDecimal } from "@/lib/decimal";
 
 type Payslip = {
   id: string;
@@ -91,7 +92,7 @@ export default function PayrollDetailPage() {
       title={
         run ? `${run.period_start} → ${run.period_end}` : "Payroll run"
       }
-      subtitle={run ? `${run.payslips.length} payslip(s) · Rs ${totalNet.toFixed(2)} net` : undefined}
+      subtitle={run ? `${run.payslips.length} payslip(s) · Rs ${formatDecimal(totalNet)} net` : undefined}
       status={
         run
           ? {
@@ -186,8 +187,8 @@ export default function PayrollDetailPage() {
                     <td className="py-2">
                       {s.overtime_hours ?? s.earnings?.ot_hours ?? "—"}
                     </td>
-                    <td className="py-2 text-right tabular-nums">Rs {s.gross_pay}</td>
-                    <td className="py-2 text-right tabular-nums font-medium">Rs {s.net_pay}</td>
+                    <td className="py-2 text-right tabular-nums">Rs {formatDecimal(s.gross_pay)}</td>
+                    <td className="py-2 text-right tabular-nums font-medium">Rs {formatDecimal(s.net_pay)}</td>
                   </tr>
                 ))}
               </tbody>

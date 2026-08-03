@@ -7,12 +7,14 @@ import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
+import Select from "@/components/ui/Select";
 import { Field, PageHeader, TabBar, fieldClass } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { useTabQueryParam } from "@/lib/hooks/useTabQueryParam";
 import { detailRoutes, routes } from "@/lib/navigation";
 import { accountingKeys } from "@/lib/queryClient";
+import { formatDecimal } from "@/lib/decimal";
 import {
   emptyStaffListFilters,
   staffListFilterQuery,
@@ -441,10 +443,10 @@ function AccountingPageInner() {
             date: String(j.date),
             description: j.description,
             source: j.source_type,
-            debit: String(
+            debit: formatDecimal(
               j.lines?.reduce((s, l) => s + Number(l.debit || 0), 0) ?? 0
             ),
-            credit: String(
+            credit: formatDecimal(
               j.lines?.reduce((s, l) => s + Number(l.credit || 0), 0) ?? 0
             ),
           })}
@@ -535,7 +537,12 @@ function AccountingPageInner() {
           title="Trial balance"
           filename="trial-balance"
           headers={["Code", "Account", "Debit", "Credit"]}
-          rows={tb.map((r) => [r.code, r.name, r.debit, r.credit])}
+          rows={tb.map((r) => [
+            r.code,
+            r.name,
+            formatDecimal(r.debit),
+            formatDecimal(r.credit),
+          ])}
           loading={tbLoading}
           filterState={reportFilters}
           onFilterChange={setReportFilters}
@@ -549,7 +556,12 @@ function AccountingPageInner() {
             title="Profit and loss"
             filename="profit-and-loss"
             headers={["Code", "Account", "Type", "Amount"]}
-            rows={(pl?.lines || []).map((r) => [r.code, r.name, r.type, r.amount])}
+            rows={(pl?.lines || []).map((r) => [
+              r.code,
+              r.name,
+              r.type,
+              formatDecimal(r.amount),
+            ])}
             loading={plLoading}
             filterState={reportFilters}
             onFilterChange={setReportFilters}
@@ -557,8 +569,9 @@ function AccountingPageInner() {
           />
           {pl ? (
             <p className="text-heading">
-              Revenue {pl.total_revenue} − Expense {pl.total_expense} ={" "}
-              <strong>Net {pl.net_income}</strong>
+              Revenue {formatDecimal(pl.total_revenue)} − Expense{" "}
+              {formatDecimal(pl.total_expense)} ={" "}
+              <strong>Net {formatDecimal(pl.net_income)}</strong>
             </p>
           ) : null}
         </div>
@@ -570,7 +583,12 @@ function AccountingPageInner() {
             title="Balance sheet"
             filename="balance-sheet"
             headers={["Code", "Account", "Type", "Balance"]}
-            rows={(bs?.lines || []).map((r) => [r.code, r.name, r.type, r.balance])}
+            rows={(bs?.lines || []).map((r) => [
+              r.code,
+              r.name,
+              r.type,
+              formatDecimal(r.balance),
+            ])}
             loading={bsLoading}
             filterState={reportFilters}
             onFilterChange={setReportFilters}
@@ -578,8 +596,9 @@ function AccountingPageInner() {
           />
           {bs ? (
             <p className="text-sm text-heading">
-              Assets {bs.total_assets} · Liabilities {bs.total_liabilities} · Equity{" "}
-              {bs.total_equity}
+              Assets {formatDecimal(bs.total_assets)} · Liabilities{" "}
+              {formatDecimal(bs.total_liabilities)} · Equity{" "}
+              {formatDecimal(bs.total_equity)}
             </p>
           ) : null}
         </div>
@@ -596,9 +615,9 @@ function AccountingPageInner() {
               ? `${r.account_code} · ${r.account_name}`
               : r.account_code || r.account_name || "",
             r.description,
-            r.debit,
-            r.credit,
-            r.balance,
+            formatDecimal(r.debit),
+            formatDecimal(r.credit),
+            formatDecimal(r.balance),
           ])}
           rowCategories={gl.map((r) => r.account_id || "")}
           loading={glLoading || accountsLoading}
@@ -651,7 +670,9 @@ function AccountingPageInner() {
                 id: "balance",
                 header: "Balance",
                 align: "right",
-                cell: (r) => <span className="tabular-nums">{r.balance_due}</span>,
+                cell: (r) => (
+                  <span className="tabular-nums">{formatDecimal(r.balance_due)}</span>
+                ),
               },
               { id: "bucket", header: "Bucket", cell: (r) => r.bucket },
             ]}
@@ -695,7 +716,9 @@ function AccountingPageInner() {
               id: "balance",
               header: "Balance",
               align: "right",
-              cell: (r) => <span className="tabular-nums">{r.balance_due}</span>,
+              cell: (r) => (
+                <span className="tabular-nums">{formatDecimal(r.balance_due)}</span>
+              ),
             },
             { id: "bucket", header: "Bucket", cell: (r) => r.bucket },
           ]}
@@ -760,13 +783,13 @@ function AccountingPageInner() {
                 id: "debit",
                 header: "Debit",
                 align: "right",
-                cell: (l) => <span className="tabular-nums">{l.debit}</span>,
+                cell: (l) => <span className="tabular-nums">{formatDecimal(l.debit)}</span>,
               },
               {
                 id: "credit",
                 header: "Credit",
                 align: "right",
-                cell: (l) => <span className="tabular-nums">{l.credit}</span>,
+                cell: (l) => <span className="tabular-nums">{formatDecimal(l.credit)}</span>,
               },
               {
                 id: "memo",
@@ -824,17 +847,14 @@ function AccountingPageInner() {
             />
           </Field>
           <Field label="Type">
-            <select
-              className={fieldClass}
+            <Select
               value={accountForm.type}
-              onChange={(e) => setAccountForm({ ...accountForm, type: e.target.value })}
-            >
-              {["asset", "liability", "equity", "revenue", "expense"].map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => setAccountForm({ ...accountForm, type: v })}
+              options={["asset", "liability", "equity", "revenue", "expense"].map(
+                (t) => ({ value: t, label: t })
+              )}
+              triggerClassName="border-border bg-bg-secondary/80"
+            />
           </Field>
         </form>
       </Modal>
@@ -867,25 +887,27 @@ function AccountingPageInner() {
           </Field>
           {([lineA, lineB] as const).map((line, idx) => (
             <div key={idx} className="grid gap-2 md:grid-cols-3">
-              <select
-                className={fieldClass}
-                value={line.account_id}
-                onChange={(e) =>
-                  idx === 0
-                    ? setLineA({ ...lineA, account_id: e.target.value })
-                    : setLineB({ ...lineB, account_id: e.target.value })
-                }
+              <Select
+                name={`je-account-${idx}`}
                 required
-              >
-                <option value="">Account</option>
-                {accounts.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.code} {a.name}
-                  </option>
-                ))}
-              </select>
+                value={line.account_id}
+                onChange={(v) =>
+                  idx === 0
+                    ? setLineA({ ...lineA, account_id: v })
+                    : setLineB({ ...lineB, account_id: v })
+                }
+                placeholder="Account"
+                options={accounts.map((a) => ({
+                  value: a.id,
+                  label: `${a.code} ${a.name}`,
+                }))}
+                triggerClassName="border-border bg-bg-secondary/80"
+              />
               <input
                 className={fieldClass}
+                type="number"
+                step="0.01"
+                min={0}
                 placeholder="Debit"
                 value={line.debit}
                 onChange={(e) =>
@@ -893,9 +915,20 @@ function AccountingPageInner() {
                     ? setLineA({ ...lineA, debit: e.target.value })
                     : setLineB({ ...lineB, debit: e.target.value })
                 }
+                onBlur={(e) => {
+                  const v = e.target.value.trim();
+                  if (!v) return;
+                  const next = formatDecimal(v);
+                  idx === 0
+                    ? setLineA({ ...lineA, debit: next })
+                    : setLineB({ ...lineB, debit: next });
+                }}
               />
               <input
                 className={fieldClass}
+                type="number"
+                step="0.01"
+                min={0}
                 placeholder="Credit"
                 value={line.credit}
                 onChange={(e) =>
@@ -903,6 +936,14 @@ function AccountingPageInner() {
                     ? setLineA({ ...lineA, credit: e.target.value })
                     : setLineB({ ...lineB, credit: e.target.value })
                 }
+                onBlur={(e) => {
+                  const v = e.target.value.trim();
+                  if (!v) return;
+                  const next = formatDecimal(v);
+                  idx === 0
+                    ? setLineA({ ...lineA, credit: next })
+                    : setLineB({ ...lineB, credit: next });
+                }}
               />
             </div>
           ))}

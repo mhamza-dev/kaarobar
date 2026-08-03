@@ -25,7 +25,10 @@ import {
 import { formatLocalDateTime } from "@/lib/datetime";
 import SearchSelect from "@/components/ui/SearchSelect";
 import SearchMultiSelect from "@/components/ui/SearchMultiSelect";
+import Select from "@/components/ui/Select";
 import { inventoryKeys } from "@/lib/queryClient";
+import { formatDecimal } from "@/lib/decimal";
+import { generateBarcode } from "@/lib/barcode";
 
 type Tab = "stock" | "products" | "suppliers" | "pos" | "transfers" | "adjust";
 const INVENTORY_TABS: readonly Tab[] = ["stock", "products", "suppliers", "pos", "transfers", "adjust"];
@@ -761,7 +764,7 @@ function InventoryPageInner() {
             sku: row.sku ?? "",
             name: row.name ?? "",
             qty: row.quantity_on_hand,
-            cost: row.avg_cost,
+            cost: formatDecimal(row.avg_cost),
           })}
           exportColumns={[
             { key: "sku", header: "SKU" },
@@ -797,7 +800,7 @@ function InventoryPageInner() {
               header: "Avg cost",
               align: "right",
               cell: (row) => (
-                <span className="tabular-nums text-body">{row.avg_cost}</span>
+                <span className="tabular-nums text-body">{formatDecimal(row.avg_cost)}</span>
               ),
             },
           ]}
@@ -832,7 +835,7 @@ function InventoryPageInner() {
             name: p.name,
             kind: p.product_kind || "goods",
             unit: p.unit || "pcs",
-            price: p.price ?? "",
+            price: p.price != null && p.price !== "" ? formatDecimal(p.price) : "",
           })}
           exportColumns={[
             { key: "sku", header: "SKU" },
@@ -906,7 +909,7 @@ function InventoryPageInner() {
               align: "right",
               cell: (p) => (
                 <span className="tabular-nums font-semibold text-heading">
-                  {p.price ?? "—"}
+                  {p.price != null && p.price !== "" ? formatDecimal(p.price) : "—"}
                 </span>
               ),
             },
@@ -1089,28 +1092,27 @@ function InventoryPageInner() {
           <SurfaceCard className="p-5">
             <h2 className="font-semibold text-heading">Receive GRN</h2>
             <form onSubmit={receiveGRN} className="mt-4 space-y-3">
-              <select
-                className={fieldClass}
+              <Select
+                name="purchase_order_id"
+                required
                 value={grnForm.purchase_order_id}
-                onChange={(e) => {
-                  const po = pos.find((p) => p.id === e.target.value);
+                onChange={(v) => {
+                  const po = pos.find((p) => p.id === v);
                   setGrnForm({
-                    purchase_order_id: e.target.value,
+                    purchase_order_id: v,
                     product_id: po?.items[0]?.product_id || "",
                     quantity_received: po?.items[0]?.quantity || "",
                   });
                 }}
-                required
-              >
-                <option value="">Purchase order</option>
-                {pos
+                placeholder="Purchase order"
+                options={pos
                   .filter((p) => p.status !== "received" && p.status !== "cancelled")
-                  .map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.supplier_name || p.id.slice(0, 8)} · {p.status}
-                    </option>
-                  ))}
-              </select>
+                  .map((p) => ({
+                    value: p.id,
+                    label: `${p.supplier_name || p.id.slice(0, 8)} · ${p.status}`,
+                  }))}
+                triggerClassName="border-border bg-bg-secondary/80"
+              />
               <input
                 className={fieldClass}
                 placeholder="Qty received"
@@ -1316,19 +1318,19 @@ function InventoryPageInner() {
               }
               required
             />
-            <select
-              className={fieldClass}
+            <Select
               value={adjustForm.reason_code}
-              onChange={(e) => setAdjustForm({ ...adjustForm, reason_code: e.target.value })}
-            >
-              {["adjustment", "damage", "theft", "count_correction", "expired", "sample"].map(
-                (r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                )
-              )}
-            </select>
+              onChange={(v) => setAdjustForm({ ...adjustForm, reason_code: v })}
+              options={[
+                "adjustment",
+                "damage",
+                "theft",
+                "count_correction",
+                "expired",
+                "sample",
+              ].map((r) => ({ value: r, label: r }))}
+              triggerClassName="border-border bg-bg-secondary/80"
+            />
             <Button type="submit">Apply adjustment</Button>
           </form>
         </SurfaceCard>
@@ -1365,13 +1367,27 @@ function InventoryPageInner() {
                 required
               />
             </Field>
-            <Field label="Barcode">
-              <input
-                className={fieldClass}
-                value={productForm.barcode}
-                onChange={(e) => setProductForm({ ...productForm, barcode: e.target.value })}
-                placeholder="Scan or type"
-              />
+            <Field label={t("inventory.barcode")}>
+              <div className="flex gap-2">
+                <input
+                  className={`${fieldClass} min-w-0 flex-1`}
+                  value={productForm.barcode}
+                  onChange={(e) =>
+                    setProductForm({ ...productForm, barcode: e.target.value })
+                  }
+                  placeholder={t("inventory.barcodePlaceholder")}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="shrink-0"
+                  onClick={() =>
+                    setProductForm({ ...productForm, barcode: generateBarcode() })
+                  }
+                >
+                  {t("inventory.generateBarcode")}
+                </Button>
+              </div>
             </Field>
           </div>
           <Field label="Name">
@@ -1384,36 +1400,46 @@ function InventoryPageInner() {
           </Field>
           <div className="grid gap-4 sm:grid-cols-3">
             <Field label="Kind">
-              <select
-                className={fieldClass}
+              <Select
                 value={productForm.product_kind}
-                onChange={(e) =>
-                  setProductForm({ ...productForm, product_kind: e.target.value })
+                onChange={(v) =>
+                  setProductForm({ ...productForm, product_kind: v })
                 }
-              >
-                <option value="goods">Goods</option>
-                <option value="service">Service</option>
-                <option value="combo">Combo</option>
-              </select>
+                options={[
+                  { value: "goods", label: "Goods" },
+                  { value: "service", label: "Service" },
+                  { value: "combo", label: "Combo" },
+                ]}
+                triggerClassName="border-border bg-bg-secondary/80"
+              />
             </Field>
             <Field label="Unit">
-              <select
-                className={fieldClass}
+              <Select
                 value={productForm.unit}
-                onChange={(e) => setProductForm({ ...productForm, unit: e.target.value })}
-              >
-                {["pcs", "kg", "g", "ml", "l", "box", "pack", "hour", "session"].map((u) => (
-                  <option key={u} value={u}>
-                    {u}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setProductForm({ ...productForm, unit: v })}
+                options={["pcs", "kg", "g", "ml", "l", "box", "pack", "hour", "session"].map(
+                  (u) => ({ value: u, label: u })
+                )}
+                triggerClassName="border-border bg-bg-secondary/80"
+              />
             </Field>
             <Field label="Branch price">
               <input
                 className={fieldClass}
+                type="number"
+                step="0.01"
+                min={0}
                 value={productForm.price}
-                onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
+                onChange={(e) =>
+                  setProductForm({ ...productForm, price: e.target.value })
+                }
+                onBlur={() => {
+                  if (!productForm.price.trim()) return;
+                  setProductForm({
+                    ...productForm,
+                    price: formatDecimal(productForm.price),
+                  });
+                }}
                 required
               />
             </Field>
@@ -1427,25 +1453,23 @@ function InventoryPageInner() {
               />
             </Field>
             <Field label="Category">
-              <select
-                className={fieldClass}
+              <Select
                 value={productForm.category_id}
-                onChange={(e) => {
-                  const cat = categories.find((c) => c.id === e.target.value);
+                onChange={(v) => {
+                  const cat = categories.find((c) => c.id === v);
                   setProductForm({
                     ...productForm,
-                    category_id: e.target.value,
+                    category_id: v,
                     category: cat?.name || "",
                   });
                 }}
-              >
-                <option value="">Select…</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+                placeholder="Select…"
+                options={[
+                  { value: "", label: "Select…" },
+                  ...categories.map((c) => ({ value: c.id, label: c.name })),
+                ]}
+                triggerClassName="border-border bg-bg-secondary/80"
+              />
             </Field>
           </div>
           {productForm.product_kind === "service" ? (
@@ -1550,17 +1574,15 @@ function InventoryPageInner() {
                 />
               </Field>
               <Field label="Status">
-                <select
-                  className={fieldClass}
+                <Select
                   value={supplierForm.status}
-                  onChange={(e) => setSupplierForm({ ...supplierForm, status: e.target.value })}
-                >
-                  {["active", "inactive", "blocked", "pending"].map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(v) => setSupplierForm({ ...supplierForm, status: v })}
+                  options={["active", "inactive", "blocked", "pending"].map((s) => ({
+                    value: s,
+                    label: s,
+                  }))}
+                  triggerClassName="border-border bg-bg-secondary/80"
+                />
               </Field>
               <Field label="Rating (1–5)">
                 <input
@@ -1730,19 +1752,16 @@ function InventoryPageInner() {
                 />
               </Field>
               <Field label="Payment method">
-                <select
-                  className={fieldClass}
+                <Select
                   value={supplierForm.payment_method}
-                  onChange={(e) =>
-                    setSupplierForm({ ...supplierForm, payment_method: e.target.value })
+                  onChange={(v) =>
+                    setSupplierForm({ ...supplierForm, payment_method: v })
                   }
-                >
-                  {["bank_transfer", "cash", "cheque", "wallet", "credit"].map((m) => (
-                    <option key={m} value={m}>
-                      {m.replace("_", " ")}
-                    </option>
-                  ))}
-                </select>
+                  options={["bank_transfer", "cash", "cheque", "wallet", "credit"].map(
+                    (m) => ({ value: m, label: m.replace("_", " ") })
+                  )}
+                  triggerClassName="border-border bg-bg-secondary/80"
+                />
               </Field>
               <Field label="Bank name">
                 <input
@@ -1774,10 +1793,23 @@ function InventoryPageInner() {
               <Field label="Credit limit">
                 <input
                   className={fieldClass}
+                  type="number"
+                  step="0.01"
+                  min={0}
                   value={supplierForm.credit_limit}
                   onChange={(e) =>
-                    setSupplierForm({ ...supplierForm, credit_limit: e.target.value })
+                    setSupplierForm({
+                      ...supplierForm,
+                      credit_limit: e.target.value,
+                    })
                   }
+                  onBlur={() => {
+                    if (!supplierForm.credit_limit.trim()) return;
+                    setSupplierForm({
+                      ...supplierForm,
+                      credit_limit: formatDecimal(supplierForm.credit_limit),
+                    });
+                  }}
                 />
               </Field>
               <Field label="Currency">
@@ -1803,6 +1835,9 @@ function InventoryPageInner() {
               <Field label="Minimum order amount">
                 <input
                   className={fieldClass}
+                  type="number"
+                  step="0.01"
+                  min={0}
                   value={supplierForm.minimum_order_amount}
                   onChange={(e) =>
                     setSupplierForm({
@@ -1810,6 +1845,15 @@ function InventoryPageInner() {
                       minimum_order_amount: e.target.value,
                     })
                   }
+                  onBlur={() => {
+                    if (!supplierForm.minimum_order_amount.trim()) return;
+                    setSupplierForm({
+                      ...supplierForm,
+                      minimum_order_amount: formatDecimal(
+                        supplierForm.minimum_order_amount
+                      ),
+                    });
+                  }}
                 />
               </Field>
             </div>
@@ -1936,16 +1980,32 @@ function InventoryPageInner() {
                     <Field label={t("inventory.unitCost")}>
                       <input
                         className={fieldClass}
+                        type="number"
+                        step="0.01"
+                        min={0}
                         value={poForm.unit_costs[id] || ""}
-                        onChange={(e) =>
+                        onChange={(e) => {
+                          const v = e.target.value;
                           setPoForm((f) => ({
                             ...f,
                             unit_costs: {
                               ...f.unit_costs,
-                              [id]: e.target.value,
+                              [id]: v,
                             },
-                          }))
-                        }
+                          }));
+                        }}
+                        onBlur={(e) => {
+                          const raw = e.target.value.trim();
+                          if (!raw) return;
+                          const v = formatDecimal(raw);
+                          setPoForm((f) => ({
+                            ...f,
+                            unit_costs: {
+                              ...f.unit_costs,
+                              [id]: v,
+                            },
+                          }));
+                        }}
                       />
                     </Field>
                   </div>

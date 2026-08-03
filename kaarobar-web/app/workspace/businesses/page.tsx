@@ -8,6 +8,7 @@ import { canAccessBundle } from "@/lib/rbac";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
+import Select from "@/components/ui/Select";
 import {
   Field,
   PageHeader,
@@ -212,17 +213,14 @@ export default function BusinessesPage() {
             />
           </Field>
           <Field label={t("businesses.industry")}>
-            <select
-              className={fieldClass}
+            <Select
               value={form.industry}
-              onChange={(e) => setForm({ ...form, industry: e.target.value })}
-            >
-              {INDUSTRIES.map((ind) => (
-                <option key={ind} value={ind}>
-                  {t(`businesses.industries.${ind}`)}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => setForm({ ...form, industry: v })}
+              options={INDUSTRIES.map((ind) => ({
+                value: ind,
+                label: t(`businesses.industries.${ind}`),
+              }))}
+            />
           </Field>
         </form>
       </Modal>

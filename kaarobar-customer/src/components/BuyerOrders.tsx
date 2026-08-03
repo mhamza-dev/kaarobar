@@ -20,6 +20,7 @@ import { BuyerOrderListSkeleton } from "./BuyerSkeletons";
 import { useNavigation } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
 import { pushPath } from "../lib/nav";
+import { formatDecimal } from "../lib/decimal";
 
 type Order = {
   id: string;
@@ -190,7 +191,7 @@ export default function BuyerOrders() {
               <View style={styles.cardBody}>
                 <View style={styles.row}>
                   <Text style={styles.invoice}>{o.invoice_number}</Text>
-                  <Text style={styles.amount}>Rs {o.total_amount}</Text>
+                  <Text style={styles.amount}>Rs {formatDecimal(o.total_amount)}</Text>
                 </View>
                 <View style={styles.badgeRow}>
                   <Text

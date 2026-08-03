@@ -17,6 +17,7 @@ import BuyerNav from "./BuyerNav";
 import { BuyerEmptyPanel, BuyerHero } from "./BuyerLayout";
 import { BuyerArSkeleton } from "./BuyerSkeletons";
 import { t } from "../lib/i18n";
+import { formatDecimal } from "../lib/decimal";
 
 type Invoice = {
   id: string;
@@ -135,7 +136,7 @@ export default function BuyerAr() {
           {balances.map((b) => (
             <View key={b.business_id} style={styles.card}>
               <Text style={styles.biz}>{b.business_name || nameFor(b.business_id)}</Text>
-              <Text style={styles.amount}>Rs {b.balance}</Text>
+              <Text style={styles.amount}>Rs {formatDecimal(b.balance)}</Text>
             </View>
           ))}
           {invoices.length > 0 ? (
@@ -150,7 +151,7 @@ export default function BuyerAr() {
                   <Text style={styles.invoice}>{inv.invoice_number}</Text>
                   <Text style={styles.meta}>
                     {inv.business_name || nameFor(inv.business_id)} · {t("marketplace.due")} Rs{" "}
-                    {inv.balance_due} · {inv.status}
+                    {formatDecimal(inv.balance_due)} · {inv.status}
                   </Text>
                   <Text style={[styles.tap, { color: palette.brand }]}>
                     {t("marketplace.viewDetails")} →
@@ -188,7 +189,7 @@ export default function BuyerAr() {
                 </Text>
                 {selected.total_amount ? (
                   <Text style={styles.meta}>
-                    {t("common.total")} · Rs {selected.total_amount}
+                    {t("common.total")} · Rs {formatDecimal(selected.total_amount)}
                   </Text>
                 ) : null}
                 {selected.due_date ? (
@@ -196,7 +197,7 @@ export default function BuyerAr() {
                     {t("marketplace.dueDate")} · {String(selected.due_date)}
                   </Text>
                 ) : null}
-                <Text style={styles.amount}>Rs {selected.balance_due}</Text>
+                <Text style={styles.amount}>Rs {formatDecimal(selected.balance_due)}</Text>
                 <Text style={styles.meta}>{t("marketplace.balanceDue")}</Text>
                 <Pressable
                   style={[styles.pay, payMutation.isPending && { opacity: 0.5 }]}
@@ -207,7 +208,7 @@ export default function BuyerAr() {
                     <ActivityIndicator color={colors.white} />
                   ) : (
                     <Text style={styles.payText}>
-                      {t("marketplace.payNow")} · Rs {selected.balance_due}
+                      {t("marketplace.payNow")} · Rs {formatDecimal(selected.balance_due)}
                     </Text>
                   )}
                 </Pressable>

@@ -1,4 +1,5 @@
 import Button from "@/components/ui/Button";
+import { formatDecimal } from "@/lib/decimal";
 
 export type ReceiptSale = {
   id: string;
@@ -69,7 +70,7 @@ export default function SaleReceiptModal({
                 <tr key={`${item.name}-${idx}`} className="border-b border-slate-100">
                   <td className="py-1.5 pr-2">{item.name}</td>
                   <td className="py-1.5 text-right">{item.quantity}</td>
-                  <td className="py-1.5 text-right">{item.line_total}</td>
+                  <td className="py-1.5 text-right">{formatDecimal(item.line_total)}</td>
                 </tr>
               ))}
             </tbody>
@@ -78,21 +79,21 @@ export default function SaleReceiptModal({
           <div className="space-y-1 text-xs">
             <div className="flex justify-between">
               <span>Subtotal</span>
-              <span>{sale.subtotal}</span>
+              <span>{formatDecimal(sale.subtotal)}</span>
             </div>
             <div className="flex justify-between">
               <span>Tax</span>
-              <span>{sale.tax_amount}</span>
+              <span>{formatDecimal(sale.tax_amount)}</span>
             </div>
             {sale.discount_amount && Number(sale.discount_amount) > 0 ? (
               <div className="flex justify-between">
                 <span>Discount</span>
-                <span>{sale.discount_amount}</span>
+                <span>{formatDecimal(sale.discount_amount)}</span>
               </div>
             ) : null}
             <div className="flex justify-between text-base font-bold">
               <span>Total</span>
-              <span>Rs {sale.total_amount}</span>
+              <span>Rs {formatDecimal(sale.total_amount)}</span>
             </div>
           </div>
 
@@ -101,7 +102,7 @@ export default function SaleReceiptModal({
             {sale.payments.map((p, i) => (
               <div key={`${p.method}-${i}`} className="flex justify-between capitalize">
                 <span>{p.method}</span>
-                <span>{p.amount}</span>
+                <span>{formatDecimal(p.amount)}</span>
               </div>
             ))}
           </div>

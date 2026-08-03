@@ -4,6 +4,7 @@ import { api } from "@/lib/api/client";
 import { routes } from "@/lib/navigation";
 import { DetailFieldGrid, DetailSection, DetailShell } from "@/components/app/DetailShell";
 import ProfilePicEditor from "@/components/app/ProfilePicEditor";
+import { formatDecimal } from "@/lib/decimal";
 
 type Employee = {
   id: string;
@@ -86,8 +87,8 @@ export default function EmployeeDetailPage() {
                 { label: "Code", value: employee.employee_code },
                 { label: "Position", value: employee.position || "—" },
                 { label: "Join date", value: employee.join_date || "—" },
-                { label: "Basic salary", value: `Rs ${employee.basic_salary}` },
-                { label: "Overtime rate", value: employee.overtime_rate || "—" },
+                { label: "Basic salary", value: `Rs ${formatDecimal(employee.basic_salary)}` },
+                { label: "Overtime rate", value: employee.overtime_rate ? formatDecimal(employee.overtime_rate) : "—" },
                 { label: "Phone", value: employee.phone || "—" },
                 { label: "CNIC", value: employee.cnic || "—" },
                 { label: "Bank IBAN", value: employee.bank_iban || "—" },

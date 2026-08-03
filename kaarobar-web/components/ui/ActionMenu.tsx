@@ -14,6 +14,7 @@ import {
   BookOpen,
   Eye,
   Gift,
+  Link2,
   MoreHorizontal,
   Pencil,
   Send,
@@ -55,6 +56,7 @@ const DEFAULT_ICONS: Record<string, LucideIcon> = {
   ledger: BookOpen,
   khata: Wallet,
   points: Gift,
+  "attach-supplier": Link2,
 };
 
 function resolveItemIcon(item: ActionMenuItem): ReactNode {

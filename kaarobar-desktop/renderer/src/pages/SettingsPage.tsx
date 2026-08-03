@@ -13,6 +13,7 @@ import {
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
+import { formatDecimal } from "@/lib/decimal";
 import { detailRoutes } from "@/lib/navigation";
 import { planAllowsFbr } from "@/lib/rbac";
 import { settingsKeys } from "@/lib/queryClient";
@@ -635,10 +636,20 @@ function SettingsPageInner() {
                     {t("settings.loyaltyEarnPerAmount")}
                     <input
                       className="mt-1 w-full rounded border border-border px-2 py-1 text-sm"
+                      type="number"
+                      step="0.01"
+                      min={0}
                       value={activeBusiness.loyalty_earn_per_amount || "100"}
                       onChange={(e) =>
                         patchActive({ loyalty_earn_per_amount: e.target.value })
                       }
+                      onBlur={(e) => {
+                        const v = e.target.value.trim();
+                        if (!v) return;
+                        patchActive({
+                          loyalty_earn_per_amount: formatDecimal(v),
+                        });
+                      }}
                     />
                   </label>
                   <label className="text-xs text-body">
@@ -658,10 +669,18 @@ function SettingsPageInner() {
                     {t("settings.loyaltyRedeemValue")}
                     <input
                       className="mt-1 w-full rounded border border-border px-2 py-1 text-sm"
+                      type="number"
+                      step="0.01"
+                      min={0}
                       value={activeBusiness.loyalty_redeem_value || "1.00"}
                       onChange={(e) =>
                         patchActive({ loyalty_redeem_value: e.target.value })
                       }
+                      onBlur={(e) => {
+                        const v = e.target.value.trim();
+                        if (!v) return;
+                        patchActive({ loyalty_redeem_value: formatDecimal(v) });
+                      }}
                     />
                   </label>
                   <button

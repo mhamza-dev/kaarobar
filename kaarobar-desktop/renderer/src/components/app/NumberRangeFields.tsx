@@ -1,6 +1,7 @@
 "use client";
 
 import { useT } from "@/lib/i18n";
+import { formatDecimal } from "@/lib/decimal";
 
 type Props = {
   min: string;
@@ -32,20 +33,30 @@ export default function NumberRangeFields({
       <div className="grid grid-cols-2 gap-2">
         <input
           type="number"
+          step="0.01"
           inputMode="decimal"
           value={min}
           onChange={(e) => onMinChange(e.target.value)}
+          onBlur={() => {
+            if (!min.trim()) return;
+            onMinChange(formatDecimal(min));
+          }}
           placeholder={minPlaceholder || t("listFilters.min")}
-          className="w-full rounded-md border border-border bg-bg-primary px-3 py-2 text-sm text-heading outline-none focus:border-brand/40 focus:ring-1 focus:ring-brand/20"
+          className="w-full rounded-md border border-border bg-bg-primary px-3 py-2 text-sm text-heading outline-none focus:border-brand/40"
           aria-label={minPlaceholder || t("listFilters.min")}
         />
         <input
           type="number"
+          step="0.01"
           inputMode="decimal"
           value={max}
           onChange={(e) => onMaxChange(e.target.value)}
+          onBlur={() => {
+            if (!max.trim()) return;
+            onMaxChange(formatDecimal(max));
+          }}
           placeholder={maxPlaceholder || t("listFilters.max")}
-          className="w-full rounded-md border border-border bg-bg-primary px-3 py-2 text-sm text-heading outline-none focus:border-brand/40 focus:ring-1 focus:ring-brand/20"
+          className="w-full rounded-md border border-border bg-bg-primary px-3 py-2 text-sm text-heading outline-none focus:border-brand/40"
           aria-label={maxPlaceholder || t("listFilters.max")}
         />
       </div>

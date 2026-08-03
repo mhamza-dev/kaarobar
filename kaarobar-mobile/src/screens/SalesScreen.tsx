@@ -19,6 +19,7 @@ import {
   applyListingFilters,
   type ListingFilterState,
 } from "../lib/listingFilters";
+import { formatDecimal } from "../lib/decimal";
 
 type SaleRow = {
   id: string;
@@ -171,7 +172,7 @@ export default function SalesScreen() {
                 <View key={sale.id} style={styles.rowCard}>
                   <View style={styles.row}>
                     <Text style={styles.invoice}>{sale.invoice_number}</Text>
-                    <Text style={styles.amount}>Rs {sale.total_amount}</Text>
+                    <Text style={styles.amount}>Rs {formatDecimal(sale.total_amount)}</Text>
                   </View>
                   <Text style={styles.meta}>
                     {sale.customer_name || "Walk-in"} · {sale.status}

@@ -14,6 +14,7 @@ import { canAccess, canAccessRoute } from "../lib/rbac";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
 import { replacePath, pushPath } from "../lib/nav";
+import { formatDecimal } from "../lib/decimal";
 
 type SaleItem = {
   product_id: string;
@@ -133,7 +134,9 @@ export default function ReturnsScreen() {
           items,
         }),
       });
-      setMessage(`Return ${res.data.status} · Rs ${res.data.refund_amount}`);
+      setMessage(
+        `Return ${res.data.status} · Rs ${formatDecimal(res.data.refund_amount)}`
+      );
       setSale(null);
       setSaleId("");
       await reload();
@@ -205,7 +208,7 @@ export default function ReturnsScreen() {
         {sale ? (
           <>
             <Text style={styles.body}>
-              Invoice {sale.invoice_number} · Rs {sale.total_amount}
+              Invoice {sale.invoice_number} · Rs {formatDecimal(sale.total_amount)}
             </Text>
             {sale.items.map((item) => (
               <View key={item.product_id} style={styles.row}>
@@ -264,7 +267,7 @@ export default function ReturnsScreen() {
           pending.map((r) => (
             <View key={r.id} style={styles.pendingRow}>
               <Text style={styles.productName}>
-                Rs {r.refund_amount} · {r.refund_method}
+                Rs {formatDecimal(r.refund_amount)} · {r.refund_method}
               </Text>
               <Text style={styles.body}>{r.reason || "No reason"}</Text>
               <View style={styles.row}>
@@ -298,7 +301,7 @@ export default function ReturnsScreen() {
         <Text style={styles.section}>Recent returns</Text>
         {returns.slice(0, 15).map((r) => (
           <Text key={r.id} style={styles.body}>
-            {r.status} · Rs {r.refund_amount} · {r.refund_method}
+            {r.status} · Rs {formatDecimal(r.refund_amount)} · {r.refund_method}
           </Text>
         ))}
       </View>

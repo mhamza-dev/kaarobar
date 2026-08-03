@@ -19,6 +19,7 @@ import {
 import { BuyerOrderListSkeleton } from "@/components/buyer/BuyerSkeletons";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
+import { formatDecimal } from "@/lib/decimal";
 import { detailRoutes } from "@/lib/navigation";
 import { portalKeys } from "@/lib/queryClient";
 
@@ -220,7 +221,7 @@ export default function BuyerOrders() {
                       </p>
                     </div>
                     <p className="shrink-0 text-lg font-bold text-heading">
-                      Rs {o.total_amount}
+                      Rs {formatDecimal(o.total_amount)}
                     </p>
                     <ChevronRight className="h-5 w-5 shrink-0 text-muted transition group-hover:text-brand" />
                   </BuyerCard>

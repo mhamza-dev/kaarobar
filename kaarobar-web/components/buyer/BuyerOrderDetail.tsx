@@ -9,6 +9,7 @@ import InfoButton from "@/components/ui/InfoButton";
 import { BuyerBackLink, BuyerCard } from "@/components/buyer/BuyerLayout";
 import { BuyerOrderDetailSkeleton } from "@/components/buyer/BuyerSkeletons";
 import { useT } from "@/lib/i18n";
+import { formatDecimal } from "@/lib/decimal";
 
 export type PortalOrder = {
   id: string;
@@ -135,10 +136,10 @@ export default function BuyerOrderDetail() {
                       {line.name || t("marketplace.item")}
                     </p>
                     <p className="text-sm text-body">
-                      {line.quantity} × Rs {line.unit_price}
+                      {line.quantity} × Rs {formatDecimal(line.unit_price)}
                     </p>
                   </div>
-                  <p className="font-bold text-heading">Rs {line.line_total}</p>
+                  <p className="font-bold text-heading">Rs {formatDecimal(line.line_total)}</p>
                 </li>
               ))}
             </ul>
@@ -148,24 +149,24 @@ export default function BuyerOrderDetail() {
             {order.subtotal != null ? (
               <div className="flex justify-between text-body">
                 <span>{t("common.subtotal")}</span>
-                <span>Rs {order.subtotal}</span>
+                <span>Rs {formatDecimal(order.subtotal)}</span>
               </div>
             ) : null}
             {order.tax_amount && Number(order.tax_amount) !== 0 ? (
               <div className="flex justify-between text-body">
                 <span>{t("marketplace.tax")}</span>
-                <span>Rs {order.tax_amount}</span>
+                <span>Rs {formatDecimal(order.tax_amount)}</span>
               </div>
             ) : null}
             {order.discount_amount && Number(order.discount_amount) !== 0 ? (
               <div className="flex justify-between text-body">
                 <span>{t("marketplace.discount")}</span>
-                <span>− Rs {order.discount_amount}</span>
+                <span>− Rs {formatDecimal(order.discount_amount)}</span>
               </div>
             ) : null}
             <div className="flex justify-between pt-1 text-base font-bold text-heading">
               <span>{t("common.total")}</span>
-              <span>Rs {order.total_amount}</span>
+              <span>Rs {formatDecimal(order.total_amount)}</span>
             </div>
           </div>
 
@@ -178,7 +179,7 @@ export default function BuyerOrderDetail() {
                 {order.payments.map((p, i) => (
                   <li key={i} className="flex justify-between">
                     <span className="capitalize">{p.method}</span>
-                    <span className="font-semibold text-heading">Rs {p.amount}</span>
+                    <span className="font-semibold text-heading">Rs {formatDecimal(p.amount)}</span>
                   </li>
                 ))}
               </ul>

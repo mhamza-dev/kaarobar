@@ -5,6 +5,7 @@ import { detailRoutes, routes } from "@/lib/navigation";
 import { DetailFieldGrid, DetailSection, DetailShell } from "@/components/app/DetailShell";
 import Button from "@/components/ui/Button";
 import SaleReceiptModal, { type ReceiptSale } from "@/components/app/SaleReceiptModal";
+import { formatDecimal } from "@/lib/decimal";
 
 type Sale = ReceiptSale & {
   status: string;
@@ -81,10 +82,10 @@ export default function SaleDetailPage() {
                       "Walk-in"
                     ),
                   },
-                  { label: "Subtotal", value: `Rs ${sale.subtotal}` },
-                  { label: "Tax", value: `Rs ${sale.tax_amount}` },
-                  { label: "Discount", value: `Rs ${sale.discount_amount || "0"}` },
-                  { label: "Total", value: `Rs ${sale.total_amount}` },
+                  { label: "Subtotal", value: `Rs ${formatDecimal(sale.subtotal)}` },
+                  { label: "Tax", value: `Rs ${formatDecimal(sale.tax_amount)}` },
+                  { label: "Discount", value: `Rs ${formatDecimal(sale.discount_amount || "0")}` },
+                  { label: "Total", value: `Rs ${formatDecimal(sale.total_amount)}` },
                   { label: "FBR invoice", value: sale.fbr_invoice_no || "—" },
                   {
                     label: "AR invoice",
@@ -118,8 +119,8 @@ export default function SaleDetailPage() {
                     <tr key={`${item.name}-${idx}`} className="border-b border-border/50">
                       <td className="py-2 font-medium text-heading">{item.name}</td>
                       <td className="py-2 text-right">{item.quantity}</td>
-                      <td className="py-2 text-right">{item.unit_price}</td>
-                      <td className="py-2 text-right">{item.line_total}</td>
+                      <td className="py-2 text-right">{formatDecimal(item.unit_price)}</td>
+                      <td className="py-2 text-right">{formatDecimal(item.line_total)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -134,7 +135,7 @@ export default function SaleDetailPage() {
                     className="flex justify-between rounded-md border border-border px-3 py-2"
                   >
                     <span className="capitalize text-heading">{p.method}</span>
-                    <span className="font-semibold">Rs {p.amount}</span>
+                    <span className="font-semibold">Rs {formatDecimal(p.amount)}</span>
                   </li>
                 ))}
               </ul>

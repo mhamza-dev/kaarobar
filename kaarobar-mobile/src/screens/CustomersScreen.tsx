@@ -24,6 +24,7 @@ import type { NavigationProp, ParamListBase } from "@react-navigation/native";
 import { replacePath, pushPath } from "../lib/nav";
 import ListToolbar, { emptyStaffFilters } from "../components/ListToolbar";
 import { applyListingFilters } from "../lib/listingFilters";
+import { formatDecimal } from "../lib/decimal";
 
 type LedgerEntry = {
   kind: string;
@@ -264,10 +265,13 @@ export default function CustomersScreen() {
       {ledger ? (
         <View style={styles.card}>
           <Text style={styles.cardTitle}>{ledger.customer.name} ledger</Text>
-          <Text style={styles.cardBody}>Balance Rs {ledger.balance}</Text>
+          <Text style={styles.cardBody}>
+            Balance Rs {formatDecimal(ledger.balance)}
+          </Text>
           {ledger.entries.map((e, i) => (
             <Text key={`${e.reference}-${i}`} style={styles.cardBody}>
-              {e.date} · {e.kind} · {e.reference} · Dr {e.debit} Cr {e.credit}
+              {e.date} · {e.kind} · {e.reference} · Dr {formatDecimal(e.debit)} Cr{" "}
+              {formatDecimal(e.credit)}
             </Text>
           ))}
           <Pressable onPress={() => setLedger(null)}>

@@ -13,10 +13,8 @@ import {
   BuyerHero,
 } from "@/components/buyer/BuyerLayout";
 import { useT } from "@/lib/i18n";
+import { formatDecimal } from "@/lib/decimal";
 
-function money(n: number) {
-  return n.toFixed(2);
-}
 
 export default function CheckoutReviewPage() {
   const router = useRouter();
@@ -123,7 +121,7 @@ export default function CheckoutReviewPage() {
                         <p className="text-xs text-muted">{line.category}</p>
                       ) : null}
                       <p className="mt-1 text-sm font-bold text-heading">
-                        Rs {money(line.price)} each
+                        Rs {formatDecimal(line.price)} each
                       </p>
                       <div className="mt-2 flex items-center gap-2">
                         <button
@@ -158,7 +156,7 @@ export default function CheckoutReviewPage() {
                       </div>
                     </div>
                     <p className="shrink-0 text-sm font-bold text-heading">
-                      Rs {money(line.quantity * line.price)}
+                      Rs {formatDecimal(line.quantity * line.price)}
                     </p>
                   </li>
                 ))}
@@ -168,7 +166,7 @@ export default function CheckoutReviewPage() {
                 <span className="text-sm font-semibold text-heading">
                   {t("marketplace.storeSubtotal")}
                 </span>
-                <span className="font-bold text-heading">Rs {money(storeTotal)}</span>
+                <span className="font-bold text-heading">Rs {formatDecimal(storeTotal)}</span>
               </div>
             </BuyerCard>
           </BrandThemeScope>
@@ -177,7 +175,7 @@ export default function CheckoutReviewPage() {
 
       <BuyerCard className="flex items-center justify-between p-4">
         <span className="font-semibold text-heading">{t("marketplace.grandTotal")}</span>
-        <span className="text-lg font-bold text-heading">Rs {money(subtotal)}</span>
+        <span className="text-lg font-bold text-heading">Rs {formatDecimal(subtotal)}</span>
       </BuyerCard>
 
       <BrandThemeScope

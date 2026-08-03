@@ -5,6 +5,7 @@ import { detailRoutes, routes } from "@/lib/navigation";
 import { DetailFieldGrid, DetailSection, DetailShell } from "@/components/app/DetailShell";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
+import { formatDecimal } from "@/lib/decimal";
 
 type ApBill = {
   id: string;
@@ -120,8 +121,8 @@ export default function ApBillDetailPage() {
                 },
                 { label: "Bill date", value: bill.bill_date || "—" },
                 { label: "Due date", value: bill.due_date || "—" },
-                { label: "Total", value: `Rs ${bill.total_amount}` },
-                { label: "Balance due", value: `Rs ${bill.balance_due}` },
+                { label: "Total", value: `Rs ${formatDecimal(bill.total_amount)}` },
+                { label: "Balance due", value: `Rs ${formatDecimal(bill.balance_due)}` },
                 {
                   label: "Journal",
                   value: bill.journal_entry_id ? (
@@ -153,7 +154,7 @@ export default function ApBillDetailPage() {
                       {p.method}
                       {p.paid_at ? ` · ${String(p.paid_at).slice(0, 16)}` : ""}
                     </span>
-                    <span className="font-semibold">Rs {p.amount}</span>
+                    <span className="font-semibold">Rs {formatDecimal(p.amount)}</span>
                   </li>
                 ))}
               </ul>

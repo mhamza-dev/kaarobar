@@ -18,6 +18,8 @@ import ListToolbar, { emptyStaffFilters } from "../components/ListToolbar";
 import { applyListingFilters } from "../lib/listingFilters";
 import { pickImageFromLibrary } from "../lib/imagePicker";
 import { canAccessRoute } from "../lib/rbac";
+import { formatDecimal } from "../lib/decimal";
+import { generateBarcode } from "../lib/barcode";
 import { useNavigation } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
 import { SearchSelect, SearchMultiSelect } from "../components/SearchSelect";
@@ -521,7 +523,7 @@ export default function InventoryScreen() {
               }}
             >
               <Text style={[styles.body, { flex: 1 }]}>
-                {p.sku} · {p.name} · Rs {p.price ?? "—"}
+                {p.sku} · {p.name} · Rs {p.price != null && p.price !== "" ? formatDecimal(p.price) : "—"}
               </Text>
               <Pressable
                 style={styles.chip}
@@ -755,6 +757,14 @@ export default function InventoryScreen() {
             onChangeText={(v) => setProductForm({ ...productForm, barcode: v })}
             placeholderTextColor={colors.muted}
           />
+          <Pressable
+            style={styles.btn}
+            onPress={() =>
+              setProductForm((prev) => ({ ...prev, barcode: generateBarcode() }))
+            }
+          >
+            <Text style={styles.btnText}>Generate</Text>
+          </Pressable>
           <Pressable style={styles.btn} onPress={() => setScanOpen(true)}>
             <Text style={styles.btnText}>Scan</Text>
           </Pressable>

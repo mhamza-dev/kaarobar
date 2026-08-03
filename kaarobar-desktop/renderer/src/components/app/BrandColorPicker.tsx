@@ -294,7 +294,7 @@ export default function BrandColorPicker({ value, onChange }: Props) {
             <label className="min-w-0 flex-1">
               <span className="sr-only">Hex color</span>
               <input
-                className="w-full rounded-md border border-border bg-bg-secondary px-2.5 py-2 font-mono text-sm uppercase tracking-wide text-heading outline-none focus:border-heading focus:ring-2 focus:ring-black/5"
+                className="w-full rounded-md border border-border bg-bg-secondary px-2.5 py-2 font-mono text-sm uppercase tracking-wide text-heading outline-none focus:border-heading"
                 value={hexDraft}
                 spellCheck={false}
                 onChange={(e) => setHexDraft(e.target.value)}

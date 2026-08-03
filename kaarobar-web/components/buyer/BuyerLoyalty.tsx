@@ -18,6 +18,7 @@ import {
 } from "@/components/buyer/BuyerLayout";
 import { BuyerLoyaltySkeleton } from "@/components/buyer/BuyerSkeletons";
 import { useT } from "@/lib/i18n";
+import { formatDecimal } from "@/lib/decimal";
 import { portalKeys } from "@/lib/queryClient";
 
 type LoyaltyRow = {
@@ -165,7 +166,7 @@ export default function BuyerLoyalty() {
               <div className="flex justify-between gap-4">
                 <dt className="text-body">{t("marketplace.redeemValue")}</dt>
                 <dd className="font-semibold text-heading">
-                  Rs {selected.rates.redeem_value} / pt
+                  Rs {formatDecimal(selected.rates.redeem_value)} / pt
                 </dd>
               </div>
             </dl>

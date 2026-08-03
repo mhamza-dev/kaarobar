@@ -280,6 +280,7 @@
   "reports": {
     "eyebrow": "تجزیہ",
     "salesByDay": "روزانہ سیلز",
+    "salesByDayDesc": "منتخب مدت کے لیے ٹکٹ کل اور تعداد۔",
     "lowStock": "کم اسٹاک",
     "tickets": "ٹکٹیں",
     "pendingReturns": "زیر التواء واپسیاں",

@@ -9,6 +9,7 @@ import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
+import Select from "@/components/ui/Select";
 import {
   EmptyState,
   Field,
@@ -19,6 +20,7 @@ import {
 } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
+import { formatDecimal } from "@/lib/decimal";
 import { useTabQueryParam } from "@/lib/hooks/useTabQueryParam";
 import { detailRoutes, routes } from "@/lib/navigation";
 import { canAccessBundle } from "@/lib/rbac";
@@ -439,7 +441,7 @@ function HrPageInner() {
               id: "basic",
               header: "Basic",
               align: "right",
-              cell: (e) => <span className="tabular-nums">{e.basic_salary}</span>,
+              cell: (e) => <span className="tabular-nums">{formatDecimal(e.basic_salary)}</span>,
             },
             {
               id: "status",
@@ -670,8 +672,8 @@ function HrPageInner() {
                         <td className="py-2">{s.earnings?.worked_hours ?? "—"}</td>
                         <td className="py-2">{s.overtime_hours ?? s.earnings?.ot_hours ?? "—"}</td>
                         <td className="py-2">{s.earnings?.attendance_factor ?? "—"}</td>
-                        <td className="py-2">{s.gross_pay}</td>
-                        <td className="py-2">{s.net_pay}</td>
+                        <td className="py-2 tabular-nums">{formatDecimal(s.gross_pay)}</td>
+                        <td className="py-2 tabular-nums">{formatDecimal(s.net_pay)}</td>
                       </tr>
                       {s.earnings || s.deductions ? (
                         <tr className="border-t border-border/60 text-xs text-body">
@@ -680,14 +682,14 @@ function HrPageInner() {
                               <span>
                                 Credited {s.earnings.credited_hours ?? "—"}h / expected{" "}
                                 {s.earnings.expected_hours ?? "—"}h · leave{" "}
-                                {s.earnings.leave_hours ?? "0"}h · base {s.earnings.base_pay ?? "—"}{" "}
-                                · OT pay {s.earnings.overtime_pay ?? "0"}
+                                {s.earnings.leave_hours ?? "0"}h · base {s.earnings.base_pay != null ? formatDecimal(s.earnings.base_pay) : "—"}{" "}
+                                · OT pay {formatDecimal(s.earnings.overtime_pay ?? "0")}
                               </span>
                             ) : null}
                             {s.deductions ? (
                               <span className="ml-2">
-                                · Tax {s.deductions.income_tax ?? "0"} · EOBI{" "}
-                                {s.deductions.eobi ?? "0"}
+                                · Tax {formatDecimal(s.deductions.income_tax ?? "0")} · EOBI{" "}
+                                {formatDecimal(s.deductions.eobi ?? "0")}
                               </span>
                             ) : null}
                           </td>
@@ -760,30 +762,48 @@ function HrPageInner() {
             <Field label="Basic salary">
               <input
                 className={fieldClass}
+                type="number"
+                step="0.01"
                 value={empForm.basic_salary}
                 onChange={(e) =>
                   setEmpForm({ ...empForm, basic_salary: e.target.value })
                 }
+                onBlur={(e) => {
+                  if (e.target.value.trim() === "") return;
+                  setEmpForm({
+                    ...empForm,
+                    basic_salary: formatDecimal(e.target.value),
+                  });
+                }}
               />
             </Field>
             <Field label="Transport allowance">
               <input
                 className={fieldClass}
+                type="number"
+                step="0.01"
                 value={empForm.transport}
                 onChange={(e) => setEmpForm({ ...empForm, transport: e.target.value })}
+                onBlur={(e) => {
+                  if (e.target.value.trim() === "") return;
+                  setEmpForm({
+                    ...empForm,
+                    transport: formatDecimal(e.target.value),
+                  });
+                }}
               />
             </Field>
             {editingEmployeeId ? (
               <Field label="Status">
-                <select
-                  className={fieldClass}
+                <Select
                   value={empForm.status}
-                  onChange={(e) => setEmpForm({ ...empForm, status: e.target.value })}
-                >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="terminated">Terminated</option>
-                </select>
+                  onChange={(v) => setEmpForm({ ...empForm, status: v })}
+                  options={[
+                    { value: "active", label: "Active" },
+                    { value: "inactive", label: "Inactive" },
+                    { value: "terminated", label: "Terminated" },
+                  ]}
+                />
               </Field>
             ) : null}
           </div>
@@ -818,24 +838,18 @@ function HrPageInner() {
             />
           </Field>
           <Field label="Role">
-            <select
-              className={fieldClass}
+            <Select
               value={inviteForm.roles}
-              onChange={(e) => setInviteForm({ ...inviteForm, roles: e.target.value })}
-            >
-              {[
+              onChange={(v) => setInviteForm({ ...inviteForm, roles: v })}
+              options={[
                 "cashier",
                 "branch_manager",
                 "inventory_manager",
                 "accountant",
                 "hr_manager",
                 "employee",
-              ].map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </select>
+              ].map((r) => ({ value: r, label: r }))}
+            />
           </Field>
         </form>
       </Modal>

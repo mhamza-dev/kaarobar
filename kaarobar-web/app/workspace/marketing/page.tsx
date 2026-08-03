@@ -9,6 +9,7 @@ import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
+import Select from "@/components/ui/Select";
 import { Field, PageHeader, SurfaceCard, TabBar, fieldClass } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
@@ -898,16 +899,16 @@ function MarketingPageInner() {
                 />
               </Field>
               <Field label="Type">
-                <select
-                  className={fieldClass}
+                <Select
                   value={couponForm.discount_type}
-                  onChange={(e) =>
-                    setCouponForm({ ...couponForm, discount_type: e.target.value })
+                  onChange={(v) =>
+                    setCouponForm({ ...couponForm, discount_type: v })
                   }
-                >
-                  <option value="percent">Percent</option>
-                  <option value="fixed">Fixed</option>
-                </select>
+                  options={[
+                    { value: "percent", label: "Percent" },
+                    { value: "fixed", label: "Fixed" },
+                  ]}
+                />
               </Field>
               <Field label="Value">
                 <input
@@ -1086,18 +1087,18 @@ function MarketingPageInner() {
             />
           </Field>
           <Field label="Template (optional)">
-            <select
-              className={fieldClass}
+            <Select
               value={form.template_id}
-              onChange={(e) => applyTemplate(e.target.value)}
-            >
-              <option value="">None — write freely</option>
-              {templates.map((tpl) => (
-                <option key={tpl.id} value={tpl.id}>
-                  {tpl.name} ({tpl.channel})
-                </option>
-              ))}
-            </select>
+              onChange={(v) => applyTemplate(v)}
+              placeholder="None — write freely"
+              options={[
+                { value: "", label: "None — write freely" },
+                ...templates.map((tpl) => ({
+                  value: tpl.id,
+                  label: `${tpl.name} (${tpl.channel})`,
+                })),
+              ]}
+            />
           </Field>
           <Field label={t("marketing.notificationTitle")}>
             <input
@@ -1122,16 +1123,16 @@ function MarketingPageInner() {
             <p className="mt-1 whitespace-pre-wrap text-body">{form.message || "Message body…"}</p>
           </div>
           <Field label="Channel">
-            <select
-              className={fieldClass}
+            <Select
               value={form.channel}
-              onChange={(e) => setForm({ ...form, channel: e.target.value })}
-            >
-              <option value="email">Email</option>
-              <option value="in_app">In-app</option>
-              <option value="sms">SMS</option>
-              <option value="whatsapp">WhatsApp</option>
-            </select>
+              onChange={(v) => setForm({ ...form, channel: v })}
+              options={[
+                { value: "email", label: "Email" },
+                { value: "in_app", label: "In-app" },
+                { value: "sms", label: "SMS" },
+                { value: "whatsapp", label: "WhatsApp" },
+              ]}
+            />
           </Field>
           <Field label="Budget (PKR)">
             <input
@@ -1149,16 +1150,16 @@ function MarketingPageInner() {
             />
           </Field>
           <Field label={t("marketing.audience")}>
-            <select
-              className={fieldClass}
+            <Select
               value={form.audience}
-              onChange={(e) => setForm({ ...form, audience: e.target.value })}
-            >
-              <option value="all">{t("marketing.audienceAll")}</option>
-              <option value="khata">{t("marketing.audienceKhata")}</option>
-              <option value="min_points">{t("marketing.audienceMinPoints")}</option>
-              <option value="segment">Named segment</option>
-            </select>
+              onChange={(v) => setForm({ ...form, audience: v })}
+              options={[
+                { value: "all", label: t("marketing.audienceAll") },
+                { value: "khata", label: t("marketing.audienceKhata") },
+                { value: "min_points", label: t("marketing.audienceMinPoints") },
+                { value: "segment", label: "Named segment" },
+              ]}
+            />
           </Field>
           {form.audience === "min_points" ? (
             <Field label={t("marketing.minPoints")}>
@@ -1173,34 +1174,28 @@ function MarketingPageInner() {
           ) : null}
           {form.audience === "segment" ? (
             <Field label="Segment">
-              <select
-                className={fieldClass}
+              <Select
                 required
                 value={form.segment_id}
-                onChange={(e) => setForm({ ...form, segment_id: e.target.value })}
-              >
-                <option value="">Select…</option>
-                {segments.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setForm({ ...form, segment_id: v })}
+                placeholder="Select…"
+                options={[
+                  { value: "", label: "Select…" },
+                  ...segments.map((s) => ({ value: s.id, label: s.name })),
+                ]}
+              />
             </Field>
           ) : null}
           <Field label="Link coupon (optional)">
-            <select
-              className={fieldClass}
+            <Select
               value={form.coupon_id}
-              onChange={(e) => setForm({ ...form, coupon_id: e.target.value })}
-            >
-              <option value="">None</option>
-              {coupons.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.code}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => setForm({ ...form, coupon_id: v })}
+              placeholder="None"
+              options={[
+                { value: "", label: "None" },
+                ...coupons.map((c) => ({ value: c.id, label: c.code })),
+              ]}
+            />
           </Field>
           {costPreview ? (
             <p className="text-sm text-body">
@@ -1240,16 +1235,16 @@ function MarketingPageInner() {
             />
           </Field>
           <Field label={t("marketing.channel")}>
-            <select
-              className={fieldClass}
+            <Select
               value={tplForm.channel}
-              onChange={(e) => setTplForm({ ...tplForm, channel: e.target.value })}
-            >
-              <option value="email">{t("marketing.channelEmail")}</option>
-              <option value="in_app">{t("marketing.channelInApp")}</option>
-              <option value="sms">{t("marketing.channelSms")}</option>
-              <option value="whatsapp">{t("marketing.channelWhatsapp")}</option>
-            </select>
+              onChange={(v) => setTplForm({ ...tplForm, channel: v })}
+              options={[
+                { value: "email", label: t("marketing.channelEmail") },
+                { value: "in_app", label: t("marketing.channelInApp") },
+                { value: "sms", label: t("marketing.channelSms") },
+                { value: "whatsapp", label: t("marketing.channelWhatsapp") },
+              ]}
+            />
           </Field>
           <Field label={t("marketing.titleTemplate")}>
             <input

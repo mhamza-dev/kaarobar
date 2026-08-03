@@ -7,6 +7,7 @@ import DataTable from "@/components/ui/DataTable";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { formatLocalDateTime } from "@/lib/datetime";
+import { formatDecimal } from "@/lib/decimal";
 import {
   emptyStaffListFilters,
   type ListFilterConfig,
@@ -106,7 +107,7 @@ export default function SalesPage() {
           getExportRow={(s) => ({
             invoice: s.invoice_number,
             customer: s.customer_name || "Walk-in",
-            total: s.total_amount,
+            total: formatDecimal(s.total_amount),
             status: s.status,
             source: s.source || "pos",
             when: formatLocalDateTime(s.inserted_at),
@@ -137,7 +138,7 @@ export default function SalesPage() {
             {
               id: "total",
               header: "Total",
-              cell: (s) => `Rs ${s.total_amount}`,
+              cell: (s) => `Rs ${formatDecimal(s.total_amount)}`,
               align: "right",
             },
             { id: "status", header: "Status", cell: (s) => s.status },

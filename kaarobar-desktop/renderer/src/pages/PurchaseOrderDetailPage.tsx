@@ -5,6 +5,7 @@ import { detailRoutes, routes } from "@/lib/navigation";
 import { DetailFieldGrid, DetailSection, DetailShell } from "@/components/app/DetailShell";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
+import { formatDecimal } from "@/lib/decimal";
 
 type PO = {
   id: string;
@@ -123,7 +124,7 @@ export default function PurchaseOrderDetailPage() {
                 { label: "Expected delivery", value: po.expected_delivery_date || "—" },
                 { label: "Branch", value: po.branch_id || "—" },
                 { label: "Notes", value: po.notes || "—" },
-                { label: "Line total", value: `Rs ${total.toFixed(2)}` },
+                { label: "Line total", value: `Rs ${formatDecimal(total)}` },
               ]}
             />
           </DetailSection>
@@ -149,9 +150,9 @@ export default function PurchaseOrderDetailPage() {
                       </Link>
                     </td>
                     <td className="py-2 text-right">{i.quantity}</td>
-                    <td className="py-2 text-right">Rs {i.unit_cost}</td>
+                    <td className="py-2 text-right">Rs {formatDecimal(i.unit_cost)}</td>
                     <td className="py-2 text-right tabular-nums">
-                      Rs {(Number(i.quantity) * Number(i.unit_cost)).toFixed(2)}
+                      Rs {formatDecimal(Number(i.quantity) * Number(i.unit_cost))}
                     </td>
                   </tr>
                 ))}

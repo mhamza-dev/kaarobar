@@ -8,6 +8,7 @@ import { t } from "../lib/i18n";
 import { pushPath } from "../lib/nav";
 import { BuyerCard, BuyerEmptyPanel } from "../components/BuyerLayout";
 import { BuyerOrderDetailSkeleton } from "../components/BuyerSkeletons";
+import { formatDecimal } from "../lib/decimal";
 
 type Order = {
   id: string;
@@ -129,10 +130,10 @@ export default function OrderDetailScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.lineName}>{line.name || t("marketplace.item")}</Text>
                   <Text style={styles.meta}>
-                    {line.quantity} × Rs {line.unit_price}
+                    {line.quantity} × Rs {formatDecimal(line.unit_price)}
                   </Text>
                 </View>
-                <Text style={styles.amount}>Rs {line.line_total}</Text>
+                <Text style={styles.amount}>Rs {formatDecimal(line.line_total)}</Text>
               </View>
             ))
           )}
@@ -141,30 +142,30 @@ export default function OrderDetailScreen() {
             {order.subtotal != null ? (
               <View style={styles.totalRow}>
                 <Text style={styles.meta}>{t("common.subtotal")}</Text>
-                <Text style={styles.meta}>Rs {order.subtotal}</Text>
+                <Text style={styles.meta}>Rs {formatDecimal(order.subtotal)}</Text>
               </View>
             ) : null}
             {order.tax_amount != null && Number(order.tax_amount) > 0 ? (
               <View style={styles.totalRow}>
                 <Text style={styles.meta}>{t("marketplace.tax")}</Text>
-                <Text style={styles.meta}>Rs {order.tax_amount}</Text>
+                <Text style={styles.meta}>Rs {formatDecimal(order.tax_amount)}</Text>
               </View>
             ) : null}
             {order.discount_amount != null && Number(order.discount_amount) > 0 ? (
               <View style={styles.totalRow}>
                 <Text style={styles.meta}>{t("marketplace.discount")}</Text>
-                <Text style={styles.meta}>Rs {order.discount_amount}</Text>
+                <Text style={styles.meta}>Rs {formatDecimal(order.discount_amount)}</Text>
               </View>
             ) : null}
             <View style={styles.totalRow}>
               <Text style={styles.invoice}>{t("common.total")}</Text>
-              <Text style={styles.invoice}>Rs {order.total_amount}</Text>
+              <Text style={styles.invoice}>Rs {formatDecimal(order.total_amount)}</Text>
             </View>
           </View>
 
           {(order.payments || []).map((p, i) => (
             <Text key={i} style={styles.meta}>
-              {p.method}: Rs {p.amount}
+              {p.method}: Rs {formatDecimal(p.amount)}
             </Text>
           ))}
           {order.notes ? (

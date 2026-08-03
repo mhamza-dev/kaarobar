@@ -85,8 +85,8 @@ const Input = ({
 
     ${
       hasError
-        ? "border-danger focus:border-danger focus:ring-1 focus:ring-danger-soft"
-        : "border-border focus:border-brand focus:ring-1 focus:ring-brand-soft"
+        ? "border-danger focus:border-danger"
+        : "border-border focus:border-brand"
     }
 
     disabled:bg-bg-tertiary
@@ -220,7 +220,7 @@ const Input = ({
             checked={Boolean(field.value)}
             disabled={props.disabled}
             onChange={(e) => helpers.setValue(e.target.checked)}
-            className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
+            className="h-4 w-4 rounded border-border text-brand"
           />
 
           <span className="text-sm text-body">

@@ -15,6 +15,7 @@ import BuyerNav from "./BuyerNav";
 import { BuyerEmptyPanel, BuyerHero } from "./BuyerLayout";
 import { BuyerLoyaltySkeleton } from "./BuyerSkeletons";
 import { t } from "../lib/i18n";
+import { formatDecimal } from "../lib/decimal";
 
 type LoyaltyRow = {
   business_id: string;
@@ -122,11 +123,12 @@ export default function BuyerLoyalty() {
                 ) : null}
                 <Text style={styles.section}>{t("marketplace.earnRate")}</Text>
                 <Text style={styles.hintCard}>
-                  {selected.rates.points_per_earn} pt per Rs {selected.rates.earn_per_amount}
+                  {selected.rates.points_per_earn} pt per Rs{" "}
+                  {formatDecimal(selected.rates.earn_per_amount)}
                 </Text>
                 <Text style={styles.section}>{t("marketplace.redeemValue")}</Text>
                 <Text style={styles.hintCard}>
-                  Rs {selected.rates.redeem_value} per point
+                  Rs {formatDecimal(selected.rates.redeem_value)} per point
                 </Text>
               </>
             ) : null}

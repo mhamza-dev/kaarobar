@@ -4,6 +4,7 @@ import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/app/ui";
+import { formatDecimal } from "@/lib/decimal";
 
 /** Shared marketplace page hero — gradient card + PageHeader. */
 export function BuyerHero({
@@ -138,8 +139,7 @@ export function BuyerBackLink({
 }
 
 export function formatMarketplacePrice(price?: string | number | null): string {
-  const n = Number(price || 0);
-  return Number.isFinite(n) ? n.toFixed(2) : "0.00";
+  return formatDecimal(price);
 }
 
 export function marketplaceProductCategory(p: {

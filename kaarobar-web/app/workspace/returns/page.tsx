@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { api, getSession } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
+import Select from "@/components/ui/Select";
 import {
   PageHeader,
   StatusBadge,
@@ -245,17 +246,18 @@ export default function ReturnsPage() {
               ))}
             </ul>
             <div className="flex flex-wrap gap-3">
-              <select
-                className="rounded-md border border-border px-3 py-2"
+              <Select
+                className="w-auto min-w-[10rem]"
                 value={refundMethod}
-                onChange={(e) =>
-                  setRefundMethod(e.target.value as "cash" | "card" | "wallet")
+                onChange={(v) =>
+                  setRefundMethod(v as "cash" | "card" | "wallet")
                 }
-              >
-                <option value="cash">Cash refund</option>
-                <option value="card">Card refund</option>
-                <option value="wallet">Wallet refund</option>
-              </select>
+                options={[
+                  { value: "cash", label: "Cash refund" },
+                  { value: "card", label: "Card refund" },
+                  { value: "wallet", label: "Wallet refund" },
+                ]}
+              />
               <input
                 className="min-w-48 flex-1 rounded-md border border-border px-3 py-2"
                 placeholder="Reason"
