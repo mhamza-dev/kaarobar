@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Building2, Settings } from "lucide-react";
 import { api, getSession } from "@/lib/api/client";
 import { canAccessBundle } from "@/lib/rbac";
 import Modal from "@/components/modals/Modal";
@@ -121,12 +122,14 @@ export default function BusinessesPage() {
         action={{
           label: t("businesses.new"),
           onClick: () => setModal(true),
+          icon: <Building2 className="h-4 w-4" />,
         }}
         secondaryAction={{
           label: t("nav.settings"),
           onClick: () => {
             window.location.href = routes.settings;
           },
+          icon: <Settings className="h-4 w-4" />,
         }}
       />
 

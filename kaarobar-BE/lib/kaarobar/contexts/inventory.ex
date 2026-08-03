@@ -54,54 +54,71 @@ defmodule Kaarobar.Inventory do
   def create_purchase_order(business_id, branch_id, owner_id, attrs) do
     items = attrs[:items] || attrs["items"] || []
     status = attrs[:status] || attrs["status"] || "ordered"
+    supplier_id = attrs[:supplier_id] || attrs["supplier_id"]
 
-    if items == [] do
-      {:error, :empty_po}
-    else
-      Multi.new()
-      |> Multi.insert(:po, fn _ ->
-        %PurchaseOrder{}
-        |> PurchaseOrder.changeset(
-          Map.merge(normalize_map(attrs), %{
-            business_id: business_id,
-            branch_id: branch_id,
-            owner_id: owner_id,
-            status: status,
-            supplier_id: attrs[:supplier_id] || attrs["supplier_id"]
-          })
-        )
-      end)
-      |> Multi.run(:items, fn _repo, %{po: po} ->
-        results =
-          Enum.map(items, fn item_attrs ->
-            %PurchaseOrderItem{}
-            |> PurchaseOrderItem.changeset(
-              Map.merge(normalize_map(item_attrs), %{purchase_order_id: po.id})
-            )
-            |> Repo.insert()
+    cond do
+      items == [] ->
+        {:error, :empty_po}
+
+      is_nil(supplier_id) or supplier_id == "" ->
+        {:error, :supplier_required}
+
+      true ->
+        product_ids =
+          Enum.map(items, fn item ->
+            item[:product_id] || item["product_id"]
           end)
 
-        if Enum.all?(results, &match?({:ok, _}, &1)) do
-          {:ok, Enum.map(results, fn {:ok, item} -> item end)}
-        else
-          {:error, :item_insert_failed}
+        case validate_products_for_supplier(product_ids, supplier_id, business_id, owner_id) do
+          :ok ->
+            Multi.new()
+            |> Multi.insert(:po, fn _ ->
+              %PurchaseOrder{}
+              |> PurchaseOrder.changeset(
+                Map.merge(normalize_map(attrs), %{
+                  business_id: business_id,
+                  branch_id: branch_id,
+                  owner_id: owner_id,
+                  status: status,
+                  supplier_id: supplier_id
+                })
+              )
+            end)
+            |> Multi.run(:items, fn _repo, %{po: po} ->
+              results =
+                Enum.map(items, fn item_attrs ->
+                  %PurchaseOrderItem{}
+                  |> PurchaseOrderItem.changeset(
+                    Map.merge(normalize_map(item_attrs), %{purchase_order_id: po.id})
+                  )
+                  |> Repo.insert()
+                end)
+
+              if Enum.all?(results, &match?({:ok, _}, &1)) do
+                {:ok, Enum.map(results, fn {:ok, item} -> item end)}
+              else
+                {:error, :item_insert_failed}
+              end
+            end)
+            |> Multi.run(:audit, fn _repo, %{po: po} ->
+              Kaarobar.Audit.log(%{
+                owner_id: owner_id,
+                user_id: owner_id,
+                action: "po.create",
+                entity_type: "purchase_order",
+                entity_id: po.id,
+                metadata: %{status: po.status, supplier_id: po.supplier_id}
+              })
+            end)
+            |> Repo.transaction()
+            |> case do
+              {:ok, %{po: po}} -> {:ok, Repo.preload(po, :items)}
+              {:error, _op, reason, _changes} -> {:error, reason}
+            end
+
+          {:error, _} = err ->
+            err
         end
-      end)
-      |> Multi.run(:audit, fn _repo, %{po: po} ->
-        Kaarobar.Audit.log(%{
-          owner_id: owner_id,
-          user_id: owner_id,
-          action: "po.create",
-          entity_type: "purchase_order",
-          entity_id: po.id,
-          metadata: %{status: po.status, supplier_id: po.supplier_id}
-        })
-      end)
-      |> Repo.transaction()
-      |> case do
-        {:ok, %{po: po}} -> {:ok, Repo.preload(po, :items)}
-        {:error, _op, reason, _changes} -> {:error, reason}
-      end
     end
   end
 
@@ -860,6 +877,46 @@ defmodule Kaarobar.Inventory do
       order_by: [desc: ps.is_primary, asc: s.name]
     )
     |> Repo.all()
+  end
+
+  def list_supplier_products(supplier_id, business_id, owner_id) do
+    from(p in Product,
+      join: ps in ProductSupplier,
+      on: ps.product_id == p.id,
+      where:
+        ps.supplier_id == ^supplier_id and ps.business_id == ^business_id and
+          ps.owner_id == ^owner_id and p.business_id == ^business_id and
+          p.owner_id == ^owner_id,
+      order_by: [asc: p.name],
+      select: p
+    )
+    |> Repo.all()
+  end
+
+  def validate_products_for_supplier(product_ids, supplier_id, business_id, owner_id) do
+    ids = product_ids |> Enum.reject(&is_nil/1) |> Enum.uniq()
+
+    if ids == [] do
+      {:error, :empty_po}
+    else
+      linked =
+        from(ps in ProductSupplier,
+          where:
+            ps.supplier_id == ^supplier_id and ps.business_id == ^business_id and
+              ps.owner_id == ^owner_id and ps.product_id in ^ids,
+          select: ps.product_id
+        )
+        |> Repo.all()
+        |> MapSet.new()
+
+      missing = Enum.reject(ids, &MapSet.member?(linked, &1))
+
+      if missing == [] do
+        :ok
+      else
+        {:error, {:products_not_linked_to_supplier, missing}}
+      end
+    end
   end
 
   def attach_product_supplier(product_id, supplier_id, business_id, owner_id, attrs \\ %{}) do

@@ -4,6 +4,7 @@ import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { BookPlus } from "lucide-react";
 import { api, getSession, isConsumerSession } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
@@ -361,7 +362,11 @@ function StaffAccountingPage() {
         infoKey="page.accounting"
         action={
           tab === "journals"
-            ? { label: t("accounting.postJournal"), onClick: () => setJeModal(true) }
+            ? {
+                label: t("accounting.postJournal"),
+                onClick: () => setJeModal(true),
+                icon: <BookPlus className="h-4 w-4" />,
+              }
             : undefined
         }
       />
@@ -420,7 +425,7 @@ function StaffAccountingPage() {
               id: "actions",
               header: "",
               align: "right",
-              width: 56,
+              width: 48,
               cell: (a) => (
                 <div className="flex justify-end">
                   <ActionMenu
@@ -532,7 +537,7 @@ function StaffAccountingPage() {
               id: "actions",
               header: "",
               align: "right",
-              width: 56,
+              width: 48,
               cell: (j) => (
                 <div
                   className="flex justify-end"
@@ -540,11 +545,6 @@ function StaffAccountingPage() {
                 >
                   <ActionMenu
                     items={[
-                      {
-                        id: "view",
-                        label: "View",
-                        onClick: () => setJournalDetailId(j.id),
-                      },
                       ...(j.is_locked && j.source_type !== "reversal"
                         ? [
                             {

@@ -49,12 +49,13 @@ defmodule Kaarobar.Schemas.Supplier do
     field :lead_time_days, :integer
     field :minimum_order_amount, :decimal
 
-    field :catalogs, {:array, :string}, default: []
-    field :brands, {:array, :string}, default: []
     field :tags, {:array, :string}, default: []
 
     belongs_to :business, Kaarobar.Schemas.Business
     belongs_to :owner, Kaarobar.Schemas.User
+
+    many_to_many :products, Kaarobar.Schemas.Product,
+      join_through: Kaarobar.Schemas.ProductSupplier
 
     timestamps(type: :utc_datetime)
   end
@@ -66,8 +67,6 @@ defmodule Kaarobar.Schemas.Supplier do
     supplier
     |> cast(attrs, castable_fields())
     |> update_change(:code, &normalize_code/1)
-    |> update_change(:catalogs, &normalize_string_list/1)
-    |> update_change(:brands, &normalize_string_list/1)
     |> update_change(:tags, &normalize_string_list/1)
     |> validate_required([:name, :business_id, :owner_id])
     |> validate_length(:name, min: 2, max: 160)
@@ -148,8 +147,6 @@ defmodule Kaarobar.Schemas.Supplier do
       :currency,
       :lead_time_days,
       :minimum_order_amount,
-      :catalogs,
-      :brands,
       :tags,
       :business_id,
       :owner_id

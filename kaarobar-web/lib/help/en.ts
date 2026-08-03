@@ -51,6 +51,23 @@ const en: HelpCatalog = {
       "Use a clear reason code in Adjust for audit trails.",
     ],
   },
+  "page.inventory.supplier": {
+    title: "Supplier detail",
+    summary: "Contact, terms, and products linked for purchase orders.",
+    what: "Each supplier record stores company and contact details plus an explicit list of catalog products they can supply. Only linked products appear when raising a PO for that supplier (INV-FR).",
+    how: [
+      "Open a supplier from Inventory → Suppliers.",
+      "Review contact, address, and payment terms.",
+      "Attach catalog products this supplier fulfills.",
+      "Detach products the supplier no longer carries.",
+      "Create purchase orders from Inventory → Purchase orders using linked products only.",
+    ],
+    when: "When onboarding a vendor, updating who supplies which SKUs, or before raising a PO.",
+    tips: [
+      "Link products before creating POs — the API rejects lines for unlinked SKUs.",
+      "Receive goods (GRN) against the PO so stock and average cost stay accurate.",
+    ],
+  },
   "page.customers": {
     title: "Customers & Khata",
     summary: "Customer profiles, credit/khata balance, ledger, and loyalty points.",

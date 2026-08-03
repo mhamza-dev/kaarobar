@@ -220,7 +220,7 @@ defmodule KaarobarWeb.V1.InventoryController do
   end
 
   defp serialize_po(po) do
-    po = Kaarobar.Repo.preload(po, [:items, :supplier])
+    po = Kaarobar.Repo.preload(po, [:items, :supplier, items: :product])
 
     %{
       id: po.id,
@@ -234,6 +234,8 @@ defmodule KaarobarWeb.V1.InventoryController do
         Enum.map(po.items || [], fn i ->
           %{
             product_id: i.product_id,
+            product_name: i.product && i.product.name,
+            product_sku: i.product && i.product.sku,
             quantity: to_string(i.quantity),
             unit_cost: to_string(i.unit_cost)
           }

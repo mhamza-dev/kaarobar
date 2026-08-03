@@ -78,6 +78,54 @@ defmodule KaarobarWeb.V1.SupplierController do
     end
   end
 
+  def list_products(conn, %{"id" => id}) do
+    business_id = conn.assigns[:business_id]
+    owner_id = conn.assigns[:owner_id]
+    branch_id = conn.assigns[:branch_id]
+
+    case Inventory.get_supplier(id, business_id, owner_id) do
+      nil ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      _supplier ->
+        products = Inventory.list_supplier_products(id, business_id, owner_id)
+        data = Enum.map(products, &Kaarobar.Catalog.serialize_product(&1, branch_id))
+        json(conn, %{data: data})
+    end
+  end
+
+  def attach_product(conn, %{"id" => id} = params) do
+    business_id = conn.assigns[:business_id]
+    owner_id = conn.assigns[:owner_id]
+    product_id = params["product_id"]
+
+    case Inventory.attach_product_supplier(product_id, id, business_id, owner_id, params) do
+      {:ok, _row} ->
+        conn |> put_status(:created) |> json(%{data: %{product_id: product_id, supplier_id: id}})
+
+      {:error, :not_found} ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      {:error, cs} ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> json(%{error: "validation_failed", details: translate_errors(cs)})
+    end
+  end
+
+  def detach_product(conn, %{"id" => id, "product_id" => product_id}) do
+    business_id = conn.assigns[:business_id]
+    owner_id = conn.assigns[:owner_id]
+
+    case Inventory.detach_product_supplier(product_id, id, business_id, owner_id) do
+      {:ok, _} ->
+        json(conn, %{data: %{ok: true}})
+
+      {:error, :not_found} ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+    end
+  end
+
   defp serialize(%Supplier{} = s) do
     %{
       id: s.id,
@@ -115,8 +163,6 @@ defmodule KaarobarWeb.V1.SupplierController do
       currency: s.currency,
       lead_time_days: s.lead_time_days,
       minimum_order_amount: decimal_to_string(s.minimum_order_amount),
-      catalogs: s.catalogs || [],
-      brands: s.brands || [],
       tags: s.tags || [],
       business_id: s.business_id
     }

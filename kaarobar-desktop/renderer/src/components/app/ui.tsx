@@ -12,10 +12,12 @@ type PageHeaderProps = {
   action?: {
     label: string;
     onClick: () => void;
+    icon?: ReactNode;
   };
   secondaryAction?: {
     label: string;
     onClick: () => void;
+    icon?: ReactNode;
   };
 };
 
@@ -44,12 +46,18 @@ export function PageHeader({
       {(action || secondaryAction) && (
         <div className="flex flex-wrap gap-2">
           {secondaryAction ? (
-            <Button variant="outline" onClick={secondaryAction.onClick}>
+            <Button
+              variant="outline"
+              onClick={secondaryAction.onClick}
+              startIcon={secondaryAction.icon}
+            >
               {secondaryAction.label}
             </Button>
           ) : null}
           {action ? (
-            <Button onClick={action.onClick}>{action.label}</Button>
+            <Button onClick={action.onClick} startIcon={action.icon}>
+              {action.label}
+            </Button>
           ) : null}
         </div>
       )}

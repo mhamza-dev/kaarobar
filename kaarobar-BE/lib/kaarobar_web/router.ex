@@ -239,6 +239,9 @@ defmodule KaarobarWeb.Router do
     post "/suppliers", SupplierController, :create
     get "/suppliers/:id", SupplierController, :show
     patch "/suppliers/:id", SupplierController, :update
+    get "/suppliers/:id/products", SupplierController, :list_products
+    post "/suppliers/:id/products", SupplierController, :attach_product
+    delete "/suppliers/:id/products/:product_id", SupplierController, :detach_product
   end
 
   scope "/api/v1", KaarobarWeb.V1 do

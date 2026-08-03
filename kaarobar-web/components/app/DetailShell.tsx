@@ -5,6 +5,7 @@ import { ArrowLeft, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { StatusBadge, SurfaceCard } from "@/components/app/ui";
 import Button from "@/components/ui/Button";
+import InfoButton from "@/components/ui/InfoButton";
 
 type DetailShellProps = {
   backHref: string;
@@ -12,6 +13,8 @@ type DetailShellProps = {
   eyebrow?: string;
   title: string;
   subtitle?: string;
+  /** Help topic id — shows (i) next to the title */
+  infoKey?: string;
   status?: { label: string; tone?: "info" | "success" | "warning" | "danger" };
   actions?: ReactNode;
   loading?: boolean;
@@ -25,6 +28,7 @@ export function DetailShell({
   eyebrow,
   title,
   subtitle,
+  infoKey,
   status,
   actions,
   loading,
@@ -87,6 +91,7 @@ export function DetailShell({
           ) : null}
           <div className="mt-1 flex flex-wrap items-center gap-3">
             <h1 className="text-3xl font-bold tracking-tight text-heading">{title}</h1>
+            {infoKey ? <InfoButton topicId={infoKey} size="md" /> : null}
             {status ? <StatusBadge tone={status.tone}>{status.label}</StatusBadge> : null}
           </div>
           {subtitle ? <p className="mt-2 max-w-2xl text-sm text-body">{subtitle}</p> : null}

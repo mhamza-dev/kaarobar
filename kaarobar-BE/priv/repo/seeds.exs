@@ -1388,8 +1388,6 @@ supplier_defs = [
     bank_account_title: "Lahore Distributors Pvt Ltd",
     credit_limit: "500000",
     lead_time_days: 3,
-    catalogs: ["beverages", "snacks", "dairy"],
-    brands: ["Nestle", "Pepsi"],
     tags: ["preferred", "fmcg"],
     is_preferred: true,
     rating: 5
@@ -1412,8 +1410,6 @@ supplier_defs = [
     payment_method: "bank_transfer",
     credit_limit: "1000000",
     lead_time_days: 5,
-    catalogs: ["grocery", "household", "personal care"],
-    brands: ["Unilever", "P&G"],
     tags: ["national"],
     is_preferred: true,
     rating: 4
@@ -1435,8 +1431,6 @@ supplier_defs = [
     payment_method: "cash",
     credit_limit: "100000",
     lead_time_days: 1,
-    catalogs: ["grocery", "spices"],
-    brands: [],
     tags: ["local", "fast"],
     rating: 3
   },
@@ -1463,8 +1457,6 @@ supplier_defs = [
     bank_account_title: "Punjab Wholesalers",
     credit_limit: "350000",
     lead_time_days: 4,
-    catalogs: ["textile", "home", "grocery"],
-    brands: ["Local Mills"],
     tags: ["punjab"],
     rating: 4
   }
@@ -1492,8 +1484,6 @@ generated_suppliers =
       payment_method: Enum.at(["bank_transfer", "cash", "cheque"], rem(i, 3)),
       credit_limit: "#{100_000 + i * 50_000}",
       lead_time_days: 1 + rem(i, 7),
-      catalogs: ["grocery", "household"],
-      brands: ["Local"],
       tags: ["seed", "bulk"],
       rating: 2 + rem(i, 4)
     }

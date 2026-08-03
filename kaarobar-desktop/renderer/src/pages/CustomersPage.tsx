@@ -1,6 +1,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Megaphone, UserPlus } from "lucide-react";
 import { api } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
@@ -218,12 +219,17 @@ export default function CustomersPage() {
         title={t("pages.customersTitle")}
         description={t("pages.customersDesc")}
         infoKey="page.customers"
-        action={{ label: t("customers.add"), onClick: openCreate }}
+        action={{
+          label: t("customers.add"),
+          onClick: openCreate,
+          icon: <UserPlus className="h-4 w-4" />,
+        }}
         secondaryAction={{
           label: t("nav.marketing"),
           onClick: () => {
             window.location.hash = "#/app/marketing";
           },
+          icon: <Megaphone className="h-4 w-4" />,
         }}
       />
 
@@ -308,16 +314,11 @@ export default function CustomersPage() {
             id: "actions",
             header: "",
             align: "right",
-            width: 56,
+            width: 120,
             cell: (c) => (
               <div className="flex justify-end">
                 <ActionMenu
                   items={[
-                    {
-                      id: "view",
-                      label: "View",
-                      onClick: () => navigate(detailRoutes.customer(c.id)),
-                    },
                     {
                       id: "ledger",
                       label: t("customers.ledger"),

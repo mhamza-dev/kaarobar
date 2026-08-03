@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Megaphone, UserPlus } from "lucide-react";
 import { api, isConsumerSession } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
@@ -231,12 +232,17 @@ function StaffCustomersPage() {
         title={t("pages.customersTitle")}
         description={t("pages.customersDesc")}
         infoKey="page.customers"
-        action={{ label: t("customers.add"), onClick: openCreate }}
+        action={{
+          label: t("customers.add"),
+          onClick: openCreate,
+          icon: <UserPlus className="h-4 w-4" />,
+        }}
         secondaryAction={{
           label: t("nav.marketing"),
           onClick: () => {
             window.location.href = "/app/marketing";
           },
+          icon: <Megaphone className="h-4 w-4" />,
         }}
       />
 
@@ -322,16 +328,11 @@ function StaffCustomersPage() {
             id: "actions",
             header: "",
             align: "right",
-            width: 56,
+            width: 120,
             cell: (c) => (
               <div className="flex justify-end">
                 <ActionMenu
                   items={[
-                    {
-                      id: "view",
-                      label: "View",
-                      onClick: () => router.push(detailRoutes.customer(c.id)),
-                    },
                     {
                       id: "ledger",
                       label: t("customers.ledger"),

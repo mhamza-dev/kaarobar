@@ -1,9 +1,10 @@
 "use client";
 
-import { Fragment, Suspense, useEffect, useMemo, useState } from "react";
+import { Fragment, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Check, ChevronDown, Play, RefreshCw, Send, UserPlus, UserRoundPlus, X } from "lucide-react";
 import { api, getSession } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
@@ -22,6 +23,12 @@ import {
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { formatDecimal } from "@/lib/decimal";
+import {
+  allowancesToRows,
+  defaultAllowanceRows,
+  rowsToAllowances,
+  type AllowanceRow,
+} from "@/lib/hrAllowances";
 import { useTabQueryParam } from "@/lib/hooks/useTabQueryParam";
 import { detailRoutes, routes } from "@/lib/navigation";
 import { canAccessBundle } from "@/lib/rbac";
@@ -41,7 +48,7 @@ const emptyEmpForm = {
   name: "",
   position: "Cashier",
   basic_salary: "30000",
-  transport: "3000",
+  allowances: defaultAllowanceRows(),
   status: "active",
 };
 
@@ -51,6 +58,7 @@ type Employee = {
   name: string;
   position?: string;
   basic_salary: string;
+  allowances?: Record<string, string | number> | null;
   status: string;
 };
 
@@ -215,7 +223,8 @@ function HrPageInner() {
   const [periodEnd, setPeriodEnd] = useState(() =>
     new Date().toISOString().slice(0, 10)
   );
-  const [selectedPayrollId, setSelectedPayrollId] = useState<string | null>(null);
+  const [expandedPayrollId, setExpandedPayrollId] = useState<string | null>(null);
+  const payrollAccordionReadyRef = useRef(false);
 
   const attendanceParams = useMemo(() => {
     const attParams = new URLSearchParams();
@@ -282,20 +291,22 @@ function HrPageInner() {
     enabled: tab === "payroll" && canSeePayroll,
   });
 
-  const selectedPayroll = useMemo(
-    () => payroll.find((run) => run.id === selectedPayrollId) ?? null,
-    [payroll, selectedPayrollId]
-  );
-
   useEffect(() => {
     if (payroll.length === 0) {
-      if (selectedPayrollId !== null) setSelectedPayrollId(null);
+      setExpandedPayrollId(null);
+      payrollAccordionReadyRef.current = false;
       return;
     }
-    if (!payroll.some((run) => run.id === selectedPayrollId)) {
-      setSelectedPayrollId(payroll[0].id);
-    }
-  }, [payroll, selectedPayrollId]);
+    setExpandedPayrollId((current) => {
+      if (current && payroll.some((run) => run.id === current)) {
+        payrollAccordionReadyRef.current = true;
+        return current;
+      }
+      if (current === null && payrollAccordionReadyRef.current) return null;
+      payrollAccordionReadyRef.current = true;
+      return payroll[0].id;
+    });
+  }, [payroll]);
 
   async function refreshHr() {
     await queryClient.invalidateQueries({ queryKey: hrKeys.all });
@@ -343,10 +354,36 @@ function HrPageInner() {
       name: e.name || "",
       position: e.position || "Cashier",
       basic_salary: e.basic_salary || "",
-      transport: "3000",
+      allowances: allowancesToRows(e.allowances),
       status: e.status || "active",
     });
     setModal("employee");
+  }
+
+  function updateAllowance(index: number, patch: Partial<AllowanceRow>) {
+    setEmpForm((prev) => ({
+      ...prev,
+      allowances: prev.allowances.map((row, i) =>
+        i === index ? { ...row, ...patch } : row
+      ),
+    }));
+  }
+
+  function addAllowance() {
+    setEmpForm((prev) => ({
+      ...prev,
+      allowances: [...prev.allowances, { name: "", amount: "0" }],
+    }));
+  }
+
+  function removeAllowance(index: number) {
+    setEmpForm((prev) => ({
+      ...prev,
+      allowances:
+        prev.allowances.length <= 1
+          ? prev.allowances
+          : prev.allowances.filter((_, i) => i !== index),
+    }));
   }
 
   function closeEmployeeModal() {
@@ -364,7 +401,7 @@ function HrPageInner() {
         name: empForm.name,
         position: empForm.position,
         basic_salary: empForm.basic_salary,
-        allowances: { transport: empForm.transport },
+        allowances: rowsToAllowances(empForm.allowances),
         status: empForm.status,
       };
 
@@ -444,7 +481,8 @@ function HrPageInner() {
       });
       toast.success(t("hr.payrollRun"));
       setModal(null);
-      setSelectedPayrollId(res.data.id);
+      setExpandedPayrollId(res.data.id);
+      payrollAccordionReadyRef.current = true;
       setTab("payroll");
       await refreshHr();
     } catch (err) {
@@ -484,14 +522,26 @@ function HrPageInner() {
         infoKey="page.hr"
         action={
           tab === "employees"
-            ? { label: t("hr.addEmployee"), onClick: openNewEmployee }
+            ? {
+                label: t("hr.addEmployee"),
+                onClick: openNewEmployee,
+                icon: <UserPlus className="h-4 w-4" />,
+              }
             : tab === "payroll"
-              ? { label: t("hr.runPayroll"), onClick: () => setModal("payroll") }
+              ? {
+                  label: t("hr.runPayroll"),
+                  onClick: () => setModal("payroll"),
+                  icon: <Play className="h-4 w-4" />,
+                }
               : undefined
         }
         secondaryAction={
           tab === "employees"
-            ? { label: t("hr.inviteUser"), onClick: () => setModal("invite") }
+            ? {
+                label: t("hr.inviteUser"),
+                onClick: () => setModal("invite"),
+                icon: <UserRoundPlus className="h-4 w-4" />,
+              }
             : undefined
         }
       />
@@ -551,16 +601,11 @@ function HrPageInner() {
               id: "actions",
               header: "",
               align: "right",
-              width: 56,
+              width: 48,
               cell: (e) => (
                 <div className="flex justify-end">
                   <ActionMenu
                     items={[
-                      {
-                        id: "view",
-                        label: "View",
-                        onClick: () => router.push(detailRoutes.employee(e.id)),
-                      },
                       {
                         id: "edit",
                         label: "Edit",
@@ -668,13 +713,18 @@ function HrPageInner() {
               cell: (l) =>
                 l.status === "Pending" && canLeaveApprove ? (
                   <div className="flex justify-end gap-2">
-                    <Button size="sm" onClick={() => decideLeave(l.id, "approve")}>
+                    <Button
+                      size="sm"
+                      onClick={() => decideLeave(l.id, "approve")}
+                      startIcon={<Check className="h-4 w-4" />}
+                    >
                       Approve
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => decideLeave(l.id, "reject")}
+                      startIcon={<X className="h-4 w-4" />}
                     >
                       Reject
                     </Button>
@@ -699,29 +749,33 @@ function HrPageInner() {
               />
             </SurfaceCard>
           ) : (
-            <div className="grid gap-4 lg:grid-cols-[minmax(16rem,20rem)_minmax(0,1fr)]">
-              <SurfaceCard className="max-h-[min(80vh,42rem)] overflow-y-auto p-2">
-                <div
-                  role="listbox"
-                  aria-label={t("hr.payrollListLabel")}
-                  className="space-y-1"
-                >
-                  {payroll.map((run) => {
-                    const selected = run.id === selectedPayrollId;
-                    const slipCount = run.payslips?.length ?? 0;
-                    return (
-                      <button
-                        key={run.id}
-                        type="button"
-                        role="option"
-                        aria-selected={selected}
-                        onClick={() => setSelectedPayrollId(run.id)}
-                        className={`w-full rounded-md border px-3 py-2.5 text-start transition ${
-                          selected
-                            ? "border-brand bg-brand-light ring-2 ring-brand/20"
-                            : "border-transparent hover:border-border hover:bg-bg-tertiary"
-                        }`}
-                      >
+            <div
+              className="space-y-2"
+              role="region"
+              aria-label={t("hr.payrollListLabel")}
+            >
+              {payroll.map((run) => {
+                const expanded = run.id === expandedPayrollId;
+                const slipCount = run.payslips?.length ?? 0;
+                const panelId = `payroll-panel-${run.id}`;
+                const headerId = `payroll-header-${run.id}`;
+                return (
+                  <SurfaceCard key={run.id} className="overflow-hidden p-0">
+                    <button
+                      type="button"
+                      id={headerId}
+                      aria-expanded={expanded}
+                      aria-controls={expanded ? panelId : undefined}
+                      onClick={() =>
+                        setExpandedPayrollId(expanded ? null : run.id)
+                      }
+                      className={`flex w-full items-start gap-3 px-4 py-3 text-start transition ${
+                        expanded
+                          ? "bg-brand-light/60"
+                          : "hover:bg-bg-tertiary"
+                      }`}
+                    >
+                      <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-start justify-between gap-2">
                           <span className="min-w-0 font-semibold text-heading">
                             {run.period_start} → {run.period_end}
@@ -738,153 +792,167 @@ function HrPageInner() {
                             net: displayAmount(payrollNetTotal(run)),
                           })}
                         </p>
-                      </button>
-                    );
-                  })}
-                </div>
-              </SurfaceCard>
-
-              <SurfaceCard className="max-h-[min(80vh,42rem)] space-y-3 overflow-y-auto p-4">
-                {selectedPayroll ? (
-                  <>
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex min-w-0 flex-wrap items-center gap-2">
-                        <h3 className="font-semibold text-heading">
-                          {selectedPayroll.period_start} → {selectedPayroll.period_end}
-                        </h3>
-                        <StatusBadge tone={payrollStatusTone(selectedPayroll.status)}>
-                          {selectedPayroll.status === "PendingApproval"
-                            ? t("hr.pendingApproval")
-                            : selectedPayroll.status}
-                        </StatusBadge>
-                        {selectedPayroll.journal_entry_id ? (
-                          <span className="text-xs text-muted">
-                            {t("hr.postedToLedger")}
-                          </span>
-                        ) : null}
-                        <Link
-                          href={detailRoutes.payroll(selectedPayroll.id)}
-                          className="text-xs font-medium text-brand underline"
-                        >
-                          {t("hr.openPayrollDetail")}
-                        </Link>
                       </div>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedPayroll.status === "Draft" ||
-                        selectedPayroll.status === "Rejected" ? (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() =>
-                                payrollAction(selectedPayroll.id, "recalculate")
-                              }
+                      <ChevronDown
+                        className={`mt-0.5 h-4 w-4 shrink-0 text-muted transition-transform ${
+                          expanded ? "rotate-180" : ""
+                        }`}
+                        aria-hidden
+                      />
+                    </button>
+                    {expanded ? (
+                      <div
+                        id={panelId}
+                        role="region"
+                        aria-labelledby={headerId}
+                        className="space-y-3 border-t border-border px-4 py-3"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div className="flex min-w-0 flex-wrap items-center gap-2">
+                            {run.journal_entry_id ? (
+                              <span className="text-xs text-muted">
+                                {t("hr.postedToLedger")}
+                              </span>
+                            ) : null}
+                            <Link
+                              href={detailRoutes.payroll(run.id)}
+                              className="text-xs font-medium text-brand underline"
                             >
-                              Recalculate
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => payrollAction(selectedPayroll.id, "submit")}
-                            >
-                              Submit
-                            </Button>
-                          </>
-                        ) : null}
-                        {selectedPayroll.status === "PendingApproval" &&
-                        canPayrollApprove ? (
-                          <>
-                            <Button
-                              size="sm"
-                              onClick={() => payrollAction(selectedPayroll.id, "approve")}
-                            >
-                              Approve & post
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => payrollAction(selectedPayroll.id, "reject")}
-                            >
-                              Reject
-                            </Button>
-                          </>
-                        ) : null}
-                      </div>
-                    </div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full min-w-[40rem] text-left text-sm">
-                        <thead>
-                          <tr className="border-b border-border text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
-                            <th className="py-2 pe-3 font-bold">Employee</th>
-                            <th className="py-2 pe-3 text-end font-bold">Days</th>
-                            <th className="py-2 pe-3 text-end font-bold">Hours</th>
-                            <th className="py-2 pe-3 text-end font-bold">OT</th>
-                            <th className="py-2 pe-3 text-end font-bold">Factor</th>
-                            <th className="py-2 pe-3 text-end font-bold">Gross</th>
-                            <th className="py-2 text-end font-bold">Net</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {selectedPayroll.payslips?.map((s) => {
-                            const name =
-                              s.employee_name || s.employee_code || s.id.slice(0, 8);
-                            const code =
-                              s.employee_name && s.employee_code
-                                ? s.employee_code
-                                : null;
-                            const ot = s.overtime_hours ?? s.earnings?.ot_hours;
-                            return (
-                              <Fragment key={s.id}>
-                                <tr className="border-t border-border text-heading">
-                                  <td className="py-2.5 pe-3 align-top">
-                                    <div className="font-medium leading-snug">{name}</div>
-                                    {code ? (
-                                      <div className="mt-0.5 text-xs text-muted">{code}</div>
+                              {t("hr.openPayrollDetail")}
+                            </Link>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {run.status === "Draft" ||
+                            run.status === "Rejected" ? (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    payrollAction(run.id, "recalculate")
+                                  }
+                                  startIcon={<RefreshCw className="h-4 w-4" />}
+                                >
+                                  Recalculate
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    payrollAction(run.id, "submit")
+                                  }
+                                  startIcon={<Send className="h-4 w-4" />}
+                                >
+                                  Submit
+                                </Button>
+                              </>
+                            ) : null}
+                            {run.status === "PendingApproval" &&
+                            canPayrollApprove ? (
+                              <>
+                                <Button
+                                  size="sm"
+                                  onClick={() =>
+                                    payrollAction(run.id, "approve")
+                                  }
+                                  startIcon={<Check className="h-4 w-4" />}
+                                >
+                                  Approve & post
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    payrollAction(run.id, "reject")
+                                  }
+                                  startIcon={<X className="h-4 w-4" />}
+                                >
+                                  Reject
+                                </Button>
+                              </>
+                            ) : null}
+                          </div>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full min-w-[40rem] text-left text-sm">
+                            <thead>
+                              <tr className="border-b border-border text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
+                                <th className="py-2 pe-3 font-bold">Employee</th>
+                                <th className="py-2 pe-3 text-end font-bold">Days</th>
+                                <th className="py-2 pe-3 text-end font-bold">Hours</th>
+                                <th className="py-2 pe-3 text-end font-bold">OT</th>
+                                <th className="py-2 pe-3 text-end font-bold">Factor</th>
+                                <th className="py-2 pe-3 text-end font-bold">Gross</th>
+                                <th className="py-2 text-end font-bold">Net</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {run.payslips?.map((s) => {
+                                const name =
+                                  s.employee_name ||
+                                  s.employee_code ||
+                                  s.id.slice(0, 8);
+                                const code =
+                                  s.employee_name && s.employee_code
+                                    ? s.employee_code
+                                    : null;
+                                const ot =
+                                  s.overtime_hours ?? s.earnings?.ot_hours;
+                                return (
+                                  <Fragment key={s.id}>
+                                    <tr className="border-t border-border text-heading">
+                                      <td className="py-2.5 pe-3 align-top">
+                                        <div className="font-medium leading-snug">
+                                          {name}
+                                        </div>
+                                        {code ? (
+                                          <div className="mt-0.5 text-xs text-muted">
+                                            {code}
+                                          </div>
+                                        ) : null}
+                                      </td>
+                                      <td className="py-2.5 pe-3 text-end align-top tabular-nums">
+                                        {s.days_worked ?? "—"}
+                                      </td>
+                                      <td className="py-2.5 pe-3 text-end align-top tabular-nums">
+                                        {displayAmount(s.earnings?.worked_hours)}
+                                      </td>
+                                      <td className="py-2.5 pe-3 text-end align-top tabular-nums">
+                                        {displayAmount(ot)}
+                                      </td>
+                                      <td className="py-2.5 pe-3 text-end align-top tabular-nums">
+                                        {displayAmount(
+                                          s.earnings?.attendance_factor
+                                        )}
+                                      </td>
+                                      <td className="py-2.5 pe-3 text-end align-top tabular-nums">
+                                        {displayAmount(s.gross_pay)}
+                                      </td>
+                                      <td className="py-2.5 text-end align-top font-medium tabular-nums">
+                                        {displayAmount(s.net_pay)}
+                                      </td>
+                                    </tr>
+                                    {s.earnings || s.deductions ? (
+                                      <tr>
+                                        <td colSpan={7} className="pb-3 pt-0">
+                                          <PayslipMeta
+                                            earnings={s.earnings}
+                                            deductions={s.deductions}
+                                          />
+                                        </td>
+                                      </tr>
                                     ) : null}
-                                  </td>
-                                  <td className="py-2.5 pe-3 text-end align-top tabular-nums">
-                                    {s.days_worked ?? "—"}
-                                  </td>
-                                  <td className="py-2.5 pe-3 text-end align-top tabular-nums">
-                                    {displayAmount(s.earnings?.worked_hours)}
-                                  </td>
-                                  <td className="py-2.5 pe-3 text-end align-top tabular-nums">
-                                    {displayAmount(ot)}
-                                  </td>
-                                  <td className="py-2.5 pe-3 text-end align-top tabular-nums">
-                                    {displayAmount(s.earnings?.attendance_factor)}
-                                  </td>
-                                  <td className="py-2.5 pe-3 text-end align-top tabular-nums">
-                                    {displayAmount(s.gross_pay)}
-                                  </td>
-                                  <td className="py-2.5 text-end align-top font-medium tabular-nums">
-                                    {displayAmount(s.net_pay)}
-                                  </td>
-                                </tr>
-                                {s.earnings || s.deductions ? (
-                                  <tr>
-                                    <td colSpan={7} className="pb-3 pt-0">
-                                      <PayslipMeta
-                                        earnings={s.earnings}
-                                        deductions={s.deductions}
-                                      />
-                                    </td>
-                                  </tr>
-                                ) : null}
-                              </Fragment>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </>
-                ) : (
-                  <EmptyState
-                    title={t("hr.selectPayroll")}
-                    body={t("hr.selectPayrollBody")}
-                  />
-                )}
-              </SurfaceCard>
+                                  </Fragment>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ) : null}
+                  </SurfaceCard>
+                );
+              })}
             </div>
           )}
         </div>
@@ -937,7 +1005,7 @@ function HrPageInner() {
                 onChange={(e) => setEmpForm({ ...empForm, position: e.target.value })}
               />
             </Field>
-            <Field label="Basic salary">
+            <Field label={t("hr.basicSalary")}>
               <input
                 className={fieldClass}
                 type="number"
@@ -955,22 +1023,6 @@ function HrPageInner() {
                 }}
               />
             </Field>
-            <Field label="Transport allowance">
-              <input
-                className={fieldClass}
-                type="number"
-                step="0.01"
-                value={empForm.transport}
-                onChange={(e) => setEmpForm({ ...empForm, transport: e.target.value })}
-                onBlur={(e) => {
-                  if (e.target.value.trim() === "") return;
-                  setEmpForm({
-                    ...empForm,
-                    transport: formatDecimal(e.target.value),
-                  });
-                }}
-              />
-            </Field>
             {editingEmployeeId ? (
               <Field label="Status">
                 <Select
@@ -984,6 +1036,60 @@ function HrPageInner() {
                 />
               </Field>
             ) : null}
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-heading">{t("hr.allowances")}</p>
+              <Button type="button" variant="outline" size="sm" onClick={addAllowance}>
+                {t("hr.addAllowance")}
+              </Button>
+            </div>
+            <p className="text-xs text-muted">{t("hr.allowancesHint")}</p>
+            <div className="space-y-2">
+              {empForm.allowances.map((row, index) => (
+                <div
+                  key={`allowance-${index}`}
+                  className="grid grid-cols-[1fr_1fr_auto] items-end gap-2"
+                >
+                  <Field label={t("hr.allowanceName")}>
+                    <input
+                      className={fieldClass}
+                      value={row.name}
+                      placeholder="transport"
+                      onChange={(e) => updateAllowance(index, { name: e.target.value })}
+                      required={empForm.allowances.length === 1}
+                    />
+                  </Field>
+                  <Field label={t("hr.allowanceAmount")}>
+                    <input
+                      className={fieldClass}
+                      type="number"
+                      step="0.01"
+                      min={0}
+                      value={row.amount}
+                      onChange={(e) => updateAllowance(index, { amount: e.target.value })}
+                      onBlur={(e) => {
+                        if (e.target.value.trim() === "") return;
+                        updateAllowance(index, {
+                          amount: formatDecimal(e.target.value),
+                        });
+                      }}
+                    />
+                  </Field>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mb-0.5"
+                    disabled={empForm.allowances.length <= 1}
+                    onClick={() => removeAllowance(index)}
+                  >
+                    {t("hr.removeAllowance")}
+                  </Button>
+                </div>
+              ))}
+            </div>
           </div>
         </form>
       </Modal>

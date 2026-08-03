@@ -2,6 +2,7 @@
 import { Suspense, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { BookPlus } from "lucide-react";
 import { api, getSession } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
@@ -341,7 +342,11 @@ function AccountingPageInner() {
         infoKey="page.accounting"
         action={
           tab === "journals"
-            ? { label: t("accounting.postJournal"), onClick: () => setJeModal(true) }
+            ? {
+                label: t("accounting.postJournal"),
+                onClick: () => setJeModal(true),
+                icon: <BookPlus className="h-4 w-4" />,
+              }
             : undefined
         }
       />
@@ -380,7 +385,7 @@ function AccountingPageInner() {
               id: "actions",
               header: "",
               align: "right",
-              width: 56,
+              width: 48,
               cell: (a) => (
                 <div className="flex justify-end">
                   <ActionMenu
@@ -492,7 +497,7 @@ function AccountingPageInner() {
               id: "actions",
               header: "",
               align: "right",
-              width: 56,
+              width: 48,
               cell: (j) => (
                 <div
                   className="flex justify-end"
@@ -500,16 +505,6 @@ function AccountingPageInner() {
                 >
                   <ActionMenu
                     items={[
-                      {
-                        id: "view",
-                        label: "View",
-                        onClick: () => setJournalDetailId(j.id),
-                      },
-                      {
-                        id: "open",
-                        label: "Open detail",
-                        onClick: () => navigate(detailRoutes.journal(j.id)),
-                      },
                       ...(j.is_locked && j.source_type !== "reversal"
                         ? [
                             {

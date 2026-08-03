@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Award, FilePlus, Filter, Megaphone, TicketPercent, Users } from "lucide-react";
 import { api, getSession } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
@@ -136,6 +137,9 @@ function MarketingPageInner() {
   );
   const [modal, setModal] = useState(false);
   const [tplModal, setTplModal] = useState(false);
+  const [segModal, setSegModal] = useState(false);
+  const [couponModal, setCouponModal] = useState(false);
+  const [tierModal, setTierModal] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [detail, setDetail] = useState<Campaign | null>(null);
   const [previewCount, setPreviewCount] = useState<number | null>(null);
@@ -409,8 +413,9 @@ function MarketingPageInner() {
     },
     onSuccess: async () => {
       setSegForm({ name: "", min_points: "", khata: false });
+      setSegModal(false);
       await invalidateSegments();
-      toast.success("Segment created");
+      toast.success(t("marketing.segmentSaved"));
     },
     onError: (err) => {
       toast.error(err instanceof Error ? err.message : t("common.error"));
@@ -440,8 +445,9 @@ function MarketingPageInner() {
         min_cart: "",
         stackable: false,
       });
+      setCouponModal(false);
       await invalidateCoupons();
-      toast.success("Coupon created");
+      toast.success(t("marketing.couponSaved"));
     },
     onError: (err) => {
       toast.error(err instanceof Error ? err.message : t("common.error"));
@@ -462,8 +468,9 @@ function MarketingPageInner() {
     },
     onSuccess: async () => {
       setTierForm({ name: "", min_points: "0", earn_rate: "1", redeem_rate: "1" });
+      setTierModal(false);
       await invalidateTiers();
-      toast.success("Tier created");
+      toast.success(t("marketing.tierSaved"));
     },
     onError: (err) => {
       toast.error(err instanceof Error ? err.message : t("common.error"));
@@ -542,6 +549,28 @@ function MarketingPageInner() {
     setTplForm(emptyTplForm);
     setTplPreview(null);
     setTplModal(true);
+  }
+
+  function openSegModal() {
+    setSegForm({ name: "", min_points: "", khata: false });
+    setSegModal(true);
+  }
+
+  function openCouponModal() {
+    setCouponForm({
+      code: "",
+      discount_type: "percent",
+      discount_value: "",
+      usage_limit: "",
+      min_cart: "",
+      stackable: false,
+    });
+    setCouponModal(true);
+  }
+
+  function openTierModal() {
+    setTierForm({ name: "", min_points: "0", earn_rate: "1", redeem_rate: "1" });
+    setTierModal(true);
   }
 
   function insertTplVar(placeholder: string) {
@@ -636,16 +665,43 @@ function MarketingPageInner() {
         infoKey="page.marketing"
         action={
           tab === "campaigns"
-            ? { label: t("marketing.newCampaign"), onClick: () => setModal(true) }
+            ? {
+                label: t("marketing.newCampaign"),
+                onClick: () => setModal(true),
+                icon: <Megaphone className="h-4 w-4" />,
+              }
             : tab === "templates"
-              ? { label: t("marketing.newTemplate"), onClick: openTplModal }
-            : undefined
+              ? {
+                  label: t("marketing.newTemplate"),
+                  onClick: openTplModal,
+                  icon: <FilePlus className="h-4 w-4" />,
+                }
+              : tab === "segments"
+                ? {
+                    label: t("marketing.newSegment"),
+                    onClick: openSegModal,
+                    icon: <Filter className="h-4 w-4" />,
+                  }
+                : tab === "coupons"
+                  ? {
+                      label: t("marketing.newCoupon"),
+                      onClick: openCouponModal,
+                      icon: <TicketPercent className="h-4 w-4" />,
+                    }
+                  : tab === "tiers"
+                    ? {
+                        label: t("marketing.newTier"),
+                        onClick: openTierModal,
+                        icon: <Award className="h-4 w-4" />,
+                      }
+                    : undefined
         }
         secondaryAction={{
           label: t("nav.customers"),
           onClick: () => {
             window.location.href = "/app/customers";
           },
+          icon: <Users className="h-4 w-4" />,
         }}
       />
 
@@ -734,16 +790,11 @@ function MarketingPageInner() {
                 id: "actions",
                 header: "",
                 align: "right",
-                width: 56,
+                width: 48,
                 cell: (c) => (
                   <div className="flex justify-end">
                     <ActionMenu
                       items={[
-                        {
-                          id: "detail",
-                          label: t("marketing.detail"),
-                          onClick: () => router.push(detailRoutes.campaign(c.id)),
-                        },
                         {
                           id: "send",
                           label: isPaidChannel(c.channel)
@@ -831,209 +882,79 @@ function MarketingPageInner() {
       ) : null}
 
       {tab === "segments" ? (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <SurfaceCard className="space-y-3 p-4">
-            <h3 className="font-semibold text-heading">New segment</h3>
-            <form onSubmit={createSegment} className="grid gap-3">
-              <Field label="Name">
-                <input
-                  className={fieldClass}
-                  required
-                  value={segForm.name}
-                  onChange={(e) => setSegForm({ ...segForm, name: e.target.value })}
-                />
-              </Field>
-              <Field label="Min points">
-                <input
-                  className={fieldClass}
-                  type="number"
-                  min={0}
-                  value={segForm.min_points}
-                  onChange={(e) => setSegForm({ ...segForm, min_points: e.target.value })}
-                />
-              </Field>
-              <label className="flex items-center gap-2 text-sm text-body">
-                <input
-                  type="checkbox"
-                  checked={segForm.khata}
-                  onChange={(e) => setSegForm({ ...segForm, khata: e.target.checked })}
-                />
-                Khata customers only
-              </label>
-              <Button type="submit" loading={busy}>
-                Save segment
-              </Button>
-            </form>
-          </SurfaceCard>
-          <DataTable
-            loading={segmentsQuery.isLoading || segmentsQuery.isFetching}
-            columns={[
-              { id: "name", header: "Name", cell: (s) => s.name },
-              {
-                id: "filters",
-                header: "Filters",
-                cell: (s) => JSON.stringify(s.filters || {}),
-              },
-            ]}
-            data={segments}
-            rowKey={(s) => s.id}
-            emptyTitle="No segments"
-            emptyBody="Create a named audience filter."
-          />
-        </div>
+        <DataTable
+          maxHeight="24rem"
+          loading={segmentsQuery.isLoading || segmentsQuery.isFetching}
+          columns={[
+            { id: "name", header: t("common.name"), cell: (s) => s.name },
+            {
+              id: "filters",
+              header: t("marketing.filters"),
+              cell: (s) => JSON.stringify(s.filters || {}),
+            },
+          ]}
+          data={segments}
+          rowKey={(s) => s.id}
+          emptyTitle={t("marketing.segmentsEmpty")}
+          emptyBody={t("marketing.segmentsEmptyBody")}
+        />
       ) : null}
 
       {tab === "coupons" ? (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <SurfaceCard className="space-y-3 p-4">
-            <h3 className="font-semibold text-heading">New coupon</h3>
-            <form onSubmit={createCoupon} className="grid gap-3">
-              <Field label="Code">
-                <input
-                  className={fieldClass}
-                  required
-                  value={couponForm.code}
-                  onChange={(e) =>
-                    setCouponForm({ ...couponForm, code: e.target.value.toUpperCase() })
-                  }
-                />
-              </Field>
-              <Field label="Type">
-                <Select
-                  value={couponForm.discount_type}
-                  onChange={(v) =>
-                    setCouponForm({ ...couponForm, discount_type: v })
-                  }
-                  options={[
-                    { value: "percent", label: "Percent" },
-                    { value: "fixed", label: "Fixed" },
-                  ]}
-                />
-              </Field>
-              <Field label="Value">
-                <input
-                  className={fieldClass}
-                  required
-                  value={couponForm.discount_value}
-                  onChange={(e) =>
-                    setCouponForm({ ...couponForm, discount_value: e.target.value })
-                  }
-                />
-              </Field>
-              <Field label="Usage limit">
-                <input
-                  className={fieldClass}
-                  value={couponForm.usage_limit}
-                  onChange={(e) =>
-                    setCouponForm({ ...couponForm, usage_limit: e.target.value })
-                  }
-                />
-              </Field>
-              <Field label="Min cart">
-                <input
-                  className={fieldClass}
-                  value={couponForm.min_cart}
-                  onChange={(e) => setCouponForm({ ...couponForm, min_cart: e.target.value })}
-                />
-              </Field>
-              <label className="flex items-center gap-2 text-sm text-body">
-                <input
-                  type="checkbox"
-                  checked={couponForm.stackable}
-                  onChange={(e) =>
-                    setCouponForm({ ...couponForm, stackable: e.target.checked })
-                  }
-                />
-                Stackable with other discounts
-              </label>
-              <Button type="submit" loading={busy}>
-                Save coupon
-              </Button>
-            </form>
-          </SurfaceCard>
-          <DataTable
-            loading={couponsQuery.isLoading || couponsQuery.isFetching}
-            columns={[
-              { id: "code", header: "Code", cell: (c) => c.code },
-              {
-                id: "value",
-                header: "Discount",
-                cell: (c) =>
-                  c.discount_type === "percent"
-                    ? `${c.discount_value}%`
-                    : `Rs ${c.discount_value}`,
-              },
-              {
-                id: "usage",
-                header: "Usage",
-                cell: (c) =>
-                  `${c.usage_count}${c.usage_limit != null ? ` / ${c.usage_limit}` : ""}`,
-              },
-            ]}
-            data={coupons}
-            rowKey={(c) => c.id}
-            emptyTitle="No coupons"
-            emptyBody="Create a promo code for POS checkout."
-          />
-        </div>
+        <DataTable
+          maxHeight="24rem"
+          loading={couponsQuery.isLoading || couponsQuery.isFetching}
+          columns={[
+            { id: "code", header: t("marketing.couponCode"), cell: (c) => c.code },
+            {
+              id: "value",
+              header: t("marketing.discount"),
+              cell: (c) =>
+                c.discount_type === "percent"
+                  ? `${c.discount_value}%`
+                  : `Rs ${c.discount_value}`,
+            },
+            {
+              id: "usage",
+              header: t("marketing.usage"),
+              cell: (c) =>
+                `${c.usage_count}${c.usage_limit != null ? ` / ${c.usage_limit}` : ""}`,
+            },
+          ]}
+          data={coupons}
+          rowKey={(c) => c.id}
+          emptyTitle={t("marketing.couponsEmpty")}
+          emptyBody={t("marketing.couponsEmptyBody")}
+        />
       ) : null}
 
       {tab === "tiers" ? (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <SurfaceCard className="space-y-3 p-4">
-            <h3 className="font-semibold text-heading">New loyalty tier</h3>
-            <form onSubmit={createTier} className="grid gap-3">
-              <Field label="Name">
-                <input
-                  className={fieldClass}
-                  required
-                  value={tierForm.name}
-                  onChange={(e) => setTierForm({ ...tierForm, name: e.target.value })}
-                />
-              </Field>
-              <Field label="Min points">
-                <input
-                  className={fieldClass}
-                  type="number"
-                  min={0}
-                  required
-                  value={tierForm.min_points}
-                  onChange={(e) => setTierForm({ ...tierForm, min_points: e.target.value })}
-                />
-              </Field>
-              <Field label="Earn rate multiplier">
-                <input
-                  className={fieldClass}
-                  value={tierForm.earn_rate}
-                  onChange={(e) => setTierForm({ ...tierForm, earn_rate: e.target.value })}
-                />
-              </Field>
-              <Field label="Redeem rate multiplier">
-                <input
-                  className={fieldClass}
-                  value={tierForm.redeem_rate}
-                  onChange={(e) => setTierForm({ ...tierForm, redeem_rate: e.target.value })}
-                />
-              </Field>
-              <Button type="submit" loading={busy}>
-                Save tier
-              </Button>
-            </form>
-          </SurfaceCard>
-          <DataTable
-            loading={tiersQuery.isLoading || tiersQuery.isFetching}
-            columns={[
-              { id: "name", header: "Name", cell: (t) => t.name },
-              { id: "min", header: "Min points", cell: (t) => String(t.min_points) },
-              { id: "earn", header: "Earn ×", cell: (t) => t.earn_rate },
-              { id: "redeem", header: "Redeem ×", cell: (t) => t.redeem_rate },
-            ]}
-            data={tiers}
-            rowKey={(t) => t.id}
-            emptyTitle="No tiers"
-            emptyBody="Add named loyalty tiers for customers."
-          />
-        </div>
+        <DataTable
+          maxHeight="24rem"
+          loading={tiersQuery.isLoading || tiersQuery.isFetching}
+          columns={[
+            { id: "name", header: t("common.name"), cell: (row) => row.name },
+            {
+              id: "min",
+              header: t("marketing.minPoints"),
+              cell: (row) => String(row.min_points),
+            },
+            {
+              id: "earn",
+              header: t("marketing.earnRate"),
+              cell: (row) => row.earn_rate,
+            },
+            {
+              id: "redeem",
+              header: t("marketing.redeemRate"),
+              cell: (row) => row.redeem_rate,
+            },
+          ]}
+          data={tiers}
+          rowKey={(row) => row.id}
+          emptyTitle={t("marketing.tiersEmpty")}
+          emptyBody={t("marketing.tiersEmptyBody")}
+        />
       ) : null}
 
       {detail ? (
@@ -1298,6 +1219,179 @@ function MarketingPageInner() {
               ) : null}
             </div>
           ) : null}
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={segModal}
+        onClose={() => setSegModal(false)}
+        title={t("marketing.newSegment")}
+        description={t("marketing.segmentModalDesc")}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setSegModal(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button type="submit" form="segment-form" loading={busy}>
+              {t("marketing.saveSegment")}
+            </Button>
+          </div>
+        }
+      >
+        <form id="segment-form" onSubmit={createSegment} className="grid gap-3">
+          <Field label={t("common.name")}>
+            <input
+              className={fieldClass}
+              required
+              value={segForm.name}
+              onChange={(e) => setSegForm({ ...segForm, name: e.target.value })}
+            />
+          </Field>
+          <Field label={t("marketing.minPoints")}>
+            <input
+              className={fieldClass}
+              type="number"
+              min={0}
+              value={segForm.min_points}
+              onChange={(e) => setSegForm({ ...segForm, min_points: e.target.value })}
+            />
+          </Field>
+          <label className="flex items-center gap-2 text-sm text-body">
+            <input
+              type="checkbox"
+              checked={segForm.khata}
+              onChange={(e) => setSegForm({ ...segForm, khata: e.target.checked })}
+            />
+            {t("marketing.khataOnly")}
+          </label>
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={couponModal}
+        onClose={() => setCouponModal(false)}
+        title={t("marketing.newCoupon")}
+        description={t("marketing.couponModalDesc")}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setCouponModal(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button type="submit" form="coupon-form" loading={busy}>
+              {t("marketing.saveCoupon")}
+            </Button>
+          </div>
+        }
+      >
+        <form id="coupon-form" onSubmit={createCoupon} className="grid gap-3">
+          <Field label={t("marketing.couponCode")}>
+            <input
+              className={fieldClass}
+              required
+              value={couponForm.code}
+              onChange={(e) =>
+                setCouponForm({ ...couponForm, code: e.target.value.toUpperCase() })
+              }
+            />
+          </Field>
+          <Field label={t("marketing.discountType")}>
+            <Select
+              value={couponForm.discount_type}
+              onChange={(v) => setCouponForm({ ...couponForm, discount_type: v })}
+              options={[
+                { value: "percent", label: t("marketing.discountPercent") },
+                { value: "fixed", label: t("marketing.discountFixed") },
+              ]}
+            />
+          </Field>
+          <Field label={t("marketing.discountValue")}>
+            <input
+              className={fieldClass}
+              required
+              value={couponForm.discount_value}
+              onChange={(e) =>
+                setCouponForm({ ...couponForm, discount_value: e.target.value })
+              }
+            />
+          </Field>
+          <Field label={t("marketing.usageLimit")}>
+            <input
+              className={fieldClass}
+              value={couponForm.usage_limit}
+              onChange={(e) =>
+                setCouponForm({ ...couponForm, usage_limit: e.target.value })
+              }
+            />
+          </Field>
+          <Field label={t("marketing.minCart")}>
+            <input
+              className={fieldClass}
+              value={couponForm.min_cart}
+              onChange={(e) => setCouponForm({ ...couponForm, min_cart: e.target.value })}
+            />
+          </Field>
+          <label className="flex items-center gap-2 text-sm text-body">
+            <input
+              type="checkbox"
+              checked={couponForm.stackable}
+              onChange={(e) =>
+                setCouponForm({ ...couponForm, stackable: e.target.checked })
+              }
+            />
+            {t("marketing.stackable")}
+          </label>
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={tierModal}
+        onClose={() => setTierModal(false)}
+        title={t("marketing.newTier")}
+        description={t("marketing.tierModalDesc")}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setTierModal(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button type="submit" form="tier-form" loading={busy}>
+              {t("marketing.saveTier")}
+            </Button>
+          </div>
+        }
+      >
+        <form id="tier-form" onSubmit={createTier} className="grid gap-3">
+          <Field label={t("common.name")}>
+            <input
+              className={fieldClass}
+              required
+              value={tierForm.name}
+              onChange={(e) => setTierForm({ ...tierForm, name: e.target.value })}
+            />
+          </Field>
+          <Field label={t("marketing.minPoints")}>
+            <input
+              className={fieldClass}
+              type="number"
+              min={0}
+              required
+              value={tierForm.min_points}
+              onChange={(e) => setTierForm({ ...tierForm, min_points: e.target.value })}
+            />
+          </Field>
+          <Field label={t("marketing.earnRate")}>
+            <input
+              className={fieldClass}
+              value={tierForm.earn_rate}
+              onChange={(e) => setTierForm({ ...tierForm, earn_rate: e.target.value })}
+            />
+          </Field>
+          <Field label={t("marketing.redeemRate")}>
+            <input
+              className={fieldClass}
+              value={tierForm.redeem_rate}
+              onChange={(e) => setTierForm({ ...tierForm, redeem_rate: e.target.value })}
+            />
+          </Field>
         </form>
       </Modal>
     </div>

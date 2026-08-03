@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Building2 } from "lucide-react";
 import { api } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
@@ -116,6 +117,7 @@ export default function BusinessesPage() {
             setForm(emptyForm);
             setModal(true);
           },
+          icon: <Building2 className="h-4 w-4" />,
         }}
       />
 
@@ -157,16 +159,11 @@ export default function BusinessesPage() {
               id: "actions",
               header: "",
               align: "right",
-              width: 56,
+              width: 48,
               cell: (b) => (
                 <div className="flex justify-end">
                   <ActionMenu
                     items={[
-                      {
-                        id: "open",
-                        label: t("businesses.open"),
-                        onClick: () => navigate(detailRoutes.business(b.id)),
-                      },
                       {
                         id: "deactivate",
                         label: t("businesses.deactivate"),

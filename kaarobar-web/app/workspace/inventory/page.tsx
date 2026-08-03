@@ -4,6 +4,14 @@ import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  ArrowLeftRight,
+  Check,
+  PackagePlus,
+  Plus,
+  SlidersHorizontal,
+  Truck,
+} from "lucide-react";
 import { api, getSession } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
@@ -42,7 +50,7 @@ const INVENTORY_TABS: readonly Tab[] = [
   "transfers",
   "adjust",
 ];
-type ModalKind = "product" | "supplier" | "po" | "transfer" | null;
+type ModalKind = "product" | "supplier" | "po" | "transfer" | "grn" | null;
 
 const emptyProductForm = {
   sku: "",
@@ -114,8 +122,6 @@ type Supplier = {
   currency?: string | null;
   lead_time_days?: number | null;
   minimum_order_amount?: string | null;
-  catalogs?: string[];
-  brands?: string[];
   tags?: string[];
 };
 
@@ -153,8 +159,6 @@ const emptySupplierForm = {
   currency: "PKR",
   lead_time_days: "",
   minimum_order_amount: "",
-  catalogs: "",
-  brands: "",
   tags: "",
 };
 type PO = {
@@ -162,7 +166,13 @@ type PO = {
   status: string;
   supplier_name?: string;
   supplier_id: string;
-  items: { product_id: string; quantity: string; unit_cost: string }[];
+  items: {
+    product_id: string;
+    product_name?: string;
+    product_sku?: string;
+    quantity: string;
+    unit_cost: string;
+  }[];
 };
 type Transfer = {
   id: string;
@@ -221,11 +231,15 @@ function InventoryPageInner() {
     string | null
   >(null);
   const [attachSupplierId, setAttachSupplierId] = useState<string | null>(null);
-  const [grnForm, setGrnForm] = useState({
+  const [grnForm, setGrnForm] = useState<{
+    purchase_order_id: string;
+    quantities: Record<string, string>;
+  }>({
     purchase_order_id: "",
-    product_id: "",
-    quantity_received: "",
+    quantities: {},
   });
+  const [poSupplierProducts, setPoSupplierProducts] = useState<Product[]>([]);
+  const [poSupplierProductsLoading, setPoSupplierProductsLoading] = useState(false);
   const [transferForm, setTransferForm] = useState<{
     to_branch_id: string;
     product_ids: string[];
@@ -438,8 +452,6 @@ function InventoryPageInner() {
       currency: s.currency || "PKR",
       lead_time_days: s.lead_time_days != null ? String(s.lead_time_days) : "",
       minimum_order_amount: s.minimum_order_amount || "",
-      catalogs: (s.catalogs || []).join(", "),
-      brands: (s.brands || []).join(", "),
       tags: (s.tags || []).join(", "),
     });
     setModal("supplier");
@@ -494,8 +506,6 @@ function InventoryPageInner() {
         ? Number(supplierForm.lead_time_days)
         : null,
       minimum_order_amount: supplierForm.minimum_order_amount.trim() || null,
-      catalogs: splitList(supplierForm.catalogs),
-      brands: splitList(supplierForm.brands),
       tags: splitList(supplierForm.tags),
       contact: {
         phone: supplierForm.contact_phone.trim() || null,
@@ -596,25 +606,74 @@ function InventoryPageInner() {
   async function receiveGRN(e: React.FormEvent) {
     e.preventDefault();
     const session = getSession();
+    const po = pos.find((p) => p.id === grnForm.purchase_order_id);
+    const items = (po?.items || [])
+      .map((item) => ({
+        product_id: item.product_id,
+        quantity_received: grnForm.quantities[item.product_id] || "0",
+      }))
+      .filter((i) => Number(i.quantity_received) > 0);
+    if (!grnForm.purchase_order_id || items.length === 0) {
+      toast.error(t("inventory.grnFailed"));
+      return;
+    }
+    setBusy(true);
     try {
       await api("/inventory/grn", {
         method: "POST",
         body: JSON.stringify({
           branch_id: session?.branch_id,
           purchase_order_id: grnForm.purchase_order_id,
-          items: [
-            {
-              product_id: grnForm.product_id,
-              quantity_received: grnForm.quantity_received,
-            },
-          ],
+          items,
         }),
       });
       toast.success(t("inventory.grnReceived"));
-      setGrnForm({ purchase_order_id: "", product_id: "", quantity_received: "" });
+      setGrnForm({ purchase_order_id: "", quantities: {} });
+      setModal(null);
       await refreshInventory();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("inventory.grnFailed"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function openGrnModal(poId?: string) {
+    const po = poId ? pos.find((p) => p.id === poId) : undefined;
+    const quantities: Record<string, string> = {};
+    for (const item of po?.items || []) {
+      quantities[item.product_id] = item.quantity || "0";
+    }
+    setGrnForm({
+      purchase_order_id: poId || "",
+      quantities,
+    });
+    setModal("grn");
+  }
+
+  function selectPoForGrn(poId: string) {
+    const po = pos.find((p) => p.id === poId);
+    const quantities: Record<string, string> = {};
+    for (const item of po?.items || []) {
+      quantities[item.product_id] = item.quantity || "0";
+    }
+    setGrnForm({ purchase_order_id: poId, quantities });
+  }
+
+  async function loadPoSupplierProducts(supplierId: string) {
+    if (!supplierId) {
+      setPoSupplierProducts([]);
+      return;
+    }
+    setPoSupplierProductsLoading(true);
+    try {
+      const res = await api<{ data: Product[] }>(`/suppliers/${supplierId}/products`);
+      setPoSupplierProducts(res.data || []);
+    } catch (err) {
+      setPoSupplierProducts([]);
+      toast.error(err instanceof Error ? err.message : t("common.error"));
+    } finally {
+      setPoSupplierProductsLoading(false);
     }
   }
 
@@ -698,11 +757,32 @@ function InventoryPageInner() {
 
   const headerAction =
     tab === "products"
-      ? { label: t("inventory.newProduct"), onClick: openNewProduct }
+      ? {
+          label: t("inventory.newProduct"),
+          onClick: openNewProduct,
+          icon: <PackagePlus className="h-4 w-4" />,
+        }
       : tab === "suppliers"
-        ? { label: t("inventory.addSupplier"), onClick: openNewSupplier }
+        ? {
+            label: t("inventory.addSupplier"),
+            onClick: openNewSupplier,
+            icon: <Plus className="h-4 w-4" />,
+          }
         : tab === "pos"
-          ? { label: t("inventory.newPo"), onClick: () => setModal("po") }
+          ? {
+              label: t("inventory.newPo"),
+              onClick: () => {
+                setPoForm({
+                  supplier_id: "",
+                  product_ids: [],
+                  quantities: {},
+                  unit_costs: {},
+                });
+                setPoSupplierProducts([]);
+                setModal("po");
+              },
+              icon: <Truck className="h-4 w-4" />,
+            }
           : tab === "transfers"
             ? {
                 label: t("inventory.createTransfer"),
@@ -714,6 +794,7 @@ function InventoryPageInner() {
                   });
                   setModal("transfer");
                 },
+                icon: <ArrowLeftRight className="h-4 w-4" />,
               }
             : undefined;
 
@@ -746,6 +827,25 @@ function InventoryPageInner() {
     [suppliers]
   );
 
+  const poProductOptions = useMemo(
+    () =>
+      poSupplierProducts.map((p) => ({
+        value: p.id,
+        label: p.sku ? `${p.name} (${p.sku})` : p.name,
+      })),
+    [poSupplierProducts]
+  );
+
+  const openPos = useMemo(
+    () => pos.filter((p) => p.status !== "received" && p.status !== "cancelled"),
+    [pos]
+  );
+
+  const selectedGrnPo = useMemo(
+    () => pos.find((p) => p.id === grnForm.purchase_order_id) || null,
+    [pos, grnForm.purchase_order_id]
+  );
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -754,6 +854,15 @@ function InventoryPageInner() {
         description={t("pages.inventoryDesc")}
         infoKey="page.inventory"
         action={headerAction}
+        secondaryAction={
+          tab === "pos"
+            ? {
+                label: t("inventory.receiveGrn"),
+                onClick: () => openGrnModal(),
+                icon: <Check className="h-4 w-4" />,
+              }
+            : undefined
+        }
       />
 
       <TabBar tabs={tabs} value={tab} onChange={setTab} />
@@ -930,16 +1039,11 @@ function InventoryPageInner() {
               id: "actions",
               header: "",
               align: "right",
-              width: 56,
+              width: 88,
               cell: (p) => (
                 <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
                   <ActionMenu
                     items={[
-                      {
-                        id: "view",
-                        label: "View",
-                        onClick: () => router.push(detailRoutes.product(p.id)),
-                      },
                       {
                         id: "edit",
                         label: "Edit",
@@ -981,8 +1085,6 @@ function InventoryPageInner() {
               s.contact_name,
               s.contact_email,
               s.industry,
-              ...(s.catalogs || []),
-              ...(s.brands || []),
               ...(s.tags || []),
             ]
               .filter(Boolean)
@@ -1040,25 +1142,6 @@ function InventoryPageInner() {
               ),
             },
             {
-              id: "catalogs",
-              header: "Catalogs",
-              cell: (s) => (
-                <div className="flex max-w-[220px] flex-wrap gap-1">
-                  {(s.catalogs || []).slice(0, 4).map((c) => (
-                    <span
-                      key={c}
-                      className="rounded-md bg-bg-tertiary px-1.5 py-0.5 text-[10px] font-semibold capitalize text-body"
-                    >
-                      {c}
-                    </span>
-                  ))}
-                  {(s.catalogs || []).length === 0 ? (
-                    <span className="text-muted">—</span>
-                  ) : null}
-                </div>
-              ),
-            },
-            {
               id: "terms",
               header: "Terms",
               cell: (s) => (
@@ -1078,16 +1161,11 @@ function InventoryPageInner() {
               id: "actions",
               header: "",
               align: "right",
-              width: 56,
+              width: 48,
               cell: (s) => (
                 <div className="flex justify-end">
                   <ActionMenu
                     items={[
-                      {
-                        id: "view",
-                        label: "View",
-                        onClick: () => router.push(detailRoutes.supplier(s.id)),
-                      },
                       {
                         id: "edit",
                         label: "Edit",
@@ -1107,92 +1185,72 @@ function InventoryPageInner() {
       ) : null}
 
       {tab === "pos" ? (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <SurfaceCard className="p-5">
-            <h2 className="font-semibold text-heading">Receive GRN</h2>
-            <form onSubmit={receiveGRN} className="mt-4 space-y-3">
-              <Select
-                value={grnForm.purchase_order_id}
-                onChange={(v) => {
-                  const po = pos.find((p) => p.id === v);
-                  setGrnForm({
-                    purchase_order_id: v,
-                    product_id: po?.items[0]?.product_id || "",
-                    quantity_received: po?.items[0]?.quantity || "",
-                  });
-                }}
-                required
-                placeholder="Purchase order"
-                options={[
-                  { value: "", label: "Purchase order" },
-                  ...pos
-                    .filter((p) => p.status !== "received" && p.status !== "cancelled")
-                    .map((p) => ({
-                      value: p.id,
-                      label: `${p.supplier_name || p.id.slice(0, 8)} · ${p.status}`,
-                    })),
-                ]}
-              />
-              <input
-                className={fieldClass}
-                placeholder="Qty received"
-                value={grnForm.quantity_received}
-                onChange={(e) =>
-                  setGrnForm({ ...grnForm, quantity_received: e.target.value })
-                }
-                required
-              />
-              <Button type="submit">Receive</Button>
-            </form>
-          </SurfaceCard>
-
-          <DataTable
-            maxHeight="20rem"
-            loading={posLoading}
-            searchable
-            searchPlaceholder={t("inventory.searchPos")}
-            getSearchText={(p) =>
-              `${p.supplier_name ?? ""} ${p.supplier_id} ${p.status}`
-            }
-            onRowClick={(p) => router.push(detailRoutes.purchaseOrder(p.id))}
-            columns={[
-              {
-                id: "supplier",
-                header: "Supplier",
-                cell: (p) => (
-                  <Link
-                    href={detailRoutes.purchaseOrder(p.id)}
-                    className="font-medium text-brand underline"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {p.supplier_name || p.supplier_id.slice(0, 8)}
-                  </Link>
-                ),
-              },
-              {
-                id: "status",
-                header: "Status",
-                cell: (p) => (
-                  <span className="inline-flex rounded-md bg-bg-tertiary px-2 py-0.5 text-xs font-semibold capitalize text-body">
-                    {p.status}
-                  </span>
-                ),
-              },
-              {
-                id: "lines",
-                header: "Lines",
-                align: "right",
-                cell: (p) => (
-                  <span className="tabular-nums">{p.items?.length || 0}</span>
-                ),
-              },
-            ]}
-            data={pos}
-            rowKey={(p) => p.id}
-            emptyTitle="No purchase orders"
-            emptyBody="Create a PO to start receiving stock."
-          />
-        </div>
+        <DataTable
+          maxHeight="28rem"
+          loading={posLoading}
+          searchable
+          searchPlaceholder={t("inventory.searchPos")}
+          getSearchText={(p) =>
+            `${p.supplier_name ?? ""} ${p.supplier_id} ${p.status}`
+          }
+          onRowClick={(p) => router.push(detailRoutes.purchaseOrder(p.id))}
+          columns={[
+            {
+              id: "supplier",
+              header: t("inventory.supplier"),
+              cell: (p) => (
+                <Link
+                  href={detailRoutes.purchaseOrder(p.id)}
+                  className="font-medium text-brand underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {p.supplier_name || p.supplier_id.slice(0, 8)}
+                </Link>
+              ),
+            },
+            {
+              id: "status",
+              header: t("common.status"),
+              cell: (p) => (
+                <span className="inline-flex rounded-md bg-bg-tertiary px-2 py-0.5 text-xs font-semibold capitalize text-body">
+                  {p.status}
+                </span>
+              ),
+            },
+            {
+              id: "lines",
+              header: t("inventory.products"),
+              align: "right",
+              cell: (p) => (
+                <span className="tabular-nums">{p.items?.length || 0}</span>
+              ),
+            },
+            {
+              id: "actions",
+              header: "",
+              align: "right",
+              width: 48,
+              cell: (p) =>
+                p.status !== "received" && p.status !== "cancelled" ? (
+                  <div className="flex justify-end">
+                    <ActionMenu
+                      items={[
+                        {
+                          id: "receive",
+                          label: t("inventory.receiveGrn"),
+                          onClick: () => openGrnModal(p.id),
+                        },
+                      ]}
+                    />
+                  </div>
+                ) : null,
+            },
+          ]}
+          data={pos}
+          rowKey={(p) => p.id}
+          emptyTitle="No purchase orders"
+          emptyBody="Create a PO to start receiving stock."
+        />
       ) : null}
 
       {tab === "transfers" ? (
@@ -1302,7 +1360,11 @@ function InventoryPageInner() {
               cell: (tr) =>
                 tr.status === "pending" ? (
                   <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
-                    <Button size="sm" onClick={() => confirmTransfer(tr.id)}>
+                    <Button
+                      size="sm"
+                      onClick={() => confirmTransfer(tr.id)}
+                      startIcon={<Check className="h-4 w-4" />}
+                    >
                       {t("inventory.confirm")}
                     </Button>
                   </div>
@@ -1350,7 +1412,9 @@ function InventoryPageInner() {
                 "sample",
               ].map((r) => ({ value: r, label: r }))}
             />
-            <Button type="submit">Apply adjustment</Button>
+            <Button type="submit" startIcon={<SlidersHorizontal className="h-4 w-4" />}>
+              Apply adjustment
+            </Button>
           </form>
         </SurfaceCard>
       ) : null}
@@ -1509,7 +1573,7 @@ function InventoryPageInner() {
         isOpen={modal === "supplier"}
         onClose={closeSupplierModal}
         title={editingSupplierId ? "Edit supplier" : "Add supplier"}
-        description="Company details, liaison contact, address, payment terms, and product catalogs."
+        description="Company details, liaison contact, address, and payment terms."
         size="xl"
         footer={
           <div className="flex justify-end gap-2">
@@ -1862,27 +1926,9 @@ function InventoryPageInner() {
 
           <section className="space-y-3">
             <h3 className="text-sm font-bold uppercase tracking-wide text-muted">
-              Catalogs & brands
+              Notes & tags
             </h3>
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Catalogs (comma-separated)">
-                <input
-                  className={fieldClass}
-                  value={supplierForm.catalogs}
-                  onChange={(e) =>
-                    setSupplierForm({ ...supplierForm, catalogs: e.target.value })
-                  }
-                  placeholder="beverages, snacks, dairy"
-                />
-              </Field>
-              <Field label="Brands (comma-separated)">
-                <input
-                  className={fieldClass}
-                  value={supplierForm.brands}
-                  onChange={(e) => setSupplierForm({ ...supplierForm, brands: e.target.value })}
-                  placeholder="Nestle, Pepsi"
-                />
-              </Field>
               <Field label="Tags (comma-separated)">
                 <input
                   className={fieldClass}
@@ -1926,15 +1972,22 @@ function InventoryPageInner() {
             label={t("inventory.supplier")}
             options={supplierOptions}
             value={poForm.supplier_id || null}
-            onChange={(supplier_id) =>
-              setPoForm((f) => ({ ...f, supplier_id: supplier_id || "" }))
-            }
+            onChange={(supplier_id) => {
+              const sid = supplier_id || "";
+              setPoForm({
+                supplier_id: sid,
+                product_ids: [],
+                quantities: {},
+                unit_costs: {},
+              });
+              void loadPoSupplierProducts(sid);
+            }}
             placeholder={t("inventory.selectSupplier")}
             searchPlaceholder={t("searchSelect.search")}
           />
           <SearchMultiSelect
             label={t("inventory.products")}
-            options={productOptions}
+            options={poProductOptions}
             value={poForm.product_ids}
             onChange={(product_ids) =>
               setPoForm((f) => ({
@@ -1950,14 +2003,21 @@ function InventoryPageInner() {
             }
             placeholder={t("pos.searchProducts")}
             searchPlaceholder={t("searchSelect.search")}
+            disabled={!poForm.supplier_id || poSupplierProductsLoading}
           />
+          {poForm.supplier_id && !poSupplierProductsLoading && poProductOptions.length === 0 ? (
+            <p className="text-sm text-body">{t("inventory.poNoSupplierProducts")}</p>
+          ) : null}
+          {poForm.supplier_id && poProductOptions.length > 0 ? (
+            <p className="text-sm text-muted">{t("inventory.supplierProductsHint")}</p>
+          ) : null}
           {poForm.product_ids.length > 0 ? (
             <div className="space-y-3 rounded-md border border-border p-3">
               <p className="text-[11px] font-bold uppercase tracking-wide text-muted">
                 {t("inventory.quantities")}
               </p>
               {poForm.product_ids.map((id) => {
-                const p = products.find((x) => x.id === id);
+                const p = poSupplierProducts.find((x) => x.id === id);
                 return (
                   <div key={id} className="grid gap-2 sm:grid-cols-[1fr_6rem_6rem]">
                     <p className="text-sm font-medium text-heading">
@@ -2006,6 +2066,106 @@ function InventoryPageInner() {
                   </div>
                 );
               })}
+            </div>
+          ) : null}
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={modal === "grn"}
+        onClose={() => {
+          setModal(null);
+          setGrnForm({ purchase_order_id: "", quantities: {} });
+        }}
+        title={t("inventory.receiveGrnTitle")}
+        description={t("inventory.receiveGrnDesc")}
+        size="lg"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setModal(null);
+                setGrnForm({ purchase_order_id: "", quantities: {} });
+              }}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              type="submit"
+              form="grn-modal-form"
+              loading={busy}
+              disabled={!grnForm.purchase_order_id}
+              startIcon={<Check className="h-4 w-4" />}
+            >
+              {t("inventory.receiveGrn")}
+            </Button>
+          </div>
+        }
+      >
+        <form id="grn-modal-form" onSubmit={receiveGRN} className="space-y-5">
+          <SearchSelect
+            label={t("inventory.selectPo")}
+            options={openPos.map((p) => ({
+              value: p.id,
+              label: `${p.supplier_name || p.id.slice(0, 8)} · ${p.status}`,
+            }))}
+            value={grnForm.purchase_order_id || null}
+            onChange={(poId) => {
+              if (poId) selectPoForGrn(poId);
+              else setGrnForm({ purchase_order_id: "", quantities: {} });
+            }}
+            placeholder={t("inventory.selectPo")}
+            searchPlaceholder={t("searchSelect.search")}
+          />
+          {openPos.length === 0 ? (
+            <p className="text-sm text-body">{t("inventory.noOpenPos")}</p>
+          ) : null}
+          {selectedGrnPo ? (
+            <div className="space-y-3 rounded-md border border-border p-3">
+              {(selectedGrnPo.items || []).map((item) => (
+                <div
+                  key={item.product_id}
+                  className="grid gap-2 sm:grid-cols-[1fr_6rem_6rem] sm:items-end"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-heading">
+                      {item.product_name ||
+                        products.find((p) => p.id === item.product_id)?.name ||
+                        item.product_id}
+                    </p>
+                    <p className="text-xs text-muted">
+                      {item.product_sku ||
+                        products.find((p) => p.id === item.product_id)?.sku ||
+                        "—"}{" "}
+                      · {t("inventory.orderedQty")}: {item.quantity}
+                    </p>
+                  </div>
+                  <Field label={t("inventory.orderedQty")}>
+                    <input
+                      className={fieldClass}
+                      value={item.quantity}
+                      disabled
+                      readOnly
+                    />
+                  </Field>
+                  <Field label={t("inventory.qtyReceived")}>
+                    <input
+                      className={fieldClass}
+                      value={grnForm.quantities[item.product_id] || ""}
+                      onChange={(e) =>
+                        setGrnForm((f) => ({
+                          ...f,
+                          quantities: {
+                            ...f.quantities,
+                            [item.product_id]: e.target.value,
+                          },
+                        }))
+                      }
+                    />
+                  </Field>
+                </div>
+              ))}
             </div>
           ) : null}
         </form>
