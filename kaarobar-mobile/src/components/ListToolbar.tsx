@@ -35,6 +35,8 @@ type Props = {
   onChange: (next: Props["value"]) => void;
   config?: ListToolbarConfig;
   searchPlaceholder?: string;
+  /** When true, toolbar sits inside a list card (no outer padding). */
+  embedded?: boolean;
 };
 
 export function emptyStaffFilters(): Props["value"] {
@@ -47,6 +49,7 @@ export default function ListToolbar({
   onChange,
   config,
   searchPlaceholder,
+  embedded = false,
 }: Props) {
   const palette = useBrandPalette();
   const styles = useMemo(() => createStyles(palette.brand), [palette.brand]);
@@ -80,13 +83,13 @@ export default function ListToolbar({
   }
 
   return (
-    <View style={styles.wrap}>
+    <View style={[styles.wrap, embedded && styles.wrapEmbedded]}>
       <TextInput
         value={value.search}
         onChangeText={(search) => onChange({ ...value, search })}
         placeholder={placeholder}
         placeholderTextColor={colors.muted}
-        style={styles.search}
+        style={[styles.search, embedded && styles.searchEmbedded]}
       />
       <Pressable style={styles.filterBtn} onPress={openDrawer}>
         <Text style={styles.filterText}>
@@ -235,6 +238,14 @@ function createStyles(brand: string) {
       paddingVertical: 10,
       alignItems: "center",
     },
+    wrapEmbedded: {
+      paddingHorizontal: 0,
+      paddingTop: 0,
+      paddingBottom: 12,
+      marginBottom: 4,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
     search: {
       flex: 1,
       borderWidth: 1,
@@ -244,6 +255,9 @@ function createStyles(brand: string) {
       paddingHorizontal: 12,
       paddingVertical: 10,
       color: colors.heading,
+    },
+    searchEmbedded: {
+      backgroundColor: colors.bgSecondary,
     },
     filterBtn: {
       borderWidth: 1,

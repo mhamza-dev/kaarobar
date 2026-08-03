@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { api } from "@/lib/api/client";
+import { useQuery } from "@tanstack/react-query";
+import { api, getSession } from "@/lib/api/client";
 import { routes } from "@/lib/navigation";
 import { DetailFieldGrid, DetailSection, DetailShell } from "@/components/app/DetailShell";
 import { useT } from "@/lib/i18n";
+import { crmKeys } from "@/lib/queryClient";
 
 type MsgTemplate = {
   id: string;
@@ -19,21 +20,16 @@ type MsgTemplate = {
 export default function TemplateDetailPage() {
   const { id } = useParams<{ id: string }>();
   const t = useT();
-  const [template, setTemplate] = useState<MsgTemplate | null>(null);
-  const [preview, setPreview] = useState<{ title: string; message: string } | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const businessId = getSession()?.business_id ?? null;
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
+  const templateQuery = useQuery({
+    queryKey: [...crmKeys.templates(businessId), id] as const,
+    queryFn: async () => {
       const [tplRes, varsRes] = await Promise.all([
         api<{ data: MsgTemplate }>(`/crm/templates/${id}`),
         api<{ data: { sample_values: Record<string, string> } }>("/crm/templates/variables"),
       ]);
       const tpl = tplRes.data;
-      setTemplate(tpl);
       const sample = {
         ...(varsRes.data?.sample_values || {}),
         ...(tpl.variables || {}),
@@ -50,17 +46,19 @@ export default function TemplateDetailPage() {
           }),
         }
       );
-      setPreview(rendered.data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("common.loadFailed"));
-    } finally {
-      setLoading(false);
-    }
-  }, [id, t]);
+      return { template: tpl, preview: rendered.data };
+    },
+    enabled: !!id && !!businessId,
+  });
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const template = templateQuery.data?.template ?? null;
+  const preview = templateQuery.data?.preview ?? null;
+  const loading = templateQuery.isLoading;
+  const error = templateQuery.error
+    ? templateQuery.error instanceof Error
+      ? templateQuery.error.message
+      : t("common.loadFailed")
+    : null;
 
   return (
     <DetailShell

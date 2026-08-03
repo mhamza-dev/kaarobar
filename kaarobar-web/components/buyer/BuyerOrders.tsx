@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calendar, ChevronRight, ShoppingBag } from "lucide-react";
 import { api } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
@@ -19,6 +20,7 @@ import { BuyerOrderListSkeleton } from "@/components/buyer/BuyerSkeletons";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { detailRoutes } from "@/lib/navigation";
+import { portalKeys } from "@/lib/queryClient";
 
 type Order = {
   id: string;
@@ -64,37 +66,46 @@ function isUpcoming(a: Appointment): boolean {
 export default function BuyerOrders() {
   const t = useT();
   const toast = useToast();
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>("orders");
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [preferApptsChecked, setPreferApptsChecked] = useState(false);
 
-  const load = useCallback(() => {
-    setLoading(true);
-    void Promise.all([
-      api<{ data: Order[] }>("/portal/orders"),
-      api<{ data: Appointment[] }>("/portal/appointments").catch(() => ({
-        data: [] as Appointment[],
-      })),
-    ])
-      .then(([orderRes, apptRes]) => {
-        setOrders(orderRes.data || []);
-        setAppointments(apptRes.data || []);
-        setError(null);
-        const upcoming = (apptRes.data || []).filter(isUpcoming);
-        if (upcoming.length > 0 && (orderRes.data || []).length === 0) {
-          setTab("appointments");
-        }
-      })
-      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load"))
-      .finally(() => setLoading(false));
-  }, []);
+  const ordersQuery = useQuery({
+    queryKey: portalKeys.orders(),
+    queryFn: async () => {
+      const res = await api<{ data: Order[] }>("/portal/orders");
+      return res.data || [];
+    },
+    enabled: tab === "orders",
+  });
+
+  const needApptsForPrefer =
+    !preferApptsChecked &&
+    ordersQuery.isSuccess &&
+    (ordersQuery.data?.length ?? 0) === 0;
+
+  const appointmentsQuery = useQuery({
+    queryKey: portalKeys.appointments(),
+    queryFn: async () => {
+      try {
+        const res = await api<{ data: Appointment[] }>("/portal/appointments");
+        return res.data || [];
+      } catch {
+        return [] as Appointment[];
+      }
+    },
+    enabled: tab === "appointments" || needApptsForPrefer,
+  });
 
   useEffect(() => {
-    load();
-  }, [load]);
+    if (!needApptsForPrefer || !appointmentsQuery.isSuccess) return;
+    const upcomingCount = (appointmentsQuery.data || []).filter(isUpcoming).length;
+    if (upcomingCount > 0) setTab("appointments");
+    setPreferApptsChecked(true);
+  }, [needApptsForPrefer, appointmentsQuery.isSuccess, appointmentsQuery.data]);
+
+  const orders = ordersQuery.data || [];
+  const appointments = appointmentsQuery.data || [];
 
   const upcoming = useMemo(
     () =>
@@ -112,18 +123,28 @@ export default function BuyerOrders() {
     [appointments]
   );
 
-  async function cancelAppointment(id: string) {
-    setCancellingId(id);
-    try {
-      await api(`/portal/appointments/${id}/cancel`, { method: "POST", body: "{}" });
+  const cancelMutation = useMutation({
+    mutationFn: (id: string) =>
+      api(`/portal/appointments/${id}/cancel`, { method: "POST", body: "{}" }),
+    onSuccess: () => {
       toast.success(t("appointments.cancelled"));
-      load();
-    } catch (err) {
+      void queryClient.invalidateQueries({ queryKey: portalKeys.appointments() });
+    },
+    onError: (err) => {
       toast.error(err instanceof Error ? err.message : t("appointments.cancelFailed"));
-    } finally {
-      setCancellingId(null);
-    }
-  }
+    },
+  });
+
+  const loading =
+    tab === "orders"
+      ? ordersQuery.isLoading
+      : appointmentsQuery.isLoading;
+  const error =
+    tab === "orders"
+      ? ordersQuery.error
+      : appointmentsQuery.error;
+  const errorMessage =
+    error instanceof Error ? error.message : error ? "Failed to load" : null;
 
   return (
     <div className="space-y-6">
@@ -154,7 +175,7 @@ export default function BuyerOrders() {
         onChange={setTab}
       />
 
-      {error ? <Alert tone="error">{error}</Alert> : null}
+      {errorMessage ? <Alert tone="error">{errorMessage}</Alert> : null}
 
       {loading ? (
         <BuyerOrderListSkeleton />
@@ -259,8 +280,8 @@ export default function BuyerOrders() {
                         <Button
                           variant="outline"
                           size="sm"
-                          loading={cancellingId === a.id}
-                          onClick={() => void cancelAppointment(a.id)}
+                          loading={cancelMutation.isPending && cancelMutation.variables === a.id}
+                          onClick={() => cancelMutation.mutate(a.id)}
                           className="rounded-md"
                         >
                           {t("appointments.cancel")}

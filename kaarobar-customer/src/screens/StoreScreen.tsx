@@ -9,6 +9,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useQuery } from "@tanstack/react-query";
 import { api, colors, getSession, isConsumerSession } from "../lib/api";
 import { useCart } from "../lib/cart";
 import { useToast } from "../components/Toast";
@@ -21,6 +22,7 @@ import {
   emptyListingFilters,
   type ListingFilterState,
 } from "../lib/listingFilters";
+import { marketplaceKeys } from "../lib/queryClient";
 import { t } from "../lib/i18n";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
@@ -75,54 +77,68 @@ export default function MarketStoreScreen() {
   const { id } = (route.params || {}) as { id: string };
   const toast = useToast();
   const { addItem, storeCount } = useCart();
-  const [business, setBusiness] = useState<StoreBiz | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [staff, setStaff] = useState<StaffMember[]>([]);
-  const [branchId, setBranchId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<ListingFilterState>(emptyListingFilters());
   const [mode, setMode] = useState<Mode>("shop");
+  const [modeInitialized, setModeInitialized] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       const session = await getSession();
       if (!session || !isConsumerSession(session)) {
         replacePath(navigation, "/login");
         return;
       }
-      try {
-        const res = await api<{
-          data: {
-            business: StoreBiz;
-            products: Product[];
-            staff?: StaffMember[];
-            branch_id?: string;
-          };
-        }>(`/marketplace/businesses/${id}/catalog`, {}, null);
-        const biz = res.data.business;
-        const list = res.data.products || [];
-        setBusiness(biz);
-        setProducts(list);
-        setStaff(res.data.staff || []);
-        setBranchId(res.data.branch_id || biz.online_branch_id || null);
-        const services = list.filter(isServiceProduct);
-        const goods = list.filter((p) => !isServiceProduct(p));
-        const canBook = !!biz.appointments_enabled && services.length > 0;
-        const canShop = goods.length > 0 || (!canBook && list.length > 0);
-        if (canBook && !canShop) setMode("book");
-        else if (canShop) setMode("shop");
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load store");
-      } finally {
-        setLoading(false);
-      }
+      if (!cancelled) setAuthReady(true);
     })();
-  }, [id, navigation]);
+    return () => {
+      cancelled = true;
+    };
+  }, [navigation]);
 
-  const services = useMemo(() => products.filter(isServiceProduct), [products]);
-  const goods = useMemo(() => products.filter((p) => !isServiceProduct(p)), [products]);
+  const catalogQuery = useQuery({
+    queryKey: marketplaceKeys.catalog(id),
+    queryFn: async () => {
+      const res = await api<{
+        data: {
+          business: StoreBiz;
+          products: Product[];
+          staff?: StaffMember[];
+          branch_id?: string;
+        };
+      }>(`/marketplace/businesses/${id}/catalog`, {}, null);
+      const biz = res.data.business;
+      return {
+        business: biz,
+        products: res.data.products || [],
+        staff: res.data.staff || [],
+        branchId: res.data.branch_id || biz.online_branch_id || null,
+      };
+    },
+    enabled: authReady && !!id,
+  });
+
+  const business = catalogQuery.data?.business ?? null;
+  const products: Product[] = catalogQuery.data?.products ?? [];
+  const staff: StaffMember[] = catalogQuery.data?.staff ?? [];
+  const branchId = catalogQuery.data?.branchId ?? null;
+  const loading = !authReady || catalogQuery.isLoading;
+  const error =
+    catalogQuery.error instanceof Error
+      ? catalogQuery.error.message
+      : catalogQuery.error
+        ? "Failed to load store"
+        : null;
+
+  const services = useMemo(
+    () => products.filter((p: Product) => isServiceProduct(p)),
+    [products]
+  );
+  const goods = useMemo(
+    () => products.filter((p: Product) => !isServiceProduct(p)),
+    [products]
+  );
   const canBook = !!business?.appointments_enabled && services.length > 0;
   const canShop = goods.length > 0 || (!canBook && products.length > 0);
   const showModeTabs = canBook && goods.length > 0;
@@ -130,6 +146,17 @@ export default function MarketStoreScreen() {
     if (canBook && goods.length > 0) return goods;
     return products;
   }, [canBook, goods, products]);
+
+  useEffect(() => {
+    setModeInitialized(false);
+  }, [id]);
+
+  useEffect(() => {
+    if (!catalogQuery.isSuccess || modeInitialized) return;
+    if (canBook && !canShop) setMode("book");
+    else if (canShop) setMode("shop");
+    setModeInitialized(true);
+  }, [catalogQuery.isSuccess, canBook, canShop, modeInitialized]);
 
   const categoryOptions = useMemo(() => {
     const set = new Set<string>();

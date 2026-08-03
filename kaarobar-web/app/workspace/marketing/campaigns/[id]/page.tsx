@@ -1,13 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { api } from "@/lib/api/client";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { api, getSession } from "@/lib/api/client";
 import { routes } from "@/lib/navigation";
 import { DetailFieldGrid, DetailSection, DetailShell } from "@/components/app/DetailShell";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
+import { crmKeys } from "@/lib/queryClient";
 
 type Campaign = {
   id: string;
@@ -40,51 +41,54 @@ export default function CampaignDetailPage() {
   const { id } = useParams<{ id: string }>();
   const t = useT();
   const toast = useToast();
-  const [campaign, setCampaign] = useState<Campaign | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
+  const queryClient = useQueryClient();
+  const businessId = getSession()?.business_id ?? null;
+  const campaignKey = [...crmKeys.campaigns(businessId), id] as const;
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
+  const campaignQuery = useQuery({
+    queryKey: campaignKey,
+    queryFn: async () => {
       const res = await api<{ data: Campaign }>(`/crm/campaigns/${id}`);
-      setCampaign(res.data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("common.loadFailed"));
-    } finally {
-      setLoading(false);
-    }
-  }, [id, t]);
+      return res.data;
+    },
+    enabled: !!id && !!businessId,
+  });
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const campaign = campaignQuery.data ?? null;
+  const loading = campaignQuery.isLoading;
+  const error = campaignQuery.error
+    ? campaignQuery.error instanceof Error
+      ? campaignQuery.error.message
+      : t("common.loadFailed")
+    : null;
 
-  async function sendCampaign() {
-    if (!campaign) return;
-    if (!confirm(t("marketing.sendConfirm", { name: campaign.name }))) return;
-    setBusy(true);
-    try {
+  const invalidate = async () => {
+    await queryClient.invalidateQueries({ queryKey: campaignKey });
+    await queryClient.invalidateQueries({ queryKey: crmKeys.campaigns(businessId) });
+  };
+
+  const sendMutation = useMutation({
+    mutationFn: async () => {
+      if (!campaign) throw new Error("missing_campaign");
       const res = await api<{ data: Campaign }>(`/crm/campaigns/${campaign.id}/send`, {
         method: "POST",
         body: "{}",
       });
-      setCampaign(res.data);
+      return res.data;
+    },
+    onSuccess: async (data) => {
+      queryClient.setQueryData(campaignKey, data);
       toast.success(t("marketing.sentOk"));
-    } catch (err) {
+      await invalidate();
+    },
+    onError: (err) => {
       toast.error(err instanceof Error ? err.message : t("common.error"));
-    } finally {
-      setBusy(false);
-    }
-  }
+    },
+  });
 
-  async function payAndSend() {
-    if (!campaign) return;
-    if (!confirm(t("marketing.payAndSendConfirm", { name: campaign.name }))) return;
-    setBusy(true);
-    try {
+  const payAndSendMutation = useMutation({
+    mutationFn: async () => {
+      if (!campaign) throw new Error("missing_campaign");
       const res = await api<{
         data: {
           checkout_url: string;
@@ -103,22 +107,33 @@ export default function CampaignDetailPage() {
             body: JSON.stringify({ payment_id: res.data.payment_id }),
           }
         );
-        setCampaign(sent.data);
+        return { kind: "sent" as const, campaign: sent.data };
+      }
+      if (res.data.checkout_url) {
+        return { kind: "checkout" as const, url: res.data.checkout_url };
+      }
+      return { kind: "noop" as const };
+    },
+    onSuccess: async (result) => {
+      if (result.kind === "sent") {
+        queryClient.setQueryData(campaignKey, result.campaign);
         toast.success(t("marketing.payAndSendDone"));
-      } else if (res.data.checkout_url) {
-        window.open(res.data.checkout_url, "_blank", "noopener,noreferrer");
+        await invalidate();
+      } else if (result.kind === "checkout") {
+        window.open(result.url, "_blank", "noopener,noreferrer");
         toast.success(t("marketing.checkoutOpened"));
       }
-    } catch (err) {
+    },
+    onError: (err) => {
       toast.error(err instanceof Error ? err.message : t("common.error"));
-    } finally {
-      setBusy(false);
-    }
-  }
+    },
+  });
+
+  const busy = sendMutation.isPending || payAndSendMutation.isPending;
 
   return (
     <DetailShell
-      backHref={routes.marketing}
+      backHref={`${routes.marketing}?tab=campaigns`}
       backLabel={t("marketing.backToMarketing")}
       eyebrow={t("marketing.eyebrow")}
       title={campaign?.name || t("marketing.campaignFallback")}
@@ -136,9 +151,16 @@ export default function CampaignDetailPage() {
           <Button
             size="sm"
             loading={busy}
-            onClick={() =>
-              void (isPaidChannel(campaign.channel) ? payAndSend() : sendCampaign())
-            }
+            onClick={() => {
+              if (!campaign) return;
+              if (isPaidChannel(campaign.channel)) {
+                if (!confirm(t("marketing.payAndSendConfirm", { name: campaign.name }))) return;
+                payAndSendMutation.mutate();
+              } else {
+                if (!confirm(t("marketing.sendConfirm", { name: campaign.name }))) return;
+                sendMutation.mutate();
+              }
+            }}
           >
             {isPaidChannel(campaign.channel)
               ? t("marketing.payAndSend")

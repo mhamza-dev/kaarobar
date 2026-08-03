@@ -341,7 +341,14 @@
     "footprintDesc": "Switch business or branch anytime from the top bar — every page follows that context.",
     "businesses": "Businesses",
     "branches": "Branches",
-    "loadFailed": "Failed to load dashboard"
+    "loadFailed": "Failed to load dashboard",
+    "trendsTitle": "Sales trends",
+    "revenueOverTime": "Revenue over time",
+    "ordersOverTime": "Orders over time",
+    "chartsDesc": "Revenue and order volume for the selected date range.",
+    "rangeRevenue": "Revenue in range",
+    "rangeOrders": "Orders in range",
+    "noChartData": "No sales in this date range"
   },
   "inventory": {
     "eyebrow": "Inventory",
@@ -386,7 +393,22 @@
     "products": "Products",
     "selectProducts": "Select products",
     "quantities": "Quantities",
-    "confirm": "Confirm"
+    "confirm": "Confirm",
+    "searchProductsList": "Search products by name, SKU, barcode…",
+    "searchSuppliers": "Search suppliers, city, contact…",
+    "searchPos": "Search POs…",
+    "searchTransfers": "Search transfers…",
+    "statusPending": "Pending",
+    "statusConfirmed": "Confirmed",
+    "noTransfers": "No transfers yet",
+    "noTransfersBody": "Create a transfer to move stock between branches.",
+    "poModalDesc": "Create a draft PO for the active branch.",
+    "createPo": "Create PO",
+    "supplier": "Supplier",
+    "selectSupplier": "Select supplier…",
+    "unitCost": "Unit cost",
+    "product": "Product",
+    "selectProduct": "Select product…"
   },
   "pos": {
     "tillOpen": "Till opened",
@@ -459,7 +481,9 @@
     "returnSubmitted": "Return submitted",
     "returnApproved": "Return approved",
     "returnRejected": "Return rejected",
-    "loadFailed": "Failed to load returns"
+    "loadFailed": "Failed to load returns",
+    "searchReturns": "Search returns…",
+    "searchTills": "Search tills…"
   },
   "accounting": {
     "eyebrow": "Books",
@@ -487,7 +511,12 @@
     "journalFailed": "Journal failed",
     "reverseFailed": "Reverse failed",
     "accountUpdateFailed": "Account update failed",
-    "manageCustomersHint": "Manage customer khata on"
+    "manageCustomersHint": "Manage customer khata on",
+    "searchAccounts": "Search accounts…",
+    "searchJournals": "Search journals…",
+    "searchInvoices": "Search invoices…",
+    "searchBills": "Search bills…",
+    "searchRows": "Search rows…"
   },
   "hr": {
     "eyebrow": "People",
@@ -506,7 +535,10 @@
     "inviteSent": "Invite sent",
     "payrollRun": "Payroll run started",
     "leaveApproved": "Leave approved",
-    "leaveRejected": "Leave rejected"
+    "leaveRejected": "Leave rejected",
+    "searchEmployees": "Search employees…",
+    "searchAttendance": "Search attendance…",
+    "searchLeave": "Search leave…"
   },
   "reports": {
     "eyebrow": "Insights",
@@ -818,6 +850,10 @@
   "searchSelect": {
     "search": "Search…",
     "noMatches": "No matches",
-    "selected": "{count} selected"
+    "selected": "{count} selected",
+    "select": "Select…"
+  },
+  "sales": {
+    "searchInvoice": "Search invoice or customer…"
   }
 }

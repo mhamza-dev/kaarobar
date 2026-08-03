@@ -87,7 +87,7 @@ export default function PayrollDetailPage() {
 
   return (
     <DetailShell
-      backHref={routes.hr}
+      backHref={`${routes.hr}?tab=payroll`}
       backLabel="Back to HR"
       eyebrow="Payroll"
       title={

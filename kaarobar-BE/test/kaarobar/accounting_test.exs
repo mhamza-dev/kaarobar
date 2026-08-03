@@ -134,6 +134,20 @@ defmodule Kaarobar.AccountingTest do
 
     assert length(gl) >= 1
     assert Decimal.eq?(Decimal.new(List.last(gl).balance), Decimal.new("500"))
+
+    gl_all =
+      Accounting.general_ledger(
+        business.id,
+        owner.id,
+        nil,
+        ~D[2026-01-01],
+        ~D[2026-12-31]
+      )
+
+    assert length(gl_all) >= 2
+    cash_lines = Enum.filter(gl_all, &(&1.account_id == cash.id))
+    assert length(cash_lines) >= 1
+    assert hd(cash_lines).account_code == "1000"
   end
 
   test "ACC-FR-008 P&L and balance sheet shapes", %{

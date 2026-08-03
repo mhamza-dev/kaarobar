@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useBrandPalette } from "../lib/BrandThemeContext";
 import {
   Modal,
@@ -9,6 +10,7 @@ import {
   View,
 } from "react-native";
 import { api, colors } from "../lib/api";
+import { portalKeys } from "../lib/queryClient";
 import BuyerNav from "./BuyerNav";
 import { BuyerEmptyPanel, BuyerHero } from "./BuyerLayout";
 import { BuyerLoyaltySkeleton } from "./BuyerSkeletons";
@@ -26,19 +28,25 @@ type LoyaltyRow = {
 export default function BuyerLoyalty() {
   const palette = useBrandPalette();
   const styles = useMemo(() => createStyles(palette), [palette]);
-  const [rows, setRows] = useState<LoyaltyRow[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<LoyaltyRow | null>(null);
 
-  useEffect(() => {
-    void api<{ data: LoyaltyRow[] }>("/portal/loyalty")
-      .then((res) => setRows(Array.isArray(res.data) ? res.data : []))
-      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load"))
-      .finally(() => setLoading(false));
-  }, []);
+  const loyaltyQuery = useQuery({
+    queryKey: portalKeys.loyalty(),
+    queryFn: async () => {
+      const res = await api<{ data: LoyaltyRow[] }>("/portal/loyalty");
+      return Array.isArray(res.data) ? res.data : [];
+    },
+  });
 
-  const total = rows.reduce((s, r) => s + (r.points || 0), 0);
+  const rows: LoyaltyRow[] = loyaltyQuery.data ?? [];
+  const loading = loyaltyQuery.isLoading;
+  const errorMessage =
+    loyaltyQuery.error instanceof Error
+      ? loyaltyQuery.error.message
+      : loyaltyQuery.error
+        ? "Failed to load"
+        : null;
+  const total = rows.reduce((s: number, r: LoyaltyRow) => s + (r.points || 0), 0);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
@@ -48,7 +56,7 @@ export default function BuyerLoyalty() {
         title={t("pages.buyerLoyaltyTitle")}
         description={t("pages.buyerLoyaltyDesc")}
       />
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
       {loading ? (
         <BuyerLoyaltySkeleton />
       ) : rows.length === 0 ? (

@@ -1,21 +1,21 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api/client";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { api, getSession } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
-import ListToolbar from "@/components/app/ListToolbar";
 import { Field, PageHeader, SurfaceCard, TabBar, fieldClass } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { useTabQueryParam } from "@/lib/hooks/useTabQueryParam";
+import { crmKeys } from "@/lib/queryClient";
 import { detailRoutes, routes } from "@/lib/navigation";
 import {
-  applyStaffListFilters,
   emptyStaffListFilters,
   type ListFilterConfig,
   type StaffListFilterState,
@@ -125,23 +125,14 @@ function MarketingPageInner() {
   const t = useT();
   const toast = useToast();
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const businessId = getSession()?.business_id ?? null;
   const [tab, setTab] = useTabQueryParam<Tab>("campaigns", MARKETING_TABS, {
     basePath: routes.marketing,
   });
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [campaignFilters, setCampaignFilters] = useState<StaffListFilterState>(
     emptyStaffListFilters()
   );
-  const [templates, setTemplates] = useState<MsgTemplate[]>([]);
-  const [templateVars, setTemplateVars] = useState<TemplateVariable[]>([]);
-  const [sampleValues, setSampleValues] = useState<Record<string, string>>({
-    name: "Ayesha",
-    points: "120",
-  });
-  const [segments, setSegments] = useState<Segment[]>([]);
-  const [coupons, setCoupons] = useState<Coupon[]>([]);
-  const [tiers, setTiers] = useState<Tier[]>([]);
-  const [busy, setBusy] = useState(false);
   const [modal, setModal] = useState(false);
   const [tplModal, setTplModal] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -169,40 +160,323 @@ function MarketingPageInner() {
     redeem_rate: "1",
   });
 
-  const load = useCallback(async () => {
-    try {
-      const [c, s, co, ti, tpl, vars] = await Promise.all([
-        api<{ data: Campaign[] }>("/crm/campaigns"),
-        api<{ data: Segment[] }>("/crm/segments"),
-        api<{ data: Coupon[] }>("/crm/coupons"),
-        api<{ data: Tier[] }>("/crm/loyalty-tiers"),
-        api<{ data: MsgTemplate[] }>("/crm/templates"),
-        api<{
-          data: {
-            variables: TemplateVariable[];
-            sample_values: Record<string, string>;
-          };
-        }>("/crm/templates/variables"),
-      ]);
-      setCampaigns(c.data || []);
-      setSegments(s.data || []);
-      setCoupons(co.data || []);
-      setTiers(ti.data || []);
-      setTemplates(tpl.data || []);
-      setTemplateVars(vars.data?.variables || []);
-      if (vars.data?.sample_values) setSampleValues(vars.data.sample_values);
-    } catch (err) {
+  const campaignsQuery = useQuery({
+    queryKey: crmKeys.campaigns(businessId),
+    queryFn: async () => {
+      const res = await api<{ data: Campaign[] }>("/crm/campaigns");
+      return res.data || [];
+    },
+    enabled: tab === "campaigns" && !!businessId,
+  });
+
+  const templatesQuery = useQuery({
+    queryKey: crmKeys.templates(businessId),
+    queryFn: async () => {
+      const res = await api<{ data: MsgTemplate[] }>("/crm/templates");
+      return res.data || [];
+    },
+    enabled: (tab === "templates" || modal) && !!businessId,
+  });
+
+  const templateVarsQuery = useQuery({
+    queryKey: crmKeys.templateVariables(businessId),
+    queryFn: async () => {
+      const res = await api<{
+        data: {
+          variables: TemplateVariable[];
+          sample_values: Record<string, string>;
+        };
+      }>("/crm/templates/variables");
+      return {
+        variables: res.data?.variables || [],
+        sample_values: res.data?.sample_values || { name: "Ayesha", points: "120" },
+      };
+    },
+    enabled: (tab === "templates" || tplModal) && !!businessId,
+  });
+
+  const segmentsQuery = useQuery({
+    queryKey: crmKeys.segments(businessId),
+    queryFn: async () => {
+      const res = await api<{ data: Segment[] }>("/crm/segments");
+      return res.data || [];
+    },
+    enabled: (tab === "segments" || modal) && !!businessId,
+  });
+
+  const couponsQuery = useQuery({
+    queryKey: crmKeys.coupons(businessId),
+    queryFn: async () => {
+      const res = await api<{ data: Coupon[] }>("/crm/coupons");
+      return res.data || [];
+    },
+    enabled: (tab === "coupons" || modal) && !!businessId,
+  });
+
+  const tiersQuery = useQuery({
+    queryKey: crmKeys.tiers(businessId),
+    queryFn: async () => {
+      const res = await api<{ data: Tier[] }>("/crm/loyalty-tiers");
+      return res.data || [];
+    },
+    enabled: tab === "tiers" && !!businessId,
+  });
+
+  const campaigns = campaignsQuery.data ?? [];
+  const templates = templatesQuery.data ?? [];
+  const templateVars = templateVarsQuery.data?.variables ?? [];
+  const sampleValues = templateVarsQuery.data?.sample_values ?? {
+    name: "Ayesha",
+    points: "120",
+  };
+  const segments = segmentsQuery.data ?? [];
+  const coupons = couponsQuery.data ?? [];
+  const tiers = tiersQuery.data ?? [];
+
+  useEffect(() => {
+    const err =
+      campaignsQuery.error ||
+      templatesQuery.error ||
+      templateVarsQuery.error ||
+      segmentsQuery.error ||
+      couponsQuery.error ||
+      tiersQuery.error;
+    if (err) {
       toast.error(err instanceof Error ? err.message : t("common.loadFailed"));
     }
-  }, [t, toast]);
+  }, [
+    campaignsQuery.error,
+    templatesQuery.error,
+    templateVarsQuery.error,
+    segmentsQuery.error,
+    couponsQuery.error,
+    tiersQuery.error,
+    t,
+    toast,
+  ]);
 
   function isPaidChannel(channel?: string | null) {
     return channel === "sms" || channel === "whatsapp";
   }
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const invalidateCampaigns = () =>
+    queryClient.invalidateQueries({ queryKey: crmKeys.campaigns(businessId) });
+  const invalidateTemplates = () =>
+    queryClient.invalidateQueries({ queryKey: crmKeys.templates(businessId) });
+  const invalidateSegments = () =>
+    queryClient.invalidateQueries({ queryKey: crmKeys.segments(businessId) });
+  const invalidateCoupons = () =>
+    queryClient.invalidateQueries({ queryKey: crmKeys.coupons(businessId) });
+  const invalidateTiers = () =>
+    queryClient.invalidateQueries({ queryKey: crmKeys.tiers(businessId) });
+
+  const createCampaignMutation = useMutation({
+    mutationFn: async () => {
+      await api("/crm/campaigns", {
+        method: "POST",
+        body: JSON.stringify({
+          name: form.name,
+          title: form.title,
+          message: form.message,
+          audience: form.audience,
+          channel: form.channel,
+          template_id: form.template_id || null,
+          budget_amount: form.budget_amount || null,
+          min_points:
+            form.audience === "min_points" && form.min_points
+              ? Number(form.min_points)
+              : null,
+          segment_id: form.audience === "segment" ? form.segment_id || null : null,
+          coupon_id: form.coupon_id || null,
+        }),
+      });
+    },
+    onSuccess: async () => {
+      toast.success(t("marketing.drafted"));
+      setModal(false);
+      setForm(emptyForm);
+      setPreviewCount(null);
+      setCostPreview(null);
+      await invalidateCampaigns();
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
+    },
+  });
+
+  const createTemplateMutation = useMutation({
+    mutationFn: async () => {
+      await api("/crm/templates", {
+        method: "POST",
+        body: JSON.stringify({
+          ...tplForm,
+          variables: sampleValues,
+        }),
+      });
+    },
+    onSuccess: async () => {
+      setTplForm(emptyTplForm);
+      setTplPreview(null);
+      setTplModal(false);
+      await invalidateTemplates();
+      toast.success(t("marketing.templateSaved"));
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
+    },
+  });
+
+  const sendCampaignMutation = useMutation({
+    mutationFn: async (c: Campaign) => {
+      const res = await api<{ data: Campaign }>(`/crm/campaigns/${c.id}/send`, {
+        method: "POST",
+        body: "{}",
+      });
+      return res.data;
+    },
+    onSuccess: async (data) => {
+      const d = data.delivery;
+      toast.success(
+        d
+          ? t("marketing.sentSummary", {
+              notified: d.notified,
+              email: d.email_only,
+              skipped: d.skipped,
+            })
+          : t("marketing.sentOk")
+      );
+      setDetail(data);
+      await invalidateCampaigns();
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
+    },
+  });
+
+  const payAndSendMutation = useMutation({
+    mutationFn: async (c: Campaign) => {
+      const res = await api<{
+        data: {
+          checkout_url: string;
+          payment_id: string;
+          amount?: string;
+          dev_fallback?: boolean;
+        };
+      }>(`/crm/campaigns/${c.id}/checkout`, {
+        method: "POST",
+        body: JSON.stringify({ redirect_url: window.location.href }),
+      });
+      if (res.data.dev_fallback) {
+        const sent = await api<{ data: Campaign }>(
+          `/crm/campaigns/${c.id}/confirm-payment`,
+          {
+            method: "POST",
+            body: JSON.stringify({ payment_id: res.data.payment_id }),
+          }
+        );
+        return { kind: "sent" as const, campaign: sent.data };
+      }
+      if (res.data.checkout_url) {
+        return { kind: "checkout" as const, url: res.data.checkout_url };
+      }
+      return { kind: "noop" as const };
+    },
+    onSuccess: async (result) => {
+      if (result.kind === "sent") {
+        toast.success(t("marketing.payAndSendDone"));
+        setDetail(result.campaign);
+        await invalidateCampaigns();
+      } else if (result.kind === "checkout") {
+        window.open(result.url, "_blank", "noopener,noreferrer");
+        toast.success(t("marketing.checkoutOpened"));
+      }
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
+    },
+  });
+
+  const createSegmentMutation = useMutation({
+    mutationFn: async () => {
+      const filters: Record<string, unknown> = {};
+      if (segForm.khata) filters.khata_enabled = true;
+      if (segForm.min_points) filters.min_points = Number(segForm.min_points);
+      await api("/crm/segments", {
+        method: "POST",
+        body: JSON.stringify({ name: segForm.name, filters }),
+      });
+    },
+    onSuccess: async () => {
+      setSegForm({ name: "", min_points: "", khata: false });
+      await invalidateSegments();
+      toast.success("Segment created");
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
+    },
+  });
+
+  const createCouponMutation = useMutation({
+    mutationFn: async () => {
+      await api("/crm/coupons", {
+        method: "POST",
+        body: JSON.stringify({
+          code: couponForm.code,
+          discount_type: couponForm.discount_type,
+          discount_value: couponForm.discount_value,
+          usage_limit: couponForm.usage_limit ? Number(couponForm.usage_limit) : null,
+          min_cart: couponForm.min_cart || null,
+          stackable: couponForm.stackable,
+        }),
+      });
+    },
+    onSuccess: async () => {
+      setCouponForm({
+        code: "",
+        discount_type: "percent",
+        discount_value: "",
+        usage_limit: "",
+        min_cart: "",
+        stackable: false,
+      });
+      await invalidateCoupons();
+      toast.success("Coupon created");
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
+    },
+  });
+
+  const createTierMutation = useMutation({
+    mutationFn: async () => {
+      await api("/crm/loyalty-tiers", {
+        method: "POST",
+        body: JSON.stringify({
+          name: tierForm.name,
+          min_points: Number(tierForm.min_points),
+          earn_rate: tierForm.earn_rate,
+          redeem_rate: tierForm.redeem_rate,
+        }),
+      });
+    },
+    onSuccess: async () => {
+      setTierForm({ name: "", min_points: "0", earn_rate: "1", redeem_rate: "1" });
+      await invalidateTiers();
+      toast.success("Tier created");
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
+    },
+  });
+
+  const busy =
+    createCampaignMutation.isPending ||
+    createTemplateMutation.isPending ||
+    sendCampaignMutation.isPending ||
+    payAndSendMutation.isPending ||
+    createSegmentMutation.isPending ||
+    createCouponMutation.isPending ||
+    createTierMutation.isPending;
 
   async function previewAudience() {
     try {
@@ -237,39 +511,9 @@ function MarketingPageInner() {
     }
   }
 
-  async function createCampaign(e: React.FormEvent) {
+  function createCampaign(e: React.FormEvent) {
     e.preventDefault();
-    setBusy(true);
-    try {
-      await api("/crm/campaigns", {
-        method: "POST",
-        body: JSON.stringify({
-          name: form.name,
-          title: form.title,
-          message: form.message,
-          audience: form.audience,
-          channel: form.channel,
-          template_id: form.template_id || null,
-          budget_amount: form.budget_amount || null,
-          min_points:
-            form.audience === "min_points" && form.min_points
-              ? Number(form.min_points)
-              : null,
-          segment_id: form.audience === "segment" ? form.segment_id || null : null,
-          coupon_id: form.coupon_id || null,
-        }),
-      });
-      toast.success(t("marketing.drafted"));
-      setModal(false);
-      setForm(emptyForm);
-      setPreviewCount(null);
-      setCostPreview(null);
-      await load();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("common.error"));
-    } finally {
-      setBusy(false);
-    }
+    createCampaignMutation.mutate();
   }
 
   function applyTemplate(id: string) {
@@ -326,167 +570,34 @@ function MarketingPageInner() {
     }
   }
 
-  async function createTemplate(e: React.FormEvent) {
+  function createTemplate(e: React.FormEvent) {
     e.preventDefault();
-    setBusy(true);
-    try {
-      await api("/crm/templates", {
-        method: "POST",
-        body: JSON.stringify({
-          ...tplForm,
-          variables: sampleValues,
-        }),
-      });
-      setTplForm(emptyTplForm);
-      setTplPreview(null);
-      setTplModal(false);
-      await load();
-      toast.success(t("marketing.templateSaved"));
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("common.error"));
-    } finally {
-      setBusy(false);
-    }
+    createTemplateMutation.mutate();
   }
 
-  async function sendCampaign(c: Campaign) {
+  function sendCampaign(c: Campaign) {
     if (!confirm(t("marketing.sendConfirm", { name: c.name }))) return;
-    setBusy(true);
-    try {
-      const res = await api<{ data: Campaign }>(`/crm/campaigns/${c.id}/send`, {
-        method: "POST",
-        body: "{}",
-      });
-      const d = res.data.delivery;
-      toast.success(
-        d
-          ? t("marketing.sentSummary", {
-              notified: d.notified,
-              email: d.email_only,
-              skipped: d.skipped,
-            })
-          : t("marketing.sentOk")
-      );
-      await load();
-      setDetail(res.data);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("common.error"));
-    } finally {
-      setBusy(false);
-    }
+    sendCampaignMutation.mutate(c);
   }
 
-  async function payAndSendCampaign(c: Campaign) {
+  function payAndSendCampaign(c: Campaign) {
     if (!confirm(t("marketing.payAndSendConfirm", { name: c.name }))) return;
-    setBusy(true);
-    try {
-      const res = await api<{
-        data: {
-          checkout_url: string;
-          payment_id: string;
-          amount?: string;
-          dev_fallback?: boolean;
-        };
-      }>(`/crm/campaigns/${c.id}/checkout`, {
-        method: "POST",
-        body: JSON.stringify({ redirect_url: window.location.href }),
-      });
-      if (res.data.dev_fallback) {
-        const sent = await api<{ data: Campaign }>(
-          `/crm/campaigns/${c.id}/confirm-payment`,
-          {
-            method: "POST",
-            body: JSON.stringify({ payment_id: res.data.payment_id }),
-          }
-        );
-        toast.success(t("marketing.payAndSendDone"));
-        await load();
-        setDetail(sent.data);
-      } else if (res.data.checkout_url) {
-        window.open(res.data.checkout_url, "_blank", "noopener,noreferrer");
-        toast.success(t("marketing.checkoutOpened"));
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("common.error"));
-    } finally {
-      setBusy(false);
-    }
+    payAndSendMutation.mutate(c);
   }
 
-  async function createSegment(e: React.FormEvent) {
+  function createSegment(e: React.FormEvent) {
     e.preventDefault();
-    setBusy(true);
-    try {
-      const filters: Record<string, unknown> = {};
-      if (segForm.khata) filters.khata_enabled = true;
-      if (segForm.min_points) filters.min_points = Number(segForm.min_points);
-      await api("/crm/segments", {
-        method: "POST",
-        body: JSON.stringify({ name: segForm.name, filters }),
-      });
-      setSegForm({ name: "", min_points: "", khata: false });
-      await load();
-      toast.success("Segment created");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("common.error"));
-    } finally {
-      setBusy(false);
-    }
+    createSegmentMutation.mutate();
   }
 
-  async function createCoupon(e: React.FormEvent) {
+  function createCoupon(e: React.FormEvent) {
     e.preventDefault();
-    setBusy(true);
-    try {
-      await api("/crm/coupons", {
-        method: "POST",
-        body: JSON.stringify({
-          code: couponForm.code,
-          discount_type: couponForm.discount_type,
-          discount_value: couponForm.discount_value,
-          usage_limit: couponForm.usage_limit ? Number(couponForm.usage_limit) : null,
-          min_cart: couponForm.min_cart || null,
-          stackable: couponForm.stackable,
-        }),
-      });
-      setCouponForm({
-        code: "",
-        discount_type: "percent",
-        discount_value: "",
-        usage_limit: "",
-        min_cart: "",
-        stackable: false,
-      });
-      await load();
-      toast.success("Coupon created");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("common.error"));
-    } finally {
-      setBusy(false);
-    }
+    createCouponMutation.mutate();
   }
 
-  async function createTier(e: React.FormEvent) {
+  function createTier(e: React.FormEvent) {
     e.preventDefault();
-    setBusy(true);
-    try {
-      await api("/crm/loyalty-tiers", {
-        method: "POST",
-        body: JSON.stringify({
-          name: tierForm.name,
-          min_points: Number(tierForm.min_points),
-          earn_rate: tierForm.earn_rate,
-          redeem_rate: tierForm.redeem_rate,
-        }),
-      });
-      setTierForm({ name: "", min_points: "0", earn_rate: "1", redeem_rate: "1" });
-      await load();
-      toast.success("Tier created");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("common.error"));
-    } finally {
-      setBusy(false);
-    }
+    createTierMutation.mutate();
   }
 
   const tabs: { id: Tab; label: string; infoKey?: string }[] = [
@@ -515,16 +626,6 @@ function MarketingPageInner() {
     [t]
   );
 
-  const filteredCampaigns = useMemo(
-    () =>
-      applyStaffListFilters(campaigns, campaignFilters, {
-        searchText: (c) => `${c.name} ${c.title} ${c.status} ${c.channel || ""}`,
-        status: (c) => c.status,
-        category: (c) => c.channel || "email",
-      }),
-    [campaigns, campaignFilters]
-  );
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -537,7 +638,7 @@ function MarketingPageInner() {
             ? { label: t("marketing.newCampaign"), onClick: () => setModal(true) }
             : tab === "templates"
               ? { label: t("marketing.newTemplate"), onClick: openTplModal }
-              : undefined
+            : undefined
         }
         secondaryAction={{
           label: t("nav.customers"),
@@ -566,14 +667,32 @@ function MarketingPageInner() {
 
           <DataTable
             maxHeight="24rem"
-            filters={
-              <ListToolbar
-                value={campaignFilters}
-                onChange={setCampaignFilters}
-                config={campaignFilterConfig}
-                searchPlaceholder={t("marketing.search")}
-              />
-            }
+            loading={campaignsQuery.isLoading || campaignsQuery.isFetching}
+            filterState={campaignFilters}
+            onFilterChange={setCampaignFilters}
+            filterConfig={campaignFilterConfig}
+            filterAccessors={{
+              searchText: (c) =>
+                `${c.name} ${c.title || ""} ${c.status} ${c.channel || ""}`,
+              status: (c) => c.status,
+              category: (c) => c.channel || "email",
+            }}
+            clientFilter
+            searchPlaceholder={t("marketing.search")}
+            pagination={{ mode: "client", pageSize: 25 }}
+            exportable
+            exportFilename="campaigns"
+            exportTitle="Campaigns"
+            getExportRow={(c) => ({
+              name: c.name,
+              channel: c.channel || "email",
+              status: c.status || "",
+            })}
+            exportColumns={[
+              { key: "name", header: "Name" },
+              { key: "channel", header: "Channel" },
+              { key: "status", header: "Status" },
+            ]}
             onRowClick={(c) => router.push(detailRoutes.campaign(c.id))}
             columns={[
               {
@@ -642,7 +761,7 @@ function MarketingPageInner() {
                 ),
               },
             ]}
-            data={filteredCampaigns}
+            data={campaigns}
             rowKey={(c) => c.id}
             emptyTitle={t("marketing.emptyTitle")}
             emptyBody={t("marketing.emptyBody")}
@@ -673,6 +792,7 @@ function MarketingPageInner() {
 
           <DataTable
             maxHeight="24rem"
+            loading={templatesQuery.isLoading || templatesQuery.isFetching}
             onRowClick={(tpl) => router.push(detailRoutes.template(tpl.id))}
             columns={[
               {
@@ -745,6 +865,7 @@ function MarketingPageInner() {
             </form>
           </SurfaceCard>
           <DataTable
+            loading={segmentsQuery.isLoading || segmentsQuery.isFetching}
             columns={[
               { id: "name", header: "Name", cell: (s) => s.name },
               {
@@ -830,6 +951,7 @@ function MarketingPageInner() {
             </form>
           </SurfaceCard>
           <DataTable
+            loading={couponsQuery.isLoading || couponsQuery.isFetching}
             columns={[
               { id: "code", header: "Code", cell: (c) => c.code },
               {
@@ -898,6 +1020,7 @@ function MarketingPageInner() {
             </form>
           </SurfaceCard>
           <DataTable
+            loading={tiersQuery.isLoading || tiersQuery.isFetching}
             columns={[
               { id: "name", header: "Name", cell: (t) => t.name },
               { id: "min", header: "Min points", cell: (t) => String(t.min_points) },

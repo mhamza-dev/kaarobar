@@ -1,5 +1,5 @@
-
 import { useCallback, useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, getSession, setSession } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
 import ProfilePicEditor from "@/components/app/ProfilePicEditor";
@@ -7,6 +7,7 @@ import LanguageSwitcher from "@/components/app/LanguageSwitcher";
 import { Field, SurfaceCard, fieldClass } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useI18n } from "@/lib/i18n";
+import { settingsKeys } from "@/lib/queryClient";
 
 type ProfileUser = {
   id: string;
@@ -19,6 +20,7 @@ type ProfileUser = {
 export default function ProfileSettingsPanel() {
   const { t } = useI18n();
   const toast = useToast();
+  const queryClient = useQueryClient();
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -43,26 +45,31 @@ export default function ProfileSettingsPanel() {
     });
   }, []);
 
-  const load = useCallback(async () => {
-    try {
+  const { data: profile, isError, error } = useQuery({
+    queryKey: settingsKeys.profile(),
+    queryFn: async () => {
       const res = await api<{ user: ProfileUser }>("/auth/me");
-      const u = res.user;
-      setForm({
-        name: u.name || "",
-        email: u.email || "",
-        phone: u.phone || "",
-        password: "",
-      });
-      setPicUrl(u.profile_pic_url || null);
-      syncSessionUser(u);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("profile.loadError"));
-    }
-  }, [syncSessionUser, t, toast]);
+      return res.user;
+    },
+  });
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (!profile) return;
+    setForm({
+      name: profile.name || "",
+      email: profile.email || "",
+      phone: profile.phone || "",
+      password: "",
+    });
+    setPicUrl(profile.profile_pic_url || null);
+    syncSessionUser(profile);
+  }, [profile, syncSessionUser]);
+
+  useEffect(() => {
+    if (isError) {
+      toast.error(error instanceof Error ? error.message : t("profile.loadError"));
+    }
+  }, [isError, error, t, toast]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -80,6 +87,10 @@ export default function ProfileSettingsPanel() {
       });
 
       syncSessionUser({ ...res.user, profile_pic_url: picUrl });
+      queryClient.setQueryData(settingsKeys.profile(), {
+        ...res.user,
+        profile_pic_url: picUrl,
+      });
       setForm((f) => ({ ...f, password: "" }));
       toast.success(t("profile.saved"));
     } catch (err) {
@@ -101,6 +112,11 @@ export default function ProfileSettingsPanel() {
           }
           onChange={(next) => {
             setPicUrl(next);
+            queryClient.setQueryData(
+              settingsKeys.profile(),
+              (prev: ProfileUser | undefined) =>
+                prev ? { ...prev, profile_pic_url: next } : prev
+            );
             const session = getSession();
             if (session) {
               setSession({

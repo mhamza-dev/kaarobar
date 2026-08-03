@@ -247,14 +247,60 @@ defmodule Kaarobar.Accounting do
   end
 
   def list_journals(business_id, owner_id, opts \\ []) do
-    limit = Keyword.get(opts, :limit, 100)
+    alias KaarobarWeb.Controllers.Helpers.ListFilters
 
-    JournalEntry
-    |> where([j], j.business_id == ^business_id and j.owner_id == ^owner_id)
-    |> order_by([j], desc: j.date, desc: j.inserted_at)
-    |> limit(^limit)
-    |> preload(:lines)
-    |> Repo.all()
+    q = Keyword.get(opts, :q)
+    from_date = Keyword.get(opts, :from)
+    to_date = Keyword.get(opts, :to)
+    source = Keyword.get(opts, :source)
+
+    query =
+      JournalEntry
+      |> where([j], j.business_id == ^business_id and j.owner_id == ^owner_id)
+      |> then(fn qry ->
+        if is_binary(q) and String.trim(q) != "" do
+          like = "%#{String.trim(q)}%"
+          where(qry, [j], ilike(j.description, ^like) or ilike(j.source_type, ^like))
+        else
+          qry
+        end
+      end)
+      |> then(fn qry ->
+        cond do
+          from_date && to_date ->
+            where(qry, [j], j.date >= ^from_date and j.date <= ^to_date)
+
+          from_date ->
+            where(qry, [j], j.date >= ^from_date)
+
+          to_date ->
+            where(qry, [j], j.date <= ^to_date)
+
+          true ->
+            qry
+        end
+      end)
+      |> then(fn qry ->
+        if is_binary(source) and String.trim(source) != "" do
+          where(qry, [j], j.source_type == ^String.trim(source))
+        else
+          qry
+        end
+      end)
+      |> order_by([j], desc: j.date, desc: j.inserted_at)
+      |> preload(:lines)
+
+    # Default page size when client omits limit
+    opts =
+      if Keyword.has_key?(opts, :limit) do
+        opts
+      else
+        Keyword.put(opts, :limit, 25)
+      end
+
+    result = ListFilters.paginate(query, opts)
+
+    %{data: result.data, meta: result.meta}
   end
 
   def get_journal(journal_id, owner_id) do
@@ -314,16 +360,21 @@ defmodule Kaarobar.Accounting do
   end
 
   def general_ledger(business_id, owner_id, account_id, from_date, to_date) do
-    lines =
+    query =
       from(jl in JournalLine,
         join: je in JournalEntry,
         on: jl.journal_entry_id == je.id,
+        join: acc in ChartOfAccount,
+        on: jl.account_id == acc.id,
         where:
           je.business_id == ^business_id and je.owner_id == ^owner_id and
-            jl.account_id == ^account_id and je.date >= ^from_date and je.date <= ^to_date,
-        order_by: [asc: je.date, asc: je.inserted_at],
+            je.date >= ^from_date and je.date <= ^to_date,
+        order_by: [asc: acc.code, asc: je.date, asc: je.inserted_at],
         select: %{
           journal_id: je.id,
+          account_id: acc.id,
+          account_code: acc.code,
+          account_name: acc.name,
           date: je.date,
           description: je.description,
           memo: jl.memo,
@@ -331,24 +382,37 @@ defmodule Kaarobar.Accounting do
           credit: jl.credit
         }
       )
-      |> Repo.all()
+
+    query =
+      if account_id in [nil, ""] do
+        query
+      else
+        from([jl, je, acc] in query, where: jl.account_id == ^account_id)
+      end
+
+    lines = Repo.all(query)
 
     {rows, _} =
-      Enum.map_reduce(lines, Decimal.new(0), fn row, bal ->
+      Enum.map_reduce(lines, %{}, fn row, bals ->
+        prev = Map.get(bals, row.account_id, Decimal.new(0))
+
         bal =
-          bal
+          prev
           |> Decimal.add(row.debit || Decimal.new(0))
           |> Decimal.sub(row.credit || Decimal.new(0))
 
         {%{
            journal_id: row.journal_id,
+           account_id: row.account_id,
+           account_code: row.account_code,
+           account_name: row.account_name,
            date: row.date,
            description: row.description,
            memo: row.memo,
            debit: to_string(row.debit || 0),
            credit: to_string(row.credit || 0),
            balance: to_string(bal)
-         }, bal}
+         }, Map.put(bals, row.account_id, bal)}
       end)
 
     rows

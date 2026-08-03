@@ -3,18 +3,19 @@ import type { HelpCatalog } from "./types";
 const catalog: HelpCatalog = {
   "page.dashboard": {
     title: "Tableau de bord",
-    summary: "Vue rapide des ventes, de la trésorerie, du risque de stock et des approbations en attente.",
-    what: "Affiche les ventes du jour, la situation de trésorerie, les alertes de stock faible et les tâches en attente d'approbation afin que les propriétaires et les gestionnaires puissent décider quoi faire ensuite.",
+    summary: "KPIs et graphiques de ventes interactifs filtrés par période.",
+    what: "Affiche les ventes du jour, la trésorerie, les stocks bas, les validations en attente et les tendances CA/commandes pour une période choisie.",
     how: [
-      "Après vous être connecté, ouvrez le tableau de bord et consultez les chiffres du jour.",
-      "Utilisez des cartes de faible stock ou d'approbation pour accéder à l'inventaire ou aux ressources humaines.",
-      "Si vous avez plusieurs emplacements, changez d'entreprise ou de succursale à partir de l'en-tête.",
-      "Ouvrez POS lorsque vous êtes prêt à commencer à vendre.",
+      "Après connexion, consultez les cartes KPI du jour.",
+      "Définissez les dates de/à pour actualiser les graphiques.",
+      "Survolez un point pour le total journalier ou le nombre de tickets.",
+      "Utilisez les cartes stock bas ou validations pour aller vers Inventaire ou Retours.",
+      "Changez d'entreprise ou de succursale dans l'en-tête si besoin.",
     ],
     when: "Au début du quart de travail, à la fin de la journée ou chaque fois que vous avez besoin d’un bilan de santé en agence.",
     tips: [
-      "Les chiffres reflètent l’entreprise et la branche sélectionnées.",
-      "Si les KPI semblent vides, vérifiez l'activité de la succursale et de la caisse du jour.",
+      "Les graphiques utilisent les ventes terminées de l'entreprise sélectionnée (RPT-FR-001).",
+      "Graphiques vides : élargissez la période ou vérifiez l'activité de caisse.",
     ],
   },
   "page.pos": {

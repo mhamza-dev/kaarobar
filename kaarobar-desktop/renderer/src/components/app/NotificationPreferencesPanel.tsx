@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
 import { SurfaceCard } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
+import { settingsKeys } from "@/lib/queryClient";
 
 export type NotificationPrefs = {
   email: boolean;
@@ -33,21 +35,16 @@ type Props = {
 
 export default function NotificationPreferencesPanel({ className = "" }: Props) {
   const toast = useToast();
-  const [prefs, setPrefs] = useState<NotificationPrefs | null>(null);
+  const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
 
-  const load = useCallback(async () => {
-    try {
+  const { data: prefs = null } = useQuery({
+    queryKey: settingsKeys.notificationPrefs(),
+    queryFn: async () => {
       const res = await api<{ data: NotificationPrefs }>("/notification-preferences");
-      setPrefs(res.data);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to load preferences");
-    }
-  }, [toast]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+      return res.data;
+    },
+  });
 
   async function save(next: NotificationPrefs) {
     setSaving(true);
@@ -56,10 +53,13 @@ export default function NotificationPreferencesPanel({ className = "" }: Props) 
         method: "PUT",
         body: JSON.stringify(next),
       });
-      setPrefs(res.data);
+      queryClient.setQueryData(settingsKeys.notificationPrefs(), res.data);
       toast.success("Notification preferences saved");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save preferences");
+      await queryClient.invalidateQueries({
+        queryKey: settingsKeys.notificationPrefs(),
+      });
     } finally {
       setSaving(false);
     }
@@ -68,7 +68,7 @@ export default function NotificationPreferencesPanel({ className = "" }: Props) 
   function toggleChannel(key: keyof Pick<NotificationPrefs, "email" | "in_app" | "push">) {
     if (!prefs) return;
     const next = { ...prefs, [key]: !prefs[key] };
-    setPrefs(next);
+    queryClient.setQueryData(settingsKeys.notificationPrefs(), next);
     void save(next);
   }
 
@@ -78,7 +78,7 @@ export default function NotificationPreferencesPanel({ className = "" }: Props) 
     if (muted.has(type)) muted.delete(type);
     else muted.add(type);
     const next = { ...prefs, muted_types: Array.from(muted) };
-    setPrefs(next);
+    queryClient.setQueryData(settingsKeys.notificationPrefs(), next);
     void save(next);
   }
 

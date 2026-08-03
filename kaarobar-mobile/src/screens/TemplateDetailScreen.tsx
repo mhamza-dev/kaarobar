@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase, RouteProp } from "@react-navigation/native";
-import { api, colors } from "../lib/api";
+import { useQuery } from "@tanstack/react-query";
+import { api, colors, getSession } from "../lib/api";
 import { t } from "../lib/i18n";
 import { useBrandPalette } from "../lib/BrandThemeContext";
 import { pushPath } from "../lib/nav";
+import { crmKeys } from "../lib/queryClient";
 
 type MsgTemplate = {
   id: string;
@@ -24,22 +26,20 @@ export default function TemplateDetailScreen() {
   const id = route.params?.id;
   const palette = useBrandPalette();
   const styles = useMemo(() => createStyles(), []);
-  const [template, setTemplate] = useState<MsgTemplate | null>(null);
-  const [preview, setPreview] = useState<{ title: string; message: string } | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [businessId, setBusinessId] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    setError(null);
-    try {
+  useEffect(() => {
+    void getSession().then((s) => setBusinessId(s?.business_id ?? null));
+  }, []);
+
+  const templateQuery = useQuery({
+    queryKey: [...crmKeys.templates(businessId), id] as const,
+    queryFn: async () => {
       const [tplRes, varsRes] = await Promise.all([
         api<{ data: MsgTemplate }>(`/crm/templates/${id}`),
         api<{ data: { sample_values: Record<string, string> } }>("/crm/templates/variables"),
       ]);
       const tpl = tplRes.data;
-      setTemplate(tpl);
       const sample = {
         ...(varsRes.data?.sample_values || {}),
         ...(tpl.variables || {}),
@@ -56,17 +56,19 @@ export default function TemplateDetailScreen() {
           }),
         }
       );
-      setPreview(rendered.data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("common.loadFailed"));
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
+      return { template: tpl, preview: rendered.data };
+    },
+    enabled: !!id && !!businessId,
+  });
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const template = templateQuery.data?.template ?? null;
+  const preview = templateQuery.data?.preview ?? null;
+  const loading = templateQuery.isLoading || (!!id && !businessId);
+  const error = templateQuery.error
+    ? templateQuery.error instanceof Error
+      ? templateQuery.error.message
+      : t("common.loadFailed")
+    : null;
 
   if (loading) {
     return (

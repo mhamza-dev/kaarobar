@@ -384,7 +384,14 @@
     "footprintDesc": "Changez d'entreprise ou de succursale à tout moment à partir de la barre supérieure – chaque page suit ce contexte.",
     "businesses": "Entreprises",
     "branches": "Succursales",
-    "loadFailed": "ÉChec du chargement du tableau de bord"
+    "loadFailed": "ÉChec du chargement du tableau de bord",
+    "trendsTitle": "Tendances des ventes",
+    "revenueOverTime": "Chiffre d'affaires dans le temps",
+    "ordersOverTime": "Commandes dans le temps",
+    "chartsDesc": "Chiffre d'affaires et volume de commandes pour la période sélectionnée.",
+    "rangeRevenue": "CA sur la période",
+    "rangeOrders": "Commandes sur la période",
+    "noChartData": "Aucune vente sur cette période"
   },
   "inventory": {
     "eyebrow": "Inventaire",
@@ -429,7 +436,22 @@
     "products": "Produits",
     "selectProducts": "Sélectionner des produits",
     "quantities": "Quantités",
-    "confirm": "Confirmer"
+    "confirm": "Confirmer",
+    "searchProductsList": "Rechercher produits par nom, SKU, code-barres…",
+    "searchSuppliers": "Rechercher fournisseurs, ville, contact…",
+    "searchPos": "Rechercher commandes…",
+    "searchTransfers": "Rechercher transferts…",
+    "statusPending": "En attente",
+    "statusConfirmed": "Confirmé",
+    "noTransfers": "Aucun transfert pour le moment",
+    "noTransfersBody": "Créez un transfert pour déplacer le stock entre agences.",
+    "poModalDesc": "Créez un bon de commande brouillon pour l’agence active.",
+    "createPo": "Créer le BC",
+    "supplier": "Fournisseur",
+    "selectSupplier": "Sélectionner un fournisseur…",
+    "unitCost": "Coût unitaire",
+    "product": "Produit",
+    "selectProduct": "Sélectionner un produit…"
   },
   "pos": {
     "tillOpen": "Jusqu'à ouverture",
@@ -502,7 +524,9 @@
     "returnSubmitted": "Déclaration soumise",
     "returnApproved": "Retour approuvé",
     "returnRejected": "Retour rejeté",
-    "loadFailed": "ÉChec du chargement des déclarations"
+    "loadFailed": "ÉChec du chargement des déclarations",
+    "searchReturns": "Rechercher des retours…",
+    "searchTills": "Rechercher des caisses…"
   },
   "accounting": {
     "eyebrow": "Livres",
@@ -530,7 +554,12 @@
     "journalFailed": "ÉChec du journal",
     "reverseFailed": "Échec de l'inversion",
     "accountUpdateFailed": "ÉChec de la mise à jour du compte",
-    "manageCustomersHint": "Gérer le khata client sur"
+    "manageCustomersHint": "Gérer le khata client sur",
+    "searchAccounts": "Rechercher des comptes…",
+    "searchJournals": "Rechercher des journaux…",
+    "searchInvoices": "Rechercher des factures…",
+    "searchBills": "Rechercher des factures…",
+    "searchRows": "Rechercher des lignes…"
   },
   "hr": {
     "eyebrow": "Personnes",
@@ -549,7 +578,10 @@
     "inviteSent": "Invitation envoyée",
     "payrollRun": "Exécution de la paie démarrée",
     "leaveApproved": "Congé approuvé",
-    "leaveRejected": "Congé rejeté"
+    "leaveRejected": "Congé rejeté",
+    "searchEmployees": "Rechercher des employés…",
+    "searchAttendance": "Rechercher la présence…",
+    "searchLeave": "Rechercher les congés…"
   },
   "reports": {
     "eyebrow": "Connaissances",
@@ -865,6 +897,27 @@
   "searchSelect": {
     "search": "Rechercher…",
     "noMatches": "Aucun résultat",
-    "selected": "{count} sélectionné(s)"
+    "selected": "{count} sélectionné(s)",
+    "select": "Sélectionner…"
+  },
+  "table": {
+    "export": "Exporter",
+    "exportPdf": "PDF",
+    "exportXls": "XLS",
+    "exportPrint": "Print",
+    "rowsPerPage": "Lignes par page",
+    "prev": "Préc.",
+    "next": "Suiv.",
+    "pageOf": "Page {page} of {pages}",
+    "row": "row",
+    "rows": "rows",
+    "visibleOfTotal": "{visible} of {total} rows",
+    "noMatches": "No matches",
+    "noMatchesBody": "Nothing matched your search. Try another term.",
+    "attachSupplier": "Associer un fournisseur",
+    "suppliersAttached": "Suppliers"
+  },
+  "sales": {
+    "searchInvoice": "Rechercher facture ou client…"
   }
 }

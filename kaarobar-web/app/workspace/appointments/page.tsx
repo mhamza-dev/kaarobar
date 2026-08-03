@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, getSession } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
-import ListToolbar from "@/components/app/ListToolbar";
 import {
   Alert,
   EmptyState,
@@ -116,32 +115,17 @@ export default function AppointmentsPage() {
       params.set("from", `${date}T00:00:00Z`);
       params.set("to", `${date}T23:59:59Z`);
       if (staffId) params.set("staff_id", staffId);
-      if (filters.statuses.length === 1) params.set("status", filters.statuses[0]);
       const res = await api<{ data: AppointmentRow[] }>(
         `/appointments?${params.toString()}`
       );
-      let data = res.data || [];
-      const q = filters.search.trim().toLowerCase();
-      if (q) {
-        data = data.filter((r) =>
-          [r.customer_name, r.product_name, r.staff_name, r.status]
-            .filter(Boolean)
-            .join(" ")
-            .toLowerCase()
-            .includes(q)
-        );
-      }
-      if (filters.statuses.length > 1) {
-        data = data.filter((r) => filters.statuses.includes(r.status));
-      }
-      setRows(data);
+      setRows(res.data || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("appointments.loadFailed"));
       setRows([]);
     } finally {
       setLoading(false);
     }
-  }, [date, enabled, filters.search, filters.statuses, staffId, t]);
+  }, [date, enabled, staffId, t]);
 
   useEffect(() => {
     if (enabled) void load();
@@ -225,18 +209,41 @@ export default function AppointmentsPage() {
         </Field>
       </div>
 
-      <ListToolbar
-        value={filters}
-        onChange={setFilters}
-        config={filterConfig}
-        searchPlaceholder={t("appointments.searchPlaceholder")}
-      />
-
       {error ? <Alert tone="error">{error}</Alert> : null}
 
       <DataTable
         data={rows}
         loading={loading || enabled === null}
+        filterState={filters}
+        onFilterChange={setFilters}
+        filterConfig={filterConfig}
+        filterAccessors={{
+          searchText: (r) =>
+            [r.customer_name, r.product_name, r.staff_name, r.status]
+              .filter(Boolean)
+              .join(" "),
+          status: (r) => r.status,
+        }}
+        clientFilter
+        searchPlaceholder={t("appointments.searchPlaceholder")}
+        pagination={{ mode: "client", pageSize: 25 }}
+        exportable
+        exportFilename="appointments"
+        exportTitle={t("pages.appointmentsTitle")}
+        getExportRow={(r) => ({
+          time: r.starts_at || "",
+          customer: r.customer_name || "",
+          service: r.product_name || "",
+          staff: r.staff_name || "",
+          status: r.status,
+        })}
+        exportColumns={[
+          { key: "time", header: t("appointments.time") },
+          { key: "customer", header: t("appointments.customer") },
+          { key: "service", header: t("appointments.service") },
+          { key: "staff", header: t("appointments.staff") },
+          { key: "status", header: t("common.status") },
+        ]}
         emptyTitle={t("appointments.emptyScheduleTitle")}
         emptyBody={t("appointments.emptyScheduleBody")}
         rowKey={(r) => r.id}

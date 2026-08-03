@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -8,6 +8,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
 import { api, colors, getSession, isConsumerSession } from "../lib/api";
@@ -15,6 +16,7 @@ import { useCart } from "../lib/cart";
 import { brandPaletteFromPrimary } from "../lib/brandTheme";
 import { t } from "../lib/i18n";
 import { pushPath, replacePath } from "../lib/nav";
+import { marketplaceKeys } from "../lib/queryClient";
 import { useToast } from "../components/Toast";
 import {
   BuyerCard,
@@ -61,34 +63,39 @@ export default function ProductDetailScreen() {
   const toast = useToast();
   const { addItem, storeCount } = useCart();
 
-  const [business, setBusiness] = useState<StoreBiz | null>(null);
-  const [product, setProduct] = useState<Product | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [qty, setQty] = useState(1);
   const [adding, setAdding] = useState(false);
 
-  useEffect(() => {
-    if (!storeKey || !productId) {
-      setError(t("marketplace.productNotFound"));
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    void api<{
-      data: { business: StoreBiz; products: Product[] };
-    }>(`/marketplace/businesses/${storeKey}/catalog`, {}, null)
-      .then((res) => {
-        setBusiness(res.data.business);
-        const found = (res.data.products || []).find((p) => p.id === productId) || null;
-        setProduct(found);
-        setError(found ? null : t("marketplace.productNotFound"));
-      })
-      .catch((err) =>
-        setError(err instanceof Error ? err.message : t("common.loadFailed"))
-      )
-      .finally(() => setLoading(false));
-  }, [storeKey, productId]);
+  // Share catalog cache with store screen (no marketplace product-by-id API yet).
+  const catalogQuery = useQuery({
+    queryKey: marketplaceKeys.catalog(storeKey),
+    queryFn: async () => {
+      const res = await api<{
+        data: { business: StoreBiz; products: Product[] };
+      }>(`/marketplace/businesses/${storeKey}/catalog`, {}, null);
+      return {
+        business: res.data.business,
+        products: res.data.products || [],
+      };
+    },
+    enabled: !!storeKey && !!productId,
+  });
+
+  const business = catalogQuery.data?.business ?? null;
+  const products: Product[] = catalogQuery.data?.products ?? [];
+  const product =
+    products.find((p: Product) => p.id === productId) ?? null;
+  const loading = !!storeKey && !!productId && catalogQuery.isLoading;
+  const error =
+    !storeKey || !productId
+      ? t("marketplace.productNotFound")
+      : catalogQuery.error instanceof Error
+        ? catalogQuery.error.message
+        : catalogQuery.error
+          ? t("common.loadFailed")
+          : catalogQuery.isSuccess && !product
+            ? t("marketplace.productNotFound")
+            : null;
 
   async function requireSignIn(): Promise<boolean> {
     const session = await getSession();

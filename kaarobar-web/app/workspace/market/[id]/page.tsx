@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { Search, ShoppingCart, X } from "lucide-react";
 import { api, isConsumerSession } from "@/lib/api/client";
 import { useCart } from "@/lib/cart";
@@ -29,6 +30,7 @@ import {
 import { BuyerProductGridSkeleton } from "@/components/buyer/BuyerSkeletons";
 import { useT } from "@/lib/i18n";
 import { detailRoutes } from "@/lib/navigation";
+import { marketplaceKeys } from "@/lib/queryClient";
 
 type Product = {
   id: string;
@@ -72,45 +74,45 @@ export default function MarketplaceStorePage() {
   const t = useT();
   const { addItem, storeCount } = useCart();
   const id = params.id;
-  const [business, setBusiness] = useState<StoreBiz | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [staff, setStaff] = useState<StaffMember[]>([]);
-  const [branchId, setBranchId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<ListingFilterState>(emptyListingFilters());
   const [quickAddingId, setQuickAddingId] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>("shop");
+  const [modeInitialized, setModeInitialized] = useState(false);
   const signedIn = isConsumerSession();
 
-  useEffect(() => {
-    setLoading(true);
-    void api<{
-      data: {
-        business: StoreBiz;
-        products: Product[];
-        staff?: StaffMember[];
-        branch_id?: string;
+  const catalogQuery = useQuery({
+    queryKey: marketplaceKeys.catalog(id),
+    queryFn: async () => {
+      const res = await api<{
+        data: {
+          business: StoreBiz;
+          products: Product[];
+          staff?: StaffMember[];
+          branch_id?: string;
+        };
+      }>(`/marketplace/businesses/${id}/catalog`, {}, null);
+      const biz = res.data.business;
+      return {
+        business: biz,
+        products: res.data.products || [],
+        staff: res.data.staff || [],
+        branchId: res.data.branch_id || biz.online_branch_id || null,
       };
-    }>(`/marketplace/businesses/${id}/catalog`, {}, null)
-      .then((res) => {
-        const biz = res.data.business;
-        const list = res.data.products || [];
-        setBusiness(biz);
-        setProducts(list);
-        setStaff(res.data.staff || []);
-        setBranchId(res.data.branch_id || biz.online_branch_id || null);
-        const services = list.filter(isServiceProduct);
-        const goods = list.filter((p) => !isServiceProduct(p));
-        const canBook = !!biz.appointments_enabled && services.length > 0;
-        const canShop = goods.length > 0 || (!canBook && list.length > 0);
-        if (canBook && !canShop) setMode("book");
-        else if (canShop) setMode("shop");
-        setError(null);
-      })
-      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load store"))
-      .finally(() => setLoading(false));
-  }, [id]);
+    },
+    enabled: !!id,
+  });
+
+  const business = catalogQuery.data?.business ?? null;
+  const products = catalogQuery.data?.products ?? [];
+  const staff = catalogQuery.data?.staff ?? [];
+  const branchId = catalogQuery.data?.branchId ?? null;
+  const loading = catalogQuery.isLoading;
+  const error =
+    catalogQuery.error instanceof Error
+      ? catalogQuery.error.message
+      : catalogQuery.error
+        ? "Failed to load store"
+        : null;
 
   const services = useMemo(() => products.filter(isServiceProduct), [products]);
   const goods = useMemo(() => products.filter((p) => !isServiceProduct(p)), [products]);
@@ -121,6 +123,17 @@ export default function MarketplaceStorePage() {
     if (canBook && goods.length > 0) return goods;
     return products;
   }, [canBook, goods, products]);
+
+  useEffect(() => {
+    setModeInitialized(false);
+  }, [id]);
+
+  useEffect(() => {
+    if (!catalogQuery.isSuccess || modeInitialized) return;
+    if (canBook && !canShop) setMode("book");
+    else if (canShop) setMode("shop");
+    setModeInitialized(true);
+  }, [catalogQuery.isSuccess, canBook, canShop, modeInitialized]);
 
   const categoryOptions = useMemo(() => {
     const set = new Set<string>();

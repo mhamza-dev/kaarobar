@@ -341,7 +341,14 @@
     "footprintDesc": "قم بالتبديل بين الأعمال أو الفرع في أي وقت من الشريط العلوي - تتبع كل صفحة هذا السياق.",
     "businesses": "الأنشطة التجارية",
     "branches": "الفروع",
-    "loadFailed": "فشل تحميل لوحة المعلومات"
+    "loadFailed": "فشل تحميل لوحة المعلومات",
+    "trendsTitle": "اتجاهات المبيعات",
+    "revenueOverTime": "الإيرادات عبر الوقت",
+    "ordersOverTime": "الطلبات عبر الوقت",
+    "chartsDesc": "الإيرادات وحجم الطلبات للفترة المحددة.",
+    "rangeRevenue": "الإيرادات في الفترة",
+    "rangeOrders": "الطلبات في الفترة",
+    "noChartData": "لا توجد مبيعات في هذا النطاق الزمني"
   },
   "inventory": {
     "eyebrow": "المخزون",
@@ -386,7 +393,22 @@
     "products": "المنتجات",
     "selectProducts": "اختر المنتجات",
     "quantities": "الكميات",
-    "confirm": "تأكيد"
+    "confirm": "تأكيد",
+    "searchProductsList": "ابحث عن المنتجات بالاسم أو SKU أو الباركود…",
+    "searchSuppliers": "ابحث عن الموردين أو المدينة أو جهة الاتصال…",
+    "searchPos": "ابحث عن أوامر الشراء…",
+    "searchTransfers": "ابحث عن التحويلات…",
+    "statusPending": "قيد الانتظار",
+    "statusConfirmed": "مؤكد",
+    "noTransfers": "لا توجد تحويلات بعد",
+    "noTransfersBody": "أنشئ تحويلاً لنقل المخزون بين الفروع.",
+    "poModalDesc": "أنشئ أمر شراء مسودة للفرع النشط.",
+    "createPo": "إنشاء أمر شراء",
+    "supplier": "المورد",
+    "selectSupplier": "اختر المورد…",
+    "unitCost": "تكلفة الوحدة",
+    "product": "المنتج",
+    "selectProduct": "اختر منتجاً…"
   },
   "pos": {
     "tillOpen": "حتى الفتح",
@@ -459,7 +481,9 @@
     "returnSubmitted": "تم إرسال الإقرار",
     "returnApproved": "تمت الموافقة على الإرجاع",
     "returnRejected": "تم رفض الإرجاع",
-    "loadFailed": "فشل تحميل المرتجعات"
+    "loadFailed": "فشل تحميل المرتجعات",
+    "searchReturns": "ابحث في المرتجعات…",
+    "searchTills": "ابحث في الصناديق…"
   },
   "accounting": {
     "eyebrow": "الكتب",
@@ -487,7 +511,12 @@
     "journalFailed": "فشل دفتر اليومية",
     "reverseFailed": "فشل العكس",
     "accountUpdateFailed": "فشل تحديث الحساب",
-    "manageCustomersHint": "إدارة خاتا العميل"
+    "manageCustomersHint": "إدارة خاتا العميل",
+    "searchAccounts": "ابحث في الحسابات…",
+    "searchJournals": "ابحث في القيود…",
+    "searchInvoices": "ابحث في الفواتير…",
+    "searchBills": "ابحث في الفواتير…",
+    "searchRows": "ابحث في الصفوف…"
   },
   "hr": {
     "eyebrow": "الأشخاص",
@@ -506,7 +535,10 @@
     "inviteSent": "تم إرسال الدعوة",
     "payrollRun": "بدأ تشغيل كشوف المرتبات",
     "leaveApproved": "تمت الموافقة على الإجازة",
-    "leaveRejected": "تم رفض الإجازة"
+    "leaveRejected": "تم رفض الإجازة",
+    "searchEmployees": "ابحث عن الموظفين…",
+    "searchAttendance": "ابحث في الحضور…",
+    "searchLeave": "ابحث في الإجازات…"
   },
   "reports": {
     "eyebrow": "الرؤى",
@@ -818,6 +850,10 @@
   "searchSelect": {
     "search": "بحث…",
     "noMatches": "لا توجد نتائج",
-    "selected": "{count} محدد"
+    "selected": "{count} محدد",
+    "select": "اختر…"
+  },
+  "sales": {
+    "searchInvoice": "ابحث عن فاتورة أو عميل…"
   }
 }

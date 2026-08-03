@@ -6,12 +6,10 @@ import { useRouter } from "next/navigation";
 import { api, isConsumerSession } from "@/lib/api/client";
 import { detailRoutes, routes } from "@/lib/navigation";
 import { PageHeader, SurfaceCard } from "@/components/app/ui";
-import ListToolbar from "@/components/app/ListToolbar";
 import DataTable from "@/components/ui/DataTable";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import {
-  applyStaffListFilters,
   emptyStaffListFilters,
   staffListFilterQuery,
   type ListFilterConfig,
@@ -77,6 +75,7 @@ function StaffSalesListPage() {
   const toast = useToast();
   const router = useRouter();
   const [sales, setSales] = useState<SaleRow[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<StaffListFilterState>(emptyStaffListFilters());
 
   const filterConfig = useMemo<ListFilterConfig>(
@@ -94,6 +93,7 @@ function StaffSalesListPage() {
   );
 
   const load = useCallback(async () => {
+    setLoading(true);
     try {
       const source =
         filters.categories.length === 1 ? filters.categories[0] : null;
@@ -106,6 +106,8 @@ function StaffSalesListPage() {
       setSales(res.data || []);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to load sales");
+    } finally {
+      setLoading(false);
     }
   }, [toast, filters]);
 
@@ -113,17 +115,6 @@ function StaffSalesListPage() {
     void load();
   }, [load]);
 
-  const filteredSales = useMemo(
-    () =>
-      applyStaffListFilters(sales, filters, {
-        searchText: (s) => `${s.invoice_number} ${s.customer_name || ""}`,
-        date: (s) => s.inserted_at,
-        status: (s) => s.status,
-        category: (s) => s.source || "pos",
-        amount: (s) => s.total_amount,
-      }),
-    [sales, filters]
-  );
 
   async function advanceOnline(sale: SaleRow) {
     const next = ONLINE_NEXT[sale.status];
@@ -151,14 +142,39 @@ function StaffSalesListPage() {
       />
       <SurfaceCard className="p-0">
         <DataTable
-          filters={
-            <ListToolbar
-              value={filters}
-              onChange={setFilters}
-              config={filterConfig}
-              searchPlaceholder="Search invoice or customer…"
-            />
-          }
+          loading={loading}
+          filterState={filters}
+          onFilterChange={setFilters}
+          filterConfig={filterConfig}
+          filterAccessors={{
+            searchText: (s) => `${s.invoice_number} ${s.customer_name || ""}`,
+            date: (s) => s.inserted_at,
+            status: (s) => s.status,
+            category: (s) => s.source || "pos",
+            amount: (s) => s.total_amount,
+          }}
+          clientFilter
+          searchPlaceholder={t("sales.searchInvoice")}
+          pagination={{ mode: "client", pageSize: 25 }}
+          exportable
+          exportFilename="sales"
+          exportTitle="Sales"
+          getExportRow={(s) => ({
+            invoice: s.invoice_number,
+            customer: s.customer_name || "Walk-in",
+            total: s.total_amount,
+            status: s.status,
+            source: s.source || "pos",
+            when: formatLocalDateTime(s.inserted_at),
+          })}
+          exportColumns={[
+            { key: "invoice", header: "Invoice" },
+            { key: "customer", header: "Customer" },
+            { key: "total", header: "Total" },
+            { key: "status", header: "Status" },
+            { key: "source", header: "Source" },
+            { key: "when", header: "When" },
+          ]}
           columns={[
             {
               id: "invoice",
@@ -212,16 +228,11 @@ function StaffSalesListPage() {
               cell: (s) => formatLocalDateTime(s.inserted_at),
             },
           ]}
-          data={filteredSales}
+          data={sales}
           rowKey={(s) => s.id}
           onRowClick={(s) => router.push(detailRoutes.sale(s.id))}
           emptyTitle="No sales yet"
           emptyBody="Complete a checkout on the POS or receive an online order."
-          countLabel={(visible, total) =>
-            visible === total
-              ? `${total} row${total === 1 ? "" : "s"}`
-              : `${visible} of ${sales.length} rows`
-          }
         />
       </SurfaceCard>
     </div>

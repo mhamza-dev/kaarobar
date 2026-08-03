@@ -74,7 +74,7 @@ export default function ApBillDetailPage() {
 
   return (
     <DetailShell
-      backHref={routes.accounting}
+      backHref={`${routes.accounting}?tab=ap`}
       backLabel="Back to accounting"
       eyebrow="AP bill"
       title={bill?.bill_number || "Bill"}

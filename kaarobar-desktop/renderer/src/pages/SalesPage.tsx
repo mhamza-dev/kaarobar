@@ -3,12 +3,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { api } from "@/lib/api/client";
 import { detailRoutes, routes } from "@/lib/navigation";
 import { PageHeader, SurfaceCard } from "@/components/app/ui";
-import ListToolbar from "@/components/app/ListToolbar";
 import DataTable from "@/components/ui/DataTable";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
+import { formatLocalDateTime } from "@/lib/datetime";
 import {
-  applyStaffListFilters,
   emptyStaffListFilters,
   type ListFilterConfig,
   type StaffListFilterState,
@@ -38,6 +37,7 @@ export default function SalesPage() {
   const toast = useToast();
   const navigate = useNavigate();
   const [sales, setSales] = useState<SaleRow[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<StaffListFilterState>(emptyStaffListFilters());
 
   const filterConfig = useMemo<ListFilterConfig>(
@@ -54,6 +54,7 @@ export default function SalesPage() {
   );
 
   const load = useCallback(async () => {
+    setLoading(true);
     try {
       const source =
         filters.categories.length === 1 ? filters.categories[0] : null;
@@ -65,23 +66,14 @@ export default function SalesPage() {
       setSales(res.data || []);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to load sales");
+    } finally {
+      setLoading(false);
     }
   }, [toast, filters.categories]);
 
   useEffect(() => {
     void load();
   }, [load]);
-
-  const filteredSales = useMemo(
-    () =>
-      applyStaffListFilters(sales, filters, {
-        searchText: (s) => `${s.invoice_number} ${s.customer_name || ""}`,
-        date: (s) => s.inserted_at,
-        status: (s) => s.status,
-        category: (s) => s.source || "pos",
-      }),
-    [sales, filters]
-  );
 
   return (
     <div className="space-y-6">
@@ -94,14 +86,39 @@ export default function SalesPage() {
       />
       <SurfaceCard className="p-0">
         <DataTable
-          filters={
-            <ListToolbar
-              value={filters}
-              onChange={setFilters}
-              config={filterConfig}
-              searchPlaceholder="Search invoice or customer…"
-            />
-          }
+          loading={loading}
+          filterState={filters}
+          onFilterChange={setFilters}
+          filterConfig={filterConfig}
+          filterAccessors={{
+            searchText: (s) => `${s.invoice_number} ${s.customer_name || ""}`,
+            date: (s) => s.inserted_at,
+            status: (s) => s.status,
+            category: (s) => s.source || "pos",
+            amount: (s) => s.total_amount,
+          }}
+          clientFilter
+          searchPlaceholder={t("sales.searchInvoice")}
+          pagination={{ mode: "client", pageSize: 25 }}
+          exportable
+          exportFilename="sales"
+          exportTitle="Sales"
+          getExportRow={(s) => ({
+            invoice: s.invoice_number,
+            customer: s.customer_name || "Walk-in",
+            total: s.total_amount,
+            status: s.status,
+            source: s.source || "pos",
+            when: formatLocalDateTime(s.inserted_at),
+          })}
+          exportColumns={[
+            { key: "invoice", header: "Invoice" },
+            { key: "customer", header: "Customer" },
+            { key: "total", header: "Total" },
+            { key: "status", header: "Status" },
+            { key: "source", header: "Source" },
+            { key: "when", header: "When" },
+          ]}
           columns={[
             {
               id: "invoice",
@@ -132,10 +149,10 @@ export default function SalesPage() {
             {
               id: "when",
               header: "When",
-              cell: (s) => (s.inserted_at ? String(s.inserted_at).slice(0, 16) : "—"),
+              cell: (s) => formatLocalDateTime(s.inserted_at),
             },
           ]}
-          data={filteredSales}
+          data={sales}
           rowKey={(s) => s.id}
           onRowClick={(s) => navigate(detailRoutes.sale(s.id))}
           emptyTitle="No sales yet"

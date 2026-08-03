@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Check, ChevronDown, Search, X } from "lucide-react";
+import { useT } from "@/lib/i18n";
 
 export type SearchSelectOption = {
   value: string;
@@ -27,13 +28,17 @@ export default function SearchSelect({
   value,
   onChange,
   label,
-  placeholder = "Select…",
-  searchPlaceholder = "Search…",
-  emptyHint = "No matches",
+  placeholder,
+  searchPlaceholder,
+  emptyHint,
   disabled = false,
   clearable = true,
   className = "",
 }: SearchSelectProps) {
+  const t = useT();
+  const resolvedPlaceholder = placeholder ?? t("searchSelect.select");
+  const resolvedSearch = searchPlaceholder ?? t("searchSelect.search");
+  const resolvedEmpty = emptyHint ?? t("searchSelect.noMatches");
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -92,7 +97,7 @@ export default function SearchSelect({
         className="flex w-full items-center gap-2 rounded-md border border-border bg-bg-primary px-3 py-2.5 text-start text-sm text-heading outline-none transition hover:border-brand/40 focus:border-brand/40 focus:ring-1 focus:ring-brand/20 disabled:cursor-not-allowed disabled:opacity-60"
       >
         <span className={`min-w-0 flex-1 truncate ${selected ? "" : "text-muted"}`}>
-          {selected ? selected.label : placeholder}
+          {selected ? selected.label : resolvedPlaceholder}
         </span>
         {clearable && selected && !disabled ? (
           <span
@@ -120,7 +125,7 @@ export default function SearchSelect({
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={searchPlaceholder}
+              placeholder={resolvedSearch}
               className="w-full rounded-md border border-border bg-bg-primary py-2 pe-3 ps-8 text-sm outline-none focus:border-brand/40"
             />
           </div>
@@ -130,7 +135,7 @@ export default function SearchSelect({
             className="max-h-56 overflow-y-auto py-1"
           >
             {filtered.length === 0 ? (
-              <li className="px-3 py-2 text-sm text-muted">{emptyHint}</li>
+              <li className="px-3 py-2 text-sm text-muted">{resolvedEmpty}</li>
             ) : (
               filtered.map((opt) => {
                 const on = opt.value === value;

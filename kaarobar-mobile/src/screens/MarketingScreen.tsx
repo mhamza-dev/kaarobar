@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useBrandPalette } from "../lib/BrandThemeContext";
 import {
   View,
@@ -10,6 +10,7 @@ import {
   Alert,
   Linking,
 } from "react-native";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, colors, getSession } from "../lib/api";
 import { canAccessRoute, isPlanFeatureLocked } from "../lib/rbac";
 import { t } from "../lib/i18n";
@@ -20,6 +21,7 @@ import { replacePath, pushPath } from "../lib/nav";
 import SegmentedTabs from "../components/SegmentedTabs";
 import { FormModal } from "../components/FormModal";
 import { useTabParam } from "../hooks/useTabParam";
+import { crmKeys } from "../lib/queryClient";
 
 type Campaign = {
   id: string;
@@ -66,14 +68,10 @@ export default function MarketingScreen() {
   const palette = useBrandPalette();
   const styles = useMemo(() => createStyles(palette), [palette]);
   const toast = useToast();
+  const queryClient = useQueryClient();
   const [tab, setTab] = useTabParam<Tab>("campaigns", MARKETING_TABS);
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [templates, setTemplates] = useState<MsgTemplate[]>([]);
-  const [templateVars, setTemplateVars] = useState<TemplateVariable[]>([]);
-  const [sampleValues, setSampleValues] = useState<Record<string, string>>({
-    name: "Ayesha",
-    points: "120",
-  });
+  const [businessId, setBusinessId] = useState<string | null>(null);
+  const [allowed, setAllowed] = useState(false);
   const [form, setForm] = useState({
     name: "",
     title: "",
@@ -85,29 +83,6 @@ export default function MarketingScreen() {
   const [tplModal, setTplModal] = useState(false);
   const [detail, setDetail] = useState<Campaign | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const load = useCallback(async () => {
-    try {
-      const [c, tpl, vars] = await Promise.all([
-        api<{ data: Campaign[] }>("/crm/campaigns"),
-        api<{ data: MsgTemplate[] }>("/crm/templates"),
-        api<{
-          data: {
-            variables: TemplateVariable[];
-            sample_values: Record<string, string>;
-          };
-        }>("/crm/templates/variables"),
-      ]);
-      setCampaigns(c.data || []);
-      setTemplates(tpl.data || []);
-      setTemplateVars(vars.data?.variables || []);
-      if (vars.data?.sample_values) setSampleValues(vars.data.sample_values);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("common.loadFailed"));
-    }
-  }, []);
 
   useEffect(() => {
     (async () => {
@@ -123,13 +98,70 @@ export default function MarketingScreen() {
         replacePath(navigation, "/app/dashboard");
         return;
       }
-      await load();
+      setBusinessId(s.business_id ?? null);
+      setAllowed(true);
     })();
-  }, [load, navigation, toast]);
+  }, [navigation, toast]);
 
-  async function createCampaign() {
-    setBusy(true);
-    try {
+  const campaignsQuery = useQuery({
+    queryKey: crmKeys.campaigns(businessId),
+    queryFn: async () => {
+      const res = await api<{ data: Campaign[] }>("/crm/campaigns");
+      return res.data || [];
+    },
+    enabled: allowed && tab === "campaigns" && !!businessId,
+  });
+
+  const templatesQuery = useQuery({
+    queryKey: crmKeys.templates(businessId),
+    queryFn: async () => {
+      const res = await api<{ data: MsgTemplate[] }>("/crm/templates");
+      return res.data || [];
+    },
+    enabled: allowed && tab === "templates" && !!businessId,
+  });
+
+  const templateVarsQuery = useQuery({
+    queryKey: crmKeys.templateVariables(businessId),
+    queryFn: async () => {
+      const res = await api<{
+        data: {
+          variables: TemplateVariable[];
+          sample_values: Record<string, string>;
+        };
+      }>("/crm/templates/variables");
+      return {
+        variables: res.data?.variables || [],
+        sample_values: res.data?.sample_values || { name: "Ayesha", points: "120" },
+      };
+    },
+    enabled: allowed && (tab === "templates" || tplModal) && !!businessId,
+  });
+
+  const campaigns: Campaign[] = campaignsQuery.data ?? [];
+  const templates: MsgTemplate[] = templatesQuery.data ?? [];
+  const templateVars: TemplateVariable[] = templateVarsQuery.data?.variables ?? [];
+  const sampleValues: Record<string, string> = templateVarsQuery.data?.sample_values ?? {
+    name: "Ayesha",
+    points: "120",
+  };
+
+  useEffect(() => {
+    const err = campaignsQuery.error || templatesQuery.error || templateVarsQuery.error;
+    if (err) {
+      setError(err instanceof Error ? err.message : t("common.loadFailed"));
+    } else {
+      setError(null);
+    }
+  }, [campaignsQuery.error, templatesQuery.error, templateVarsQuery.error]);
+
+  const invalidateCampaigns = () =>
+    queryClient.invalidateQueries({ queryKey: crmKeys.campaigns(businessId) });
+  const invalidateTemplates = () =>
+    queryClient.invalidateQueries({ queryKey: crmKeys.templates(businessId) });
+
+  const createCampaignMutation = useMutation({
+    mutationFn: async () => {
       await api("/crm/campaigns", {
         method: "POST",
         body: JSON.stringify({
@@ -143,19 +175,19 @@ export default function MarketingScreen() {
               : null,
         }),
       });
+    },
+    onSuccess: async () => {
       setForm({ name: "", title: "", message: "", audience: "all", min_points: "" });
       toast.success(t("marketing.drafted"));
-      await load();
-    } catch (err) {
+      await invalidateCampaigns();
+    },
+    onError: (err) => {
       setError(err instanceof Error ? err.message : t("common.error"));
-    } finally {
-      setBusy(false);
-    }
-  }
+    },
+  });
 
-  async function createTemplate() {
-    setBusy(true);
-    try {
+  const createTemplateMutation = useMutation({
+    mutationFn: async () => {
       await api("/crm/templates", {
         method: "POST",
         body: JSON.stringify({
@@ -163,63 +195,95 @@ export default function MarketingScreen() {
           variables: sampleValues,
         }),
       });
+    },
+    onSuccess: async () => {
       setTplForm(emptyTplForm);
       setTplModal(false);
       toast.success(t("marketing.templateSaved"));
-      await load();
-    } catch (err) {
+      await invalidateTemplates();
+    },
+    onError: (err) => {
       setError(err instanceof Error ? err.message : t("common.error"));
-    } finally {
-      setBusy(false);
-    }
-  }
+    },
+  });
+
+  const sendCampaignMutation = useMutation({
+    mutationFn: async (c: Campaign) => {
+      const res = await api<{ data: Campaign }>(`/crm/campaigns/${c.id}/send`, {
+        method: "POST",
+        body: "{}",
+      });
+      return res.data;
+    },
+    onSuccess: async (data) => {
+      setDetail(data);
+      toast.success(t("marketing.sentOk"));
+      await invalidateCampaigns();
+    },
+    onError: (err) => {
+      setError(err instanceof Error ? err.message : t("common.error"));
+    },
+  });
+
+  const payAndSendMutation = useMutation({
+    mutationFn: async (c: Campaign) => {
+      const res = await api<{
+        data: {
+          checkout_url: string;
+          payment_id: string;
+          dev_fallback?: boolean;
+        };
+      }>(`/crm/campaigns/${c.id}/checkout`, {
+        method: "POST",
+        body: "{}",
+      });
+      if (res.data.dev_fallback) {
+        const sent = await api<{ data: Campaign }>(
+          `/crm/campaigns/${c.id}/confirm-payment`,
+          {
+            method: "POST",
+            body: JSON.stringify({ payment_id: res.data.payment_id }),
+          }
+        );
+        return { kind: "sent" as const, campaign: sent.data };
+      }
+      if (res.data.checkout_url) {
+        return { kind: "checkout" as const, url: res.data.checkout_url };
+      }
+      return { kind: "noop" as const };
+    },
+    onSuccess: async (result) => {
+      if (result.kind === "sent") {
+        setDetail(result.campaign);
+        toast.success(t("marketing.payAndSendDone"));
+        await invalidateCampaigns();
+      } else if (result.kind === "checkout") {
+        await Linking.openURL(result.url);
+        toast.success(t("marketing.checkoutOpened"));
+      }
+    },
+    onError: (err) => {
+      setError(err instanceof Error ? err.message : t("common.error"));
+    },
+  });
+
+  const busy =
+    createCampaignMutation.isPending ||
+    createTemplateMutation.isPending ||
+    sendCampaignMutation.isPending ||
+    payAndSendMutation.isPending;
 
   function isPaidChannel(channel?: string | null) {
     return channel === "sms" || channel === "whatsapp";
   }
 
-  async function send(c: Campaign) {
+  function send(c: Campaign) {
     if (isPaidChannel(c.channel)) {
       Alert.alert(t("marketing.payAndSend"), t("marketing.payAndSendConfirm", { name: c.name }), [
         { text: t("common.cancel"), style: "cancel" },
         {
           text: t("marketing.payAndSend"),
-          onPress: () => {
-            void (async () => {
-              setBusy(true);
-              try {
-                const res = await api<{
-                  data: {
-                    checkout_url: string;
-                    payment_id: string;
-                    dev_fallback?: boolean;
-                  };
-                }>(`/crm/campaigns/${c.id}/checkout`, {
-                  method: "POST",
-                  body: "{}",
-                });
-                if (res.data.dev_fallback) {
-                  const sent = await api<{ data: Campaign }>(
-                    `/crm/campaigns/${c.id}/confirm-payment`,
-                    {
-                      method: "POST",
-                      body: JSON.stringify({ payment_id: res.data.payment_id }),
-                    }
-                  );
-                  setDetail(sent.data);
-                  toast.success(t("marketing.payAndSendDone"));
-                  await load();
-                } else if (res.data.checkout_url) {
-                  await Linking.openURL(res.data.checkout_url);
-                  toast.success(t("marketing.checkoutOpened"));
-                }
-              } catch (err) {
-                setError(err instanceof Error ? err.message : t("common.error"));
-              } finally {
-                setBusy(false);
-              }
-            })();
-          },
+          onPress: () => payAndSendMutation.mutate(c),
         },
       ]);
       return;
@@ -229,24 +293,7 @@ export default function MarketingScreen() {
       { text: t("common.cancel"), style: "cancel" },
       {
         text: t("marketing.send"),
-        onPress: () => {
-          void (async () => {
-            setBusy(true);
-            try {
-              const res = await api<{ data: Campaign }>(`/crm/campaigns/${c.id}/send`, {
-                method: "POST",
-                body: "{}",
-              });
-              setDetail(res.data);
-              toast.success(t("marketing.sentOk"));
-              await load();
-            } catch (err) {
-              setError(err instanceof Error ? err.message : t("common.error"));
-            } finally {
-              setBusy(false);
-            }
-          })();
-        },
+        onPress: () => sendCampaignMutation.mutate(c),
       },
     ]);
   }
@@ -291,7 +338,7 @@ export default function MarketingScreen() {
             />
             <Pressable
               style={[styles.btn, { backgroundColor: palette.brand }, busy && { opacity: 0.6 }]}
-              onPress={() => void createCampaign()}
+              onPress={() => createCampaignMutation.mutate()}
               disabled={busy}
             >
               <Text style={[styles.btnText, { color: palette.brandForeground }]}>
@@ -309,7 +356,7 @@ export default function MarketingScreen() {
               {c.status === "Draft" ? (
                 <Pressable
                   style={[styles.btnSecondary, { borderColor: palette.brand }]}
-                  onPress={() => void send(c)}
+                  onPress={() => send(c)}
                 >
                   <Text style={{ color: palette.brand, fontWeight: "700" }}>
                     {isPaidChannel(c.channel) ? t("marketing.payAndSend") : t("marketing.send")}
@@ -387,7 +434,7 @@ export default function MarketingScreen() {
         title={t("marketing.newTemplate")}
         subtitle={t("marketing.variablesHint")}
         onClose={() => setTplModal(false)}
-        onSubmit={() => void createTemplate()}
+        onSubmit={() => createTemplateMutation.mutate()}
         submitLabel={t("marketing.saveTemplate")}
         busy={busy}
       >

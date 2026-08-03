@@ -3,18 +3,19 @@ import type { HelpCatalog } from "./types";
 const catalog: HelpCatalog = {
   "page.dashboard": {
     title: "Armaturenbrett",
-    summary: "Schneller Überblick über Verkäufe, Bargeld, Lagerrisiko und ausstehende Genehmigungen.",
-    what: "Zeigt die heutigen Umsätze, den Kassenbestand, Warnungen zu niedrigen Lagerbeständen und Aufgaben, die auf Genehmigung warten, damit Eigentümer und Manager entscheiden können, was als Nächstes zu tun ist.",
+    summary: "KPIs plus interaktive Verkaufscharts nach Datumsbereich.",
+    what: "Zeigt heutige Verkäufe, Cash-Position, niedrigen Bestand, ausstehende Freigaben sowie Umsatz-/Bestelltrends für einen gewählten Zeitraum.",
     how: [
-      "Öffnen Sie nach der Anmeldung das Dashboard und überprüfen Sie die heutigen Zahlen.",
-      "Verwenden Sie Karten mit geringem Lagerbestand oder Genehmigungskarten, um zum Lagerbestand oder zur Personalabteilung zu springen.",
-      "Wenn Sie mehrere Standorte haben, wechseln Sie in der Kopfzeile zum Unternehmen oder zur Filiale.",
-      "Öffnen Sie POS, wenn Sie mit dem Verkauf beginnen möchten.",
+      "Nach der Anmeldung die KPI-Karten des Tages prüfen.",
+      "Von/Bis-Daten setzen, um Umsatz- und Bestellcharts zu aktualisieren.",
+      "Über einen Chartpunkt fahren für Tagesumsatz oder Ticketanzahl.",
+      "Über Low-Stock- oder Freigabekarten zu Inventar oder Retouren springen.",
+      "Bei mehreren Standorten Geschäft oder Filiale in der Kopfzeile wechseln.",
     ],
     when: "Zu Schichtbeginn, am Ende des Tages oder wann immer Sie einen Gesundheitscheck in der Filiale benötigen.",
     tips: [
-      "Die Zahlen beziehen sich auf das ausgewählte Unternehmen und die ausgewählte Branche.",
-      "Wenn die KPIs leer erscheinen, überprüfen Sie die Filiale und die heutige Kassenaktivität.",
+      "Charts nutzen abgeschlossene Verkäufe des gewählten Geschäfts (RPT-FR-001).",
+      "Leere Charts? Zeitraum erweitern oder Kassenaktivität prüfen.",
     ],
   },
   "page.pos": {

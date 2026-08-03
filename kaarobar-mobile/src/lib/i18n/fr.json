@@ -164,7 +164,14 @@
     "footprintDesc": "Switch business or branch anytime from the top bar — every page follows that context.",
     "businesses": "Businesses",
     "branches": "Branches",
-    "loadFailed": "Failed to load dashboard"
+    "loadFailed": "Failed to load dashboard",
+    "trendsTitle": "Tendances des ventes",
+    "revenueOverTime": "Chiffre d'affaires dans le temps",
+    "ordersOverTime": "Commandes dans le temps",
+    "chartsDesc": "Chiffre d'affaires et volume de commandes pour la période sélectionnée.",
+    "rangeRevenue": "CA sur la période",
+    "rangeOrders": "Commandes sur la période",
+    "noChartData": "Aucune vente sur cette période"
   },
   "inventory": {
     "eyebrow": "Inventory",

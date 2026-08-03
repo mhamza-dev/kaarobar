@@ -131,6 +131,86 @@ defmodule KaarobarWeb.V1.ProductController do
     end
   end
 
+  def list_suppliers(conn, %{"id" => id}) do
+    user = Guardian.Plug.current_resource(conn)
+    business_id = conn.assigns[:current_business_id] || conn.assigns[:business_id]
+    owner_id = conn.assigns[:current_owner_id] || conn.assigns[:owner_id] || user.id
+
+    if is_nil(business_id) do
+      conn |> put_status(:bad_request) |> json(%{error: "x-business-id required"})
+    else
+      data =
+        Inventory.list_product_suppliers(id, business_id, owner_id)
+        |> Enum.map(fn ps ->
+          %{
+            id: ps.id,
+            supplier_id: ps.supplier_id,
+            is_primary: ps.is_primary,
+            name: ps.supplier && ps.supplier.name,
+            code: ps.supplier && ps.supplier.code
+          }
+        end)
+
+      json(conn, %{data: data})
+    end
+  end
+
+  def attach_supplier(conn, %{"id" => id} = params) do
+    user = Guardian.Plug.current_resource(conn)
+    business_id = conn.assigns[:current_business_id] || conn.assigns[:business_id]
+    owner_id = conn.assigns[:current_owner_id] || conn.assigns[:owner_id] || user.id
+    supplier_id = params["supplier_id"]
+
+    cond do
+      is_nil(business_id) ->
+        conn |> put_status(:bad_request) |> json(%{error: "x-business-id required"})
+
+      is_nil(supplier_id) or supplier_id == "" ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: "supplier_id_required"})
+
+      true ->
+        case Inventory.attach_product_supplier(id, supplier_id, business_id, owner_id, params) do
+          {:ok, ps} ->
+            ps = Repo.preload(ps, :supplier)
+
+            conn
+            |> put_status(:created)
+            |> json(%{
+              data: %{
+                id: ps.id,
+                supplier_id: ps.supplier_id,
+                is_primary: ps.is_primary,
+                name: ps.supplier && ps.supplier.name,
+                code: ps.supplier && ps.supplier.code
+              }
+            })
+
+          {:error, :not_found} ->
+            conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+          {:error, reason} ->
+            conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+        end
+    end
+  end
+
+  def detach_supplier(conn, %{"id" => id, "supplier_id" => supplier_id}) do
+    user = Guardian.Plug.current_resource(conn)
+    business_id = conn.assigns[:current_business_id] || conn.assigns[:business_id]
+    owner_id = conn.assigns[:current_owner_id] || conn.assigns[:owner_id] || user.id
+
+    case Inventory.detach_product_supplier(id, supplier_id, business_id, owner_id) do
+      {:ok, _} ->
+        json(conn, %{data: %{ok: true}})
+
+      {:error, :not_found} ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+    end
+  end
+
   def create_variant(conn, %{"id" => product_id} = params) do
     user = Guardian.Plug.current_resource(conn)
     business_id = conn.assigns[:current_business_id]

@@ -67,7 +67,7 @@ export default function PurchaseOrderDetailPage() {
 
   return (
     <DetailShell
-      backHref={routes.inventory}
+      backHref={`${routes.inventory}?tab=pos`}
       backLabel="Back to inventory"
       eyebrow="Purchase order"
       title={po ? `PO · ${po.id.slice(0, 8)}` : "Purchase order"}

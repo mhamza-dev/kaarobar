@@ -1,16 +1,23 @@
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { api } from "@/lib/api/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { api, getSession } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
-import { EmptyState, Field, PageHeader, TabBar, fieldClass } from "@/components/app/ui";
+import { Field, PageHeader, TabBar, fieldClass } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { useTabQueryParam } from "@/lib/hooks/useTabQueryParam";
 import { detailRoutes, routes } from "@/lib/navigation";
+import { accountingKeys } from "@/lib/queryClient";
+import {
+  emptyStaffListFilters,
+  staffListFilterQuery,
+  type ListFilterConfig,
+} from "@/lib/listFilters";
 
 type Tab = "coa" | "journals" | "tb" | "pl" | "bs" | "gl" | "ar" | "ap";
 const ACCOUNTING_TABS: readonly Tab[] = ["coa", "journals", "tb", "pl", "bs", "gl", "ar", "ap"];
@@ -50,6 +57,9 @@ type GlRow = {
   debit: string;
   credit: string;
   balance: string;
+  account_id?: string;
+  account_code?: string;
+  account_name?: string;
 };
 type AgingRow = {
   id: string;
@@ -73,16 +83,9 @@ function AccountingPageInner() {
   const t = useT();
   const toast = useToast();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const businessId = getSession()?.business_id ?? null;
   const [tab, setTab] = useTabQueryParam<Tab>("tb", ACCOUNTING_TABS, { pathname: routes.accounting });
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [journals, setJournals] = useState<Journal[]>([]);
-  const [tb, setTb] = useState<TbRow[]>([]);
-  const [pl, setPl] = useState<PlData | null>(null);
-  const [bs, setBs] = useState<BsData | null>(null);
-  const [gl, setGl] = useState<GlRow[]>([]);
-  const [glAccountId, setGlAccountId] = useState("");
-  const [arAging, setArAging] = useState<AgingRow[]>([]);
-  const [apAging, setApAging] = useState<AgingRow[]>([]);
   const [jeModal, setJeModal] = useState(false);
   const [accountModal, setAccountModal] = useState(false);
   const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
@@ -92,99 +95,156 @@ function AccountingPageInner() {
     type: "expense",
   });
   const [busy, setBusy] = useState(false);
+  const [journalDetailId, setJournalDetailId] = useState<string | null>(null);
+  const [journalFilters, setJournalFilters] = useState(emptyStaffListFilters);
+  const [journalPage, setJournalPage] = useState(1);
+  const [journalPageSize, setJournalPageSize] = useState(25);
 
   const [jeDesc, setJeDesc] = useState("");
   const [lineA, setLineA] = useState({ account_id: "", debit: "", credit: "" });
   const [lineB, setLineB] = useState({ account_id: "", debit: "", credit: "" });
 
-  const [from, setFrom] = useState(() => {
+  const [reportFilters, setReportFilters] = useState(() => {
     const d = new Date();
-    return `${d.getFullYear()}-01-01`;
+    return {
+      ...emptyStaffListFilters(),
+      from: `${d.getFullYear()}-01-01`,
+      to: new Date().toISOString().slice(0, 10),
+    };
   });
-  const [to, setTo] = useState(() => new Date().toISOString().slice(0, 10));
 
-  const loadCore = useCallback(async () => {
-    try {
-      const [acc, je] = await Promise.all([
-        api<{ data: Account[] }>("/accounts").catch(() => ({ data: [] as Account[] })),
-        api<{ data: Journal[] }>("/journals").catch(() => ({ data: [] as Journal[] })),
-      ]);
-      setAccounts(acc.data || []);
-      setJournals(je.data || []);
-      if (!glAccountId && acc.data?.[0]) setGlAccountId(acc.data[0].id);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("common.loadFailed"));
-    }
-  }, [glAccountId, t, toast]);
+  const from = reportFilters.from;
+  const to = reportFilters.to;
 
-  useEffect(() => {
-    loadCore();
-  }, [loadCore]);
+  const needAccounts = tab === "coa" || tab === "journals" || tab === "gl" || jeModal;
 
-  async function loadTb() {
-    try {
+  const { data: accounts = [], isLoading: accountsLoading } = useQuery({
+    queryKey: accountingKeys.accounts(businessId),
+    queryFn: async () => {
+      const res = await api<{ data: Account[] }>("/accounts").catch(() => ({
+        data: [] as Account[],
+      }));
+      return res.data || [];
+    },
+    enabled: needAccounts,
+  });
+
+  const journalQuery = staffListFilterQuery(journalFilters, {
+    limit: String(journalPageSize),
+    cursor: String((journalPage - 1) * journalPageSize),
+    ...(journalFilters.statuses[0]
+      ? { source: journalFilters.statuses[0] }
+      : {}),
+  });
+
+  const {
+    data: journalsPayload,
+    isLoading: journalsLoading,
+    isFetching: journalsFetching,
+  } = useQuery({
+    queryKey: accountingKeys.journals(businessId, journalQuery),
+    queryFn: async () => {
+      const res = await api<{
+        data: Journal[];
+        meta?: { limit: number; next_cursor: string | null };
+      }>(`/journals${journalQuery}`).catch(() => ({
+        data: [] as Journal[],
+        meta: { limit: journalPageSize, next_cursor: null as string | null },
+      }));
+      return res;
+    },
+    enabled: tab === "journals",
+  });
+
+  const journals = journalsPayload?.data || [];
+  const journalsHasMore = Boolean(journalsPayload?.meta?.next_cursor);
+  const journalsTotalEstimate =
+    (journalPage - 1) * journalPageSize +
+    journals.length +
+    (journalsHasMore ? journalPageSize : 0);
+
+  const { data: journalDetail, isLoading: journalDetailLoading } = useQuery({
+    queryKey: [...accountingKeys.all, "journal", journalDetailId] as const,
+    queryFn: async () => {
+      const res = await api<{ data: Journal }>(`/journals/${journalDetailId}`);
+      return res.data;
+    },
+    enabled: !!journalDetailId,
+  });
+
+  const { data: tb = [], isLoading: tbLoading } = useQuery({
+    queryKey: accountingKeys.trialBalance(businessId, from, to),
+    queryFn: async () => {
       const res = await api<{ data: TbRow[] }>(
         `/reports/trial-balance?from=${from}&to=${to}`
       );
-      setTb(res.data || []);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("accounting.tbFailed"));
-    }
-  }
+      return res.data || [];
+    },
+    enabled: tab === "tb",
+  });
 
-  async function loadPl() {
-    try {
+  const { data: pl = null, isLoading: plLoading } = useQuery({
+    queryKey: accountingKeys.profitAndLoss(businessId, from, to),
+    queryFn: async () => {
       const res = await api<{ data: PlData }>(
         `/reports/profit-and-loss?from=${from}&to=${to}`
       );
-      setPl(res.data);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("accounting.plFailed"));
-    }
-  }
+      return res.data;
+    },
+    enabled: tab === "pl",
+  });
 
-  async function loadBs() {
-    try {
+  const { data: bs = null, isLoading: bsLoading } = useQuery({
+    queryKey: accountingKeys.balanceSheet(businessId, to),
+    queryFn: async () => {
       const res = await api<{ data: BsData }>(`/reports/balance-sheet?as_of=${to}`);
-      setBs(res.data);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("accounting.bsFailed"));
-    }
-  }
+      return res.data;
+    },
+    enabled: tab === "bs",
+  });
 
-  async function loadGl() {
-    if (!glAccountId) return;
-    try {
+  const { data: gl = [], isLoading: glLoading } = useQuery({
+    queryKey: accountingKeys.generalLedger(businessId, undefined, from, to),
+    queryFn: async () => {
       const res = await api<{ data: GlRow[] }>(
-        `/reports/general-ledger?account_id=${glAccountId}&from=${from}&to=${to}`
+        `/reports/general-ledger?from=${from}&to=${to}`
       );
-      setGl(res.data || []);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("accounting.glFailed"));
-    }
-  }
+      return res.data || [];
+    },
+    enabled: tab === "gl",
+  });
 
-  async function loadAging() {
-    try {
-      const [ar, ap] = await Promise.all([
-        api<{ data: AgingRow[] }>("/ar/aging"),
-        api<{ data: AgingRow[] }>("/ap/aging"),
-      ]);
-      setArAging(ar.data || []);
-      setApAging(ap.data || []);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("accounting.agingFailed"));
-    }
-  }
+  const glAccountOptions = useMemo(
+    () =>
+      accounts.map((a) => ({
+        value: a.id,
+        label: `${a.code} · ${a.name}`,
+      })),
+    [accounts]
+  );
 
-  useEffect(() => {
-    if (tab === "tb") loadTb();
-    if (tab === "pl") loadPl();
-    if (tab === "bs") loadBs();
-    if (tab === "gl") loadGl();
-    if (tab === "ar" || tab === "ap") loadAging();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, from, to, glAccountId]);
+  const { data: arAging = [], isLoading: arLoading } = useQuery({
+    queryKey: accountingKeys.arAging(businessId),
+    queryFn: async () => {
+      const res = await api<{ data: AgingRow[] }>("/ar/aging");
+      return res.data || [];
+    },
+    enabled: tab === "ar",
+  });
+
+  const { data: apAging = [], isLoading: apLoading } = useQuery({
+    queryKey: accountingKeys.apAging(businessId),
+    queryFn: async () => {
+      const res = await api<{ data: AgingRow[] }>("/ap/aging");
+      return res.data || [];
+    },
+    enabled: tab === "ap",
+  });
+
+  async function refreshCore() {
+    await queryClient.invalidateQueries({ queryKey: accountingKeys.accounts(businessId) });
+    await queryClient.invalidateQueries({ queryKey: accountingKeys.journals(businessId) });
+  }
 
   async function createJournal(e: React.FormEvent) {
     e.preventDefault();
@@ -214,7 +274,7 @@ function AccountingPageInner() {
       setLineA({ account_id: "", debit: "", credit: "" });
       setLineB({ account_id: "", debit: "", credit: "" });
       setJeModal(false);
-      await loadCore();
+      await refreshCore();
       setTab("journals");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("accounting.journalFailed"));
@@ -227,7 +287,7 @@ function AccountingPageInner() {
     try {
       await api(`/journals/${id}/reverse`, { method: "POST", body: "{}" });
       toast.success(t("accounting.reversalPosted"));
-      await loadCore();
+      await refreshCore();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("accounting.reverseFailed"));
     }
@@ -251,7 +311,7 @@ function AccountingPageInner() {
       toast.success(t("accounting.accountUpdated"));
       setAccountModal(false);
       setEditingAccountId(null);
-      await loadCore();
+      await refreshCore();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("accounting.accountUpdateFailed"));
     } finally {
@@ -286,47 +346,12 @@ function AccountingPageInner() {
 
       <TabBar tabs={tabs} value={tab} onChange={setTab} />
 
-      {["tb", "pl", "bs", "gl"].includes(tab) ? (
-        <div className="flex flex-wrap gap-3">
-          <label className="text-sm text-heading">
-            From{" "}
-            <input
-              type="date"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-              className="ml-1 rounded border border-border px-2 py-1"
-            />
-          </label>
-          <label className="text-sm text-heading">
-            To{" "}
-            <input
-              type="date"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-              className="ml-1 rounded border border-border px-2 py-1"
-            />
-          </label>
-          {tab === "gl" ? (
-            <select
-              value={glAccountId}
-              onChange={(e) => setGlAccountId(e.target.value)}
-              className="rounded border border-border px-2 py-1 text-sm"
-            >
-              {accounts.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.code} · {a.name}
-                </option>
-              ))}
-            </select>
-          ) : null}
-        </div>
-      ) : null}
-
       {tab === "coa" ? (
         <DataTable
           maxHeight="28rem"
+          loading={accountsLoading}
           searchable
-          searchPlaceholder="Search accounts…"
+          searchPlaceholder={t("accounting.searchAccounts")}
           getSearchText={(a) => `${a.code} ${a.name} ${a.type}`}
           onRowClick={openEditAccount}
           columns={[
@@ -377,88 +402,211 @@ function AccountingPageInner() {
       ) : null}
 
       {tab === "journals" ? (
-        <div className="space-y-4">
-          {journals.length === 0 ? (
-            <EmptyState
-              title="No journals yet"
-              body="Post a manual journal or wait for POS/inventory postings."
-            />
-          ) : null}
-          <div className="max-h-[min(80vh,42rem)] space-y-3 overflow-y-auto">
-            {journals.map((j) => (
-              <div key={j.id} className="rounded-md border border-border bg-card p-4 text-sm">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-heading">
-                    <Link
-                      to={detailRoutes.journal(j.id)}
-                      className="font-semibold text-brand underline"
-                    >
-                      <strong className="text-heading">{j.date}</strong>
-                    </Link>{" "}
-                    · {j.description}{" "}
-                    <span className="text-body">({j.source_type})</span>
-                  </div>
-                  {j.is_locked && j.source_type !== "reversal" ? (
-                    <button
-                      type="button"
-                      onClick={() => reverseJournal(j.id)}
-                      className="rounded border border-border px-3 py-1"
-                    >
-                      Reverse
-                    </button>
-                  ) : null}
+        <DataTable
+          maxHeight="min(80vh,42rem)"
+          loading={journalsLoading || journalsFetching}
+          filterState={journalFilters}
+          onFilterChange={(next) => {
+            setJournalFilters(next);
+            setJournalPage(1);
+          }}
+          filterConfig={{
+            showDateRange: true,
+            statusLabel: "Source",
+            statusOptions: [
+              { value: "manual", label: "manual" },
+              { value: "pos_sale", label: "pos_sale" },
+              { value: "inventory", label: "inventory" },
+              { value: "payroll", label: "payroll" },
+              { value: "reversal", label: "reversal" },
+            ],
+          }}
+          clientFilter={false}
+          searchPlaceholder={t("accounting.searchJournals")}
+          pagination={{
+            mode: "server",
+            page: journalPage,
+            pageSize: journalPageSize,
+            total: Math.max(journalsTotalEstimate, journals.length),
+            onPageChange: setJournalPage,
+            onPageSizeChange: (size) => {
+              setJournalPageSize(size);
+              setJournalPage(1);
+            },
+          }}
+          exportable
+          exportFilename="journals"
+          exportTitle="Journals"
+          getExportRow={(j) => ({
+            date: String(j.date),
+            description: j.description,
+            source: j.source_type,
+            debit: String(
+              j.lines?.reduce((s, l) => s + Number(l.debit || 0), 0) ?? 0
+            ),
+            credit: String(
+              j.lines?.reduce((s, l) => s + Number(l.credit || 0), 0) ?? 0
+            ),
+          })}
+          exportColumns={[
+            { key: "date", header: "Date" },
+            { key: "description", header: "Description" },
+            { key: "source", header: "Source" },
+            { key: "debit", header: "Debit" },
+            { key: "credit", header: "Credit" },
+          ]}
+          onRowClick={(j) => setJournalDetailId(j.id)}
+          columns={[
+            {
+              id: "date",
+              header: "Date",
+              cell: (j) => (
+                <span className="font-medium tabular-nums">{j.date}</span>
+              ),
+            },
+            {
+              id: "description",
+              header: "Description",
+              cell: (j) => <span className="font-medium">{j.description}</span>,
+            },
+            {
+              id: "source",
+              header: "Source",
+              cell: (j) => (
+                <span className="text-body">{j.source_type}</span>
+              ),
+            },
+            {
+              id: "lines",
+              header: "Lines",
+              align: "right",
+              cell: (j) => (
+                <span className="tabular-nums text-body">
+                  {j.lines?.length ?? 0}
+                </span>
+              ),
+            },
+            {
+              id: "actions",
+              header: "",
+              align: "right",
+              width: 56,
+              cell: (j) => (
+                <div
+                  className="flex justify-end"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ActionMenu
+                    items={[
+                      {
+                        id: "view",
+                        label: "View",
+                        onClick: () => setJournalDetailId(j.id),
+                      },
+                      {
+                        id: "open",
+                        label: "Open detail",
+                        onClick: () => navigate(detailRoutes.journal(j.id)),
+                      },
+                      ...(j.is_locked && j.source_type !== "reversal"
+                        ? [
+                            {
+                              id: "reverse",
+                              label: "Reverse",
+                              onClick: () => void reverseJournal(j.id),
+                            },
+                          ]
+                        : []),
+                    ]}
+                  />
                 </div>
-                <ul className="mt-2 space-y-1 text-body">
-                  {j.lines?.map((l, i) => (
-                    <li key={i}>
-                      {l.account_code || l.account_id.slice(0, 8)} · Dr {l.debit} / Cr{" "}
-                      {l.credit}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
+              ),
+            },
+          ]}
+          data={journals}
+          rowKey={(j) => j.id}
+          emptyTitle="No journals yet"
+          emptyBody="Post a manual journal or wait for POS/inventory postings."
+        />
       ) : null}
 
       {tab === "tb" ? (
         <StatementTable
+          title="Trial balance"
+          filename="trial-balance"
           headers={["Code", "Account", "Debit", "Credit"]}
           rows={tb.map((r) => [r.code, r.name, r.debit, r.credit])}
+          loading={tbLoading}
+          filterState={reportFilters}
+          onFilterChange={setReportFilters}
+          showDateRange
         />
       ) : null}
 
-      {tab === "pl" && pl ? (
+      {tab === "pl" ? (
         <div className="space-y-3">
           <StatementTable
+            title="Profit and loss"
+            filename="profit-and-loss"
             headers={["Code", "Account", "Type", "Amount"]}
-            rows={pl.lines.map((r) => [r.code, r.name, r.type, r.amount])}
+            rows={(pl?.lines || []).map((r) => [r.code, r.name, r.type, r.amount])}
+            loading={plLoading}
+            filterState={reportFilters}
+            onFilterChange={setReportFilters}
+            showDateRange
           />
-          <p className="text-heading">
-            Revenue {pl.total_revenue} − Expense {pl.total_expense} ={" "}
-            <strong>Net {pl.net_income}</strong>
-          </p>
+          {pl ? (
+            <p className="text-heading">
+              Revenue {pl.total_revenue} − Expense {pl.total_expense} ={" "}
+              <strong>Net {pl.net_income}</strong>
+            </p>
+          ) : null}
         </div>
       ) : null}
 
-      {tab === "bs" && bs ? (
+      {tab === "bs" ? (
         <div className="space-y-3">
           <StatementTable
+            title="Balance sheet"
+            filename="balance-sheet"
             headers={["Code", "Account", "Type", "Balance"]}
-            rows={bs.lines.map((r) => [r.code, r.name, r.type, r.balance])}
+            rows={(bs?.lines || []).map((r) => [r.code, r.name, r.type, r.balance])}
+            loading={bsLoading}
+            filterState={reportFilters}
+            onFilterChange={setReportFilters}
+            showDateRange
           />
-          <p className="text-sm text-heading">
-            Assets {bs.total_assets} · Liabilities {bs.total_liabilities} · Equity{" "}
-            {bs.total_equity}
-          </p>
+          {bs ? (
+            <p className="text-sm text-heading">
+              Assets {bs.total_assets} · Liabilities {bs.total_liabilities} · Equity{" "}
+              {bs.total_equity}
+            </p>
+          ) : null}
         </div>
       ) : null}
 
       {tab === "gl" ? (
         <StatementTable
-          headers={["Date", "Description", "Debit", "Credit", "Balance"]}
-          rows={gl.map((r) => [r.date, r.description, r.debit, r.credit, r.balance])}
+          title="General ledger"
+          filename="general-ledger"
+          headers={["Date", "Account", "Description", "Debit", "Credit", "Balance"]}
+          rows={gl.map((r) => [
+            r.date,
+            r.account_code && r.account_name
+              ? `${r.account_code} · ${r.account_name}`
+              : r.account_code || r.account_name || "",
+            r.description,
+            r.debit,
+            r.credit,
+            r.balance,
+          ])}
+          rowCategories={gl.map((r) => r.account_id || "")}
+          loading={glLoading || accountsLoading}
+          filterState={reportFilters}
+          onFilterChange={setReportFilters}
+          showDateRange
+          categoryOptions={glAccountOptions}
+          categoryLabel="Account"
         />
       ) : null}
 
@@ -473,8 +621,9 @@ function AccountingPageInner() {
           </p>
           <DataTable
             maxHeight="28rem"
+            loading={arLoading}
             searchable
-            searchPlaceholder="Search invoices…"
+            searchPlaceholder={t("accounting.searchInvoices")}
             getSearchText={(r) =>
               `${r.invoice_number || ""} ${r.customer_name || ""} ${r.balance_due} ${r.bucket}`
             }
@@ -516,8 +665,9 @@ function AccountingPageInner() {
       {tab === "ap" ? (
         <DataTable
           maxHeight="28rem"
+          loading={apLoading}
           searchable
-          searchPlaceholder="Search bills…"
+          searchPlaceholder={t("accounting.searchBills")}
           getSearchText={(r) =>
             `${r.bill_number || ""} ${r.supplier_name || ""} ${r.balance_due} ${r.bucket}`
           }
@@ -554,6 +704,82 @@ function AccountingPageInner() {
           emptyTitle="No AP bills"
         />
       ) : null}
+
+      <Modal
+        isOpen={!!journalDetailId}
+        onClose={() => setJournalDetailId(null)}
+        title={journalDetail ? `Journal · ${journalDetail.date}` : "Journal"}
+        description={journalDetail?.description}
+        size="lg"
+        footer={
+          <div className="flex justify-end gap-2">
+            {journalDetail ? (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  navigate(detailRoutes.journal(journalDetail.id));
+                  setJournalDetailId(null);
+                }}
+              >
+                Open detail
+              </Button>
+            ) : null}
+            {journalDetail?.is_locked &&
+            journalDetail.source_type !== "reversal" ? (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  void reverseJournal(journalDetail.id);
+                  setJournalDetailId(null);
+                }}
+              >
+                Reverse
+              </Button>
+            ) : null}
+            <Button variant="outline" onClick={() => setJournalDetailId(null)}>
+              {t("common.close")}
+            </Button>
+          </div>
+        }
+      >
+        {journalDetailLoading || !journalDetail ? (
+          <p className="text-sm text-body">{t("common.loading")}</p>
+        ) : (
+          <DataTable
+            maxHeight="20rem"
+            columns={[
+              {
+                id: "account",
+                header: "Account",
+                cell: (l) =>
+                  `${l.account_code || l.account_id.slice(0, 8)}${
+                    l.account_name ? ` · ${l.account_name}` : ""
+                  }`,
+              },
+              {
+                id: "debit",
+                header: "Debit",
+                align: "right",
+                cell: (l) => <span className="tabular-nums">{l.debit}</span>,
+              },
+              {
+                id: "credit",
+                header: "Credit",
+                align: "right",
+                cell: (l) => <span className="tabular-nums">{l.credit}</span>,
+              },
+              {
+                id: "memo",
+                header: "Memo",
+                cell: (l) => l.memo || "—",
+              },
+            ]}
+            data={journalDetail.lines || []}
+            rowKey={(_, i) => String(i)}
+            emptyTitle="No lines"
+          />
+        )}
+      </Modal>
 
       <Modal
         isOpen={accountModal}
@@ -689,18 +915,67 @@ function AccountingPageInner() {
 function StatementTable({
   headers,
   rows,
+  loading = false,
+  title = "Statement",
+  filename = "statement",
+  filterState,
+  onFilterChange,
+  showDateRange = false,
+  categoryOptions,
+  categoryLabel,
+  rowCategories,
 }: {
   headers: string[];
   rows: (string | undefined)[][];
+  loading?: boolean;
+  title?: string;
+  filename?: string;
+  filterState?: ReturnType<typeof emptyStaffListFilters>;
+  onFilterChange?: (next: ReturnType<typeof emptyStaffListFilters>) => void;
+  showDateRange?: boolean;
+  categoryOptions?: ListFilterConfig["categoryOptions"];
+  categoryLabel?: string;
+  rowCategories?: string[];
 }) {
-  const data = rows.map((cells, i) => ({ id: String(i), cells }));
+  const t = useT();
+  const [localFilters, setLocalFilters] = useState(emptyStaffListFilters);
+  const filters = filterState ?? localFilters;
+  const setFilters = onFilterChange ?? setLocalFilters;
+  const data = rows.map((cells, i) => ({
+    id: String(i),
+    cells,
+    category: rowCategories?.[i] ?? "",
+  }));
+  const filterConfig: ListFilterConfig = {
+    ...(showDateRange ? { showDateRange: true } : {}),
+    ...(categoryOptions?.length
+      ? { categoryOptions, categoryLabel: categoryLabel ?? t("listFilters.categories") }
+      : {}),
+  };
 
   return (
     <DataTable
       maxHeight="28rem"
-      searchable
-      searchPlaceholder="Search rows…"
-      getSearchText={(row) => (row.cells ?? []).join(" ")}
+      loading={loading}
+      filterState={filters}
+      onFilterChange={setFilters}
+      filterConfig={filterConfig}
+      filterAccessors={{
+        searchText: (row) => (row.cells ?? []).join(" "),
+        category: (row) => row.category || null,
+      }}
+      clientFilter
+      searchPlaceholder={t("accounting.searchRows")}
+      pagination={{ mode: "client", pageSize: 25 }}
+      exportable
+      exportFilename={filename}
+      exportTitle={title}
+      getExportRow={(row) =>
+        Object.fromEntries(
+          headers.map((h, i) => [String(i), row.cells[i] ?? ""])
+        )
+      }
+      exportColumns={headers.map((h, i) => ({ key: String(i), header: h }))}
       columns={headers.map((h, i) => ({
         id: `c${i}`,
         header: h,
@@ -712,7 +987,7 @@ function StatementTable({
       }))}
       data={data}
       rowKey={(row) => row.id}
-      emptyTitle="No rows"
+      emptyTitle={t("table.noMatches")}
     />
   );
 }

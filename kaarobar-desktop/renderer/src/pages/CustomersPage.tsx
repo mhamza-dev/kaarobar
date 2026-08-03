@@ -6,7 +6,6 @@ import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
-import ListToolbar from "@/components/app/ListToolbar";
 import {
   EmptyState,
   Field,
@@ -27,7 +26,6 @@ import {
   emptyCustomerForm,
 } from "@/lib/customers";
 import {
-  applyStaffListFilters,
   emptyStaffListFilters,
   type ListFilterConfig,
   type StaffListFilterState,
@@ -82,15 +80,6 @@ export default function CustomersPage() {
       ],
     }),
     [t]
-  );
-
-  const filteredCustomers = useMemo(
-    () =>
-      applyStaffListFilters(customers, filters, {
-        searchText: customerSearchText,
-        status: (c) => (c.khata_enabled ? "khata_on" : "khata_off"),
-      }),
-    [customers, filters]
   );
 
   function openCreate() {
@@ -247,14 +236,41 @@ export default function CustomersPage() {
 
       <DataTable
         maxHeight="28rem"
-        filters={
-          <ListToolbar
-            value={filters}
-            onChange={setFilters}
-            config={filterConfig}
-            searchPlaceholder={t("customers.search")}
-          />
-        }
+        filterState={filters}
+        onFilterChange={setFilters}
+        filterConfig={filterConfig}
+        filterAccessors={{
+          searchText: customerSearchText,
+          status: (c) => (c.khata_enabled ? "khata_on" : "khata_off"),
+          balance: (c) => c.balance,
+          creditLimit: (c) => c.credit_limit,
+        }}
+        clientFilter
+        searchPlaceholder={t("customers.search")}
+        pagination={{ mode: "client", pageSize: 25 }}
+        exportable
+        exportFilename="customers"
+        exportTitle={t("pages.customersTitle")}
+        getExportRow={(c) => ({
+          name: c.name,
+          company: c.company_name || "",
+          phone: c.phone || "",
+          cnic: c.cnic || "",
+          khata: c.khata_enabled ? "on" : "off",
+          balance: c.balance || "0",
+          credit: c.credit_limit || "",
+          points: String(c.loyalty_points ?? 0),
+        })}
+        exportColumns={[
+          { key: "name", header: t("common.name") },
+          { key: "company", header: t("customers.company") },
+          { key: "phone", header: t("customers.phone") },
+          { key: "cnic", header: t("customers.cnic") },
+          { key: "khata", header: t("customers.khata") },
+          { key: "balance", header: t("customers.balance") },
+          { key: "credit", header: t("customers.creditLimit") },
+          { key: "points", header: t("customers.points") },
+        ]}
         columns={[
           {
             id: "name",
@@ -321,7 +337,7 @@ export default function CustomersPage() {
             ),
           },
         ]}
-        data={filteredCustomers}
+        data={customers}
         rowKey={(c) => c.id}
         onRowClick={(c) => navigate(detailRoutes.customer(c.id))}
         emptyTitle={t("customers.emptyTitle")}

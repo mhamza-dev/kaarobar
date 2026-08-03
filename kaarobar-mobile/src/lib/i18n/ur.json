@@ -164,7 +164,14 @@
     "footprintDesc": "اوپر سے کاروبار یا برانچ بدلیں — ہر صفحہ اسی سیاق میں رہے گا۔",
     "businesses": "کاروبار",
     "branches": "برانچز",
-    "loadFailed": "ڈیش بورڈ لوڈ نہیں ہو سکا"
+    "loadFailed": "ڈیش بورڈ لوڈ نہیں ہو سکا",
+    "trendsTitle": "سیلز کے رجحانات",
+    "revenueOverTime": "وقت کے ساتھ آمدنی",
+    "ordersOverTime": "وقت کے ساتھ آرڈرز",
+    "chartsDesc": "منتخب تاریخ کی حد میں آمدنی اور آرڈر کا حجم۔",
+    "rangeRevenue": "حد میں آمدنی",
+    "rangeOrders": "حد میں آرڈرز",
+    "noChartData": "اس تاریخ کی حد میں کوئی سیلز نہیں"
   },
   "inventory": {
     "eyebrow": "انوینٹری",

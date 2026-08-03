@@ -1,5 +1,6 @@
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, getSession, setSession } from "@/lib/api/client";
 import { PageHeader, SurfaceCard, TabBar, fieldClass } from "@/components/app/ui";
 import NotificationPreferencesPanel from "@/components/app/NotificationPreferencesPanel";
@@ -14,6 +15,7 @@ import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { detailRoutes } from "@/lib/navigation";
 import { planAllowsFbr } from "@/lib/rbac";
+import { settingsKeys } from "@/lib/queryClient";
 import type { CSSProperties } from "react";
 
 type Plan = {
@@ -132,17 +134,56 @@ function SettingsPageInner() {
   const toast = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [usage, setUsage] = useState<Usage | null>(null);
-  const [businesses, setBusinesses] = useState<Business[]>([]);
-  const [roleSettings, setRoleSettings] = useState<RoleSettings>({});
+  const queryClient = useQueryClient();
   const [savingRoles, setSavingRoles] = useState(false);
   const [checkoutBusy, setCheckoutBusy] = useState<string | null>(null);
   const [tab, setTab] = useState<SettingsTab>("profile");
+  const [roleSettings, setRoleSettings] = useState<RoleSettings>({});
 
   const session = getSession();
+  const ownerId = session?.user?.id ?? null;
   const isOwner = (session?.memberships || [])
     .filter((m) => m.business_id === session?.business_id && m.status === "active")
     .some((m) => (m.roles || []).includes("owner"));
+
+  const needBilling =
+    isOwner && (tab === "subscriptions" || tab === "integrations");
+  const needBusinesses = isOwner && (tab === "integrations" || tab === "branding");
+  const needRoles = tab === "roles" && isOwner;
+
+  const { data: usage = null } = useQuery({
+    queryKey: settingsKeys.billing(ownerId),
+    queryFn: async () => {
+      const res = await api<{ data: Usage }>("/billing/subscription");
+      return res.data;
+    },
+    enabled: needBilling,
+  });
+
+  const { data: businesses = [] } = useQuery({
+    queryKey: settingsKeys.businesses(ownerId),
+    queryFn: async () => {
+      const res = await api<{ data: Business[] }>("/businesses");
+      return res.data || [];
+    },
+    enabled: needBusinesses,
+  });
+
+  const { data: roleSettingsRemote } = useQuery({
+    queryKey: settingsKeys.roleSettings(session?.business_id),
+    queryFn: async () => {
+      const res = await api<{ data: { roles: RoleSettings } }>(
+        `/businesses/${session!.business_id}/role-settings`
+      );
+      return res.data?.roles || {};
+    },
+    enabled: needRoles && !!session?.business_id,
+  });
+
+  useEffect(() => {
+    if (roleSettingsRemote) setRoleSettings(roleSettingsRemote);
+  }, [roleSettingsRemote]);
+
   const canUseFbr =
     planAllowsFbr(session) || Boolean(usage?.allows_fbr);
   const activeBusiness =
@@ -208,29 +249,9 @@ function SettingsPageInner() {
     setTab(allowed ? next : "profile");
   }, [isOwner, searchParams]);
 
-  const load = useCallback(async () => {
-    try {
-      if (!isOwner) return;
-      const [bill, biz] = await Promise.all([
-        api<{ data: Usage }>("/billing/subscription"),
-        api<{ data: Business[] }>("/businesses"),
-      ]);
-      setUsage(bill.data);
-      setBusinesses(biz.data || []);
-      if (session?.business_id) {
-        const roleRes = await api<{ data: { roles: RoleSettings } }>(
-          `/businesses/${session.business_id}/role-settings`
-        );
-        setRoleSettings(roleRes.data?.roles || {});
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("settings.loadFailed"));
-    }
-  }, [isOwner, session?.business_id, t, toast]);
-
-  useEffect(() => {
-    if (isOwner) void load();
-  }, [isOwner, load]);
+  async function refreshSettings() {
+    await queryClient.invalidateQueries({ queryKey: settingsKeys.all });
+  }
 
   useEffect(() => {
     return () => clearStaffBrandPreview();
@@ -238,8 +259,12 @@ function SettingsPageInner() {
 
   function patchActive(patch: Partial<Business>) {
     if (!activeBusiness) return;
-    setBusinesses((prev) =>
-      prev.map((x) => (x.id === activeBusiness.id ? { ...x, ...patch } : x))
+    queryClient.setQueryData(
+      settingsKeys.businesses(ownerId),
+      (prev: Business[] | undefined) =>
+        (prev || []).map((x) =>
+          x.id === activeBusiness.id ? { ...x, ...patch } : x
+        )
     );
   }
 
@@ -255,7 +280,7 @@ function SettingsPageInner() {
           name: activeBusiness.name,
         })
       );
-      await load();
+      await refreshSettings();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.updateFailed"));
     }
@@ -273,7 +298,7 @@ function SettingsPageInner() {
         }),
       });
       toast.success(t("settings.loyaltySaved"));
-      await load();
+      await refreshSettings();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.saveFailed"));
     }
@@ -291,7 +316,7 @@ function SettingsPageInner() {
         }),
       });
       toast.success(t("settings.marketplaceSaved"));
-      await load();
+      await refreshSettings();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.saveFailed"));
     }
@@ -312,7 +337,7 @@ function SettingsPageInner() {
       toast.success(t("settings.brandingSaved"));
       clearStaffBrandPreview();
       window.dispatchEvent(new Event("kaarobar:branding"));
-      await load();
+      await refreshSettings();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.saveFailed"));
     }
@@ -325,7 +350,7 @@ function SettingsPageInner() {
       fd.append("logo", file);
       await api(`/businesses/${activeBusiness.id}/logo`, { method: "POST", body: fd });
       toast.success(t("settings.logoUpdated"));
-      await load();
+      await refreshSettings();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.saveFailed"));
     }
@@ -336,7 +361,7 @@ function SettingsPageInner() {
     try {
       await api(`/businesses/${activeBusiness.id}/logo`, { method: "DELETE" });
       toast.success(t("settings.logoRemoved"));
-      await load();
+      await refreshSettings();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.saveFailed"));
     }
@@ -395,6 +420,10 @@ function SettingsPageInner() {
       );
       const nextRoles = res.data?.roles || roleSettings;
       setRoleSettings(nextRoles);
+      queryClient.setQueryData(
+        settingsKeys.roleSettings(session.business_id),
+        nextRoles
+      );
       if (session) setSession({ ...session, role_settings: nextRoles });
       toast.success(t("settings.rolesSaved"));
     } catch (err) {

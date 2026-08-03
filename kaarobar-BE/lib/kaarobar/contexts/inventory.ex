@@ -4,7 +4,7 @@ defmodule Kaarobar.Inventory do
   alias Kaarobar.Schemas.{
     ProductBranchPrice, InventoryRecord,
     PurchaseOrder, PurchaseOrderItem, GoodsReceipt, GoodsReceiptItem,
-    StockTransfer, StockTransferItem, StockAdjustment, Supplier
+    StockTransfer, StockTransferItem, StockAdjustment, Supplier, ProductSupplier, Product
   }
   alias Ecto.Multi
 
@@ -848,6 +848,49 @@ defmodule Kaarobar.Inventory do
     supplier
     |> Supplier.changeset(stringify_keys(attrs))
     |> Repo.update()
+  end
+
+  def list_product_suppliers(product_id, business_id, owner_id) do
+    from(ps in ProductSupplier,
+      join: s in assoc(ps, :supplier),
+      where:
+        ps.product_id == ^product_id and ps.business_id == ^business_id and
+          ps.owner_id == ^owner_id,
+      preload: [supplier: s],
+      order_by: [desc: ps.is_primary, asc: s.name]
+    )
+    |> Repo.all()
+  end
+
+  def attach_product_supplier(product_id, supplier_id, business_id, owner_id, attrs \\ %{}) do
+    with %Product{} <-
+           Repo.get_by(Product, id: product_id, business_id: business_id, owner_id: owner_id),
+         %Supplier{} <-
+           Repo.get_by(Supplier, id: supplier_id, business_id: business_id, owner_id: owner_id) do
+      %ProductSupplier{}
+      |> ProductSupplier.changeset(%{
+        product_id: product_id,
+        supplier_id: supplier_id,
+        business_id: business_id,
+        owner_id: owner_id,
+        is_primary: attrs[:is_primary] || attrs["is_primary"] || false
+      })
+      |> Repo.insert()
+    else
+      nil -> {:error, :not_found}
+    end
+  end
+
+  def detach_product_supplier(product_id, supplier_id, business_id, owner_id) do
+    case Repo.get_by(ProductSupplier,
+           product_id: product_id,
+           supplier_id: supplier_id,
+           business_id: business_id,
+           owner_id: owner_id
+         ) do
+      nil -> {:error, :not_found}
+      row -> Repo.delete(row)
+    end
   end
 
   defp stringify_keys(attrs) when is_map(attrs) do

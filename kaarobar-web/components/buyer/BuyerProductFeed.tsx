@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Package } from "lucide-react";
 import { api } from "@/lib/api/client";
 import { Alert } from "@/components/app/ui";
@@ -11,6 +12,7 @@ import { BuyerProductGridSkeleton } from "@/components/buyer/BuyerSkeletons";
 import Button from "@/components/ui/Button";
 import { useT } from "@/lib/i18n";
 import { detailRoutes } from "@/lib/navigation";
+import { marketplaceKeys } from "@/lib/queryClient";
 import {
   emptyMarketplaceFeedFilters,
   marketplaceProductsQuery,
@@ -29,85 +31,77 @@ type Props = {
 
 const PAGE_SIZE = 24;
 
+function filtersKey(filters: MarketplaceFeedFilters): Record<string, unknown> {
+  return {
+    search: filters.search.trim(),
+    categories: [...filters.categories].sort(),
+    industries: [...filters.industries].sort(),
+    priceMin: filters.priceMin.trim(),
+    priceMax: filters.priceMax.trim(),
+  };
+}
+
 /** Paginated cross-business product grid with marketplace filters. */
 export default function BuyerProductFeed({ industrySeed = [], className = "" }: Props) {
   const t = useT();
   const [filters, setFilters] = useState<MarketplaceFeedFilters>(
     emptyMarketplaceFeedFilters()
   );
-  const [products, setProducts] = useState<MarketplaceFeedProduct[]>([]);
-  const [meta, setMeta] = useState<MarketplaceFeedMeta | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [categoriesFromApi, setCategoriesFromApi] = useState<string[]>([]);
-  const [bizIndustries, setBizIndustries] = useState<string[]>([]);
+  const [debouncedFilters, setDebouncedFilters] = useState(filters);
 
-  const loadPage = useCallback(
-    async (cursor: string | null, append: boolean) => {
-      if (append) setLoadingMore(true);
-      else setLoading(true);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedFilters(filters), 220);
+    return () => clearTimeout(timer);
+  }, [filters]);
 
-      const path = marketplaceProductsQuery(filters, {
-        cursor,
+  const productsQuery = useInfiniteQuery({
+    queryKey: marketplaceKeys.products(filtersKey(debouncedFilters)),
+    queryFn: async ({ pageParam }) => {
+      const path = marketplaceProductsQuery(debouncedFilters, {
+        cursor: pageParam,
         limit: PAGE_SIZE,
       });
-
-      try {
-        const res = await api<{
-          data: MarketplaceFeedProduct[];
-          meta?: MarketplaceFeedMeta;
-        }>(path, {}, null);
-
-        const rows = Array.isArray(res.data) ? res.data : [];
-        setProducts((prev) => (append ? [...prev, ...rows] : rows));
-        setMeta(res.meta ?? { limit: PAGE_SIZE, next_cursor: null });
-        setError(null);
-
-        setCategoriesFromApi((prev) => {
-          const set = new Set(append ? prev : []);
-          for (const p of rows) {
-            if (p.category?.trim()) set.add(p.category.trim());
-          }
-          return Array.from(set).sort((a, b) => a.localeCompare(b));
-        });
-      } catch (err) {
-        const message = err instanceof Error ? err.message : t("common.loadFailed");
-        if (!append) {
-          setProducts([]);
-          setMeta(null);
-        }
-        setError(message);
-      } finally {
-        setLoading(false);
-        setLoadingMore(false);
-      }
+      const res = await api<{
+        data: MarketplaceFeedProduct[];
+        meta?: MarketplaceFeedMeta;
+      }>(path, {}, null);
+      return {
+        data: Array.isArray(res.data) ? res.data : [],
+        meta: res.meta ?? { limit: PAGE_SIZE, next_cursor: null },
+      };
     },
-    [filters, t]
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => last.meta.next_cursor ?? undefined,
+  });
+
+  const businessesQuery = useQuery({
+    queryKey: marketplaceKeys.businesses({}),
+    queryFn: async () => {
+      const res = await api<{ data: BizLite[] }>("/marketplace/businesses", {}, null);
+      return res.data || [];
+    },
+  });
+
+  const products = useMemo(
+    () => productsQuery.data?.pages.flatMap((p) => p.data) ?? [],
+    [productsQuery.data]
   );
 
-  useEffect(() => {
-    setCategoriesFromApi([]);
-  }, [filters.search, filters.industries, filters.categories]);
+  const categoriesFromApi = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of products) {
+      if (p.category?.trim()) set.add(p.category.trim());
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [products]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      void loadPage(null, false);
-    }, 220);
-    return () => clearTimeout(timer);
-  }, [loadPage]);
-
-  useEffect(() => {
-    void api<{ data: BizLite[] }>("/marketplace/businesses", {}, null)
-      .then((res) => {
-        const set = new Set<string>();
-        for (const b of res.data || []) {
-          if (b.industry?.trim()) set.add(b.industry.trim());
-        }
-        setBizIndustries(Array.from(set).sort((a, b) => a.localeCompare(b)));
-      })
-      .catch(() => undefined);
-  }, []);
+  const bizIndustries = useMemo(() => {
+    const set = new Set<string>();
+    for (const b of businessesQuery.data || []) {
+      if (b.industry?.trim()) set.add(b.industry.trim());
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [businessesQuery.data]);
 
   const industries = useMemo(() => {
     const set = new Set<string>([
@@ -120,7 +114,15 @@ export default function BuyerProductFeed({ industrySeed = [], className = "" }: 
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [industrySeed, bizIndustries, products]);
 
-  const nextCursor = meta?.next_cursor ?? null;
+  const loading = productsQuery.isLoading;
+  const loadingMore = productsQuery.isFetchingNextPage;
+  const errorMessage =
+    productsQuery.error instanceof Error
+      ? productsQuery.error.message
+      : productsQuery.error
+        ? t("common.loadFailed")
+        : null;
+  const hasNextPage = productsQuery.hasNextPage;
 
   return (
     <div className={`space-y-5 ${className}`}>
@@ -133,7 +135,7 @@ export default function BuyerProductFeed({ industrySeed = [], className = "" }: 
         searchPlaceholder={t("marketplace.searchAllProducts")}
       />
 
-      {error ? <Alert tone="error">{error}</Alert> : null}
+      {errorMessage ? <Alert tone="error">{errorMessage}</Alert> : null}
 
       {loading ? (
         <BuyerProductGridSkeleton />
@@ -183,13 +185,13 @@ export default function BuyerProductFeed({ industrySeed = [], className = "" }: 
             })}
           </ul>
 
-          {nextCursor ? (
+          {hasNextPage ? (
             <div className="flex justify-center pt-2">
               <Button
                 variant="secondary"
                 className="rounded-md"
                 loading={loadingMore}
-                onClick={() => void loadPage(nextCursor, true)}
+                onClick={() => void productsQuery.fetchNextPage()}
               >
                 {t("marketplace.loadMore")}
               </Button>

@@ -1,9 +1,11 @@
 "use client";
 
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { QueryClientProvider } from "@tanstack/react-query";
 
 import { LocaleProvider } from "@/lib/i18n";
+import { makeQueryClient } from "@/lib/queryClient";
 import { ToastProvider } from "@/components/ui/Toast";
 
 interface LayoutWrapperProps {
@@ -12,6 +14,7 @@ interface LayoutWrapperProps {
 
 export default function LayoutWrapper({ children }: LayoutWrapperProps) {
   const pathname = usePathname();
+  const [queryClient] = useState(() => makeQueryClient());
   const isAppShell =
     pathname.startsWith("/app") || pathname.startsWith("/workspace");
 
@@ -30,18 +33,20 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
   }, [isAppShell]);
 
   return (
-    <LocaleProvider>
-      <ToastProvider>
-        <main
-          className={
-            isAppShell
-              ? "flex h-dvh min-h-0 flex-1 flex-col overflow-hidden"
-              : "min-h-0 flex-1"
-          }
-        >
-          {children}
-        </main>
-      </ToastProvider>
-    </LocaleProvider>
+    <QueryClientProvider client={queryClient}>
+      <LocaleProvider>
+        <ToastProvider>
+          <main
+            className={
+              isAppShell
+                ? "flex h-dvh min-h-0 flex-1 flex-col overflow-hidden"
+                : "min-h-0 flex-1"
+            }
+          >
+            {children}
+          </main>
+        </ToastProvider>
+      </LocaleProvider>
+    </QueryClientProvider>
   );
 }

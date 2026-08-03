@@ -1,4 +1,5 @@
-import {useCallback, useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBrandPalette } from "../lib/BrandThemeContext";
 import {
   ActivityIndicator,
@@ -22,6 +23,7 @@ import type { NavigationProp, ParamListBase } from "@react-navigation/native";
 import { SearchSelect, SearchMultiSelect } from "../components/SearchSelect";
 import { replacePath } from "../lib/nav";
 import { useTabParam } from "../hooks/useTabParam";
+import { inventoryKeys } from "../lib/queryClient";
 
 type Tab = "stock" | "products" | "suppliers" | "pos" | "transfers" | "adjust";
 const PRODUCT_TABS: readonly Tab[] = [
@@ -68,15 +70,11 @@ export default function InventoryScreen() {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const palette = useBrandPalette();
   const styles = useMemo(() => createStyles(palette), [palette]);
+  const queryClient = useQueryClient();
   const [session, setLocal] = useState<Session | null>(null);
   const [tab, setTab] = useTabParam<Tab>("stock", PRODUCT_TABS);
   const [modal, setModal] = useState<ModalKind>(null);
-  const [products, setProducts] = useState<Product[]>([]);
   const [productFilters, setProductFilters] = useState(emptyStaffFilters());
-  const [stock, setStock] = useState<StockRow[]>([]);
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [pos, setPos] = useState<PO[]>([]);
-  const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -105,12 +103,19 @@ export default function InventoryScreen() {
     catalogs: "",
   });
 
-  const [poForm, setPoForm] = useState({
+  const [poForm, setPoForm] = useState<{
+    supplier_id: string;
+    product_ids: string[];
+    quantities: Record<string, string>;
+    unit_costs: Record<string, string>;
+  }>({
     supplier_id: "",
-    product_id: "",
-    quantity: "10",
-    unit_cost: "50",
+    product_ids: [],
+    quantities: {},
+    unit_costs: {},
   });
+  const [attachProductId, setAttachProductId] = useState<string | null>(null);
+  const [attachSupplierId, setAttachSupplierId] = useState<string | null>(null);
   const [grnForm, setGrnForm] = useState({
     purchase_order_id: "",
     product_id: "",
@@ -125,42 +130,93 @@ export default function InventoryScreen() {
     product_ids: [],
     quantities: {},
   });
-  const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
   const [adjustForm, setAdjustForm] = useState({
     product_id: "",
     quantity_delta: "",
     reason_code: "adjustment",
   });
 
-  const load = useCallback(async () => {
-    setError(null);
-    try {
-      const [p, s, sup, poList, tr, br] = await Promise.all([
-        api<{ data: Product[] }>("/products"),
-        api<{ data: StockRow[] }>("/app/inventory").catch(() => ({ data: [] as StockRow[] })),
-        api<{ data: Supplier[] }>("/suppliers").catch(() => ({ data: [] as Supplier[] })),
-        api<{ data: PO[] }>("/inventory/purchase-orders").catch(() => ({
-          data: [] as PO[],
-        })),
-        api<{ data: Transfer[] }>("/inventory/transfers").catch(() => ({
-          data: [] as Transfer[],
-        })),
-        session?.business_id
-          ? api<{ data: { id: string; name: string }[] }>(
-              `/businesses/${session.business_id}/branches`
-            ).catch(() => ({ data: [] as { id: string; name: string }[] }))
-          : Promise.resolve({ data: [] as { id: string; name: string }[] }),
-      ]);
-      setProducts(p.data || []);
-      setStock(s.data || []);
-      setSuppliers(sup.data || []);
-      setPos(poList.data || []);
-      setTransfers(tr.data || []);
-      setBranches(br.data || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load");
-    }
-  }, []);
+  const businessId = session?.business_id ?? null;
+  const ready = !!session;
+  const needProducts =
+    tab === "products" || tab === "pos" || tab === "transfers" || tab === "adjust";
+  const needSuppliers =
+    tab === "suppliers" || tab === "pos" || !!attachProductId;
+
+  const { data: productsData } = useQuery({
+    queryKey: inventoryKeys.products(businessId),
+    queryFn: async (): Promise<Product[]> => {
+      const res = await api<{ data: Product[] }>("/products");
+      return res.data || [];
+    },
+    enabled: ready && needProducts,
+  });
+  const products: Product[] = productsData ?? [];
+
+  const { data: stockData } = useQuery({
+    queryKey: inventoryKeys.stock(businessId),
+    queryFn: async (): Promise<StockRow[]> => {
+      const res = await api<{ data: StockRow[] }>("/app/inventory").catch(() => ({
+        data: [] as StockRow[],
+      }));
+      return res.data || [];
+    },
+    enabled: ready && tab === "stock",
+  });
+  const stock: StockRow[] = stockData ?? [];
+
+  const { data: suppliersData } = useQuery({
+    queryKey: inventoryKeys.suppliers(businessId),
+    queryFn: async (): Promise<Supplier[]> => {
+      const res = await api<{ data: Supplier[] }>("/suppliers").catch(() => ({
+        data: [] as Supplier[],
+      }));
+      return res.data || [];
+    },
+    enabled: ready && needSuppliers,
+  });
+  const suppliers: Supplier[] = suppliersData ?? [];
+
+  const { data: posData } = useQuery({
+    queryKey: inventoryKeys.purchaseOrders(businessId),
+    queryFn: async (): Promise<PO[]> => {
+      const res = await api<{ data: PO[] }>("/inventory/purchase-orders").catch(
+        () => ({ data: [] as PO[] })
+      );
+      return res.data || [];
+    },
+    enabled: ready && tab === "pos",
+  });
+  const pos: PO[] = posData ?? [];
+
+  const { data: transfersData } = useQuery({
+    queryKey: inventoryKeys.transfers(businessId),
+    queryFn: async (): Promise<Transfer[]> => {
+      const res = await api<{ data: Transfer[] }>("/inventory/transfers").catch(
+        () => ({ data: [] as Transfer[] })
+      );
+      return res.data || [];
+    },
+    enabled: ready && tab === "transfers",
+  });
+  const transfers: Transfer[] = transfersData ?? [];
+
+  const { data: branchesData } = useQuery({
+    queryKey: inventoryKeys.branches(businessId),
+    queryFn: async (): Promise<{ id: string; name: string }[]> => {
+      if (!businessId) return [];
+      const res = await api<{ data: { id: string; name: string }[] }>(
+        `/businesses/${businessId}/branches`
+      ).catch(() => ({ data: [] as { id: string; name: string }[] }));
+      return res.data || [];
+    },
+    enabled: ready && tab === "transfers" && !!businessId,
+  });
+  const branches: { id: string; name: string }[] = branchesData ?? [];
+
+  async function refreshInventory() {
+    await queryClient.invalidateQueries({ queryKey: inventoryKeys.all });
+  }
 
   useEffect(() => {
     (async () => {
@@ -174,9 +230,8 @@ export default function InventoryScreen() {
         return;
       }
       setLocal(s);
-      await load();
     })();
-  }, [load]);
+  }, [navigation]);
 
   async function createProduct() {
     try {
@@ -204,7 +259,7 @@ export default function InventoryScreen() {
       setModal(null);
       setMessage("Product created");
       setTab("products");
-      await load();
+      await refreshInventory();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Create failed");
     }
@@ -255,7 +310,7 @@ export default function InventoryScreen() {
       setModal(null);
       setMessage("Supplier added");
       setTab("suppliers");
-      await load();
+      await refreshInventory();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Supplier failed");
     }
@@ -263,24 +318,51 @@ export default function InventoryScreen() {
 
   async function createPO() {
     try {
+      const items = poForm.product_ids
+        .map((product_id) => ({
+          product_id,
+          quantity: poForm.quantities[product_id] || "1",
+          unit_cost: poForm.unit_costs[product_id] || "0",
+        }))
+        .filter((i) => Number(i.quantity) > 0);
+      if (!poForm.supplier_id || items.length === 0) {
+        setError("Select supplier and at least one product");
+        return;
+      }
       await api("/inventory/purchase-orders", {
         method: "POST",
         body: JSON.stringify({
           branch_id: session?.branch_id,
           supplier_id: poForm.supplier_id,
-          items: [
-            {
-              product_id: poForm.product_id,
-              quantity: poForm.quantity,
-              unit_cost: poForm.unit_cost,
-            },
-          ],
+          items,
         }),
       });
+      setPoForm({
+        supplier_id: "",
+        product_ids: [],
+        quantities: {},
+        unit_costs: {},
+      });
       setMessage("PO created");
-      await load();
+      await refreshInventory();
     } catch (err) {
       setError(err instanceof Error ? err.message : "PO failed");
+    }
+  }
+
+  async function attachSupplier() {
+    if (!attachProductId || !attachSupplierId) return;
+    try {
+      await api(`/products/${attachProductId}/suppliers`, {
+        method: "POST",
+        body: JSON.stringify({ supplier_id: attachSupplierId }),
+      });
+      setMessage("Supplier attached");
+      setAttachProductId(null);
+      setAttachSupplierId(null);
+      await refreshInventory();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Attach failed");
     }
   }
 
@@ -300,7 +382,7 @@ export default function InventoryScreen() {
         }),
       });
       setMessage("GRN received");
-      await load();
+      await refreshInventory();
     } catch (err) {
       setError(err instanceof Error ? err.message : "GRN failed");
     }
@@ -327,7 +409,7 @@ export default function InventoryScreen() {
       setMessage("Transfer created");
       setModal(null);
       setTransferForm({ to_branch_id: "", product_ids: [], quantities: {} });
-      await load();
+      await refreshInventory();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Transfer failed");
     }
@@ -337,13 +419,17 @@ export default function InventoryScreen() {
     try {
       await api(`/inventory/transfers/${id}/confirm`, { method: "POST", body: "{}" });
       setMessage("Transfer confirmed");
-      await load();
+      await refreshInventory();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Confirm failed");
     }
   }
 
   async function adjustStock() {
+    if (!adjustForm.product_id) {
+      setError("Select a product");
+      return;
+    }
     try {
       await api("/inventory/adjust", {
         method: "POST",
@@ -353,7 +439,8 @@ export default function InventoryScreen() {
         }),
       });
       setMessage("Stock adjusted");
-      await load();
+      setAdjustForm({ product_id: "", quantity_delta: "", reason_code: "adjustment" });
+      await refreshInventory();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Adjust failed");
     }
@@ -416,15 +503,36 @@ export default function InventoryScreen() {
             value={productFilters}
             onChange={setProductFilters}
             searchPlaceholder="Search SKU or name…"
+            embedded
             config={{ showPriceRange: true }}
           />
           {applyListingFilters(products, productFilters, {
             searchText: (p) => `${p.sku} ${p.name}`,
             price: (p) => Number(p.price || 0),
           }).map((p) => (
-            <Text key={p.id} style={styles.body}>
-              {p.sku} · {p.name} · Rs {p.price ?? "—"}
-            </Text>
+            <View
+              key={p.id}
+              style={{
+                marginBottom: 10,
+                flexDirection: "row",
+                justifyContent: "space-between",
+                gap: 8,
+                alignItems: "center",
+              }}
+            >
+              <Text style={[styles.body, { flex: 1 }]}>
+                {p.sku} · {p.name} · Rs {p.price ?? "—"}
+              </Text>
+              <Pressable
+                style={styles.chip}
+                onPress={() => {
+                  setAttachProductId(p.id);
+                  setAttachSupplierId(null);
+                }}
+              >
+                <Text style={styles.chipText}>Attach supplier</Text>
+              </Pressable>
+            </View>
           ))}
         </View>
       ) : null}
@@ -450,60 +558,70 @@ export default function InventoryScreen() {
         <>
           <View style={styles.card}>
             <Text style={styles.section}>New PO</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Supplier ID"
-              value={poForm.supplier_id}
-              onChangeText={(v) => setPoForm({ ...poForm, supplier_id: v })}
-              placeholderTextColor={colors.muted}
-              autoCapitalize="none"
-            />
-            <Text style={styles.hint}>
-              Tip: copy an id from Suppliers tab, or pick first:{" "}
-              {suppliers[0]?.id?.slice(0, 8) || "—"}
-            </Text>
-            <Pressable
-              style={styles.chip}
-              onPress={() =>
-                suppliers[0] &&
-                setPoForm({ ...poForm, supplier_id: suppliers[0].id })
+            <SearchSelect
+              label="Supplier"
+              options={suppliers.map((s) => ({ value: s.id, label: s.name }))}
+              value={poForm.supplier_id || null}
+              onChange={(supplier_id) =>
+                setPoForm((f) => ({ ...f, supplier_id: supplier_id || "" }))
               }
-            >
-              <Text style={styles.chipText}>Use first supplier</Text>
-            </Pressable>
-            <TextInput
-              style={styles.input}
-              placeholder="Product ID"
-              value={poForm.product_id}
-              onChangeText={(v) => setPoForm({ ...poForm, product_id: v })}
-              placeholderTextColor={colors.muted}
-              autoCapitalize="none"
+              placeholder="Select supplier…"
             />
-            <Pressable
-              style={styles.chip}
-              onPress={() =>
-                products[0] &&
-                setPoForm({ ...poForm, product_id: products[0].id })
+            <SearchMultiSelect
+              label="Products"
+              options={products.map((p) => ({
+                value: p.id,
+                label: `${p.name} (${p.sku})`,
+              }))}
+              value={poForm.product_ids}
+              onChange={(product_ids) =>
+                setPoForm((f) => ({
+                  ...f,
+                  product_ids,
+                  quantities: Object.fromEntries(
+                    product_ids.map((id) => [id, f.quantities[id] || "10"])
+                  ),
+                  unit_costs: Object.fromEntries(
+                    product_ids.map((id) => [id, f.unit_costs[id] || "50"])
+                  ),
+                }))
               }
-            >
-              <Text style={styles.chipText}>Use first product</Text>
-            </Pressable>
-            <TextInput
-              style={styles.input}
-              placeholder="Qty"
-              value={poForm.quantity}
-              onChangeText={(v) => setPoForm({ ...poForm, quantity: v })}
-              keyboardType="decimal-pad"
-              placeholderTextColor={colors.muted}
+              placeholder="Select products…"
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Unit cost"
-              value={poForm.unit_cost}
-              onChangeText={(v) => setPoForm({ ...poForm, unit_cost: v })}
-              keyboardType="decimal-pad"
-              placeholderTextColor={colors.muted}
-            />
+            {poForm.product_ids.map((id) => {
+              const p = products.find((x) => x.id === id);
+              return (
+                <View key={id} style={{ marginBottom: 8 }}>
+                  <Text style={styles.hint}>{p?.name || id}</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Qty"
+                    value={poForm.quantities[id] || ""}
+                    onChangeText={(v) =>
+                      setPoForm((f) => ({
+                        ...f,
+                        quantities: { ...f.quantities, [id]: v },
+                      }))
+                    }
+                    keyboardType="decimal-pad"
+                    placeholderTextColor={colors.muted}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Unit cost"
+                    value={poForm.unit_costs[id] || ""}
+                    onChangeText={(v) =>
+                      setPoForm((f) => ({
+                        ...f,
+                        unit_costs: { ...f.unit_costs, [id]: v },
+                      }))
+                    }
+                    keyboardType="decimal-pad"
+                    placeholderTextColor={colors.muted}
+                  />
+                </View>
+              );
+            })}
             <Pressable style={styles.btn} onPress={createPO}>
               <Text style={styles.btnText}>Create PO</Text>
             </Pressable>
@@ -576,23 +694,19 @@ export default function InventoryScreen() {
 
       {tab === "adjust" ? (
         <View style={styles.card}>
-          <Pressable
-            style={styles.chip}
-            onPress={() =>
-              products[0] &&
-              setAdjustForm({ ...adjustForm, product_id: products[0].id })
+          <SearchSelect
+            label="Product"
+            options={products.map((p) => ({
+              value: p.id,
+              label: `${p.name} (${p.sku})`,
+            }))}
+            value={adjustForm.product_id || null}
+            onChange={(product_id) =>
+              setAdjustForm((f) => ({ ...f, product_id: product_id || "" }))
             }
-          >
-            <Text style={styles.chipText}>Use first product</Text>
-          </Pressable>
-          <TextInput
-            style={styles.input}
-            value={adjustForm.product_id}
-            onChangeText={(v) => setAdjustForm({ ...adjustForm, product_id: v })}
-            placeholder="Product ID"
-            placeholderTextColor={colors.muted}
-            autoCapitalize="none"
+            placeholder="Select product"
           />
+          <View style={{ height: 12 }} />
           <TextInput
             style={styles.input}
             value={adjustForm.quantity_delta}
@@ -794,6 +908,24 @@ export default function InventoryScreen() {
             </View>
           );
         })}
+      </FormModal>
+
+      <FormModal
+        visible={!!attachProductId}
+        title="Attach supplier"
+        onClose={() => {
+          setAttachProductId(null);
+          setAttachSupplierId(null);
+        }}
+        onSubmit={attachSupplier}
+      >
+        <SearchSelect
+          label="Supplier"
+          options={suppliers.map((s) => ({ value: s.id, label: s.name }))}
+          value={attachSupplierId}
+          onChange={setAttachSupplierId}
+          placeholder="Select supplier…"
+        />
       </FormModal>
 
       <BarcodeScannerModal

@@ -177,7 +177,14 @@
     "footprintDesc": "Wechseln Sie jederzeit über die obere Leiste zum Unternehmen oder zur Branche – jede Seite folgt diesem Kontext.",
     "businesses": "Unternehmen",
     "branches": "Filialen",
-    "loadFailed": "Das Dashboard konnte nicht geladen werden"
+    "loadFailed": "Das Dashboard konnte nicht geladen werden",
+    "trendsTitle": "Verkaufstrends",
+    "revenueOverTime": "Umsatz im Zeitverlauf",
+    "ordersOverTime": "Bestellungen im Zeitverlauf",
+    "chartsDesc": "Umsatz und Bestellvolumen für den gewählten Zeitraum.",
+    "rangeRevenue": "Umsatz im Zeitraum",
+    "rangeOrders": "Bestellungen im Zeitraum",
+    "noChartData": "Keine Verkäufe in diesem Zeitraum"
   },
   "inventory": {
     "eyebrow": "Inventar",
@@ -222,7 +229,22 @@
     "products": "Produkte",
     "selectProducts": "Produkte auswählen",
     "quantities": "Mengen",
-    "confirm": "Bestätigen"
+    "confirm": "Bestätigen",
+    "searchProductsList": "Produkte nach Name, SKU, Barcode suchen…",
+    "searchSuppliers": "Lieferanten, Stadt, Kontakt suchen…",
+    "searchPos": "Bestellungen suchen…",
+    "searchTransfers": "Transfers suchen…",
+    "statusPending": "Ausstehend",
+    "statusConfirmed": "Bestätigt",
+    "noTransfers": "Noch keine Transfers",
+    "noTransfersBody": "Erstellen Sie einen Transfer, um Bestand zwischen Filialen zu bewegen.",
+    "poModalDesc": "Erstellen Sie eine Entwurfsbestellung für die aktive Filiale.",
+    "createPo": "Bestellung erstellen",
+    "supplier": "Lieferant",
+    "selectSupplier": "Lieferant auswählen…",
+    "unitCost": "Stückkosten",
+    "product": "Produkt",
+    "selectProduct": "Produkt auswählen…"
   },
   "pos": {
     "tillOpen": "Bis geöffnet",
@@ -295,7 +317,9 @@
     "returnSubmitted": "Rückgabe eingereicht",
     "returnApproved": "Rücksendung genehmigt",
     "returnRejected": "Rücksendung abgelehnt",
-    "loadFailed": "Fehler beim Laden der Retouren"
+    "loadFailed": "Fehler beim Laden der Retouren",
+    "searchReturns": "Rückgaben suchen…",
+    "searchTills": "Kassen suchen…"
   },
   "accounting": {
     "eyebrow": "Bücher",
@@ -323,7 +347,12 @@
     "journalFailed": "Journal fehlgeschlagen",
     "reverseFailed": "Umkehrung fehlgeschlagen",
     "accountUpdateFailed": "Kontoaktualisierung fehlgeschlagen",
-    "manageCustomersHint": "Kunden-Khata verwalten auf"
+    "manageCustomersHint": "Kunden-Khata verwalten auf",
+    "searchAccounts": "Konten suchen…",
+    "searchJournals": "Journale suchen…",
+    "searchInvoices": "Rechnungen suchen…",
+    "searchBills": "Rechnungen suchen…",
+    "searchRows": "Zeilen suchen…"
   },
   "hr": {
     "eyebrow": "Menschen",
@@ -342,7 +371,10 @@
     "inviteSent": "Einladung gesendet",
     "payrollRun": "Lohn- und Gehaltsabrechnungslauf gestartet",
     "leaveApproved": "Urlaub genehmigt",
-    "leaveRejected": "Urlaub abgelehnt"
+    "leaveRejected": "Urlaub abgelehnt",
+    "searchEmployees": "Mitarbeiter suchen…",
+    "searchAttendance": "Anwesenheit suchen…",
+    "searchLeave": "Urlaub suchen…"
   },
   "reports": {
     "eyebrow": "Einblicke",
@@ -655,7 +687,8 @@
   "searchSelect": {
     "search": "Suchen…",
     "noMatches": "Keine Treffer",
-    "selected": "{count} ausgewählt"
+    "selected": "{count} ausgewählt",
+    "select": "Auswählen…"
   },
   "marketplace": {
     "priceRange": "Preisspanne",
@@ -677,5 +710,25 @@
     "multiShopCartHint": "Sie können in einem Checkout bei mehreren Geschäften kaufen. Jedes Geschäft ist eine separate Abholbestellung.",
     "discoverProductsHero": "Produkte aller gelisteten Shops durchsuchen. Aus einem oder mehreren Geschäften hinzufügen — der Checkout erstellt pro Shop eine Abholbestellung.",
     "backToDiscover": "Zurück zu Entdecken"
+  },
+  "table": {
+    "export": "Exportieren",
+    "exportPdf": "PDF",
+    "exportXls": "XLS",
+    "exportPrint": "Print",
+    "rowsPerPage": "Zeilen pro Seite",
+    "prev": "Zurück",
+    "next": "Weiter",
+    "pageOf": "Page {page} of {pages}",
+    "row": "row",
+    "rows": "rows",
+    "visibleOfTotal": "{visible} of {total} rows",
+    "noMatches": "No matches",
+    "noMatchesBody": "Nothing matched your search. Try another term.",
+    "attachSupplier": "Lieferant verknüpfen",
+    "suppliersAttached": "Suppliers"
+  },
+  "sales": {
+    "searchInvoice": "Rechnung oder Kunde suchen…"
   }
 }

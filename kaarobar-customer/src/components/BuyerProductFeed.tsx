@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -7,11 +7,13 @@ import {
   Text,
   View,
 } from "react-native";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useNavigation } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
 import { api, colors } from "../lib/api";
 import { t } from "../lib/i18n";
 import { pushPath } from "../lib/nav";
+import { marketplaceKeys } from "../lib/queryClient";
 import {
   emptyMarketplaceFeedFilters,
   marketplaceProductsQuery,
@@ -32,6 +34,16 @@ type Props = {
   ListHeaderComponent?: React.ReactElement | null;
 };
 
+function filtersKey(filters: MarketplaceFeedFilters): Record<string, unknown> {
+  return {
+    search: filters.search.trim(),
+    categories: [...filters.categories].sort(),
+    industries: [...filters.industries].sort(),
+    priceMin: filters.priceMin.trim(),
+    priceMax: filters.priceMax.trim(),
+  };
+}
+
 /** Paginated cross-business product feed for Discover / Products. */
 export default function BuyerProductFeed({ ListHeaderComponent }: Props) {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
@@ -41,87 +53,78 @@ export default function BuyerProductFeed({ ListHeaderComponent }: Props) {
   const [filters, setFilters] = useState<MarketplaceFeedFilters>(
     emptyMarketplaceFeedFilters()
   );
-  const [products, setProducts] = useState<MarketplaceFeedProduct[]>([]);
-  const [meta, setMeta] = useState<MarketplaceFeedMeta | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [industries, setIndustries] = useState<string[]>([]);
+  const [debouncedFilters, setDebouncedFilters] = useState(filters);
 
-  const loadPage = useCallback(
-    async (cursor: string | null, append: boolean) => {
-      if (append) setLoadingMore(true);
-      else setLoading(true);
-      try {
-        const path = marketplaceProductsQuery(filters, {
-          cursor,
-          limit: PAGE_SIZE,
-        });
-        const res = await api<{
-          data: MarketplaceFeedProduct[];
-          meta?: MarketplaceFeedMeta;
-        }>(path, {}, null);
-        const rows = Array.isArray(res.data) ? res.data : [];
-        setProducts((prev) => (append ? [...prev, ...rows] : rows));
-        setMeta(res.meta ?? { limit: PAGE_SIZE, next_cursor: null });
-        setError(null);
-        setCategories((prev) => {
-          const set = new Set(append ? prev : []);
-          for (const p of rows) {
-            if (p.category?.trim()) set.add(p.category.trim());
-          }
-          return Array.from(set).sort((a, b) => a.localeCompare(b));
-        });
-        setIndustries((prev) => {
-          const set = new Set(prev);
-          for (const p of rows) {
-            if (p.industry?.trim()) set.add(p.industry.trim());
-          }
-          return Array.from(set).sort((a, b) => a.localeCompare(b));
-        });
-      } catch (err) {
-        if (!append) {
-          setProducts([]);
-          setMeta(null);
-        }
-        setError(err instanceof Error ? err.message : t("common.loadFailed"));
-      } finally {
-        setLoading(false);
-        setLoadingMore(false);
-      }
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedFilters(filters), 220);
+    return () => clearTimeout(timer);
+  }, [filters]);
+
+  const productsQuery = useInfiniteQuery({
+    queryKey: marketplaceKeys.products(filtersKey(debouncedFilters)),
+    queryFn: async ({ pageParam }) => {
+      const path = marketplaceProductsQuery(debouncedFilters, {
+        cursor: pageParam,
+        limit: PAGE_SIZE,
+      });
+      const res = await api<{
+        data: MarketplaceFeedProduct[];
+        meta?: MarketplaceFeedMeta;
+      }>(path, {}, null);
+      return {
+        data: Array.isArray(res.data) ? res.data : [],
+        meta: res.meta ?? { limit: PAGE_SIZE, next_cursor: null },
+      };
     },
-    [filters]
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => last.meta.next_cursor ?? undefined,
+  });
+
+  const businessesQuery = useQuery({
+    queryKey: marketplaceKeys.businesses({}),
+    queryFn: async () => {
+      const res = await api<{ data: { industry?: string | null }[] }>(
+        "/marketplace/businesses",
+        {},
+        null
+      );
+      return res.data || [];
+    },
+  });
+
+  const products = useMemo(
+    () => productsQuery.data?.pages.flatMap((p) => p.data) ?? [],
+    [productsQuery.data]
   );
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      void loadPage(null, false);
-    }, 220);
-    return () => clearTimeout(timer);
-  }, [loadPage]);
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of products) {
+      if (p.category?.trim()) set.add(p.category.trim());
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [products]);
 
-  useEffect(() => {
-    void api<{ data: { industry?: string | null }[] }>(
-      "/marketplace/businesses",
-      {},
-      null
-    )
-      .then((res) => {
-        const set = new Set<string>();
-        for (const b of res.data || []) {
-          if (b.industry?.trim()) set.add(b.industry.trim());
-        }
-        setIndustries((prev) =>
-          Array.from(new Set([...prev, ...set])).sort((a, b) =>
-            a.localeCompare(b)
-          )
-        );
-      })
-      .catch(() => undefined);
-  }, []);
+  const industries = useMemo(() => {
+    const set = new Set<string>();
+    for (const b of businessesQuery.data || []) {
+      if (b.industry?.trim()) set.add(b.industry.trim());
+    }
+    for (const p of products) {
+      if (p.industry?.trim()) set.add(p.industry.trim());
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [businessesQuery.data, products]);
 
-  const nextCursor = meta?.next_cursor ?? null;
+  const loading = productsQuery.isLoading;
+  const loadingMore = productsQuery.isFetchingNextPage;
+  const errorMessage =
+    productsQuery.error instanceof Error
+      ? productsQuery.error.message
+      : productsQuery.error
+        ? t("common.loadFailed")
+        : null;
+  const hasNextPage = productsQuery.hasNextPage;
 
   const filterBar = (
     <View style={styles.filterWrap}>
@@ -139,7 +142,7 @@ export default function BuyerProductFeed({ ListHeaderComponent }: Props) {
     <View>
       {ListHeaderComponent}
       {filterBar}
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
     </View>
   );
 
@@ -173,10 +176,10 @@ export default function BuyerProductFeed({ ListHeaderComponent }: Props) {
         />
       }
       ListFooterComponent={
-        nextCursor ? (
+        hasNextPage ? (
           <Pressable
             style={styles.loadMore}
-            onPress={() => void loadPage(nextCursor, true)}
+            onPress={() => void productsQuery.fetchNextPage()}
             disabled={loadingMore}
           >
             {loadingMore ? (
@@ -212,7 +215,7 @@ export default function BuyerProductFeed({ ListHeaderComponent }: Props) {
   );
 }
 
-function createStyles(palette: { brand: string; brandSoft: string }) {
+function createStyles(_palette: { brand: string; brandSoft: string }) {
   return StyleSheet.create({
     list: { paddingBottom: 24, gap: 0 },
     row: { gap: 10, paddingHorizontal: 16, marginBottom: 10 },

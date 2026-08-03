@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { Minus, Plus, ShoppingCart, Store } from "lucide-react";
 import { api, isConsumerSession } from "@/lib/api/client";
 import { useCart } from "@/lib/cart";
@@ -20,6 +21,7 @@ import {
 import { BuyerOrderDetailSkeleton } from "@/components/buyer/BuyerSkeletons";
 import { useT } from "@/lib/i18n";
 import InfoButton from "@/components/ui/InfoButton";
+import { marketplaceKeys } from "@/lib/queryClient";
 
 type Product = {
   id: string;
@@ -54,30 +56,37 @@ export default function BuyerProductDetail() {
   const storeKey = params.id;
   const productId = params.productId;
 
-  const [business, setBusiness] = useState<StoreBiz | null>(null);
-  const [product, setProduct] = useState<Product | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [qty, setQty] = useState(1);
   const [adding, setAdding] = useState(false);
   const signedIn = isConsumerSession();
 
-  useEffect(() => {
-    setLoading(true);
-    void api<{
-      data: { business: StoreBiz; products: Product[] };
-    }>(`/marketplace/businesses/${storeKey}/catalog`, {}, null)
-      .then((res) => {
-        setBusiness(res.data.business);
-        const found = (res.data.products || []).find((p) => p.id === productId) || null;
-        setProduct(found);
-        setError(found ? null : t("marketplace.productNotFound"));
-      })
-      .catch((err) =>
-        setError(err instanceof Error ? err.message : t("common.loadFailed"))
-      )
-      .finally(() => setLoading(false));
-  }, [storeKey, productId, t]);
+  // Share catalog cache with store page (no marketplace product-by-id API yet).
+  const catalogQuery = useQuery({
+    queryKey: marketplaceKeys.catalog(storeKey),
+    queryFn: async () => {
+      const res = await api<{
+        data: { business: StoreBiz; products: Product[] };
+      }>(`/marketplace/businesses/${storeKey}/catalog`, {}, null);
+      return {
+        business: res.data.business,
+        products: res.data.products || [],
+      };
+    },
+    enabled: !!storeKey && !!productId,
+  });
+
+  const business = catalogQuery.data?.business ?? null;
+  const product =
+    catalogQuery.data?.products.find((p) => p.id === productId) ?? null;
+  const loading = catalogQuery.isLoading;
+  const error =
+    catalogQuery.error instanceof Error
+      ? catalogQuery.error.message
+      : catalogQuery.error
+        ? t("common.loadFailed")
+        : !loading && catalogQuery.isSuccess && !product
+          ? t("marketplace.productNotFound")
+          : null;
 
   function requireSignIn(): boolean {
     if (!signedIn) {

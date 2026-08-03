@@ -177,7 +177,14 @@
     "footprintDesc": "Cambie de empresa o sucursal en cualquier momento desde la barra superior; cada página sigue ese contexto.",
     "businesses": "Empresas",
     "branches": "Sucursales",
-    "loadFailed": "No se pudo cargar el panel"
+    "loadFailed": "No se pudo cargar el panel",
+    "trendsTitle": "Tendencias de ventas",
+    "revenueOverTime": "Ingresos en el tiempo",
+    "ordersOverTime": "Pedidos en el tiempo",
+    "chartsDesc": "Ingresos y volumen de pedidos para el rango de fechas seleccionado.",
+    "rangeRevenue": "Ingresos en el rango",
+    "rangeOrders": "Pedidos en el rango",
+    "noChartData": "No hay ventas en este rango de fechas"
   },
   "inventory": {
     "eyebrow": "Inventario",
@@ -222,7 +229,22 @@
     "products": "Productos",
     "selectProducts": "Seleccionar productos",
     "quantities": "Cantidades",
-    "confirm": "Confirmar"
+    "confirm": "Confirmar",
+    "searchProductsList": "Buscar productos por nombre, SKU, código…",
+    "searchSuppliers": "Buscar proveedores, ciudad, contacto…",
+    "searchPos": "Buscar pedidos…",
+    "searchTransfers": "Buscar transferencias…",
+    "statusPending": "Pendiente",
+    "statusConfirmed": "Confirmado",
+    "noTransfers": "Aún no hay transferencias",
+    "noTransfersBody": "Cree una transferencia para mover stock entre sucursales.",
+    "poModalDesc": "Cree un pedido borrador para la sucursal activa.",
+    "createPo": "Crear pedido",
+    "supplier": "Proveedor",
+    "selectSupplier": "Seleccionar proveedor…",
+    "unitCost": "Costo unitario",
+    "product": "Producto",
+    "selectProduct": "Seleccionar producto…"
   },
   "pos": {
     "tillOpen": "Hasta que se abra",
@@ -295,7 +317,9 @@
     "returnSubmitted": "Devolución enviada",
     "returnApproved": "Devolución aprobada",
     "returnRejected": "Devolución rechazada",
-    "loadFailed": "No se pudieron cargar las devoluciones"
+    "loadFailed": "No se pudieron cargar las devoluciones",
+    "searchReturns": "Buscar devoluciones…",
+    "searchTills": "Buscar cajas…"
   },
   "accounting": {
     "eyebrow": "Libros",
@@ -323,7 +347,12 @@
     "journalFailed": "Error en el diario",
     "reverseFailed": "Error al revertir",
     "accountUpdateFailed": "Error al actualizar la cuenta",
-    "manageCustomersHint": "Administrar khata del cliente en"
+    "manageCustomersHint": "Administrar khata del cliente en",
+    "searchAccounts": "Buscar cuentas…",
+    "searchJournals": "Buscar diarios…",
+    "searchInvoices": "Buscar facturas…",
+    "searchBills": "Buscar facturas…",
+    "searchRows": "Buscar filas…"
   },
   "hr": {
     "eyebrow": "Personas",
@@ -342,7 +371,10 @@
     "inviteSent": "Invitación enviada",
     "payrollRun": "Ejecución de nómina iniciada",
     "leaveApproved": "Dejar aprobado",
-    "leaveRejected": "Licencia rechazada"
+    "leaveRejected": "Licencia rechazada",
+    "searchEmployees": "Buscar empleados…",
+    "searchAttendance": "Buscar asistencia…",
+    "searchLeave": "Buscar permisos…"
   },
   "reports": {
     "eyebrow": "Perspectivas",
@@ -655,7 +687,8 @@
   "searchSelect": {
     "search": "Buscar…",
     "noMatches": "Sin coincidencias",
-    "selected": "{count} seleccionados"
+    "selected": "{count} seleccionados",
+    "select": "Seleccionar…"
   },
   "marketplace": {
     "priceRange": "Rango de precio",
@@ -677,5 +710,25 @@
     "multiShopCartHint": "Puedes comprar en varias tiendas en un solo pago. Cada tienda es un pedido de recogida aparte.",
     "discoverProductsHero": "Explora productos de todas las tiendas listadas. Añade desde una o varias — el checkout crea un pedido de recogida por tienda.",
     "backToDiscover": "Volver a Descubrir"
+  },
+  "table": {
+    "export": "Exportar",
+    "exportPdf": "PDF",
+    "exportXls": "XLS",
+    "exportPrint": "Print",
+    "rowsPerPage": "Filas por página",
+    "prev": "Ant",
+    "next": "Siguiente",
+    "pageOf": "Page {page} of {pages}",
+    "row": "row",
+    "rows": "rows",
+    "visibleOfTotal": "{visible} of {total} rows",
+    "noMatches": "No matches",
+    "noMatchesBody": "Nothing matched your search. Try another term.",
+    "attachSupplier": "Vincular proveedor",
+    "suppliersAttached": "Suppliers"
+  },
+  "sales": {
+    "searchInvoice": "Buscar factura o cliente…"
   }
 }

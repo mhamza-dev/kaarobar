@@ -76,7 +76,7 @@ export default function ArInvoiceDetailPage() {
 
   return (
     <DetailShell
-      backHref={routes.accounting}
+      backHref={`${routes.accounting}?tab=ar`}
       backLabel="Back to accounting"
       eyebrow="AR invoice"
       title={invoice?.invoice_number || "Invoice"}

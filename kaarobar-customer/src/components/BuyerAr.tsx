@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBrandPalette } from "../lib/BrandThemeContext";
 import {
   ActivityIndicator,
@@ -10,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { api, colors, getSession } from "../lib/api";
+import { portalKeys } from "../lib/queryClient";
 import { useToast } from "./Toast";
 import BuyerNav from "./BuyerNav";
 import { BuyerEmptyPanel, BuyerHero } from "./BuyerLayout";
@@ -33,55 +35,41 @@ type Balance = {
   balance: string;
 };
 
+type ArPayload = {
+  balances: Balance[];
+  invoices: Invoice[];
+  memberships: { business_id: string; business_name?: string | null }[];
+};
+
 /** Buyer view of `/app/accounting`. */
 export default function BuyerAr() {
   const palette = useBrandPalette();
   const styles = useMemo(() => createStyles(palette), [palette]);
   const toast = useToast();
-  const [balances, setBalances] = useState<Balance[]>([]);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [selected, setSelected] = useState<Invoice | null>(null);
-  const [memberships, setMemberships] = useState<
-    { business_id: string; business_name?: string | null }[]
-  >([]);
 
-  function nameFor(id?: string | null) {
-    if (!id) return t("marketplace.store");
-    const fromBal = balances.find((b) => b.business_id === id)?.business_name;
-    if (fromBal) return fromBal;
-    return (
-      memberships.find((m) => m.business_id === id)?.business_name ||
-      `${id.slice(0, 8)}…`
-    );
-  }
-
-  async function load() {
-    const session = await getSession();
-    setMemberships(session?.buyer_memberships || []);
-    const res = await api<{
-      data: {
-        balances: Balance[];
-        invoices: Invoice[];
+  const arQuery = useQuery({
+    queryKey: portalKeys.ar(),
+    queryFn: async (): Promise<ArPayload> => {
+      const session = await getSession();
+      const res = await api<{
+        data: {
+          balances: Balance[];
+          invoices: Invoice[];
+        };
+      }>("/portal/ar");
+      return {
+        balances: res.data.balances || [],
+        invoices: res.data.invoices || [],
+        memberships: session?.buyer_memberships || [],
       };
-    }>("/portal/ar");
-    setBalances(res.data.balances || []);
-    setInvoices(res.data.invoices || []);
-  }
+    },
+  });
 
-  useEffect(() => {
-    void load()
-      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load"))
-      .finally(() => setLoading(false));
-  }, []);
-
-  async function pay(invoice: Invoice) {
-    setBusy(true);
-    setError(null);
-    try {
-      await api("/portal/ar/pay", {
+  const payMutation = useMutation({
+    mutationFn: (invoice: Invoice) =>
+      api("/portal/ar/pay", {
         method: "POST",
         body: JSON.stringify({
           invoice_id: invoice.id,
@@ -89,15 +77,37 @@ export default function BuyerAr() {
           method: "card",
           business_id: invoice.business_id,
         }),
-      });
+      }),
+    onSuccess: () => {
       toast.success(t("marketplace.paymentRecorded"));
       setSelected(null);
-      await load();
-    } catch (err) {
+      void queryClient.invalidateQueries({ queryKey: portalKeys.ar() });
+    },
+    onError: (err) => {
       toast.error(err instanceof Error ? err.message : t("marketplace.paymentFailed"));
-    } finally {
-      setBusy(false);
-    }
+    },
+  });
+
+  const balances: Balance[] = arQuery.data?.balances ?? [];
+  const invoices: Invoice[] = arQuery.data?.invoices ?? [];
+  const memberships: { business_id: string; business_name?: string | null }[] =
+    arQuery.data?.memberships ?? [];
+  const loading = arQuery.isLoading;
+  const errorMessage =
+    arQuery.error instanceof Error
+      ? arQuery.error.message
+      : arQuery.error
+        ? "Failed to load"
+        : null;
+
+  function nameFor(id?: string | null) {
+    if (!id) return t("marketplace.store");
+    const fromBal = balances.find((b: Balance) => b.business_id === id)?.business_name;
+    if (fromBal) return fromBal;
+    return (
+      memberships.find((m) => m.business_id === id)?.business_name ||
+      `${id.slice(0, 8)}…`
+    );
   }
 
   return (
@@ -108,7 +118,7 @@ export default function BuyerAr() {
         title={t("pages.buyerArTitle")}
         description={t("pages.buyerArDesc")}
       />
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
       {loading ? (
         <BuyerArSkeleton />
       ) : (
@@ -189,11 +199,11 @@ export default function BuyerAr() {
                 <Text style={styles.amount}>Rs {selected.balance_due}</Text>
                 <Text style={styles.meta}>{t("marketplace.balanceDue")}</Text>
                 <Pressable
-                  style={[styles.pay, busy && { opacity: 0.5 }]}
-                  disabled={busy}
-                  onPress={() => void pay(selected)}
+                  style={[styles.pay, payMutation.isPending && { opacity: 0.5 }]}
+                  disabled={payMutation.isPending}
+                  onPress={() => payMutation.mutate(selected)}
                 >
-                  {busy ? (
+                  {payMutation.isPending ? (
                     <ActivityIndicator color={colors.white} />
                   ) : (
                     <Text style={styles.payText}>

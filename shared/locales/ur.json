@@ -341,7 +341,14 @@
     "footprintDesc": "اوپر سے کاروبار یا برانچ بدلیں — ہر صفحہ اسی سیاق میں رہے گا۔",
     "businesses": "کاروبار",
     "branches": "برانچز",
-    "loadFailed": "ڈیش بورڈ لوڈ نہیں ہو سکا"
+    "loadFailed": "ڈیش بورڈ لوڈ نہیں ہو سکا",
+    "trendsTitle": "سیلز کے رجحانات",
+    "revenueOverTime": "وقت کے ساتھ آمدنی",
+    "ordersOverTime": "وقت کے ساتھ آرڈرز",
+    "chartsDesc": "منتخب تاریخ کی حد میں آمدنی اور آرڈر کا حجم۔",
+    "rangeRevenue": "حد میں آمدنی",
+    "rangeOrders": "حد میں آرڈرز",
+    "noChartData": "اس تاریخ کی حد میں کوئی سیلز نہیں"
   },
   "inventory": {
     "eyebrow": "انوینٹری",
@@ -386,7 +393,22 @@
     "products": "Products",
     "selectProducts": "Select products",
     "quantities": "Quantities",
-    "confirm": "Confirm"
+    "confirm": "Confirm",
+    "searchProductsList": "نام، ایس کے یو، بارکوڈ تلاش…",
+    "searchSuppliers": "سپلائر، شہر، رابطہ تلاش…",
+    "searchPos": "خریداری آرڈر تلاش…",
+    "searchTransfers": "ٹرانسفر تلاش…",
+    "statusPending": "زیر التوا",
+    "statusConfirmed": "تصدیق شدہ",
+    "noTransfers": "ابھی کوئی ٹرانسفر نہیں",
+    "noTransfersBody": "برانچز کے درمیان اسٹاک منتقل کرنے کے لیے ٹرانسفر بنائیں۔",
+    "poModalDesc": "فعال برانچ کے لیے مسودہ خریداری آرڈر بنائیں۔",
+    "createPo": "PO بنائیں",
+    "supplier": "سپلائر",
+    "selectSupplier": "سپلائر منتخب کریں…",
+    "unitCost": "یونٹ لاگت",
+    "product": "پروڈکٹ",
+    "selectProduct": "پروڈکٹ منتخب کریں…"
   },
   "pos": {
     "tillOpen": "ٹل کھل گیا",
@@ -459,7 +481,9 @@
     "returnSubmitted": "واپسی جمع ہو گئی",
     "returnApproved": "واپسی منظور ہوئی",
     "returnRejected": "واپسی مسترد ہوئی",
-    "loadFailed": "واپسیاں لوڈ نہیں ہو سکیں"
+    "loadFailed": "واپسیاں لوڈ نہیں ہو سکیں",
+    "searchReturns": "واپسی تلاش…",
+    "searchTills": "ٹلز تلاش…"
   },
   "accounting": {
     "eyebrow": "کھاتے",
@@ -487,7 +511,12 @@
     "journalFailed": "جرنل نہیں پوسٹ ہو سکا",
     "reverseFailed": "ریورسل نہیں ہو سکی",
     "accountUpdateFailed": "اکاؤنٹ اپ ڈیٹ نہیں ہو سکا",
-    "manageCustomersHint": "گاہک کھاتہ یہاں سنبھالیں:"
+    "manageCustomersHint": "گاہک کھاتہ یہاں سنبھالیں:",
+    "searchAccounts": "اکاؤنٹس تلاش…",
+    "searchJournals": "جرنلز تلاش…",
+    "searchInvoices": "انوائس تلاش…",
+    "searchBills": "بلز تلاش…",
+    "searchRows": "قطاریں تلاش…"
   },
   "hr": {
     "eyebrow": "عملہ",
@@ -506,7 +535,10 @@
     "inviteSent": "دعوت بھیج دی گئی",
     "payrollRun": "پے رول شروع ہو گیا",
     "leaveApproved": "چھٹی منظور ہوئی",
-    "leaveRejected": "چھٹی مسترد ہوئی"
+    "leaveRejected": "چھٹی مسترد ہوئی",
+    "searchEmployees": "ملازمین تلاش…",
+    "searchAttendance": "حاضری تلاش…",
+    "searchLeave": "چھٹی تلاش…"
   },
   "reports": {
     "eyebrow": "تجزیہ",
@@ -818,6 +850,10 @@
   "searchSelect": {
     "search": "Search…",
     "noMatches": "No matches",
-    "selected": "{count} selected"
+    "selected": "{count} selected",
+    "select": "منتخب کریں…"
+  },
+  "sales": {
+    "searchInvoice": "انوائس یا گاہک تلاش…"
   }
 }

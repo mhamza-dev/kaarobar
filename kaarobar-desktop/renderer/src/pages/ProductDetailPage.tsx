@@ -44,7 +44,7 @@ export default function ProductDetailPage() {
 
   return (
     <DetailShell
-      backHref={routes.inventory}
+      backHref={`${routes.inventory}?tab=products`}
       backLabel="Back to inventory"
       eyebrow="Product"
       title={product?.name || "Product"}

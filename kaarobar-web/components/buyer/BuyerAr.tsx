@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Wallet } from "lucide-react";
 import { api, getSession } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
@@ -20,6 +21,7 @@ import {
 } from "@/components/buyer/BuyerLayout";
 import { BuyerArSkeleton } from "@/components/buyer/BuyerSkeletons";
 import { useT } from "@/lib/i18n";
+import { portalKeys } from "@/lib/queryClient";
 
 type Invoice = {
   id: string;
@@ -38,15 +40,16 @@ type Balance = {
   balance: string;
 };
 
+type ArPayload = {
+  balances: Balance[];
+  invoices: Invoice[];
+};
+
 /** Buyer view of `/app/accounting`. */
 export default function BuyerAr() {
   const toast = useToast();
   const t = useT();
-  const [balances, setBalances] = useState<Balance[]>([]);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [selected, setSelected] = useState<Invoice | null>(null);
 
   const memberships = getSession()?.buyer_memberships || [];
@@ -59,45 +62,51 @@ export default function BuyerAr() {
     );
   }
 
-  async function load() {
-    const res = await api<{
-      data: {
-        balances: Balance[];
-        invoices: Invoice[];
+  const arQuery = useQuery({
+    queryKey: portalKeys.ar(),
+    queryFn: async (): Promise<ArPayload> => {
+      const res = await api<{
+        data: {
+          balances: Balance[];
+          invoices: Invoice[];
+        };
+      }>("/portal/ar");
+      return {
+        balances: res.data.balances || [],
+        invoices: res.data.invoices || [],
       };
-    }>("/portal/ar");
-    setBalances(res.data.balances || []);
-    setInvoices(res.data.invoices || []);
-  }
+    },
+  });
 
-  useEffect(() => {
-    void load()
-      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load"))
-      .finally(() => setLoading(false));
-  }, []);
-
-  async function pay(invoice: Invoice) {
-    setBusy(true);
-    setError(null);
-    try {
-      await api("/portal/ar/pay", {
+  const payMutation = useMutation({
+    mutationFn: (invoice: Invoice) =>
+      api("/portal/ar/pay", {
         method: "POST",
         body: JSON.stringify({
           invoice_id: invoice.id,
           amount: invoice.balance_due,
           method: "wallet",
         }),
-      });
+      }),
+    onSuccess: () => {
       toast.success(t("marketplace.paymentRecorded"));
       setSelected(null);
-      await load();
-    } catch (err) {
+      void queryClient.invalidateQueries({ queryKey: portalKeys.ar() });
+    },
+    onError: (err) => {
       toast.error(err instanceof Error ? err.message : t("marketplace.paymentFailed"));
-    } finally {
-      setBusy(false);
-    }
-  }
+    },
+  });
 
+  const balances = arQuery.data?.balances || [];
+  const invoices = arQuery.data?.invoices || [];
+  const loading = arQuery.isLoading;
+  const errorMessage =
+    arQuery.error instanceof Error
+      ? arQuery.error.message
+      : arQuery.error
+        ? "Failed to load"
+        : null;
   const openCount = invoices.filter((i) => Number(i.balance_due) > 0).length;
 
   return (
@@ -109,7 +118,7 @@ export default function BuyerAr() {
         description={t("pages.buyerArDesc")}
         infoKey="page.buyer.ar"
       />
-      {error ? <Alert tone="error">{error}</Alert> : null}
+      {errorMessage ? <Alert tone="error">{errorMessage}</Alert> : null}
       {loading ? (
         <BuyerArSkeleton />
       ) : (
@@ -212,8 +221,8 @@ export default function BuyerAr() {
           selected ? (
             <Button
               className="w-full rounded-md sm:w-auto"
-              loading={busy}
-              onClick={() => void pay(selected)}
+              loading={payMutation.isPending}
+              onClick={() => payMutation.mutate(selected)}
             >
               {t("marketplace.payNow")} · Rs {selected.balance_due}
             </Button>

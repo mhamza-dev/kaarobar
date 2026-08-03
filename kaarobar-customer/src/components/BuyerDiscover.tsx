@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   Image,
@@ -7,11 +7,13 @@ import {
   Text,
   View,
 } from "react-native";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useQuery } from "@tanstack/react-query";
+import { useNavigation } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
 import { api, colors } from "../lib/api";
 import { t } from "../lib/i18n";
 import { pushPath } from "../lib/nav";
+import { marketplaceKeys } from "../lib/queryClient";
 import { useBrandPalette } from "../lib/BrandThemeContext";
 import BuyerNav from "./BuyerNav";
 import { BuyerEmptyPanel, BuyerHero } from "./BuyerLayout";
@@ -47,40 +49,37 @@ export default function BuyerDiscover() {
   const [shopFilters, setShopFilters] = useState<MarketplaceFeedFilters>(
     emptyMarketplaceFeedFilters()
   );
-  const [businesses, setBusinesses] = useState<Biz[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loadingShops, setLoadingShops] = useState(false);
+  const [debouncedSearch, setDebouncedSearch] = useState(shopFilters.search);
 
-  useFocusEffect(
-    useCallback(() => {
-      if (mode !== "shops") return;
-      let cancelled = false;
-      (async () => {
-        setLoadingShops(true);
-        try {
-          const q = shopFilters.search.trim();
-          const res = await api<{ data: Biz[] }>(
-            `/marketplace/businesses${q ? `?q=${encodeURIComponent(q)}` : ""}`,
-            {},
-            null
-          );
-          if (!cancelled) {
-            setBusinesses(res.data || []);
-            setError(null);
-          }
-        } catch (err) {
-          if (!cancelled) {
-            setError(err instanceof Error ? err.message : t("common.loadFailed"));
-          }
-        } finally {
-          if (!cancelled) setLoadingShops(false);
-        }
-      })();
-      return () => {
-        cancelled = true;
-      };
-    }, [mode, shopFilters.search])
-  );
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(shopFilters.search), 200);
+    return () => clearTimeout(timer);
+  }, [shopFilters.search]);
+
+  const shopsQuery = useQuery({
+    queryKey: marketplaceKeys.businesses({
+      q: debouncedSearch.trim(),
+    }),
+    queryFn: async () => {
+      const q = debouncedSearch.trim();
+      const res = await api<{ data: Biz[] }>(
+        `/marketplace/businesses${q ? `?q=${encodeURIComponent(q)}` : ""}`,
+        {},
+        null
+      );
+      return res.data || [];
+    },
+    enabled: mode === "shops",
+  });
+
+  const businesses: Biz[] = shopsQuery.data ?? [];
+  const loadingShops = shopsQuery.isLoading;
+  const errorMessage =
+    shopsQuery.error instanceof Error
+      ? shopsQuery.error.message
+      : shopsQuery.error
+        ? t("common.loadFailed")
+        : null;
 
   const industries = useMemo(() => {
     const set = new Set<string>();
@@ -93,7 +92,7 @@ export default function BuyerDiscover() {
   const filteredShops = useMemo(
     () =>
       businesses.filter(
-        (b) =>
+        (b: Biz) =>
           shopFilters.industries.length === 0 ||
           shopFilters.industries.includes(b.industry ?? "")
       ),
@@ -157,7 +156,7 @@ export default function BuyerDiscover() {
                 searchPlaceholder={t("marketplace.searchStores")}
               />
             </View>
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+            {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
           </View>
         }
         ListEmptyComponent={

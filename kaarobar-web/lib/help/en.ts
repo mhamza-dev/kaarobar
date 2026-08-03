@@ -3,18 +3,19 @@ import type { HelpCatalog } from "./types";
 const en: HelpCatalog = {
   "page.dashboard": {
     title: "Dashboard",
-    summary: "Quick view of sales, cash, stock risk, and pending approvals.",
-    what: "Shows today's sales, cash position, low-stock alerts, and tasks waiting for approval so owners and managers can decide what to do next.",
+    summary: "KPIs plus interactive sales charts filtered by date range.",
+    what: "Shows today's sales, cash position, low-stock alerts, pending approvals, and revenue/order trends for a selected date range so owners and managers can decide what to do next.",
     how: [
-      "After sign-in, open the dashboard and review today's numbers.",
-      "Use low-stock or approval cards to jump to Inventory or HR.",
-      "If you have multiple locations, switch business or branch from the header.",
-      "Open POS when you're ready to start selling.",
+      "After sign-in, review today's KPI cards.",
+      "Set the from/to dates to refresh revenue and order charts.",
+      "Hover a chart point for the daily total or ticket count.",
+      "Use low-stock or approval cards to jump to Inventory or Returns.",
+      "Switch business or branch from the header when you manage multiple locations.",
     ],
     when: "At shift start, end of day, or whenever you need a health check on the branch.",
     tips: [
-      "Figures reflect the selected business and branch.",
-      "If KPIs look empty, check the branch and today's till activity.",
+      "Charts use completed sales for the selected business (RPT-FR-001).",
+      "If charts look empty, widen the date range or confirm till activity.",
     ],
   },
   "page.pos": {

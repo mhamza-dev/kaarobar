@@ -341,7 +341,14 @@
     "footprintDesc": "Mude de empresa ou filial a qualquer momento na barra superior – cada página segue esse contexto.",
     "businesses": "Empresas",
     "branches": "Filiais",
-    "loadFailed": "Falha ao carregar o painel"
+    "loadFailed": "Falha ao carregar o painel",
+    "trendsTitle": "Tendências de vendas",
+    "revenueOverTime": "Receita ao longo do tempo",
+    "ordersOverTime": "Pedidos ao longo do tempo",
+    "chartsDesc": "Receita e volume de pedidos no período selecionado.",
+    "rangeRevenue": "Receita no período",
+    "rangeOrders": "Pedidos no período",
+    "noChartData": "Nenhuma venda neste período"
   },
   "inventory": {
     "eyebrow": "Inventário",
@@ -386,7 +393,22 @@
     "products": "Produtos",
     "selectProducts": "Selecionar produtos",
     "quantities": "Quantidades",
-    "confirm": "Confirmar"
+    "confirm": "Confirmar",
+    "searchProductsList": "Pesquisar produtos por nome, SKU, código…",
+    "searchSuppliers": "Pesquisar fornecedores, cidade, contato…",
+    "searchPos": "Pesquisar pedidos…",
+    "searchTransfers": "Pesquisar transferências…",
+    "statusPending": "Pendente",
+    "statusConfirmed": "Confirmado",
+    "noTransfers": "Nenhuma transferência ainda",
+    "noTransfersBody": "Crie uma transferência para mover estoque entre filiais.",
+    "poModalDesc": "Crie um pedido rascunho para a filial ativa.",
+    "createPo": "Criar pedido",
+    "supplier": "Fornecedor",
+    "selectSupplier": "Selecionar fornecedor…",
+    "unitCost": "Custo unitário",
+    "product": "Produto",
+    "selectProduct": "Selecionar produto…"
   },
   "pos": {
     "tillOpen": "Até a abertura",
@@ -459,7 +481,9 @@
     "returnSubmitted": "Retorno enviado",
     "returnApproved": "Devolução aprovada",
     "returnRejected": "Devolução rejeitada",
-    "loadFailed": "Falha ao carregar devoluções"
+    "loadFailed": "Falha ao carregar devoluções",
+    "searchReturns": "Pesquisar devoluções…",
+    "searchTills": "Pesquisar caixas…"
   },
   "accounting": {
     "eyebrow": "Livros",
@@ -487,7 +511,12 @@
     "journalFailed": "Falha no diário",
     "reverseFailed": "Falha na reversão",
     "accountUpdateFailed": "Falha na atualização da conta",
-    "manageCustomersHint": "Gerenciar khata do cliente em"
+    "manageCustomersHint": "Gerenciar khata do cliente em",
+    "searchAccounts": "Pesquisar contas…",
+    "searchJournals": "Pesquisar diários…",
+    "searchInvoices": "Pesquisar faturas…",
+    "searchBills": "Pesquisar contas…",
+    "searchRows": "Pesquisar linhas…"
   },
   "hr": {
     "eyebrow": "Pessoas",
@@ -506,7 +535,10 @@
     "inviteSent": "Convite enviado",
     "payrollRun": "Execução da folha de pagamento iniciada",
     "leaveApproved": "Deixe aprovado",
-    "leaveRejected": "Deixar rejeitado"
+    "leaveRejected": "Deixar rejeitado",
+    "searchEmployees": "Pesquisar funcionários…",
+    "searchAttendance": "Pesquisar presença…",
+    "searchLeave": "Pesquisar licenças…"
   },
   "reports": {
     "eyebrow": "Percepções",
@@ -818,6 +850,10 @@
   "searchSelect": {
     "search": "Pesquisar…",
     "noMatches": "Nenhuma correspondência",
-    "selected": "{count} selecionado(s)"
+    "selected": "{count} selecionado(s)",
+    "select": "Selecionar…"
+  },
+  "sales": {
+    "searchInvoice": "Pesquisar fatura ou cliente…"
   }
 }

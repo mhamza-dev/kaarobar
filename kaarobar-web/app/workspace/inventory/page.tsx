@@ -1,14 +1,14 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, getSession } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
-import ListToolbar from "@/components/app/ListToolbar";
 import {
   Field,
   PageHeader,
@@ -21,7 +21,6 @@ import { useT } from "@/lib/i18n";
 import { useTabQueryParam } from "@/lib/hooks/useTabQueryParam";
 import { detailRoutes, routes } from "@/lib/navigation";
 import {
-  applyStaffListFilters,
   emptyStaffListFilters,
   type ListFilterConfig,
   type StaffListFilterState,
@@ -29,6 +28,7 @@ import {
 import { formatLocalDateTime } from "@/lib/datetime";
 import SearchSelect from "@/components/ui/SearchSelect";
 import SearchMultiSelect from "@/components/ui/SearchMultiSelect";
+import { inventoryKeys } from "@/lib/queryClient";
 
 type Tab = "stock" | "products" | "suppliers" | "pos" | "transfers" | "adjust";
 const INVENTORY_TABS: readonly Tab[] = [
@@ -67,6 +67,7 @@ type Product = {
   image_url?: string;
   category?: string;
   category_id?: string;
+  is_active?: boolean;
 };
 type StockRow = {
   product_id: string;
@@ -183,32 +184,40 @@ function InventoryPageInner() {
   const t = useT();
   const toast = useToast();
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const session = getSession();
+  const businessId = session?.business_id ?? null;
   const [tab, setTab] = useTabQueryParam<Tab>("stock", INVENTORY_TABS, {
     basePath: routes.inventory,
   });
   const [modal, setModal] = useState<ModalKind>(null);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [editingSupplierId, setEditingSupplierId] = useState<string | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [stock, setStock] = useState<StockRow[]>([]);
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [pos, setPos] = useState<PO[]>([]);
-  const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [busy, setBusy] = useState(false);
 
   const [productForm, setProductForm] = useState(emptyProductForm);
   const [productImage, setProductImage] = useState<File | null>(null);
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [productFilters, setProductFilters] = useState<StaffListFilterState>(
     emptyStaffListFilters()
   );
+  const [stockFilters, setStockFilters] = useState(emptyStaffListFilters);
+  const [transferFilters, setTransferFilters] = useState(emptyStaffListFilters);
   const [supplierForm, setSupplierForm] = useState(emptySupplierForm);
-  const [poForm, setPoForm] = useState({
+  const [poForm, setPoForm] = useState<{
+    supplier_id: string;
+    product_ids: string[];
+    quantities: Record<string, string>;
+    unit_costs: Record<string, string>;
+  }>({
     supplier_id: "",
-    product_id: "",
-    quantity: "10",
-    unit_cost: "50",
+    product_ids: [],
+    quantities: {},
+    unit_costs: {},
   });
+  const [attachSupplierProductId, setAttachSupplierProductId] = useState<
+    string | null
+  >(null);
+  const [attachSupplierId, setAttachSupplierId] = useState<string | null>(null);
   const [grnForm, setGrnForm] = useState({
     purchase_order_id: "",
     product_id: "",
@@ -223,53 +232,102 @@ function InventoryPageInner() {
     product_ids: [],
     quantities: {},
   });
-  const [branches, setBranches] = useState<BranchOpt[]>([]);
   const [adjustForm, setAdjustForm] = useState({
     product_id: "",
     quantity_delta: "",
     reason_code: "adjustment",
   });
 
-  const load = useCallback(async () => {
-    try {
-      const session = getSession();
-      const [p, s, sup, poList, tr, cats, br] = await Promise.all([
-        api<{ data: Product[] }>("/products"),
-        api<{ data: StockRow[] }>("/inventory").catch(() => ({ data: [] })),
-        api<{ data: Supplier[] }>("/suppliers").catch(() => ({ data: [] })),
-        api<{ data: PO[] }>("/inventory/purchase-orders").catch(() => ({ data: [] })),
-        api<{ data: Transfer[] }>("/inventory/transfers").catch(() => ({ data: [] })),
-        api<{ data: { id: string; name: string }[] }>("/categories").catch(() => ({
-          data: [],
-        })),
-        session?.business_id
-          ? api<{ data: BranchOpt[] }>(
-              `/businesses/${session.business_id}/branches`
-            ).catch(() => ({ data: [] }))
-          : Promise.resolve({ data: [] as BranchOpt[] }),
-      ]);
-      setProducts(p.data || []);
-      setStock(s.data || []);
-      setSuppliers(sup.data || []);
-      setPos(poList.data || []);
-      setTransfers(tr.data || []);
-      setCategories(cats.data || []);
-      setBranches(br.data || []);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("common.loadFailed"));
-    }
-  }, [t, toast]);
+  const needProducts =
+    tab === "products" || tab === "pos" || tab === "transfers" || tab === "adjust";
+  const needSuppliers =
+    tab === "suppliers" || tab === "pos" || !!attachSupplierProductId || modal === "po";
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const { data: products = [], isLoading: productsLoading } = useQuery({
+    queryKey: inventoryKeys.products(businessId),
+    queryFn: async () => {
+      const res = await api<{ data: Product[] }>("/products");
+      return res.data || [];
+    },
+    enabled: needProducts,
+  });
+
+  const { data: stock = [], isLoading: stockLoading } = useQuery({
+    queryKey: inventoryKeys.stock(businessId),
+    queryFn: async () => {
+      const res = await api<{ data: StockRow[] }>("/inventory").catch(() => ({
+        data: [] as StockRow[],
+      }));
+      return res.data || [];
+    },
+    enabled: tab === "stock",
+  });
+
+  const { data: suppliers = [], isLoading: suppliersLoading } = useQuery({
+    queryKey: inventoryKeys.suppliers(businessId),
+    queryFn: async () => {
+      const res = await api<{ data: Supplier[] }>("/suppliers").catch(() => ({
+        data: [] as Supplier[],
+      }));
+      return res.data || [];
+    },
+    enabled: needSuppliers,
+  });
+
+  const { data: pos = [], isLoading: posLoading } = useQuery({
+    queryKey: inventoryKeys.purchaseOrders(businessId),
+    queryFn: async () => {
+      const res = await api<{ data: PO[] }>("/inventory/purchase-orders").catch(
+        () => ({ data: [] as PO[] })
+      );
+      return res.data || [];
+    },
+    enabled: tab === "pos",
+  });
+
+  const { data: transfers = [], isLoading: transfersLoading } = useQuery({
+    queryKey: inventoryKeys.transfers(businessId),
+    queryFn: async () => {
+      const res = await api<{ data: Transfer[] }>("/inventory/transfers").catch(
+        () => ({ data: [] as Transfer[] })
+      );
+      return res.data || [];
+    },
+    enabled: tab === "transfers",
+  });
+
+  const { data: categories = [] } = useQuery({
+    queryKey: inventoryKeys.categories(businessId),
+    queryFn: async () => {
+      const res = await api<{ data: { id: string; name: string }[] }>(
+        "/categories"
+      ).catch(() => ({ data: [] as { id: string; name: string }[] }));
+      return res.data || [];
+    },
+    enabled: tab === "products",
+  });
+
+  const { data: branches = [] } = useQuery({
+    queryKey: inventoryKeys.branches(businessId),
+    queryFn: async () => {
+      if (!businessId) return [] as BranchOpt[];
+      const res = await api<{ data: BranchOpt[] }>(
+        `/businesses/${businessId}/branches`
+      ).catch(() => ({ data: [] as BranchOpt[] }));
+      return res.data || [];
+    },
+    enabled: tab === "transfers" && !!businessId,
+  });
+
+  async function refreshInventory() {
+    await queryClient.invalidateQueries({ queryKey: inventoryKeys.all });
+  }
 
   const branchOptions = useMemo(() => {
-    const session = getSession();
     return (branches || [])
       .filter((b) => b.id !== session?.branch_id)
       .map((b) => ({ value: b.id, label: b.name }));
-  }, [branches]);
+  }, [branches, session?.branch_id]);
 
   const productOptions = useMemo(
     () => products.map((p) => ({ value: p.id, label: `${p.name} (${p.sku})` })),
@@ -327,7 +385,7 @@ function InventoryPageInner() {
       }
       closeProductModal();
       setTab("products");
-      await load();
+      await refreshInventory();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.saveFailed"));
     } finally {
@@ -463,7 +521,7 @@ function InventoryPageInner() {
       }
       closeSupplierModal();
       setTab("suppliers");
-      await load();
+      await refreshInventory();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("inventory.supplierFailed"));
     } finally {
@@ -474,6 +532,17 @@ function InventoryPageInner() {
   async function createPO(e: React.FormEvent) {
     e.preventDefault();
     const session = getSession();
+    const items = poForm.product_ids
+      .map((product_id) => ({
+        product_id,
+        quantity: poForm.quantities[product_id] || "1",
+        unit_cost: poForm.unit_costs[product_id] || "0",
+      }))
+      .filter((i) => Number(i.quantity) > 0);
+    if (!poForm.supplier_id || items.length === 0) {
+      toast.error(t("inventory.poFailed"));
+      return;
+    }
     setBusy(true);
     try {
       await api("/inventory/purchase-orders", {
@@ -481,21 +550,41 @@ function InventoryPageInner() {
         body: JSON.stringify({
           branch_id: session?.branch_id,
           supplier_id: poForm.supplier_id,
-          items: [
-            {
-              product_id: poForm.product_id,
-              quantity: poForm.quantity,
-              unit_cost: poForm.unit_cost,
-            },
-          ],
+          items,
         }),
       });
       setModal(null);
+      setPoForm({
+        supplier_id: "",
+        product_ids: [],
+        quantities: {},
+        unit_costs: {},
+      });
       toast.success(t("inventory.poCreated"));
       setTab("pos");
-      await load();
+      await refreshInventory();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("inventory.poFailed"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function attachSupplier(e: React.FormEvent) {
+    e.preventDefault();
+    if (!attachSupplierProductId || !attachSupplierId) return;
+    setBusy(true);
+    try {
+      await api(`/products/${attachSupplierProductId}/suppliers`, {
+        method: "POST",
+        body: JSON.stringify({ supplier_id: attachSupplierId }),
+      });
+      toast.success(t("table.attachSupplier"));
+      setAttachSupplierProductId(null);
+      setAttachSupplierId(null);
+      await refreshInventory();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
     } finally {
       setBusy(false);
     }
@@ -520,7 +609,7 @@ function InventoryPageInner() {
       });
       toast.success(t("inventory.grnReceived"));
       setGrnForm({ purchase_order_id: "", product_id: "", quantity_received: "" });
-      await load();
+      await refreshInventory();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("inventory.grnFailed"));
     }
@@ -541,6 +630,7 @@ function InventoryPageInner() {
       product_id,
       quantity: transferForm.quantities[product_id] || "1",
     }));
+    setBusy(true);
     try {
       await api("/inventory/transfers", {
         method: "POST",
@@ -553,9 +643,11 @@ function InventoryPageInner() {
       toast.success(t("inventory.transferCreated"));
       setModal(null);
       setTransferForm({ to_branch_id: "", product_ids: [], quantities: {} });
-      await load();
+      await refreshInventory();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("inventory.transferFailed"));
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -563,7 +655,7 @@ function InventoryPageInner() {
     try {
       await api(`/inventory/transfers/${id}/confirm`, { method: "POST", body: "{}" });
       toast.success(t("inventory.transferConfirmed"));
-      await load();
+      await refreshInventory();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("inventory.confirmFailed"));
     }
@@ -571,6 +663,10 @@ function InventoryPageInner() {
 
   async function adjustStock(e: React.FormEvent) {
     e.preventDefault();
+    if (!adjustForm.product_id) {
+      toast.error(t("inventory.selectProduct"));
+      return;
+    }
     const session = getSession();
     try {
       await api("/inventory/adjust", {
@@ -582,7 +678,7 @@ function InventoryPageInner() {
       });
       toast.success(t("inventory.stockAdjusted"));
       setAdjustForm({ product_id: "", quantity_delta: "", reason_code: "adjustment" });
-      await load();
+      await refreshInventory();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("inventory.adjustFailed"));
     }
@@ -604,7 +700,19 @@ function InventoryPageInner() {
         ? { label: t("inventory.addSupplier"), onClick: openNewSupplier }
         : tab === "pos"
           ? { label: t("inventory.newPo"), onClick: () => setModal("po") }
-          : undefined;
+          : tab === "transfers"
+            ? {
+                label: t("inventory.createTransfer"),
+                onClick: () => {
+                  setTransferForm({
+                    to_branch_id: "",
+                    product_ids: [],
+                    quantities: {},
+                  });
+                  setModal("transfer");
+                },
+              }
+            : undefined;
 
   const productCategoryOptions = useMemo(() => {
     const set = new Set<string>();
@@ -630,15 +738,9 @@ function InventoryPageInner() {
     [productCategoryOptions, t]
   );
 
-  const filteredProducts = useMemo(
-    () =>
-      applyStaffListFilters(products, productFilters, {
-        searchText: (p) =>
-          `${p.sku} ${p.name} ${p.barcode ?? ""} ${p.brand ?? ""} ${p.category ?? ""}`,
-        category: (p) => p.category || "",
-        status: (p) => p.product_kind || "goods",
-      }),
-    [products, productFilters]
+  const supplierOptions = useMemo(
+    () => suppliers.map((s) => ({ value: s.id, label: s.name })),
+    [suppliers]
   );
 
   return (
@@ -656,9 +758,30 @@ function InventoryPageInner() {
       {tab === "stock" ? (
         <DataTable
           maxHeight="28rem"
-          searchable
-          searchPlaceholder="Search SKU or name…"
-          getSearchText={(row) => `${row.sku ?? ""} ${row.name ?? ""}`}
+          loading={stockLoading}
+          filterState={stockFilters}
+          onFilterChange={setStockFilters}
+          clientFilter
+          filterAccessors={{
+            searchText: (row) => `${row.sku ?? ""} ${row.name ?? ""}`,
+          }}
+          searchPlaceholder={t("inventory.searchSku")}
+          pagination={{ mode: "client", pageSize: 25 }}
+          exportable
+          exportFilename="stock"
+          exportTitle="Stock"
+          getExportRow={(row) => ({
+            sku: row.sku ?? "",
+            name: row.name ?? "",
+            qty: row.quantity_on_hand,
+            cost: row.avg_cost,
+          })}
+          exportColumns={[
+            { key: "sku", header: "SKU" },
+            { key: "name", header: "Name" },
+            { key: "qty", header: "On hand" },
+            { key: "cost", header: "Avg cost" },
+          ]}
           columns={[
             {
               id: "sku",
@@ -701,14 +824,36 @@ function InventoryPageInner() {
       {tab === "products" ? (
         <DataTable
           maxHeight="28rem"
-          filters={
-            <ListToolbar
-              value={productFilters}
-              onChange={setProductFilters}
-              config={productFilterConfig}
-              searchPlaceholder="Search products by name, SKU, barcode…"
-            />
-          }
+          loading={productsLoading}
+          filterState={productFilters}
+          onFilterChange={setProductFilters}
+          filterConfig={productFilterConfig}
+          filterAccessors={{
+            searchText: (p) =>
+              `${p.name} ${p.sku} ${p.barcode || ""} ${p.brand || ""} ${p.category || ""}`,
+            category: (p) => p.category || "",
+            status: (p) => p.product_kind || "goods",
+          }}
+          clientFilter
+          searchPlaceholder={t("inventory.searchProductsList")}
+          pagination={{ mode: "client", pageSize: 25 }}
+          exportable
+          exportFilename="products"
+          exportTitle="Products"
+          getExportRow={(p) => ({
+            sku: p.sku,
+            name: p.name,
+            kind: p.product_kind || "goods",
+            unit: p.unit || "pcs",
+            price: p.price ?? "",
+          })}
+          exportColumns={[
+            { key: "sku", header: "SKU" },
+            { key: "name", header: "Name" },
+            { key: "kind", header: "Kind" },
+            { key: "unit", header: "Unit" },
+            { key: "price", header: "Price" },
+          ]}
           onRowClick={(p) => router.push(detailRoutes.product(p.id))}
           columns={[
             {
@@ -784,7 +929,7 @@ function InventoryPageInner() {
               align: "right",
               width: 56,
               cell: (p) => (
-                <div className="flex justify-end">
+                <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
                   <ActionMenu
                     items={[
                       {
@@ -797,13 +942,21 @@ function InventoryPageInner() {
                         label: "Edit",
                         onClick: () => openEditProduct(p),
                       },
+                      {
+                        id: "attach-supplier",
+                        label: t("table.attachSupplier"),
+                        onClick: () => {
+                          setAttachSupplierProductId(p.id);
+                          setAttachSupplierId(null);
+                        },
+                      },
                     ]}
                   />
                 </div>
               ),
             },
           ]}
-          data={filteredProducts}
+          data={products}
           rowKey={(p) => p.id}
           emptyTitle="No products"
           emptyBody="Create a product to start stocking inventory."
@@ -813,8 +966,9 @@ function InventoryPageInner() {
       {tab === "suppliers" ? (
         <DataTable
           maxHeight="28rem"
+          loading={suppliersLoading}
           searchable
-          searchPlaceholder="Search suppliers, city, contact…"
+          searchPlaceholder={t("inventory.searchSuppliers")}
           getSearchText={(s) =>
             [
               s.name,
@@ -991,8 +1145,9 @@ function InventoryPageInner() {
 
           <DataTable
             maxHeight="20rem"
+            loading={posLoading}
             searchable
-            searchPlaceholder="Search POs…"
+            searchPlaceholder={t("inventory.searchPos")}
             getSearchText={(p) =>
               `${p.supplier_name ?? ""} ${p.supplier_id} ${p.status}`
             }
@@ -1038,68 +1193,139 @@ function InventoryPageInner() {
       ) : null}
 
       {tab === "transfers" ? (
-        <div className="space-y-4">
-          <div className="flex justify-end">
-            <Button
-              type="button"
-              onClick={() => {
-                setTransferForm({ to_branch_id: "", product_ids: [], quantities: {} });
-                setModal("transfer");
-              }}
-            >
-              {t("inventory.createTransfer")}
-            </Button>
-          </div>
-          <div className="space-y-2">
-            {transfers.map((tr) => {
-              const qty = (tr.items || [])
-                .map((i) => i.quantity)
-                .join(", ");
+        <DataTable
+          maxHeight="28rem"
+          loading={transfersLoading}
+          filterState={transferFilters}
+          onFilterChange={setTransferFilters}
+          clientFilter
+          filterConfig={{
+            statusOptions: [
+              { value: "pending", label: t("inventory.statusPending") },
+              { value: "confirmed", label: t("inventory.statusConfirmed") },
+            ],
+          }}
+          filterAccessors={{
+            searchText: (tr) => {
               const names = (tr.items || [])
-                .map((i) => products.find((p) => p.id === i.product_id)?.name || i.product_id)
+                .map(
+                  (i) =>
+                    products.find((p) => p.id === i.product_id)?.name ||
+                    i.product_id
+                )
                 .join(", ");
-              return (
-                <SurfaceCard
-                  key={tr.id}
-                  className="flex flex-wrap items-center justify-between gap-2 px-4 py-3"
-                >
-                  <div className="min-w-0 space-y-0.5">
-                    <p className="text-sm font-semibold text-heading">
-                      {tr.status} · {qty} units
-                    </p>
-                    <p className="truncate text-xs text-muted">{names}</p>
-                    <p className="text-xs text-muted">
-                      {formatLocalDateTime(tr.inserted_at)}
-                    </p>
-                  </div>
-                  {tr.status === "pending" ? (
+              const qty = (tr.items || []).map((i) => i.quantity).join(", ");
+              return `${tr.status} ${names} ${qty}`;
+            },
+            status: (tr) => tr.status,
+            date: (tr) => tr.inserted_at,
+          }}
+          searchPlaceholder={t("inventory.searchTransfers")}
+          pagination={{ mode: "client", pageSize: 25 }}
+          exportable
+          exportFilename="transfers"
+          exportTitle={t("inventory.tabs.transfers")}
+          getExportRow={(tr) => {
+            const names = (tr.items || [])
+              .map(
+                (i) =>
+                  products.find((p) => p.id === i.product_id)?.name ||
+                  i.product_id
+              )
+              .join(", ");
+            const qty = (tr.items || []).map((i) => i.quantity).join(", ");
+            return {
+              status: tr.status,
+              products: names,
+              qty,
+              when: tr.inserted_at ? formatLocalDateTime(tr.inserted_at) : "",
+            };
+          }}
+          exportColumns={[
+            { key: "status", header: t("common.status") },
+            { key: "products", header: t("inventory.products") },
+            { key: "qty", header: t("common.quantity") },
+            { key: "when", header: t("common.date") },
+          ]}
+          columns={[
+            {
+              id: "status",
+              header: t("common.status"),
+              cell: (tr) => (
+                <span className="inline-flex rounded-md bg-bg-tertiary px-2 py-0.5 text-xs font-semibold capitalize">
+                  {tr.status}
+                </span>
+              ),
+            },
+            {
+              id: "summary",
+              header: t("inventory.products"),
+              cell: (tr) => {
+                const names = (tr.items || [])
+                  .map(
+                    (i) =>
+                      products.find((p) => p.id === i.product_id)?.name ||
+                      i.product_id
+                  )
+                  .join(", ");
+                return (
+                  <span className="line-clamp-2 text-sm text-heading">
+                    {names || "—"}
+                  </span>
+                );
+              },
+            },
+            {
+              id: "qty",
+              header: t("common.quantity"),
+              align: "right",
+              cell: (tr) => (
+                <span className="tabular-nums">
+                  {(tr.items || []).map((i) => i.quantity).join(", ") || "—"}
+                </span>
+              ),
+            },
+            {
+              id: "when",
+              header: t("common.date"),
+              cell: (tr) =>
+                tr.inserted_at ? formatLocalDateTime(tr.inserted_at) : "—",
+            },
+            {
+              id: "actions",
+              header: "",
+              align: "right",
+              width: 110,
+              cell: (tr) =>
+                tr.status === "pending" ? (
+                  <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
                     <Button size="sm" onClick={() => confirmTransfer(tr.id)}>
                       {t("inventory.confirm")}
                     </Button>
-                  ) : null}
-                </SurfaceCard>
-              );
-            })}
-          </div>
-        </div>
+                  </div>
+                ) : null,
+            },
+          ]}
+          data={transfers}
+          rowKey={(tr) => tr.id}
+          emptyTitle={t("inventory.noTransfers")}
+          emptyBody={t("inventory.noTransfersBody")}
+        />
       ) : null}
 
       {tab === "adjust" ? (
         <SurfaceCard className="max-w-xl p-5">
           <form onSubmit={adjustStock} className="space-y-3">
-            <select
-              className={fieldClass}
-              value={adjustForm.product_id}
-              onChange={(e) => setAdjustForm({ ...adjustForm, product_id: e.target.value })}
-              required
-            >
-              <option value="">Product</option>
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+            <SearchSelect
+              label={t("inventory.product")}
+              options={productOptions}
+              value={adjustForm.product_id || null}
+              onChange={(product_id) =>
+                setAdjustForm((f) => ({ ...f, product_id: product_id || "" }))
+              }
+              placeholder={t("inventory.selectProduct")}
+              searchPlaceholder={t("searchSelect.search")}
+            />
             <input
               className={fieldClass}
               placeholder="Qty delta (e.g. -2 or 5)"
@@ -1655,64 +1881,135 @@ function InventoryPageInner() {
       <Modal
         isOpen={modal === "po"}
         onClose={() => setModal(null)}
-        title="New purchase order"
-        description="Create a draft PO for the active branch."
-      >
-        <form id="po-modal-form" onSubmit={createPO} className="space-y-4">
-          <Field label="Supplier">
-            <select
-              className={fieldClass}
-              value={poForm.supplier_id}
-              onChange={(e) => setPoForm({ ...poForm, supplier_id: e.target.value })}
-              required
-            >
-              <option value="">Select…</option>
-              {suppliers.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Product">
-            <select
-              className={fieldClass}
-              value={poForm.product_id}
-              onChange={(e) => setPoForm({ ...poForm, product_id: e.target.value })}
-              required
-            >
-              <option value="">Select…</option>
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Quantity">
-              <input
-                className={fieldClass}
-                value={poForm.quantity}
-                onChange={(e) => setPoForm({ ...poForm, quantity: e.target.value })}
-              />
-            </Field>
-            <Field label="Unit cost">
-              <input
-                className={fieldClass}
-                value={poForm.unit_cost}
-                onChange={(e) => setPoForm({ ...poForm, unit_cost: e.target.value })}
-              />
-            </Field>
-          </div>
+        title={t("inventory.newPoTitle")}
+        description={t("inventory.poModalDesc")}
+        size="lg"
+        footer={
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setModal(null)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
-            <Button type="submit" loading={busy}>
-              Create PO
+            <Button type="submit" form="po-modal-form" loading={busy}>
+              {t("inventory.createPo")}
             </Button>
           </div>
+        }
+      >
+        <form id="po-modal-form" onSubmit={createPO} className="space-y-5">
+          <SearchSelect
+            label={t("inventory.supplier")}
+            options={supplierOptions}
+            value={poForm.supplier_id || null}
+            onChange={(supplier_id) =>
+              setPoForm((f) => ({ ...f, supplier_id: supplier_id || "" }))
+            }
+            placeholder={t("inventory.selectSupplier")}
+            searchPlaceholder={t("searchSelect.search")}
+          />
+          <SearchMultiSelect
+            label={t("inventory.products")}
+            options={productOptions}
+            value={poForm.product_ids}
+            onChange={(product_ids) =>
+              setPoForm((f) => ({
+                ...f,
+                product_ids,
+                quantities: Object.fromEntries(
+                  product_ids.map((id) => [id, f.quantities[id] || "10"])
+                ),
+                unit_costs: Object.fromEntries(
+                  product_ids.map((id) => [id, f.unit_costs[id] || "50"])
+                ),
+              }))
+            }
+            placeholder={t("pos.searchProducts")}
+            searchPlaceholder={t("searchSelect.search")}
+          />
+          {poForm.product_ids.length > 0 ? (
+            <div className="space-y-3 rounded-md border border-border p-3">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-muted">
+                {t("inventory.quantities")}
+              </p>
+              {poForm.product_ids.map((id) => {
+                const p = products.find((x) => x.id === id);
+                return (
+                  <div key={id} className="grid gap-2 sm:grid-cols-[1fr_6rem_6rem]">
+                    <p className="text-sm font-medium text-heading">
+                      {p?.name || id}
+                    </p>
+                    <Field label={t("common.quantity")}>
+                      <input
+                        className={fieldClass}
+                        value={poForm.quantities[id] || ""}
+                        onChange={(e) =>
+                          setPoForm((f) => ({
+                            ...f,
+                            quantities: {
+                              ...f.quantities,
+                              [id]: e.target.value,
+                            },
+                          }))
+                        }
+                      />
+                    </Field>
+                    <Field label={t("inventory.unitCost")}>
+                      <input
+                        className={fieldClass}
+                        value={poForm.unit_costs[id] || ""}
+                        onChange={(e) =>
+                          setPoForm((f) => ({
+                            ...f,
+                            unit_costs: {
+                              ...f.unit_costs,
+                              [id]: e.target.value,
+                            },
+                          }))
+                        }
+                      />
+                    </Field>
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={!!attachSupplierProductId}
+        onClose={() => {
+          setAttachSupplierProductId(null);
+          setAttachSupplierId(null);
+        }}
+        title={t("table.attachSupplier")}
+        description={t("table.suppliersAttached")}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => {
+                setAttachSupplierProductId(null);
+                setAttachSupplierId(null);
+              }}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button type="submit" form="attach-supplier-form" loading={busy}>
+              {t("table.attachSupplier")}
+            </Button>
+          </div>
+        }
+      >
+        <form id="attach-supplier-form" onSubmit={attachSupplier} className="space-y-4">
+          <SearchSelect
+            label={t("inventory.supplier")}
+            options={supplierOptions}
+            value={attachSupplierId}
+            onChange={setAttachSupplierId}
+            placeholder={t("inventory.selectSupplier")}
+            searchPlaceholder={t("searchSelect.search")}
+          />
         </form>
       </Modal>
 
@@ -1722,8 +2019,18 @@ function InventoryPageInner() {
         title={t("inventory.transferModalTitle")}
         description={t("inventory.transferModalDesc")}
         size="lg"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setModal(null)}>
+              {t("common.cancel")}
+            </Button>
+            <Button type="submit" form="transfer-modal-form" loading={busy}>
+              {t("inventory.createTransfer")}
+            </Button>
+          </div>
+        }
       >
-        <form onSubmit={createTransfer} className="space-y-4">
+        <form id="transfer-modal-form" onSubmit={createTransfer} className="space-y-5">
           <SearchSelect
             label={t("inventory.toBranch")}
             options={branchOptions}
@@ -1751,7 +2058,7 @@ function InventoryPageInner() {
             searchPlaceholder={t("searchSelect.search")}
           />
           {transferForm.product_ids.length > 0 ? (
-            <div className="space-y-2">
+            <div className="space-y-3 rounded-md border border-border p-3">
               <p className="text-[11px] font-bold uppercase tracking-wide text-muted">
                 {t("inventory.quantities")}
               </p>
@@ -1781,12 +2088,6 @@ function InventoryPageInner() {
               })}
             </div>
           ) : null}
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setModal(null)}>
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit">{t("inventory.createTransfer")}</Button>
-          </div>
         </form>
       </Modal>
     </div>

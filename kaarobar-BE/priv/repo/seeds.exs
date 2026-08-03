@@ -1939,6 +1939,18 @@ seed_scenario_pack = fn owner, business, branches, products, employees, cashier 
   khata_customer = Enum.find(customers, & &1.khata_enabled)
   suppliers = from(s in Supplier, where: s.business_id == ^business.id) |> Repo.all()
 
+  # Link a few goods to preferred suppliers (product_suppliers)
+  if length(goods) > 0 and length(suppliers) > 0 do
+    Enum.each(Enum.take(goods, min(5, length(goods))), fn p ->
+      Enum.each(Enum.take(suppliers, 2), fn s ->
+        _ =
+          Inventory.attach_product_supplier(p.id, s.id, business.id, owner.id, %{
+            is_primary: false
+          })
+      end)
+    end)
+  end
+
   # 1) Low / zero stock on a couple of tracked goods
   if branch && length(goods) >= 2 do
     Enum.each(Enum.take(goods, 2), fn p ->

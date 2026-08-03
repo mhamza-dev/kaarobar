@@ -3,18 +3,19 @@ import type { HelpCatalog } from "./types";
 const catalog: HelpCatalog = {
   "page.dashboard": {
     title: "Painel",
-    summary: "Visualização rápida de vendas, caixa, risco de estoque e aprovações pendentes.",
-    what: "Mostra as vendas atuais, a posição de caixa, alertas de estoque baixo e tarefas aguardando aprovação para que proprietários e gerentes possam decidir o que fazer a seguir.",
+    summary: "KPIs e gráficos interativos de vendas filtrados por período.",
+    what: "Mostra vendas de hoje, posição de caixa, estoque baixo, aprovações pendentes e tendências de receita/pedidos no período selecionado.",
     how: [
-      "Após o login, abra o painel e analise os números de hoje.",
-      "Use cartões de baixo estoque ou de aprovação para ir para o estoque ou RH.",
-      "Se você tiver vários locais, mude de empresa ou filial no cabeçalho.",
-      "Abra POS quando estiver pronto para começar a vender.",
+      "Após entrar, revise os cartões de KPI do dia.",
+      "Defina de/até para atualizar os gráficos de receita e pedidos.",
+      "Passe o mouse em um ponto para ver o total diário ou o número de tickets.",
+      "Use estoque baixo ou aprovações para ir a Inventário ou Devoluções.",
+      "Troque empresa ou filial no cabeçalho se gerenciar vários locais.",
     ],
     when: "No início do turno, no final do dia ou sempre que precisar de um exame de saúde na agência.",
     tips: [
-      "Os números refletem o negócio e ramo selecionados.",
-      "Se os KPIs parecerem vazios, verifique a filial e a atividade de caixa de hoje.",
+      "Os gráficos usam vendas concluídas da empresa selecionada (RPT-FR-001).",
+      "Se os gráficos estiverem vazios, amplie o período ou confira o caixa.",
     ],
   },
   "page.pos": {

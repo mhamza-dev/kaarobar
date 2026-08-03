@@ -3,18 +3,19 @@ import type { HelpCatalog } from "./types";
 const catalog: HelpCatalog = {
   "page.dashboard": {
     title: "Panel de control",
-    summary: "Vista rápida de ventas, caja, riesgo bursátil y aprobaciones pendientes.",
-    what: "Muestra las ventas actuales, la posición de efectivo, las alertas de existencias bajas y las tareas en espera de aprobación para que los propietarios y gerentes puedan decidir qué hacer a continuación.",
+    summary: "KPIs más gráficos de ventas interactivos filtrados por rango de fechas.",
+    what: "Muestra las ventas de hoy, posición de efectivo, stock bajo, aprobaciones pendientes y tendencias de ingresos/pedidos para un rango de fechas.",
     how: [
-      "Después de iniciar sesión, abra el panel y revise los números de hoy.",
-      "Utilice tarjetas de aprobación o de stock bajo para pasar a Inventario o Recursos Humanos.",
-      "Si tiene varias ubicaciones, cambie de negocio o sucursal desde el encabezado.",
-      "Abra POS cuando esté listo para comenzar a vender.",
+      "Tras iniciar sesión, revise las tarjetas KPI de hoy.",
+      "Defina las fechas desde/hasta para actualizar los gráficos.",
+      "Pase el cursor por un punto del gráfico para ver el total diario o los tickets.",
+      "Use las tarjetas de stock bajo o aprobaciones para ir a Inventario o Devoluciones.",
+      "Cambie negocio o sucursal en la cabecera si gestiona varias ubicaciones.",
     ],
     when: "Al inicio del turno, al final del día o cuando necesites un control de salud en la sucursal.",
     tips: [
-      "Las cifras reflejan el negocio y rama seleccionados.",
-      "Si los KPI parecen vacíos, verifique la sucursal y la actividad de caja de hoy.",
+      "Los gráficos usan ventas completadas del negocio seleccionado (RPT-FR-001).",
+      "Si los gráficos están vacíos, amplíe el rango o revise la actividad de caja.",
     ],
   },
   "page.pos": {

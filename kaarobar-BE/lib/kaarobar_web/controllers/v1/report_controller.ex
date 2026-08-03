@@ -85,8 +85,8 @@ defmodule KaarobarWeb.V1.ReportController do
     from = parse_date(params["from"])
     to = parse_date(params["to"])
 
-    if is_nil(business_id) or is_nil(account_id) do
-      conn |> put_status(:bad_request) |> json(%{error: "business_and_account_required"})
+    if is_nil(business_id) do
+      conn |> put_status(:bad_request) |> json(%{error: "x-business-id required"})
     else
       rows = Accounting.general_ledger(business_id, owner_id, account_id, from, to)
       json(conn, %{data: rows})

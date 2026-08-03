@@ -73,7 +73,7 @@ export default function JournalDetailPage() {
 
   return (
     <DetailShell
-      backHref={routes.accounting}
+      backHref={`${routes.accounting}?tab=journals`}
       backLabel="Back to accounting"
       eyebrow="Journal"
       title={journal?.description || "Journal entry"}

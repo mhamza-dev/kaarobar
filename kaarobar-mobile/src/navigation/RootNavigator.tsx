@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, Text, View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { colors, getSession } from "../lib/api";
-import { loadLocale } from "../lib/i18n";
+import { loadLocale, t } from "../lib/i18n";
+import KaarobarLogo from "../components/KaarobarLogo";
 import LandingScreen from "../screens/LandingScreen";
 import LoginScreen from "../screens/LoginScreen";
 import SignupScreen from "../screens/SignupScreen";
@@ -31,10 +32,15 @@ export default function RootNavigator() {
           flex: 1,
           alignItems: "center",
           justifyContent: "center",
+          gap: 16,
           backgroundColor: colors.bgPrimary,
         }}
       >
+        <KaarobarLogo size={56} />
         <ActivityIndicator color={colors.brand} />
+        <Text style={{ color: colors.body, fontSize: 14, fontWeight: "500" }}>
+          {t("common.workspaceLoading")}
+        </Text>
       </View>
     );
   }

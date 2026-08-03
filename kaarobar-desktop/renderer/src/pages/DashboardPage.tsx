@@ -1,18 +1,20 @@
-import { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
   Banknote,
-  Boxes,
   CheckCircle2,
-  ShoppingCart,
   TrendingUp,
 } from "lucide-react";
 import { api, getSession } from "@/lib/api/client";
 import { routes } from "@/lib/navigation";
 import { canAccessBundle } from "@/lib/rbac";
-import Button from "@/components/ui/Button";
-import { KpiCard, PageHeader, SurfaceCard } from "@/components/app/ui";
+import DateRangeFields from "@/components/app/DateRangeFields";
+import DashboardCharts, {
+  fillSalesDays,
+  type SalesDayRow,
+} from "@/components/app/DashboardCharts";
+import { KpiCard, PageHeader } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 
@@ -25,13 +27,27 @@ type Dashboard = {
   branches: number;
 };
 
+function defaultFrom() {
+  const d = new Date();
+  d.setDate(d.getDate() - 13);
+  return d.toISOString().slice(0, 10);
+}
+
+function defaultTo() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export default function AppDashboardPage() {
   const t = useT();
   const toast = useToast();
   const navigate = useNavigate();
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
+  const [salesDays, setSalesDays] = useState<SalesDayRow[]>([]);
+  const [from, setFrom] = useState(defaultFrom);
+  const [to, setTo] = useState(defaultTo);
+  const [chartsLoading, setChartsLoading] = useState(false);
 
-  const load = useCallback(async () => {
+  const loadKpis = useCallback(async () => {
     const current = getSession();
     if (!current?.business_id) return;
     if (!canAccessBundle(current, "reports")) {
@@ -49,49 +65,55 @@ export default function AppDashboardPage() {
     }
   }, [t, toast]);
 
+  const loadCharts = useCallback(async () => {
+    const current = getSession();
+    if (!current?.business_id) return;
+    if (!canAccessBundle(current, "reports")) {
+      setSalesDays([]);
+      return;
+    }
+    if (!from || !to) return;
+
+    setChartsLoading(true);
+    try {
+      // RPT-FR-001 — tenant-scoped sales time series
+      const sales = await api<{ data: SalesDayRow[] }>(
+        `/reports/sales-by-day?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+      );
+      setSalesDays(sales.data || []);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t("dashboard.loadFailed");
+      if (message === "business_required" || message === "forbidden_role") {
+        setSalesDays([]);
+        return;
+      }
+      toast.error(message);
+    } finally {
+      setChartsLoading(false);
+    }
+  }, [from, t, to, toast]);
+
   useEffect(() => {
-    load();
+    loadKpis();
     function onSession() {
-      load();
+      loadKpis();
+      loadCharts();
     }
     window.addEventListener("kaarobar:session", onSession);
     return () => window.removeEventListener("kaarobar:session", onSession);
-  }, [load]);
+  }, [loadCharts, loadKpis]);
+
+  useEffect(() => {
+    loadCharts();
+  }, [loadCharts]);
+
+  const chartPoints = useMemo(
+    () => fillSalesDays(salesDays, from, to),
+    [from, salesDays, to]
+  );
 
   const session = getSession();
-  const links = [
-    {
-      href: routes.pos,
-      title: t("pages.openPos"),
-      subtitle: t("dashboard.openPosSub"),
-      icon: ShoppingCart,
-      primary: true,
-    },
-    {
-      href: routes.inventory,
-      title: t("nav.inventory"),
-      subtitle: t("dashboard.inventorySub"),
-      icon: Boxes,
-    },
-    {
-      href: routes.returns,
-      title: t("nav.returns"),
-      subtitle: t("dashboard.returnsSub"),
-      icon: CheckCircle2,
-    },
-    {
-      href: routes.reports,
-      title: t("nav.reports"),
-      subtitle: t("dashboard.reportsSub"),
-      icon: TrendingUp,
-    },
-  ].filter((item) => {
-    if (item.href === routes.pos) return canAccessBundle(session, "pos");
-    if (item.href === routes.inventory) return canAccessBundle(session, "inventory");
-    if (item.href === routes.returns) return canAccessBundle(session, "pos");
-    if (item.href === routes.reports) return canAccessBundle(session, "reports");
-    return true;
-  });
+  const canCharts = canAccessBundle(session, "reports");
 
   return (
     <div className="space-y-8">
@@ -139,88 +161,25 @@ export default function AppDashboardPage() {
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <SurfaceCard className="p-5 lg:col-span-2">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-bold text-heading">
-                {t("dashboard.quickActions")}
-              </h2>
-              <p className="mt-1 text-sm text-body">
-                {t("dashboard.quickActionsDesc")}
-              </p>
-            </div>
-          </div>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            {links.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  className={`group flex items-center gap-4 rounded-md border p-4 transition hover:-translate-y-0.5 hover:shadow-md ${
-                    "primary" in item && item.primary
-                      ? "border-brand/20 bg-brand text-white shadow-brand"
-                      : "border-border bg-card-muted hover:border-brand/30"
-                  }`}
-                >
-                  <span
-                    className={`flex h-11 w-11 items-center justify-center rounded-md ${
-                      "primary" in item && item.primary
-                        ? "bg-white/15 text-white"
-                        : "bg-brand-soft text-brand"
-                    }`}
-                  >
-                    <Icon className="h-5 w-5" />
-                  </span>
-                  <span>
-                    <span
-                      className={`block font-semibold ${
-                        "primary" in item && item.primary ? "text-white" : "text-heading"
-                      }`}
-                    >
-                      {item.title}
-                    </span>
-                    <span
-                      className={`text-sm ${
-                        "primary" in item && item.primary ? "text-white/80" : "text-body"
-                      }`}
-                    >
-                      {item.subtitle}
-                    </span>
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
-        </SurfaceCard>
-
-        <SurfaceCard className="flex flex-col justify-between p-5">
+      {canCharts ? (
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-lg font-bold text-heading">{t("dashboard.footprint")}</h2>
-            <p className="mt-2 text-sm leading-relaxed text-body">
-              {t("dashboard.footprintDesc")}
-            </p>
+            <h2 className="text-lg font-bold text-heading">{t("dashboard.trendsTitle")}</h2>
+            <p className="mt-1 text-sm text-body">{t("dashboard.chartsDesc")}</p>
           </div>
-          <div className="mt-6 space-y-3">
-            <div className="flex items-center justify-between rounded-md bg-bg-tertiary px-4 py-3">
-              <span className="text-sm text-body">{t("dashboard.businesses")}</span>
-              <strong className="text-lg text-heading">{dashboard?.businesses ?? "—"}</strong>
-            </div>
-            <div className="flex items-center justify-between rounded-md bg-bg-tertiary px-4 py-3">
-              <span className="text-sm text-body">{t("dashboard.branches")}</span>
-              <strong className="text-lg text-heading">{dashboard?.branches ?? "—"}</strong>
-            </div>
-            {canAccessBundle(session, "owner_manage") ? (
-              <Link to={routes.settings} className="block">
-                <Button variant="outline" className="w-full">
-                  {t("pages.manageSettings")}
-                </Button>
-              </Link>
-            ) : null}
-          </div>
-        </SurfaceCard>
-      </div>
+          <DateRangeFields
+            from={from}
+            to={to}
+            onFromChange={setFrom}
+            onToChange={setTo}
+            className="w-full max-w-md sm:w-auto"
+          />
+        </div>
+      ) : null}
+
+      {canCharts ? (
+        <DashboardCharts points={chartPoints} loading={chartsLoading} />
+      ) : null}
     </div>
   );
 }

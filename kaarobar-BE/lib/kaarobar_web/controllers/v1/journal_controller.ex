@@ -3,17 +3,19 @@ defmodule KaarobarWeb.V1.JournalController do
 
   alias Kaarobar.Accounting
   alias Kaarobar.Guardian
+  alias KaarobarWeb.Controllers.Helpers.ListFilters
 
-  def index(conn, _params) do
+  def index(conn, params) do
     user = Guardian.Plug.current_resource(conn)
     business_id = conn.assigns[:business_id]
     owner_id = conn.assigns[:owner_id] || user.id
 
-    data =
-      Accounting.list_journals(business_id, owner_id)
-      |> Enum.map(&serialize/1)
+    opts =
+      ListFilters.parse(params, [:q, :from, :to, :source, :limit, :cursor])
 
-    json(conn, %{data: data})
+    %{data: entries, meta: meta} = Accounting.list_journals(business_id, owner_id, opts)
+
+    json(conn, %{data: Enum.map(entries, &serialize/1), meta: meta})
   end
 
   def show(conn, %{"id" => id}) do

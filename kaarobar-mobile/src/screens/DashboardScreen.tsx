@@ -1,10 +1,11 @@
-import {useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import {
   ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import {
@@ -32,8 +33,52 @@ type Dashboard = {
   pending_approvals: number;
 };
 
+type SalesDayRow = { date: string; total: string; count: number };
+type ChartPoint = { date: string; label: string; total: number; count: number };
+
 type Business = { id: string; name: string };
 type Branch = { id: string; name: string };
+
+function defaultFrom() {
+  const d = new Date();
+  d.setDate(d.getDate() - 13);
+  return d.toISOString().slice(0, 10);
+}
+
+function defaultTo() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function toYmd(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function fillSalesDays(rows: SalesDayRow[], from: string, to: string): ChartPoint[] {
+  const map = new Map(rows.map((r) => [r.date.slice(0, 10), r]));
+  const out: ChartPoint[] = [];
+  const start = new Date(`${from}T00:00:00`);
+  const end = new Date(`${to}T00:00:00`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) {
+    return [];
+  }
+  const cursor = new Date(start);
+  while (cursor <= end) {
+    const key = toYmd(cursor);
+    const row = map.get(key);
+    const [, mm, dd] = key.split("-");
+    out.push({
+      date: key,
+      label: `${mm}/${dd}`,
+      total: row ? Number(row.total) || 0 : 0,
+      count: row?.count ?? 0,
+    });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return out;
+}
 
 export default function DashboardScreen() {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
@@ -42,10 +87,33 @@ export default function DashboardScreen() {
   const styles = useMemo(() => createStyles(palette), [palette]);
   const [session, setLocal] = useState<Session | null>(null);
   const [dash, setDash] = useState<Dashboard | null>(null);
+  const [salesDays, setSalesDays] = useState<SalesDayRow[]>([]);
+  const [from, setFrom] = useState(defaultFrom);
+  const [to, setTo] = useState(defaultTo);
+  const [selectedPoint, setSelectedPoint] = useState<ChartPoint | null>(null);
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [unread, setUnread] = useState(0);
   const [localeTick, setLocaleTick] = useState(0);
+
+  const loadCharts = useCallback(async (s: Session, rangeFrom: string, rangeTo: string) => {
+    if (!canAccess(s, "reports") || !s.business_id || !rangeFrom || !rangeTo) {
+      setSalesDays([]);
+      return;
+    }
+    try {
+      // RPT-FR-001 — tenant-scoped sales time series
+      const res = await api<{ data: SalesDayRow[] }>(
+        `/reports/sales-by-day?from=${encodeURIComponent(rangeFrom)}&to=${encodeURIComponent(rangeTo)}`,
+        {},
+        s
+      );
+      setSalesDays(res.data || []);
+      setSelectedPoint(null);
+    } catch {
+      setSalesDays([]);
+    }
+  }, []);
 
   async function hydrate(s: Session) {
     const bizRes = await api<{ data: Business[] }>("/businesses", {}, s);
@@ -81,8 +149,10 @@ export default function DashboardScreen() {
       } catch {
         setDash(null);
       }
+      await loadCharts(next, from, to);
     } else {
       setDash(null);
+      setSalesDays([]);
     }
 
     try {
@@ -142,8 +212,10 @@ export default function DashboardScreen() {
           } catch {
             setDash(null);
           }
+          await loadCharts(withBranch, from, to);
         } else {
           setDash(null);
+          setSalesDays([]);
         }
       }
     } catch (err) {
@@ -158,14 +230,17 @@ export default function DashboardScreen() {
     setLocal(next);
     if (!canAccess(next, "reports")) {
       setDash(null);
+      setSalesDays([]);
     } else {
       try {
         const res = await api<{ data: Dashboard }>("/reports/dashboard", {}, next);
         setDash(res.data);
+        await loadCharts(next, from, to);
       } catch (err) {
         const message = err instanceof Error ? err.message : t("common.error");
         if (message === "forbidden_role") {
           setDash(null);
+          setSalesDays([]);
         } else {
           toast.error(message);
         }
@@ -224,6 +299,14 @@ export default function DashboardScreen() {
     if (item.href === "/app/businesses") return canAccess(session, "owner_manage");
     return true;
   });
+
+  const chartPoints = useMemo(() => fillSalesDays(salesDays, from, to), [from, salesDays, to]);
+  const canCharts = canAccess(session, "reports");
+  const maxRevenue = Math.max(...chartPoints.map((p) => p.total), 1);
+  const maxOrders = Math.max(...chartPoints.map((p) => p.count), 1);
+  const rangeRevenue = chartPoints.reduce((s, p) => s + p.total, 0);
+  const rangeOrders = chartPoints.reduce((s, p) => s + p.count, 0);
+  const chartsEmpty = chartPoints.every((p) => p.total === 0 && p.count === 0);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
@@ -308,6 +391,129 @@ export default function DashboardScreen() {
           </View>
         ))}
       </View>
+
+      {canCharts ? (
+        <View style={styles.chartBlock}>
+          <Text style={styles.section}>{t("dashboard.trendsTitle")}</Text>
+          <Text style={styles.chartHint}>{t("dashboard.chartsDesc")}</Text>
+          <View style={styles.dateRow}>
+            <View style={styles.dateField}>
+              <Text style={styles.dateLabel}>{t("common.from")} (YYYY-MM-DD)</Text>
+              <TextInput
+                value={from}
+                onChangeText={setFrom}
+                onEndEditing={() => session && loadCharts(session, from, to)}
+                placeholder="2026-01-01"
+                placeholderTextColor={colors.muted}
+                autoCapitalize="none"
+                style={styles.dateInput}
+              />
+            </View>
+            <View style={styles.dateField}>
+              <Text style={styles.dateLabel}>{t("common.to")} (YYYY-MM-DD)</Text>
+              <TextInput
+                value={to}
+                onChangeText={setTo}
+                onEndEditing={() => session && loadCharts(session, from, to)}
+                placeholder="2026-01-31"
+                placeholderTextColor={colors.muted}
+                autoCapitalize="none"
+                style={styles.dateInput}
+              />
+            </View>
+          </View>
+          <Pressable
+            style={[styles.applyBtn, { backgroundColor: palette.brand }]}
+            onPress={() => session && loadCharts(session, from, to)}
+          >
+            <Text style={[styles.applyText, { color: palette.brandForeground }]}>
+              {t("listFilters.apply")}
+            </Text>
+          </Pressable>
+
+          <View style={styles.summaryRow}>
+            <View style={styles.summaryCard}>
+              <Text style={styles.cardLabel}>{t("dashboard.rangeRevenue")}</Text>
+              <Text style={styles.cardValue}>{rangeRevenue.toLocaleString()}</Text>
+            </View>
+            <View style={styles.summaryCard}>
+              <Text style={styles.cardLabel}>{t("dashboard.rangeOrders")}</Text>
+              <Text style={styles.cardValue}>{rangeOrders}</Text>
+            </View>
+          </View>
+
+          {selectedPoint ? (
+            <Text style={styles.selectedHint}>
+              {selectedPoint.date}: {selectedPoint.total.toLocaleString()} ·{" "}
+              {selectedPoint.count} {t("reports.tickets")}
+            </Text>
+          ) : null}
+
+          <Text style={styles.chartTitle}>{t("dashboard.revenueOverTime")}</Text>
+          {chartsEmpty ? (
+            <Text style={styles.emptyChart}>{t("dashboard.noChartData")}</Text>
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={[styles.bars, { minWidth: Math.max(280, chartPoints.length * 22) }]}>
+                {chartPoints.map((p) => (
+                  <Pressable
+                    key={`rev-${p.date}`}
+                    style={[styles.barCol, { width: 18 }]}
+                    onPress={() => setSelectedPoint(p)}
+                  >
+                    <View
+                      style={[
+                        styles.bar,
+                        {
+                          height: Math.max(4, (p.total / maxRevenue) * 96),
+                          backgroundColor: palette.brand,
+                          opacity: selectedPoint?.date === p.date ? 1 : 0.75,
+                        },
+                      ]}
+                    />
+                    <Text style={styles.barLabel} numberOfLines={1}>
+                      {p.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </ScrollView>
+          )}
+
+          <Text style={[styles.chartTitle, { marginTop: 16 }]}>
+            {t("dashboard.ordersOverTime")}
+          </Text>
+          {chartsEmpty ? (
+            <Text style={styles.emptyChart}>{t("dashboard.noChartData")}</Text>
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={[styles.bars, { minWidth: Math.max(280, chartPoints.length * 22) }]}>
+                {chartPoints.map((p) => (
+                  <Pressable
+                    key={`ord-${p.date}`}
+                    style={[styles.barCol, { width: 18 }]}
+                    onPress={() => setSelectedPoint(p)}
+                  >
+                    <View
+                      style={[
+                        styles.bar,
+                        {
+                          height: Math.max(4, (p.count / maxOrders) * 96),
+                          backgroundColor: palette.brand,
+                          opacity: selectedPoint?.date === p.date ? 1 : 0.75,
+                        },
+                      ]}
+                    />
+                    <Text style={styles.barLabel} numberOfLines={1}>
+                      {p.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </ScrollView>
+          )}
+        </View>
+      ) : null}
 
       {links.map((item) => (
         <Pressable
@@ -426,6 +632,67 @@ function createStyles(palette: import("../lib/brandTheme").BrandPalette) {
     fontWeight: "700",
     color: colors.heading,
   },
+  chartBlock: { marginTop: 8 },
+  chartHint: { color: colors.body, fontSize: 13, lineHeight: 18, marginBottom: 8 },
+  dateRow: { flexDirection: "row", gap: 8 },
+  dateField: { flex: 1 },
+  dateLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.muted,
+    textTransform: "uppercase",
+    marginBottom: 4,
+  },
+  dateInput: {
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    borderRadius: colors.radiusLg,
+    backgroundColor: colors.glass,
+    color: colors.heading,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 14,
+  },
+  applyBtn: {
+    marginTop: 10,
+    borderRadius: colors.radiusLg,
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  applyText: { fontWeight: "700", fontSize: 14 },
+  summaryRow: { flexDirection: "row", gap: 12, marginTop: 12 },
+  summaryCard: {
+    flex: 1,
+    backgroundColor: colors.glass,
+    borderColor: colors.glassBorder,
+    borderWidth: 1,
+    borderRadius: colors.radiusLg,
+    padding: 12,
+  },
+  selectedHint: {
+    marginTop: 10,
+    color: colors.heading,
+    fontWeight: "600",
+    fontSize: 13,
+  },
+  chartTitle: {
+    marginTop: 12,
+    marginBottom: 8,
+    fontSize: 15,
+    fontWeight: "700",
+    color: colors.heading,
+  },
+  emptyChart: { color: colors.muted, fontSize: 13, paddingVertical: 16 },
+  bars: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 4,
+    minHeight: 120,
+    paddingTop: 8,
+  },
+  barCol: { alignItems: "center", justifyContent: "flex-end" },
+  bar: { width: "100%", borderTopLeftRadius: 4, borderTopRightRadius: 4 },
+  barLabel: { marginTop: 4, fontSize: 8, color: colors.muted, width: 22, textAlign: "center" },
   navCard: {
     marginTop: 12,
     borderRadius: colors.radiusLg,

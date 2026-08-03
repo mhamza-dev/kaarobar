@@ -145,46 +145,49 @@ export default function SalesScreen() {
           <Text style={styles.posBtnText}>Open POS</Text>
         </Pressable>
       </View>
-      <ListToolbar
-        value={filters}
-        onChange={setFilters}
-        searchPlaceholder="Search invoice or customer…"
-        config={{
-          showDateRange: true,
-          categoryLabel: "Source",
-          categoryOptions: [
-            { value: "pos", label: "POS" },
-            { value: "online", label: "Online" },
-          ],
-          statusOptions: SALE_STATUSES.map((s) => ({ value: s, label: s })),
-        }}
-      />
-      <ScrollView contentContainerStyle={styles.list}>
-        {filtered.length === 0 ? (
-          <Text style={styles.empty}>No sales match these filters.</Text>
-        ) : (
-          filtered.map((sale) => {
-            const next = ONLINE_NEXT[sale.status];
-            return (
-              <View key={sale.id} style={styles.card}>
-                <View style={styles.row}>
-                  <Text style={styles.invoice}>{sale.invoice_number}</Text>
-                  <Text style={styles.amount}>Rs {sale.total_amount}</Text>
+      <View style={styles.listShell}>
+        <ListToolbar
+          value={filters}
+          onChange={setFilters}
+          searchPlaceholder="Search invoice or customer…"
+          embedded
+          config={{
+            showDateRange: true,
+            categoryLabel: "Source",
+            categoryOptions: [
+              { value: "pos", label: "POS" },
+              { value: "online", label: "Online" },
+            ],
+            statusOptions: SALE_STATUSES.map((s) => ({ value: s, label: s })),
+          }}
+        />
+        <ScrollView contentContainerStyle={styles.list}>
+          {filtered.length === 0 ? (
+            <Text style={styles.empty}>No sales match these filters.</Text>
+          ) : (
+            filtered.map((sale) => {
+              const next = ONLINE_NEXT[sale.status];
+              return (
+                <View key={sale.id} style={styles.rowCard}>
+                  <View style={styles.row}>
+                    <Text style={styles.invoice}>{sale.invoice_number}</Text>
+                    <Text style={styles.amount}>Rs {sale.total_amount}</Text>
+                  </View>
+                  <Text style={styles.meta}>
+                    {sale.customer_name || "Walk-in"} · {sale.status}
+                    {sale.source ? ` · ${sale.source}` : ""}
+                  </Text>
+                  {next ? (
+                    <Pressable style={styles.advance} onPress={() => advanceOnline(sale)}>
+                      <Text style={styles.advanceText}>Mark {next}</Text>
+                    </Pressable>
+                  ) : null}
                 </View>
-                <Text style={styles.meta}>
-                  {sale.customer_name || "Walk-in"} · {sale.status}
-                  {sale.source ? ` · ${sale.source}` : ""}
-                </Text>
-                {next ? (
-                  <Pressable style={styles.advance} onPress={() => advanceOnline(sale)}>
-                    <Text style={styles.advanceText}>Mark {next}</Text>
-                  </Pressable>
-                ) : null}
-              </View>
-            );
-          })
-        )}
-      </ScrollView>
+              );
+            })
+          )}
+        </ScrollView>
+      </View>
     </View>
   );
 }
@@ -213,8 +216,28 @@ function createStyles(brand: string) {
       paddingVertical: 8,
     },
     posBtnText: { color: colors.white, fontWeight: "700", fontSize: 13 },
-    list: { padding: 16, gap: 10, paddingBottom: 40 },
+    listShell: {
+      flex: 1,
+      marginHorizontal: 16,
+      marginTop: 12,
+      marginBottom: 16,
+      backgroundColor: colors.card,
+      borderRadius: colors.radiusLg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 14,
+      overflow: "hidden",
+    },
+    list: { gap: 10, paddingBottom: 16 },
     empty: { color: colors.muted, textAlign: "center", marginTop: 24 },
+    rowCard: {
+      backgroundColor: colors.bgSecondary,
+      borderRadius: colors.radiusLg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 14,
+      marginBottom: 10,
+    },
     card: {
       backgroundColor: colors.card,
       borderRadius: colors.radiusLg,

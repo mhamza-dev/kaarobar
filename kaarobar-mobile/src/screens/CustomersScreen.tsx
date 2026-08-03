@@ -154,12 +154,6 @@ export default function CustomersScreen() {
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {message ? <Text style={styles.message}>{message}</Text> : null}
 
-      <ListToolbar
-        value={filters}
-        onChange={setFilters}
-        searchPlaceholder={t("customers.search")}
-      />
-
       <Pressable
         style={styles.primaryBtn}
         onPress={() => {
@@ -213,50 +207,59 @@ export default function CustomersScreen() {
         </View>
       ) : null}
 
-      {filtered.map((c) => (
-        <View key={c.id} style={styles.card}>
-          <Text style={styles.cardTitle}>{c.name}</Text>
-          <Text style={styles.cardBody}>
-            {c.phone || "—"} · {c.company_name || "no company"} · pts {c.loyalty_points ?? 0}
-          </Text>
-          <Text style={styles.cardBody}>
-            Khata {c.khata_enabled ? "On" : "Off"} · Balance {c.balance || "0"}
-          </Text>
-          <View style={styles.rowWrap}>
-            {c.portal_linked ? (
-              <Text style={styles.portalBadge}>Portal signed up</Text>
-            ) : (
-              <Pressable
-                style={styles.chip}
-                onPress={() => {
-                  setEditingId(c.id);
-                  setForm(customerToForm(c));
-                  setShowForm(true);
-                }}
-              >
-                <Text style={styles.chipText}>{t("common.edit")}</Text>
+      <View style={styles.listShell}>
+        <ListToolbar
+          value={filters}
+          onChange={setFilters}
+          searchPlaceholder={t("customers.search")}
+          embedded
+        />
+
+        {filtered.map((c) => (
+          <View key={c.id} style={styles.rowCard}>
+            <Text style={styles.cardTitle}>{c.name}</Text>
+            <Text style={styles.cardBody}>
+              {c.phone || "—"} · {c.company_name || "no company"} · pts {c.loyalty_points ?? 0}
+            </Text>
+            <Text style={styles.cardBody}>
+              Khata {c.khata_enabled ? "On" : "Off"} · Balance {c.balance || "0"}
+            </Text>
+            <View style={styles.rowWrap}>
+              {c.portal_linked ? (
+                <Text style={styles.portalBadge}>Portal signed up</Text>
+              ) : (
+                <Pressable
+                  style={styles.chip}
+                  onPress={() => {
+                    setEditingId(c.id);
+                    setForm(customerToForm(c));
+                    setShowForm(true);
+                  }}
+                >
+                  <Text style={styles.chipText}>{t("common.edit")}</Text>
+                </Pressable>
+              )}
+              <Pressable style={styles.chip} onPress={() => void toggleKhata(c)}>
+                <Text style={styles.chipText}>{c.khata_enabled ? t("customers.disableKhata") : t("customers.enableKhata")}</Text>
               </Pressable>
-            )}
-            <Pressable style={styles.chip} onPress={() => void toggleKhata(c)}>
-              <Text style={styles.chipText}>{c.khata_enabled ? t("customers.disableKhata") : t("customers.enableKhata")}</Text>
-            </Pressable>
-            <Pressable style={styles.chip} onPress={() => void openLedger(c)}>
-              <Text style={styles.chipText}>{t("customers.ledger")}</Text>
-            </Pressable>
-            <Pressable style={styles.chip} onPress={() => void adjustPoints(c)}>
-              <Text style={styles.chipText}>{t("customers.points")}</Text>
-            </Pressable>
+              <Pressable style={styles.chip} onPress={() => void openLedger(c)}>
+                <Text style={styles.chipText}>{t("customers.ledger")}</Text>
+              </Pressable>
+              <Pressable style={styles.chip} onPress={() => void adjustPoints(c)}>
+                <Text style={styles.chipText}>{t("customers.points")}</Text>
+              </Pressable>
+            </View>
+            <TextInput
+              style={styles.input}
+              placeholder={t("customers.delta")}
+              placeholderTextColor={colors.muted}
+              value={loyaltyDelta}
+              onChangeText={setLoyaltyDelta}
+              keyboardType="numeric"
+            />
           </View>
-          <TextInput
-            style={styles.input}
-            placeholder={t("customers.delta")}
-            placeholderTextColor={colors.muted}
-            value={loyaltyDelta}
-            onChangeText={setLoyaltyDelta}
-            keyboardType="numeric"
-          />
-        </View>
-      ))}
+        ))}
+      </View>
 
       {ledger ? (
         <View style={styles.card}>
@@ -310,6 +313,22 @@ function createStyles(palette: import("../lib/brandTheme").BrandPalette) {
     borderRadius: 12,
     padding: 14,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  listShell: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  rowCard: {
+    backgroundColor: colors.bgSecondary,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: colors.border,
   },

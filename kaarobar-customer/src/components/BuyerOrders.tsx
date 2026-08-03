@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -7,9 +7,11 @@ import {
   Text,
   View,
 } from "react-native";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, colors } from "../lib/api";
 import { useBrandPalette } from "../lib/BrandThemeContext";
 import { t } from "../lib/i18n";
+import { portalKeys } from "../lib/queryClient";
 import { useToast } from "./Toast";
 import BuyerNav from "./BuyerNav";
 import SegmentedTabs from "./SegmentedTabs";
@@ -55,40 +57,47 @@ export default function BuyerOrders() {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const palette = useBrandPalette();
   const toast = useToast();
+  const queryClient = useQueryClient();
   const styles = useMemo(() => createStyles(palette), [palette]);
   const [tab, setTab] = useState<Tab>("orders");
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [preferApptsChecked, setPreferApptsChecked] = useState(false);
 
-  const load = useCallback(() => {
-    setLoading(true);
-    void Promise.all([
-      api<{ data: Order[] }>("/portal/orders"),
-      api<{ data: Appointment[] }>("/portal/appointments").catch(() => ({
-        data: [] as Appointment[],
-      })),
-    ])
-      .then(([orderRes, apptRes]) => {
-        setOrders(orderRes.data || []);
-        setAppointments(apptRes.data || []);
-        setError(null);
-        const upcoming = (apptRes.data || []).filter(isUpcoming);
-        if (upcoming.length > 0 && (orderRes.data || []).length === 0) {
-          setTab("appointments");
-        }
-      })
-      .catch((err) =>
-        setError(err instanceof Error ? err.message : t("common.loadFailed"))
-      )
-      .finally(() => setLoading(false));
-  }, []);
+  const ordersQuery = useQuery({
+    queryKey: portalKeys.orders(),
+    queryFn: async () => {
+      const res = await api<{ data: Order[] }>("/portal/orders");
+      return res.data || [];
+    },
+    enabled: tab === "orders",
+  });
+
+  const needApptsForPrefer =
+    !preferApptsChecked &&
+    ordersQuery.isSuccess &&
+    (ordersQuery.data?.length ?? 0) === 0;
+
+  const appointmentsQuery = useQuery({
+    queryKey: portalKeys.appointments(),
+    queryFn: async () => {
+      try {
+        const res = await api<{ data: Appointment[] }>("/portal/appointments");
+        return res.data || [];
+      } catch {
+        return [] as Appointment[];
+      }
+    },
+    enabled: tab === "appointments" || needApptsForPrefer,
+  });
 
   useEffect(() => {
-    load();
-  }, [load]);
+    if (!needApptsForPrefer || !appointmentsQuery.isSuccess) return;
+    const upcomingCount = (appointmentsQuery.data || []).filter(isUpcoming).length;
+    if (upcomingCount > 0) setTab("appointments");
+    setPreferApptsChecked(true);
+  }, [needApptsForPrefer, appointmentsQuery.isSuccess, appointmentsQuery.data]);
+
+  const orders: Order[] = ordersQuery.data ?? [];
+  const appointments: Appointment[] = appointmentsQuery.data ?? [];
 
   const upcoming = useMemo(
     () =>
@@ -106,23 +115,33 @@ export default function BuyerOrders() {
     [appointments]
   );
 
-  async function cancelAppointment(id: string) {
-    setCancellingId(id);
-    try {
-      await api(`/portal/appointments/${id}/cancel`, {
+  const cancelMutation = useMutation({
+    mutationFn: (id: string) =>
+      api(`/portal/appointments/${id}/cancel`, {
         method: "POST",
         body: "{}",
-      });
+      }),
+    onSuccess: () => {
       toast.success(t("appointments.cancelled"));
-      load();
-    } catch (err) {
+      void queryClient.invalidateQueries({ queryKey: portalKeys.appointments() });
+    },
+    onError: (err) => {
       toast.error(
         err instanceof Error ? err.message : t("appointments.cancelFailed")
       );
-    } finally {
-      setCancellingId(null);
-    }
-  }
+    },
+  });
+
+  const loading =
+    tab === "orders" ? ordersQuery.isLoading : appointmentsQuery.isLoading;
+  const error =
+    tab === "orders" ? ordersQuery.error : appointmentsQuery.error;
+  const errorMessage =
+    error instanceof Error
+      ? error.message
+      : error
+        ? t("common.loadFailed")
+        : null;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
@@ -148,7 +167,7 @@ export default function BuyerOrders() {
         onChange={setTab}
       />
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
 
       {loading ? (
         <BuyerOrderListSkeleton />
@@ -239,14 +258,21 @@ export default function BuyerOrders() {
                     </Text>
                     {a.status === "Booked" ? (
                       <Pressable
-                        style={[styles.cancelBtn, cancellingId === a.id && { opacity: 0.6 }]}
-                        disabled={cancellingId === a.id}
+                        style={[
+                          styles.cancelBtn,
+                          cancelMutation.isPending &&
+                            cancelMutation.variables === a.id && { opacity: 0.6 },
+                        ]}
+                        disabled={
+                          cancelMutation.isPending && cancelMutation.variables === a.id
+                        }
                         onPress={(e) => {
                           e.stopPropagation?.();
-                          void cancelAppointment(a.id);
+                          cancelMutation.mutate(a.id);
                         }}
                       >
-                        {cancellingId === a.id ? (
+                        {cancelMutation.isPending &&
+                        cancelMutation.variables === a.id ? (
                           <ActivityIndicator color={colors.danger} size="small" />
                         ) : (
                           <Text style={styles.cancelText}>{t("appointments.cancel")}</Text>

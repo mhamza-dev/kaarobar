@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, Package, Store } from "lucide-react";
 import { api } from "@/lib/api/client";
 import { Alert } from "@/components/app/ui";
@@ -15,6 +16,7 @@ import BuyerProductFeed from "@/components/buyer/BuyerProductFeed";
 import { BuyerDiscoverSkeleton } from "@/components/buyer/BuyerSkeletons";
 import MarketplaceFilters from "@/components/buyer/MarketplaceFilters";
 import { useT } from "@/lib/i18n";
+import { marketplaceKeys } from "@/lib/queryClient";
 import {
   emptyMarketplaceFeedFilters,
   type MarketplaceFeedFilters,
@@ -42,34 +44,40 @@ export default function BuyerMarketDiscover() {
   const [shopFilters, setShopFilters] = useState<MarketplaceFeedFilters>(
     emptyMarketplaceFeedFilters()
   );
-  const [businesses, setBusinesses] = useState<Biz[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loadingShops, setLoadingShops] = useState(false);
+  const [debouncedSearch, setDebouncedSearch] = useState(shopFilters.search);
 
   useEffect(() => {
-    if (mode !== "shops") return;
-    const timer = setTimeout(() => {
-      setLoadingShops(true);
-      const q = shopFilters.search.trim();
+    const timer = setTimeout(() => setDebouncedSearch(shopFilters.search), 200);
+    return () => clearTimeout(timer);
+  }, [shopFilters.search]);
+
+  const shopsQuery = useQuery({
+    queryKey: marketplaceKeys.businesses({
+      q: debouncedSearch.trim(),
+    }),
+    queryFn: async () => {
+      const q = debouncedSearch.trim();
       const params = new URLSearchParams();
       if (q) params.set("q", q);
       const qs = params.toString();
-      void api<{ data: Biz[] }>(
+      const res = await api<{ data: Biz[] }>(
         `/marketplace/businesses${qs ? `?${qs}` : ""}`,
         {},
         null
-      )
-        .then((res) => {
-          setBusinesses(res.data || []);
-          setError(null);
-        })
-        .catch((err) =>
-          setError(err instanceof Error ? err.message : t("common.loadFailed"))
-        )
-        .finally(() => setLoadingShops(false));
-    }, 200);
-    return () => clearTimeout(timer);
-  }, [mode, shopFilters.search, t]);
+      );
+      return res.data || [];
+    },
+    enabled: mode === "shops",
+  });
+
+  const businesses = shopsQuery.data || [];
+  const loadingShops = shopsQuery.isLoading;
+  const errorMessage =
+    shopsQuery.error instanceof Error
+      ? shopsQuery.error.message
+      : shopsQuery.error
+        ? t("common.loadFailed")
+        : null;
 
   const industryOptions = useMemo(() => {
     const set = new Set<string>();
@@ -82,7 +90,6 @@ export default function BuyerMarketDiscover() {
   const filteredShops = useMemo(() => {
     if (shopFilters.industries.length === 0) return businesses;
     const selected = new Set(shopFilters.industries);
-    // Match shops whose industry is any of the selected values.
     return businesses.filter((b) => {
       const industry = (b.industry ?? "").trim();
       return industry !== "" && selected.has(industry);
@@ -129,7 +136,7 @@ export default function BuyerMarketDiscover() {
             searchPlaceholder={t("marketplace.searchStores")}
           />
 
-          {error ? <Alert tone="error">{error}</Alert> : null}
+          {errorMessage ? <Alert tone="error">{errorMessage}</Alert> : null}
 
           {loadingShops ? (
             <BuyerDiscoverSkeleton />

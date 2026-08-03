@@ -233,8 +233,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (!session || booting) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-bg-primary text-body">
-        {t("common.workspaceLoading")}
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-bg-primary text-body">
+        <KaarobarLogo size={56} className="rounded-md shadow-brand" />
+        <p className="text-sm font-medium">{t("common.workspaceLoading")}</p>
       </div>
     );
   }

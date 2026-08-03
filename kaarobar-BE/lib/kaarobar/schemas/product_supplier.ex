@@ -1,0 +1,29 @@
+defmodule Kaarobar.Schemas.ProductSupplier do
+  use Ecto.Schema
+  import Ecto.Changeset
+
+  @primary_key {:id, :binary_id, autogenerate: true}
+  @foreign_key_type :binary_id
+
+  schema "product_suppliers" do
+    field :is_primary, :boolean, default: false
+
+    belongs_to :product, Kaarobar.Schemas.Product
+    belongs_to :supplier, Kaarobar.Schemas.Supplier
+    belongs_to :business, Kaarobar.Schemas.Business
+    belongs_to :owner, Kaarobar.Schemas.User
+
+    timestamps(type: :utc_datetime)
+  end
+
+  def changeset(row, attrs) do
+    row
+    |> cast(attrs, [:product_id, :supplier_id, :business_id, :owner_id, :is_primary])
+    |> validate_required([:product_id, :supplier_id, :business_id, :owner_id])
+    |> unique_constraint([:product_id, :supplier_id])
+    |> foreign_key_constraint(:product_id)
+    |> foreign_key_constraint(:supplier_id)
+    |> foreign_key_constraint(:business_id)
+    |> foreign_key_constraint(:owner_id)
+  end
+end

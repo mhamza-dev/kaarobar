@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { api, getSession } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
-import ListToolbar from "@/components/app/ListToolbar";
 import {
   PageHeader,
   StatusBadge,
@@ -15,7 +14,6 @@ import { useT } from "@/lib/i18n";
 import { detailRoutes } from "@/lib/navigation";
 import { canAccessBundle } from "@/lib/rbac";
 import {
-  applyStaffListFilters,
   emptyStaffListFilters,
   type ListFilterConfig,
   type StaffListFilterState,
@@ -71,10 +69,13 @@ export default function ReturnsPage() {
   const [returnFilters, setReturnFilters] = useState<StaffListFilterState>(
     emptyStaffListFilters()
   );
+  const [tillFilters, setTillFilters] = useState(emptyStaffListFilters());
   const [tills, setTills] = useState<Till[]>([]);
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const reload = useCallback(async () => {
+    setLoading(true);
     try {
       const [p, r, t] = await Promise.all([
         api<{ data: ReturnRow[] }>("/returns/pending"),
@@ -86,6 +87,8 @@ export default function ReturnsPage() {
       setTills(t.data || []);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("returns.loadFailed"));
+    } finally {
+      setLoading(false);
     }
   }, [t, toast]);
 
@@ -187,16 +190,6 @@ export default function ReturnsPage() {
       ],
     }),
     []
-  );
-
-  const filteredReturns = useMemo(
-    () =>
-      applyStaffListFilters(returns, returnFilters, {
-        searchText: (r) =>
-          `${r.status} ${r.refund_amount} ${r.refund_method} ${r.sale_id} ${r.reason ?? ""}`,
-        status: (r) => r.status.toLowerCase(),
-      }),
-    [returns, returnFilters]
   );
 
   return (
@@ -330,14 +323,33 @@ export default function ReturnsPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <DataTable
           maxHeight="22rem"
-          filters={
-            <ListToolbar
-              value={returnFilters}
-              onChange={setReturnFilters}
-              config={returnFilterConfig}
-              searchPlaceholder="Search returns…"
-            />
-          }
+          loading={loading}
+          filterState={returnFilters}
+          onFilterChange={setReturnFilters}
+          filterConfig={returnFilterConfig}
+          filterAccessors={{
+            searchText: (r) =>
+              `${r.status} ${r.refund_amount} ${r.refund_method} ${r.sale_id} ${r.reason ?? ""}`,
+            status: (r) => r.status.toLowerCase(),
+          }}
+          clientFilter
+          searchPlaceholder={t("returns.searchReturns")}
+          pagination={{ mode: "client", pageSize: 25 }}
+          exportable
+          exportFilename="returns"
+          exportTitle="Recent returns"
+          getExportRow={(r) => ({
+            status: r.status,
+            amount: r.refund_amount,
+            method: r.refund_method,
+            sale: r.sale_id,
+          })}
+          exportColumns={[
+            { key: "status", header: "Status" },
+            { key: "amount", header: "Amount" },
+            { key: "method", header: "Method" },
+            { key: "sale", header: "Sale" },
+          ]}
           onRowClick={(r) => navigate(detailRoutes.saleReturn(r.id))}
           columns={[
             {
@@ -386,7 +398,7 @@ export default function ReturnsPage() {
               ),
             },
           ]}
-          data={filteredReturns}
+          data={returns}
           rowKey={(r) => r.id}
           emptyTitle="No returns yet"
           toolbar={<span className="text-sm font-semibold text-heading">Recent returns</span>}
@@ -394,46 +406,68 @@ export default function ReturnsPage() {
 
         <DataTable
           maxHeight="22rem"
-          searchable
-          searchPlaceholder="Search tills…"
-          getSearchText={(t) =>
-            `${t.status} ${t.opening_cash} ${t.expected_cash ?? ""} ${t.closing_cash ?? ""}`
-          }
+          loading={loading}
+          filterState={tillFilters}
+          onFilterChange={setTillFilters}
+          filterAccessors={{
+            searchText: (row) =>
+              `${row.status} ${row.opening_cash} ${row.expected_cash ?? ""} ${row.closing_cash ?? ""}`,
+          }}
+          clientFilter
+          searchPlaceholder={t("returns.searchTills")}
+          pagination={{ mode: "client", pageSize: 25 }}
+          exportable
+          exportFilename="tills"
+          exportTitle="Till history"
+          getExportRow={(row) => ({
+            status: row.status,
+            opening: row.opening_cash,
+            expected: row.expected_cash ?? "",
+            closing: row.closing_cash ?? "",
+            over: row.over_short ?? "",
+          })}
+          exportColumns={[
+            { key: "status", header: "Status" },
+            { key: "opening", header: "Opening" },
+            { key: "expected", header: "Expected" },
+            { key: "closing", header: "Closing" },
+            { key: "over", header: "Over/short" },
+          ]}
           columns={[
-            { id: "status", header: "Status", cell: (t) => t.status },
+            { id: "status", header: "Status", cell: (row) => row.status },
             {
               id: "opening",
               header: "Opening",
               align: "right",
-              cell: (t) => <span className="tabular-nums">{t.opening_cash}</span>,
+              cell: (row) => <span className="tabular-nums">{row.opening_cash}</span>,
             },
             {
               id: "expected",
               header: "Expected",
               align: "right",
-              cell: (t) => (
-                <span className="tabular-nums">{t.expected_cash ?? "—"}</span>
+              cell: (row) => (
+                <span className="tabular-nums">{row.expected_cash ?? "—"}</span>
               ),
             },
             {
               id: "closing",
               header: "Closing",
               align: "right",
-              cell: (t) => (
-                <span className="tabular-nums">{t.closing_cash ?? "—"}</span>
+              cell: (row) => (
+                <span className="tabular-nums">{row.closing_cash ?? "—"}</span>
               ),
             },
             {
               id: "over",
               header: "Over/short",
               align: "right",
-              cell: (t) => (
-                <span className="tabular-nums">{t.over_short ?? "—"}</span>
+              cell: (row) => (
+                <span className="tabular-nums">{row.over_short ?? "—"}</span>
               ),
             },
           ]}
           data={tills}
-          rowKey={(t) => t.id}
+          rowKey={(row) => row.id}
           emptyTitle="No till sessions"
           toolbar={<span className="text-sm font-semibold text-heading">Till history</span>}
         />

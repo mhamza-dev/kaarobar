@@ -1,14 +1,14 @@
 "use client";
 
-import { Fragment, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, getSession } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
-import ListToolbar from "@/components/app/ListToolbar";
 import {
   EmptyState,
   Field,
@@ -23,11 +23,11 @@ import { useTabQueryParam } from "@/lib/hooks/useTabQueryParam";
 import { detailRoutes, routes } from "@/lib/navigation";
 import { canAccessBundle } from "@/lib/rbac";
 import {
-  applyStaffListFilters,
   emptyStaffListFilters,
   type ListFilterConfig,
   type StaffListFilterState,
 } from "@/lib/listFilters";
+import { hrKeys } from "@/lib/queryClient";
 
 type Tab = "employees" | "attendance" | "leave" | "payroll";
 const HR_TABS: readonly Tab[] = ["employees", "attendance", "leave", "payroll"];
@@ -103,7 +103,9 @@ function HrPageInner() {
   const t = useT();
   const toast = useToast();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const session = getSession();
+  const businessId = session?.business_id ?? null;
   const canLeaveApprove = canAccessBundle(session, "leave_approve");
   const canPayrollApprove = canAccessBundle(session, "payroll_approve");
   const canSeePayroll = canPayrollApprove;
@@ -113,10 +115,6 @@ function HrPageInner() {
   });
   const [modal, setModal] = useState<ModalKind>(null);
   const [editingEmployeeId, setEditingEmployeeId] = useState<string | null>(null);
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [attendance, setAttendance] = useState<Attendance[]>([]);
-  const [leave, setLeave] = useState<Leave[]>([]);
-  const [payroll, setPayroll] = useState<PayrollRun[]>([]);
   const [busy, setBusy] = useState(false);
   const [attendanceFilters, setAttendanceFilters] = useState<StaffListFilterState>(
     emptyStaffListFilters()
@@ -138,60 +136,74 @@ function HrPageInner() {
     new Date().toISOString().slice(0, 10)
   );
 
-  const load = useCallback(async () => {
-    try {
-      const attParams = new URLSearchParams();
-      if (attendanceFilters.from.trim()) attParams.set("from", attendanceFilters.from.trim());
-      if (attendanceFilters.to.trim()) attParams.set("to", attendanceFilters.to.trim());
-      const attQs = attParams.toString() ? `?${attParams}` : "";
+  const attendanceParams = useMemo(() => {
+    const attParams = new URLSearchParams();
+    if (attendanceFilters.from.trim()) attParams.set("from", attendanceFilters.from.trim());
+    if (attendanceFilters.to.trim()) attParams.set("to", attendanceFilters.to.trim());
+    return attParams.toString();
+  }, [attendanceFilters.from, attendanceFilters.to]);
 
-      const leaveParams = new URLSearchParams();
-      if (leaveFilters.statuses.length === 1) {
-        leaveParams.set("status", leaveFilters.statuses[0]);
-      }
-      const leaveQs = leaveParams.toString() ? `?${leaveParams}` : "";
-
-      const requests: Promise<unknown>[] = [
-        api<{ data: Employee[] }>("/employees"),
-        api<{ data: Attendance[] }>(`/attendance${attQs}`),
-      ];
-      if (canLeaveApprove) {
-        requests.push(api<{ data: Leave[] }>(`/leave${leaveQs}`));
-      }
-      if (canSeePayroll) {
-        requests.push(api<{ data: PayrollRun[] }>("/payroll"));
-      }
-      const results = await Promise.all(requests);
-      setEmployees((results[0] as { data: Employee[] }).data || []);
-      setAttendance((results[1] as { data: Attendance[] }).data || []);
-      let idx = 2;
-      if (canLeaveApprove) {
-        setLeave((results[idx] as { data: Leave[] }).data || []);
-        idx += 1;
-      } else {
-        setLeave([]);
-      }
-      if (canSeePayroll) {
-        setPayroll((results[idx] as { data: PayrollRun[] }).data || []);
-      } else {
-        setPayroll([]);
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("common.loadFailed"));
+  const leaveParams = useMemo(() => {
+    const leaveParams = new URLSearchParams();
+    if (leaveFilters.statuses.length === 1) {
+      leaveParams.set("status", leaveFilters.statuses[0]);
     }
-  }, [
-    attendanceFilters.from,
-    attendanceFilters.to,
-    leaveFilters.statuses,
-    canLeaveApprove,
-    canSeePayroll,
-    t,
-    toast,
-  ]);
+    return leaveParams.toString();
+  }, [leaveFilters.statuses]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const {
+    data: employees = [],
+    isLoading: employeesLoading,
+    isFetching: employeesFetching,
+  } = useQuery({
+    queryKey: hrKeys.employees(businessId),
+    queryFn: async () => {
+      const res = await api<{ data: Employee[] }>("/employees");
+      return res.data || [];
+    },
+    enabled: tab === "employees",
+  });
+
+  const {
+    data: attendance = [],
+    isLoading: attendanceLoading,
+    isFetching: attendanceFetching,
+  } = useQuery({
+    queryKey: hrKeys.attendance(businessId, attendanceParams),
+    queryFn: async () => {
+      const qs = attendanceParams ? `?${attendanceParams}` : "";
+      const res = await api<{ data: Attendance[] }>(`/attendance${qs}`);
+      return res.data || [];
+    },
+    enabled: tab === "attendance",
+  });
+
+  const {
+    data: leave = [],
+    isLoading: leaveLoading,
+    isFetching: leaveFetching,
+  } = useQuery({
+    queryKey: hrKeys.leave(businessId, leaveParams),
+    queryFn: async () => {
+      const qs = leaveParams ? `?${leaveParams}` : "";
+      const res = await api<{ data: Leave[] }>(`/leave${qs}`);
+      return res.data || [];
+    },
+    enabled: tab === "leave" && canLeaveApprove,
+  });
+
+  const { data: payroll = [] } = useQuery({
+    queryKey: hrKeys.payroll(businessId),
+    queryFn: async () => {
+      const res = await api<{ data: PayrollRun[] }>("/payroll");
+      return res.data || [];
+    },
+    enabled: tab === "payroll" && canSeePayroll,
+  });
+
+  async function refreshHr() {
+    await queryClient.invalidateQueries({ queryKey: hrKeys.all });
+  }
 
   const attendanceFilterConfig = useMemo<ListFilterConfig>(
     () => ({
@@ -216,27 +228,6 @@ function HrPageInner() {
       ],
     }),
     []
-  );
-
-  const filteredAttendance = useMemo(
-    () =>
-      applyStaffListFilters(attendance, attendanceFilters, {
-        searchText: (a) => `${a.date} ${a.employee_name ?? ""} ${a.source}`,
-        date: (a) => a.date,
-        category: (a) => a.source,
-      }),
-    [attendance, attendanceFilters]
-  );
-
-  const filteredLeave = useMemo(
-    () =>
-      applyStaffListFilters(leave, leaveFilters, {
-        searchText: (l) =>
-          `${l.employee_name ?? ""} ${l.type} ${l.status} ${l.reason ?? ""}`,
-        date: (l) => l.start_date,
-        status: (l) => l.status,
-      }),
-    [leave, leaveFilters]
   );
 
   useEffect(() => {
@@ -298,7 +289,7 @@ function HrPageInner() {
         toast.success(t("hr.employeeCreated"));
       }
       closeEmployeeModal();
-      await load();
+      await refreshHr();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.saveFailed"));
     } finally {
@@ -338,7 +329,7 @@ function HrPageInner() {
     try {
       await api(`/leave/${id}/${action}`, { method: "POST", body: "{}" });
       toast.success(action === "approve" ? t("hr.leaveApproved") : t("hr.leaveRejected"));
-      await load();
+      await refreshHr();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.error"));
     }
@@ -358,7 +349,7 @@ function HrPageInner() {
       toast.success(t("hr.payrollRun"));
       setModal(null);
       setTab("payroll");
-      await load();
+      await refreshHr();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.error"));
     } finally {
@@ -372,7 +363,7 @@ function HrPageInner() {
       toast.success(
         action === "recalculate" ? "Payroll recalculated from attendance" : t("common.success")
       );
-      await load();
+      await refreshHr();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.error"));
     }
@@ -413,8 +404,9 @@ function HrPageInner() {
       {tab === "employees" ? (
         <DataTable
           maxHeight="28rem"
+          loading={employeesLoading || employeesFetching}
           searchable
-          searchPlaceholder="Search employees…"
+          searchPlaceholder={t("hr.searchEmployees")}
           getSearchText={(e) =>
             `${e.employee_code} ${e.name} ${e.position ?? ""} ${e.status}`
           }
@@ -493,14 +485,22 @@ function HrPageInner() {
       {tab === "attendance" ? (
         <DataTable
           maxHeight="28rem"
-          filters={
-            <ListToolbar
-              value={attendanceFilters}
-              onChange={setAttendanceFilters}
-              config={attendanceFilterConfig}
-              searchPlaceholder="Search attendance…"
-            />
-          }
+          filterState={attendanceFilters}
+          onFilterChange={setAttendanceFilters}
+          filterConfig={attendanceFilterConfig}
+          filterAccessors={{
+            searchText: (a) =>
+              `${a.employee_name || ""} ${a.date} ${a.source || ""}`,
+            date: (a) => a.date,
+            category: (a) => a.source || "",
+          }}
+          clientFilter
+          searchPlaceholder={t("hr.searchAttendance")}
+          pagination={{ mode: "client", pageSize: 25 }}
+          exportable
+          exportFilename="attendance"
+          exportTitle="Attendance"
+          loading={attendanceLoading || attendanceFetching}
           columns={[
             { id: "date", header: "Date", cell: (a) => a.date },
             {
@@ -522,7 +522,7 @@ function HrPageInner() {
             },
             { id: "source", header: "Source", cell: (a) => a.source },
           ]}
-          data={filteredAttendance}
+          data={attendance}
           rowKey={(a) => a.id}
           emptyTitle="No attendance yet"
           emptyBody="Staff clock in from the mobile ESS."
@@ -530,33 +530,47 @@ function HrPageInner() {
       ) : null}
 
       {tab === "leave" ? (
-        <div className="space-y-3">
-          <ListToolbar
-            value={leaveFilters}
-            onChange={setLeaveFilters}
-            config={leaveFilterConfig}
-            searchPlaceholder="Search leave…"
-          />
-          {filteredLeave.length === 0 ? (
-            <SurfaceCard>
-              <EmptyState title="No leave requests" />
-            </SurfaceCard>
-          ) : (
-            filteredLeave.map((l) => (
-              <SurfaceCard
-                key={l.id}
-                className="flex flex-wrap items-center justify-between gap-3 p-4 text-sm"
-              >
-                <div className="text-heading">
-                  <strong>{l.employee_name || "Employee"}</strong> · {l.type} ·{" "}
-                  {l.start_date} → {l.end_date}
-                  <div className="text-body">
-                    {l.status}
-                    {l.reason ? ` · ${l.reason}` : ""}
-                  </div>
-                </div>
-                {l.status === "Pending" && canLeaveApprove ? (
-                  <div className="flex gap-2">
+        <DataTable
+          maxHeight="28rem"
+          filterState={leaveFilters}
+          onFilterChange={setLeaveFilters}
+          filterConfig={leaveFilterConfig}
+          filterAccessors={{
+            searchText: (l) =>
+              `${l.employee_name || ""} ${l.type} ${l.status} ${l.reason || ""}`,
+            date: (l) => l.start_date,
+            status: (l) => l.status,
+          }}
+          clientFilter
+          searchPlaceholder={t("hr.searchLeave")}
+          pagination={{ mode: "client", pageSize: 25 }}
+          exportable
+          exportFilename="leave"
+          exportTitle="Leave"
+          loading={leaveLoading || leaveFetching}
+          columns={[
+            {
+              id: "employee",
+              header: "Employee",
+              cell: (l) => (
+                <span className="font-medium">{l.employee_name || "Employee"}</span>
+              ),
+            },
+            { id: "type", header: "Type", cell: (l) => l.type },
+            {
+              id: "dates",
+              header: "Dates",
+              cell: (l) => `${l.start_date} → ${l.end_date}`,
+            },
+            { id: "status", header: "Status", cell: (l) => l.status },
+            {
+              id: "actions",
+              header: "",
+              align: "right",
+              width: 160,
+              cell: (l) =>
+                l.status === "Pending" && canLeaveApprove ? (
+                  <div className="flex justify-end gap-2">
                     <Button size="sm" onClick={() => decideLeave(l.id, "approve")}>
                       Approve
                     </Button>
@@ -568,11 +582,13 @@ function HrPageInner() {
                       Reject
                     </Button>
                   </div>
-                ) : null}
-              </SurfaceCard>
-            ))
-          )}
-        </div>
+                ) : null,
+            },
+          ]}
+          data={leave}
+          rowKey={(l) => l.id}
+          emptyTitle="No leave requests"
+        />
       ) : null}
 
       {tab === "payroll" ? (

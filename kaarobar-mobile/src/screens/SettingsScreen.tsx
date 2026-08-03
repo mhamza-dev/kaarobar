@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -10,6 +10,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { pickImageFromLibrary } from "../lib/imagePicker";
 import SegmentedTabs from "../components/SegmentedTabs";
 import { useBrandPalette } from "../lib/BrandThemeContext";
@@ -29,6 +30,7 @@ import { registerForPushNotifications } from "../lib/push";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
 import { replacePath, pushPath } from "../lib/nav";
+import { settingsKeys } from "../lib/queryClient";
 
 type SettingsTab = "profile" | "notifications" | "subscriptions";
 
@@ -93,6 +95,7 @@ export default function SettingsScreen() {
   const palette = useBrandPalette();
   const styles = useMemo(() => createStyles(palette), [palette]);
   const toast = useToast();
+  const queryClient = useQueryClient();
   const route = useRoute();
   const params = (route.params || {}) as Record<string, string | undefined>;
   const [session, setLocalSession] = useState<Session | null>(null);
@@ -100,56 +103,70 @@ export default function SettingsScreen() {
   const [busy, setBusy] = useState(false);
   const [localeTick, setLocaleTick] = useState(0);
   const [checkoutBusy, setCheckoutBusy] = useState<string | null>(null);
-  const [usage, setUsage] = useState<Usage | null>(null);
 
-  const [prefs, setPrefs] = useState<NotificationPrefs | null>(null);
-  const [picUrl, setPicUrl] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "",
     email: "",
     phone: "",
     password: "",
   });
+  const [picUrl, setPicUrl] = useState<string | null>(null);
 
   const owner = isOwner(session);
+  const ownerId = session?.user?.id ?? null;
+  const ready = !!session;
   const visibleTabs = owner ? OWNER_TABS : STAFF_TABS;
 
-  const loadProfile = useCallback(async () => {
-    const res = await api<{
-      user: {
-        name: string;
-        email: string;
-        phone?: string | null;
-        profile_pic_url?: string | null;
-      };
-    }>("/auth/me");
+  const { data: profile } = useQuery({
+    queryKey: settingsKeys.profile(),
+    queryFn: async () => {
+      const res = await api<{
+        user: {
+          name: string;
+          email: string;
+          phone?: string | null;
+          profile_pic_url?: string | null;
+        };
+      }>("/auth/me");
+      return res.user;
+    },
+    enabled: ready && tab === "profile",
+  });
+
+  const { data: prefsData } = useQuery({
+    queryKey: settingsKeys.notificationPrefs(),
+    queryFn: async () => {
+      try {
+        const prefRes = await api<{ data: NotificationPrefs }>("/notification-preferences");
+        return prefRes.data;
+      } catch {
+        return null;
+      }
+    },
+    enabled: ready && tab === "notifications",
+  });
+  const prefs = prefsData ?? null;
+
+  const { data: usageData } = useQuery({
+    queryKey: settingsKeys.billing(ownerId),
+    queryFn: async (): Promise<Usage> => {
+      const res = await api<{ data: Usage }>("/billing/subscription");
+      return res.data;
+    },
+    enabled: ready && owner && tab === "subscriptions",
+  });
+  const usage: Usage | null = usageData ?? null;
+
+  useEffect(() => {
+    if (!profile) return;
     setForm({
-      name: res.user.name || "",
-      email: res.user.email || "",
-      phone: res.user.phone || "",
+      name: profile.name || "",
+      email: profile.email || "",
+      phone: profile.phone || "",
       password: "",
     });
-    setPicUrl(res.user.profile_pic_url || null);
-  }, []);
-
-  const loadPrefs = useCallback(async () => {
-    try {
-      const prefRes = await api<{ data: NotificationPrefs }>("/notification-preferences");
-      setPrefs(prefRes.data);
-    } catch {
-      setPrefs(null);
-    }
-  }, []);
-
-  const loadSubscription = useCallback(async () => {
-    if (!owner) return;
-    try {
-      const res = await api<{ data: Usage }>("/billing/subscription");
-      setUsage(res.data);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("settings.loadFailed"));
-    }
-  }, [owner, toast]);
+    setPicUrl(profile.profile_pic_url || null);
+  }, [profile]);
 
   useEffect(() => {
     (async () => {
@@ -164,13 +181,8 @@ export default function SettingsScreen() {
         return;
       }
       setLocalSession(s);
-      try {
-        await Promise.all([loadProfile(), loadPrefs(), loadSubscription()]);
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : t("profile.loadError"));
-      }
     })();
-  }, [loadPrefs, loadProfile, loadSubscription, toast]);
+  }, [navigation]);
 
   useEffect(() => {
     const raw = typeof params.tab === "string" ? params.tab : "profile";
@@ -206,6 +218,9 @@ export default function SettingsScreen() {
       );
       const next = body.user.profile_pic_url || null;
       setPicUrl(next);
+      queryClient.setQueryData(settingsKeys.profile(), (prev: typeof profile) =>
+        prev ? { ...prev, profile_pic_url: next } : prev
+      );
       const current = await getSession();
       if (current) {
         await setSession({
@@ -230,6 +245,9 @@ export default function SettingsScreen() {
       );
       const next = body.user.profile_pic_url || null;
       setPicUrl(next);
+      queryClient.setQueryData(settingsKeys.profile(), (prev: typeof profile) =>
+        prev ? { ...prev, profile_pic_url: next } : prev
+      );
       const current = await getSession();
       if (current) {
         await setSession({
@@ -246,19 +264,22 @@ export default function SettingsScreen() {
   }
 
   async function savePrefs(next: NotificationPrefs) {
-    setPrefs(next);
+    queryClient.setQueryData(settingsKeys.notificationPrefs(), next);
     try {
       const res = await api<{ data: NotificationPrefs }>("/notification-preferences", {
         method: "PUT",
         body: JSON.stringify(next),
       });
-      setPrefs(res.data);
+      queryClient.setQueryData(settingsKeys.notificationPrefs(), res.data);
       if (next.push) {
         await registerForPushNotifications().catch(() => null);
       }
       toast.success(t("settings.notificationsSaved"));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.error"));
+      await queryClient.invalidateQueries({
+        queryKey: settingsKeys.notificationPrefs(),
+      });
     }
   }
 
@@ -301,6 +322,12 @@ export default function SettingsScreen() {
           },
         });
       }
+      queryClient.setQueryData(settingsKeys.profile(), {
+        name: res.user.name,
+        email: res.user.email,
+        phone: res.user.phone,
+        profile_pic_url: picUrl,
+      });
       setForm((f) => ({ ...f, password: "" }));
       toast.success(t("profile.saved"));
     } catch (err) {

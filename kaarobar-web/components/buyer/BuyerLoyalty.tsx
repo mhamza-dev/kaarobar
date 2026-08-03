@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import { Gift, Wallet } from "lucide-react";
 import { api } from "@/lib/api/client";
 import {
@@ -17,6 +18,7 @@ import {
 } from "@/components/buyer/BuyerLayout";
 import { BuyerLoyaltySkeleton } from "@/components/buyer/BuyerSkeletons";
 import { useT } from "@/lib/i18n";
+import { portalKeys } from "@/lib/queryClient";
 
 type LoyaltyRow = {
   business_id: string;
@@ -29,18 +31,24 @@ type LoyaltyRow = {
 /** Buyer view of `/app/customers`. */
 export default function BuyerLoyalty() {
   const t = useT();
-  const [rows, setRows] = useState<LoyaltyRow[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<LoyaltyRow | null>(null);
 
-  useEffect(() => {
-    void api<{ data: LoyaltyRow[] }>("/portal/loyalty")
-      .then((res) => setRows(Array.isArray(res.data) ? res.data : []))
-      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load"))
-      .finally(() => setLoading(false));
-  }, []);
+  const loyaltyQuery = useQuery({
+    queryKey: portalKeys.loyalty(),
+    queryFn: async () => {
+      const res = await api<{ data: LoyaltyRow[] }>("/portal/loyalty");
+      return Array.isArray(res.data) ? res.data : [];
+    },
+  });
 
+  const rows = loyaltyQuery.data || [];
+  const loading = loyaltyQuery.isLoading;
+  const errorMessage =
+    loyaltyQuery.error instanceof Error
+      ? loyaltyQuery.error.message
+      : loyaltyQuery.error
+        ? "Failed to load"
+        : null;
   const totalPoints = rows.reduce((s, r) => s + (r.points || 0), 0);
 
   return (
@@ -62,7 +70,7 @@ export default function BuyerLoyalty() {
         </p>
       </BuyerHero>
 
-      {error ? <Alert tone="error">{error}</Alert> : null}
+      {errorMessage ? <Alert tone="error">{errorMessage}</Alert> : null}
       {loading ? (
         <BuyerLoyaltySkeleton />
       ) : rows.length === 0 ? (

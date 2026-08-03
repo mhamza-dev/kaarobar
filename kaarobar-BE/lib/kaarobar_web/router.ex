@@ -168,6 +168,9 @@ defmodule KaarobarWeb.Router do
     get "/products/by-barcode/:code", ProductController, :by_barcode
     get "/products/:id", ProductController, :show
     patch "/products/:id", ProductController, :update
+    get "/products/:id/suppliers", ProductController, :list_suppliers
+    post "/products/:id/suppliers", ProductController, :attach_supplier
+    delete "/products/:id/suppliers/:supplier_id", ProductController, :detach_supplier
     post "/products/:id/variants", ProductController, :create_variant
     post "/products/:id/images", ProductController, :upload_image
     delete "/products/:id/images/:image_id", ProductController, :delete_image

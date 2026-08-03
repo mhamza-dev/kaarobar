@@ -42,7 +42,7 @@ export default function SupplierDetailPage() {
 
   return (
     <DetailShell
-      backHref={routes.inventory}
+      backHref={`${routes.inventory}?tab=suppliers`}
       backLabel="Back to inventory"
       eyebrow="Supplier"
       title={supplier?.name || "Supplier"}

@@ -33,6 +33,9 @@ defmodule Kaarobar.Schemas.Product do
     has_many :images, Kaarobar.Schemas.ProductImage
     has_many :batches, Kaarobar.Schemas.ProductBatch
     has_many :product_modifier_groups, Kaarobar.Schemas.ProductModifierGroup
+    has_many :product_suppliers, Kaarobar.Schemas.ProductSupplier
+    many_to_many :suppliers, Kaarobar.Schemas.Supplier,
+      join_through: Kaarobar.Schemas.ProductSupplier
 
     timestamps(type: :utc_datetime)
   end
