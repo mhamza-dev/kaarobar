@@ -134,8 +134,11 @@ defmodule KaarobarWeb.V1.PortalController do
     account = conn.assigns.portal_account
 
     case CustomerPortal.pay_ar(account, params) do
-      {:ok, _} -> json(conn, %{data: %{ok: true}})
-      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+      {:ok, _} ->
+        json(conn, %{data: %{ok: true}})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
     end
   end
 
@@ -176,7 +179,8 @@ defmodule KaarobarWeb.V1.PortalController do
 
     with true <- is_binary(business_id) and business_id != "",
          {:ok, membership} <- CustomerPortal.resolve_membership(account, business_id),
-         %Kaarobar.Schemas.Business{} = business <- Repo.get(Kaarobar.Schemas.Business, business_id),
+         %Kaarobar.Schemas.Business{} = business <-
+           Repo.get(Kaarobar.Schemas.Business, business_id),
          true <- Kaarobar.Appointments.appointments_enabled?(business) do
       branch_id = params["branch_id"] || business.online_branch_id
 
@@ -217,7 +221,8 @@ defmodule KaarobarWeb.V1.PortalController do
 
     with true <- is_binary(business_id) and business_id != "",
          {:ok, _membership} <- CustomerPortal.resolve_membership(account, business_id),
-         %Kaarobar.Schemas.Business{} = business <- Repo.get(Kaarobar.Schemas.Business, business_id),
+         %Kaarobar.Schemas.Business{} = business <-
+           Repo.get(Kaarobar.Schemas.Business, business_id),
          true <- Kaarobar.Appointments.appointments_enabled?(business) do
       params = Map.put_new(params, "branch_id", business.online_branch_id)
 
@@ -325,7 +330,11 @@ defmodule KaarobarWeb.V1.PortalController do
 
   def notifications(conn, _params) do
     account = conn.assigns.portal_account
-    data = Kaarobar.Notifications.list_for_customer_account(account.id) |> Enum.map(&serialize_notification/1)
+
+    data =
+      Kaarobar.Notifications.list_for_customer_account(account.id)
+      |> Enum.map(&serialize_notification/1)
+
     unread = Kaarobar.Notifications.unread_count_for_customer_account(account.id)
     json(conn, %{data: data, meta: %{unread: unread}})
   end

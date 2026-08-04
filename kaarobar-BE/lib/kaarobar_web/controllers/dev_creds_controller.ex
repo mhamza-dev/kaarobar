@@ -266,6 +266,7 @@ defmodule KaarobarWeb.DevCredsController do
       Enum.map_join(rows, "", fn r ->
         roles = Enum.map_join(r.roles || [], "", &~s(<span class="tag">#{h(&1)}</span>))
         owner_tag = if r.is_owner, do: ~s(<span class="tag">owner</span>), else: ""
+
         search =
           search_blob([
             r.email,
@@ -342,7 +343,7 @@ defmodule KaarobarWeb.DevCredsController do
 
   defp search_blob(parts) do
     parts
-    |> Enum.map(&to_string( &1 || ""))
+    |> Enum.map(&to_string(&1 || ""))
     |> Enum.join(" ")
     |> String.downcase()
   end

@@ -153,7 +153,12 @@ defmodule Kaarobar.Marketplace do
 
         :error ->
           slug = String.downcase(String.trim(id_or_slug))
-          Repo.get_by(Business, marketplace_slug: slug, marketplace_enabled: true, is_active: true)
+
+          Repo.get_by(Business,
+            marketplace_slug: slug,
+            marketplace_enabled: true,
+            is_active: true
+          )
       end
 
     case business do

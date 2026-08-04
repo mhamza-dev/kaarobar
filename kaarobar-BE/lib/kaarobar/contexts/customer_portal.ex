@@ -7,6 +7,7 @@ defmodule Kaarobar.CustomerPortal do
   import Ecto.Query
 
   alias Kaarobar.{Audit, Mailer, Repo}
+
   alias Kaarobar.Schemas.{
     ArInvoice,
     Business,
@@ -88,7 +89,9 @@ defmodule Kaarobar.CustomerPortal do
 
   def create_session(%CustomerAccount{} = account, user_agent \\ nil) do
     raw = random_token()
-    expires = DateTime.utc_now() |> DateTime.add(14 * 86_400, :second) |> DateTime.truncate(:second)
+
+    expires =
+      DateTime.utc_now() |> DateTime.add(14 * 86_400, :second) |> DateTime.truncate(:second)
 
     case %CustomerSession{}
          |> CustomerSession.changeset(%{
@@ -595,7 +598,9 @@ defmodule Kaarobar.CustomerPortal do
   end
 
   defp resolve_membership_optional(account, nil), do: {:ok, List.first(list_memberships(account))}
-  defp resolve_membership_optional(account, business_id), do: resolve_membership(account, business_id)
+
+  defp resolve_membership_optional(account, business_id),
+    do: resolve_membership(account, business_id)
 
   def list_orders(%CustomerAccount{} = account, opts \\ []) do
     membership_ids = membership_ids(account, opts[:business_id])
@@ -645,7 +650,9 @@ defmodule Kaarobar.CustomerPortal do
         business_name: business.name,
         customer_id: customer.id,
         points: customer.loyalty_points || 0,
-        tier: customer.loyalty_tier && %{id: customer.loyalty_tier.id, name: customer.loyalty_tier.name},
+        tier:
+          customer.loyalty_tier &&
+            %{id: customer.loyalty_tier.id, name: customer.loyalty_tier.name},
         rates: %{
           earn_per_amount: to_string(rates.earn_per_amount),
           points_per_earn: rates.points_per_earn,
@@ -820,7 +827,10 @@ defmodule Kaarobar.CustomerPortal do
 
   defp blank_to_nil(nil), do: nil
   defp blank_to_nil(""), do: nil
-  defp blank_to_nil(v) when is_binary(v), do: if(String.trim(v) == "", do: nil, else: String.trim(v))
+
+  defp blank_to_nil(v) when is_binary(v),
+    do: if(String.trim(v) == "", do: nil, else: String.trim(v))
+
   defp blank_to_nil(_), do: nil
 
   defp parse_bool(nil, default: default), do: default

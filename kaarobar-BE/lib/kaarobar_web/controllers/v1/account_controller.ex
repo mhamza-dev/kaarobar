@@ -26,8 +26,11 @@ defmodule KaarobarWeb.V1.AccountController do
     owner_id = conn.assigns[:owner_id] || user.id
 
     case Accounting.create_account(business_id, owner_id, params) do
-      {:ok, account} -> conn |> put_status(:created) |> json(%{data: serialize(account)})
-      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+      {:ok, account} ->
+        conn |> put_status(:created) |> json(%{data: serialize(account)})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
     end
   end
 
@@ -36,8 +39,11 @@ defmodule KaarobarWeb.V1.AccountController do
     owner_id = conn.assigns[:owner_id] || user.id
 
     case Accounting.update_account(id, owner_id, params) do
-      {:ok, account} -> json(conn, %{data: serialize(account)})
-      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+      {:ok, account} ->
+        json(conn, %{data: serialize(account)})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
     end
   end
 

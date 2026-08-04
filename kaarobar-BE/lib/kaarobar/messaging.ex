@@ -35,7 +35,10 @@ defmodule Kaarobar.Messaging.Whatsapp.Mock do
 
   @impl true
   def send_whatsapp(to, body, meta) do
-    Logger.info("[whatsapp.mock] to=#{to} body=#{String.slice(body, 0, 80)} meta=#{inspect(meta)}")
+    Logger.info(
+      "[whatsapp.mock] to=#{to} body=#{String.slice(body, 0, 80)} meta=#{inspect(meta)}"
+    )
+
     :ok
   end
 end

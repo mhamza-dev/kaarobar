@@ -41,6 +41,7 @@ export type BuyerMembership = {
 
 export type Session = {
   access_token: string;
+  refresh_token?: string;
   actor?: AuthActor;
   user: {
     id: string;
@@ -77,6 +78,7 @@ export type Session = {
 const SESSION_KEY = "kaarobar_session";
 
 let memorySession: Session | null = null;
+let sessionTimedOut = false;
 
 export function isConsumerSession(session?: Session | null): boolean {
   return (session ?? memorySession)?.actor === "consumer";
@@ -110,6 +112,16 @@ export async function clearSession() {
   } catch {
     // ignore
   }
+}
+
+export function markSessionTimedOut() {
+  sessionTimedOut = true;
+}
+
+export function consumeSessionTimedOut(): boolean {
+  const value = sessionTimedOut;
+  sessionTimedOut = false;
+  return value;
 }
 
 export async function api<T>(
@@ -146,6 +158,10 @@ export async function api<T>(
     }
   }
   if (!res.ok) {
+    if (res.status === 401 && session === undefined) {
+      markSessionTimedOut();
+      await clearSession();
+    }
     const payload =
       body && typeof body === "object" ? (body as Record<string, unknown>) : null;
     const apiError =
@@ -227,6 +243,26 @@ export async function hydrateSessionContext(session: Session): Promise<Session> 
 
   await setSession(merged);
   return merged;
+}
+
+export async function logoutSession(session?: Session | null) {
+  const current = session === undefined ? await getSession() : session;
+  if (!current) {
+    await clearSession();
+    return;
+  }
+
+  try {
+    const headers = new Headers({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${current.access_token}`,
+    });
+    await fetch(`${API_URL}/portal/auth/logout`, { method: "POST", headers });
+  } catch {
+    // Best-effort remote revoke.
+  } finally {
+    await clearSession();
+  }
 }
 
 export async function billingCheckout(plan: string, redirectUrl?: string) {

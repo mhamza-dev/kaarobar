@@ -117,6 +117,7 @@ defmodule KaarobarWeb.V1.LeaveController do
 
   defp notify_leave_decision(leave, type, body) do
     leave = Kaarobar.Repo.preload(leave, :employee)
+
     user_id =
       case leave.employee do
         %{user_id: uid} -> uid

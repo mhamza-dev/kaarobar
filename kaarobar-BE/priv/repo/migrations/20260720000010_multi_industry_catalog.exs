@@ -50,7 +50,9 @@ defmodule Kaarobar.Repo.Migrations.MultiIndustryCatalog do
       add :is_active, :boolean, null: false, default: true
       add :sort_order, :integer, null: false, default: 0
 
-      add :product_id, references(:products, type: :binary_id, on_delete: :delete_all), null: false
+      add :product_id, references(:products, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
         null: false
 
@@ -60,6 +62,7 @@ defmodule Kaarobar.Repo.Migrations.MultiIndustryCatalog do
     end
 
     create index(:product_variants, [:product_id])
+
     create unique_index(:product_variants, [:business_id, :barcode],
              where: "barcode IS NOT NULL AND barcode <> ''"
            )
@@ -101,7 +104,8 @@ defmodule Kaarobar.Repo.Migrations.MultiIndustryCatalog do
     create table(:product_modifier_groups, primary_key: false) do
       add :id, :binary_id, primary_key: true
 
-      add :product_id, references(:products, type: :binary_id, on_delete: :delete_all), null: false
+      add :product_id, references(:products, type: :binary_id, on_delete: :delete_all),
+        null: false
 
       add :modifier_group_id,
           references(:modifier_groups, type: :binary_id, on_delete: :delete_all),
@@ -119,8 +123,11 @@ defmodule Kaarobar.Repo.Migrations.MultiIndustryCatalog do
       add :quantity_on_hand, :decimal, null: false, default: 0
       add :cost, :decimal, null: false, default: 0
 
-      add :product_id, references(:products, type: :binary_id, on_delete: :delete_all), null: false
+      add :product_id, references(:products, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :branch_id, references(:branches, type: :binary_id, on_delete: :delete_all), null: false
+
       add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
         null: false
 
@@ -141,7 +148,9 @@ defmodule Kaarobar.Repo.Migrations.MultiIndustryCatalog do
       add :is_primary, :boolean, null: false, default: false
       add :sort_order, :integer, null: false, default: 0
 
-      add :product_id, references(:products, type: :binary_id, on_delete: :delete_all), null: false
+      add :product_id, references(:products, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
         null: false
 

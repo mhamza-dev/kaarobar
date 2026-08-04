@@ -45,7 +45,14 @@ defmodule Kaarobar.Schemas.SaleReturn do
       :approved_by_id,
       :rejected_by_id
     ])
-    |> validate_required([:refund_amount, :sale_id, :owner_id, :business_id, :branch_id, :requested_by_id])
+    |> validate_required([
+      :refund_amount,
+      :sale_id,
+      :owner_id,
+      :business_id,
+      :branch_id,
+      :requested_by_id
+    ])
     |> validate_inclusion(:status, ["PendingApproval", "Approved", "Rejected"])
     |> validate_inclusion(:refund_method, @refund_methods)
     |> foreign_key_constraint(:sale_id)

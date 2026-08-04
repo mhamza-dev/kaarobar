@@ -13,10 +13,10 @@ import type { NavigationProp, ParamListBase } from "@react-navigation/native";
 import { replacePath, pushPath } from "../lib/nav";
 import {
   api,
-  clearSession,
   colors,
   getSession,
   isConsumerSession,
+  logoutSession,
   type Session,
 } from "../lib/api";
 import { loadLocale, t } from "../lib/i18n";
@@ -175,7 +175,7 @@ export default function AccountScreen() {
       <Pressable
         style={styles.logout}
         onPress={async () => {
-          await clearSession();
+          await logoutSession();
           replacePath(navigation, "/landing");
         }}
       >

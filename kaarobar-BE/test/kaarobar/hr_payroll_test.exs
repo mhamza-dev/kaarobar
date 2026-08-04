@@ -59,7 +59,10 @@ defmodule Kaarobar.HrPayrollTest do
     assert emp.phone == nil
 
     assert {:ok, updated} =
-             Hr.update_employee(emp.id, owner.id, %{phone: "03001234567", position: "Senior Cashier"})
+             Hr.update_employee(emp.id, owner.id, %{
+               phone: "03001234567",
+               position: "Senior Cashier"
+             })
 
     assert updated.phone == "03001234567"
     assert updated.position == "Senior Cashier"
@@ -150,7 +153,15 @@ defmodule Kaarobar.HrPayrollTest do
   } do
     # Wed 2026-07-01: 8h completed shift
     {:ok, _} =
-      insert_attendance(emp, business, owner, branch, ~D[2026-07-01], ~U[2026-07-01 03:00:00Z], ~U[2026-07-01 11:00:00Z])
+      insert_attendance(
+        emp,
+        business,
+        owner,
+        branch,
+        ~D[2026-07-01],
+        ~U[2026-07-01 03:00:00Z],
+        ~U[2026-07-01 11:00:00Z]
+      )
 
     calc = Hr.calculate_payslip(emp, ~D[2026-07-01], ~D[2026-07-31])
     expected = Hr.expected_working_hours(~D[2026-07-01], ~D[2026-07-31])

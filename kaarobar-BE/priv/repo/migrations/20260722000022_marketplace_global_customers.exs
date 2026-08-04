@@ -3,15 +3,16 @@ defmodule Kaarobar.Repo.Migrations.MarketplaceGlobalCustomers do
 
   def up do
     alter table(:customers) do
-      add :customer_account_id, references(:customer_accounts, type: :binary_id, on_delete: :nilify_all)
+      add :customer_account_id,
+          references(:customer_accounts, type: :binary_id, on_delete: :nilify_all)
     end
 
     create index(:customers, [:customer_account_id])
 
     create unique_index(:customers, [:business_id, :customer_account_id],
-      name: :customers_business_id_customer_account_id_uidx,
-      where: "customer_account_id IS NOT NULL"
-    )
+             name: :customers_business_id_customer_account_id_uidx,
+             where: "customer_account_id IS NOT NULL"
+           )
 
     alter table(:businesses) do
       add :marketplace_enabled, :boolean, null: false, default: false
@@ -20,9 +21,9 @@ defmodule Kaarobar.Repo.Migrations.MarketplaceGlobalCustomers do
     end
 
     create unique_index(:businesses, [:marketplace_slug],
-      name: :businesses_marketplace_slug_uidx,
-      where: "marketplace_slug IS NOT NULL AND marketplace_slug <> ''"
-    )
+             name: :businesses_marketplace_slug_uidx,
+             where: "marketplace_slug IS NOT NULL AND marketplace_slug <> ''"
+           )
 
     alter table(:sales) do
       add :source, :string, null: false, default: "pos"
@@ -96,9 +97,17 @@ defmodule Kaarobar.Repo.Migrations.MarketplaceGlobalCustomers do
     drop_if_exists unique_index(:customer_accounts, [:customer_id])
     drop_if_exists unique_index(:customer_accounts, [:business_id, :email])
 
-    execute("ALTER TABLE customer_accounts DROP CONSTRAINT IF EXISTS customer_accounts_customer_id_fkey")
-    execute("ALTER TABLE customer_accounts DROP CONSTRAINT IF EXISTS customer_accounts_business_id_fkey")
-    execute("ALTER TABLE customer_accounts DROP CONSTRAINT IF EXISTS customer_accounts_owner_id_fkey")
+    execute(
+      "ALTER TABLE customer_accounts DROP CONSTRAINT IF EXISTS customer_accounts_customer_id_fkey"
+    )
+
+    execute(
+      "ALTER TABLE customer_accounts DROP CONSTRAINT IF EXISTS customer_accounts_business_id_fkey"
+    )
+
+    execute(
+      "ALTER TABLE customer_accounts DROP CONSTRAINT IF EXISTS customer_accounts_owner_id_fkey"
+    )
 
     alter table(:customer_accounts) do
       add :name, :string
@@ -137,7 +146,9 @@ defmodule Kaarobar.Repo.Migrations.MarketplaceGlobalCustomers do
       modify :cashier_id, :binary_id, null: false, from: :binary_id
     end
 
-    drop_if_exists unique_index(:businesses, [:marketplace_slug], name: :businesses_marketplace_slug_uidx)
+    drop_if_exists unique_index(:businesses, [:marketplace_slug],
+                     name: :businesses_marketplace_slug_uidx
+                   )
 
     alter table(:businesses) do
       remove :marketplace_enabled
@@ -146,8 +157,8 @@ defmodule Kaarobar.Repo.Migrations.MarketplaceGlobalCustomers do
     end
 
     drop_if_exists unique_index(:customers, [:business_id, :customer_account_id],
-      name: :customers_business_id_customer_account_id_uidx
-    )
+                     name: :customers_business_id_customer_account_id_uidx
+                   )
 
     drop_if_exists index(:customers, [:customer_account_id])
 

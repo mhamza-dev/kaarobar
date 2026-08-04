@@ -11,6 +11,7 @@ defmodule Kaarobar.Repo.Migrations.BusinessBrandingAndPortalNotifications do
 
     alter table(:notifications) do
       modify :user_id, :binary_id, null: true, from: :binary_id
+
       add :customer_account_id,
           references(:customer_accounts, type: :binary_id, on_delete: :delete_all)
     end

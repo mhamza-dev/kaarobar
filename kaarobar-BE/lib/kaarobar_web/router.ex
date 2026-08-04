@@ -71,6 +71,7 @@ defmodule KaarobarWeb.Router do
     get "/health", HealthController, :index
     post "/auth/register", AuthController, :register
     post "/auth/login", AuthController, :login
+    post "/auth/refresh", AuthController, :refresh
     post "/auth/mfa/verify", AuthController, :verify_mfa
     post "/auth/buyer/accept-invite", AuthController, :accept_buyer_invite
     post "/billing/webhook", BillingController, :webhook
@@ -119,6 +120,7 @@ defmodule KaarobarWeb.Router do
     pipe_through [:api, :authenticated]
 
     get "/auth/me", AuthController, :me
+    post "/auth/logout", AuthController, :logout
     patch "/auth/me", AuthController, :update_me
     post "/auth/me/profile-pic", AuthController, :upload_profile_pic
     delete "/auth/me/profile-pic", AuthController, :delete_profile_pic
@@ -389,4 +391,3 @@ defmodule KaarobarWeb.Router do
     end
   end
 end
-

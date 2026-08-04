@@ -284,7 +284,9 @@ defmodule Kaarobar.Billing do
 
   defp sync_business_plans(owner_id, plan) do
     from(b in Business, where: b.owner_id == ^owner_id)
-    |> Repo.update_all(set: [subscription_plan: plan, updated_at: DateTime.utc_now() |> DateTime.truncate(:second)])
+    |> Repo.update_all(
+      set: [subscription_plan: plan, updated_at: DateTime.utc_now() |> DateTime.truncate(:second)]
+    )
   end
 
   def get_subscription(owner_id), do: Repo.get_by(Subscription, owner_id: owner_id)
@@ -585,10 +587,17 @@ defmodule Kaarobar.Billing do
   defp extract_custom(payload, data) do
     embedded =
       cond do
-        is_map(data["metadata"]) -> data["metadata"]
-        is_map(data["custom_data"]) -> data["custom_data"]
-        is_map(get_in(payload, ["meta", "custom_data"])) -> get_in(payload, ["meta", "custom_data"])
-        true -> %{}
+        is_map(data["metadata"]) ->
+          data["metadata"]
+
+        is_map(data["custom_data"]) ->
+          data["custom_data"]
+
+        is_map(get_in(payload, ["meta", "custom_data"])) ->
+          get_in(payload, ["meta", "custom_data"])
+
+        true ->
+          %{}
       end
 
     ref = data["reference"] || data["order_id"] || payload["reference"] || payload["order_id"]
@@ -606,28 +615,56 @@ defmodule Kaarobar.Billing do
     down = String.downcase(event)
 
     cond do
-      down in ~w(subscription.created subscription_created) -> :subscription_created
-      down in ~w(subscription.updated subscription_updated) -> :subscription_updated
-      down in ~w(subscription.resumed subscription_resumed) -> :subscription_resumed
+      down in ~w(subscription.created subscription_created) ->
+        :subscription_created
+
+      down in ~w(subscription.updated subscription_updated) ->
+        :subscription_updated
+
+      down in ~w(subscription.resumed subscription_resumed) ->
+        :subscription_resumed
+
       down in ~w(subscription.cancelled subscription.canceled subscription_cancelled) ->
         :subscription_cancelled
+
       down in ~w(subscription.expired subscription_expired incomplete_expired) ->
         :subscription_expired
-      down in ~w(subscription.paused subscription_paused) -> :subscription_paused
+
+      down in ~w(subscription.paused subscription_paused) ->
+        :subscription_paused
+
       down in ~w(subscription.payment_success subscription_payment_success) ->
         :subscription_payment_success
+
       down in ~w(subscription.payment_failed subscription_payment_failed) ->
         :subscription_payment_failed
+
       down in ~w(payment.completed payment_completed order_paid order_created) ->
         :payment_completed
-      down in ~w(payment.failed payment_failed) -> :payment_failed
-      down in ~w(payment.refunded payment_refunded order_refunded) -> :payment_refunded
-      status_hint == "ACTIVE" -> :subscription_created
-      status_hint == "PAUSED" -> :subscription_paused
-      status_hint in ~w(CANCELED CANCELLED) -> :subscription_cancelled
-      status_hint == "PAST_DUE" -> :subscription_payment_failed
-      status_hint in ~w(ENDED EXPIRED) -> :subscription_expired
-      true -> :ignored
+
+      down in ~w(payment.failed payment_failed) ->
+        :payment_failed
+
+      down in ~w(payment.refunded payment_refunded order_refunded) ->
+        :payment_refunded
+
+      status_hint == "ACTIVE" ->
+        :subscription_created
+
+      status_hint == "PAUSED" ->
+        :subscription_paused
+
+      status_hint in ~w(CANCELED CANCELLED) ->
+        :subscription_cancelled
+
+      status_hint == "PAST_DUE" ->
+        :subscription_payment_failed
+
+      status_hint in ~w(ENDED EXPIRED) ->
+        :subscription_expired
+
+      true ->
+        :ignored
     end
   end
 
@@ -675,7 +712,6 @@ defmodule Kaarobar.Billing do
       _ -> nil
     end
   end
-
 
   defp count_businesses(owner_id) do
     from(b in Business, where: b.owner_id == ^owner_id and b.is_active == true)

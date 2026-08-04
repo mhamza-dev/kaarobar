@@ -22,7 +22,17 @@ defmodule Kaarobar.Schemas.Subscription do
 
   def changeset(subscription, attrs) do
     subscription
-    |> cast(attrs, [:plan, :status, :lemon_squeezy_id, :trial_ends_at, :current_period_end, :max_businesses, :max_branches, :max_users, :owner_id])
+    |> cast(attrs, [
+      :plan,
+      :status,
+      :lemon_squeezy_id,
+      :trial_ends_at,
+      :current_period_end,
+      :max_businesses,
+      :max_branches,
+      :max_users,
+      :owner_id
+    ])
     |> validate_required([:owner_id])
     |> foreign_key_constraint(:owner_id)
     |> unique_constraint(:owner_id)

@@ -23,8 +23,12 @@ defmodule Kaarobar.ListFiltersTest do
         name: "Owner B"
       })
 
-    {:ok, biz_a} = Tenancy.create_business(owner_a.id, %{name: "Filter Shop A", industry: "retail"})
-    {:ok, biz_b} = Tenancy.create_business(owner_b.id, %{name: "Filter Shop B", industry: "retail"})
+    {:ok, biz_a} =
+      Tenancy.create_business(owner_a.id, %{name: "Filter Shop A", industry: "retail"})
+
+    {:ok, biz_b} =
+      Tenancy.create_business(owner_b.id, %{name: "Filter Shop B", industry: "retail"})
+
     {:ok, branch_a} = Tenancy.create_branch(biz_a.id, owner_a, %{name: "A Main"})
     {:ok, branch_b} = Tenancy.create_branch(biz_b.id, owner_b, %{name: "B Main"})
 

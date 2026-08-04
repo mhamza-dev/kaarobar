@@ -5,7 +5,10 @@ defmodule Kaarobar.Repo.Migrations.AccountingDepth do
     create table(:ar_invoices, primary_key: false) do
       add :id, :binary_id, primary_key: true
       add :owner_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :branch_id, references(:branches, type: :binary_id, on_delete: :nilify_all)
       add :customer_id, references(:customers, type: :binary_id, on_delete: :nothing), null: false
       add :invoice_number, :string, null: false
@@ -29,8 +32,13 @@ defmodule Kaarobar.Repo.Migrations.AccountingDepth do
     create table(:ar_payments, primary_key: false) do
       add :id, :binary_id, primary_key: true
       add :owner_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
-      add :ar_invoice_id, references(:ar_invoices, type: :binary_id, on_delete: :nothing), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
+      add :ar_invoice_id, references(:ar_invoices, type: :binary_id, on_delete: :nothing),
+        null: false
+
       add :amount, :decimal, null: false
       add :method, :string, null: false, default: "cash"
       add :paid_at, :utc_datetime, null: false
@@ -46,7 +54,10 @@ defmodule Kaarobar.Repo.Migrations.AccountingDepth do
     create table(:ap_bills, primary_key: false) do
       add :id, :binary_id, primary_key: true
       add :owner_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :branch_id, references(:branches, type: :binary_id, on_delete: :nilify_all)
       add :supplier_id, references(:suppliers, type: :binary_id, on_delete: :nothing), null: false
       add :bill_number, :string, null: false
@@ -66,15 +77,19 @@ defmodule Kaarobar.Repo.Migrations.AccountingDepth do
     create unique_index(:ap_bills, [:business_id, :bill_number])
     create index(:ap_bills, [:business_id, :status, :due_date])
     create index(:ap_bills, [:supplier_id])
+
     create unique_index(:ap_bills, [:source_type, :source_id],
-      where: "source_id IS NOT NULL",
-      name: :ap_bills_source_unique_index
-    )
+             where: "source_id IS NOT NULL",
+             name: :ap_bills_source_unique_index
+           )
 
     create table(:ap_payments, primary_key: false) do
       add :id, :binary_id, primary_key: true
       add :owner_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :ap_bill_id, references(:ap_bills, type: :binary_id, on_delete: :nothing), null: false
       add :amount, :decimal, null: false
       add :method, :string, null: false, default: "cash"

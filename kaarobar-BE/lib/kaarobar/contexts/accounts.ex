@@ -4,8 +4,10 @@ defmodule Kaarobar.Accounts do
   """
   @compile {:no_warn_undefined, NimbleTOTP}
 
+  import Ecto.Query
+
   alias Kaarobar.{Audit, Guardian, Repo}
-  alias Kaarobar.Schemas.User
+  alias Kaarobar.Schemas.{RefreshSession, User}
 
   def register(attrs) do
     result =
@@ -129,6 +131,60 @@ defmodule Kaarobar.Accounts do
     Guardian.encode_and_sign(user, %{}, token_type: "access", ttl: ttl)
   end
 
+  def create_refresh_session(%User{} = user, user_agent \\ nil) do
+    raw = random_token()
+
+    expires_at =
+      DateTime.utc_now() |> DateTime.add(14 * 86_400, :second) |> DateTime.truncate(:second)
+
+    params = %{
+      user_id: user.id,
+      token_hash: hash_token(raw),
+      expires_at: expires_at,
+      user_agent: user_agent
+    }
+
+    case %RefreshSession{} |> RefreshSession.changeset(params) |> Repo.insert() do
+      {:ok, _session} -> {:ok, raw}
+      {:error, _} = error -> error
+    end
+  end
+
+  def issue_access_token_from_refresh(raw_token) when is_binary(raw_token) do
+    now = DateTime.utc_now()
+
+    with %RefreshSession{} = session <-
+           from(rs in RefreshSession,
+             where: rs.token_hash == ^hash_token(raw_token),
+             where: is_nil(rs.revoked_at),
+             where: rs.expires_at > ^now
+           )
+           |> Repo.one(),
+         %User{} = user <- Repo.get(User, session.user_id),
+         {:ok, token, _claims} <- issue_access_token(user) do
+      {:ok, token}
+    else
+      nil -> {:error, :invalid_refresh_token}
+      {:error, _} = error -> error
+    end
+  end
+
+  def revoke_refresh_session_for_user(raw_token, user_id)
+      when is_binary(raw_token) and is_binary(user_id) do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+    token_hash = hash_token(raw_token)
+
+    case Repo.get_by(RefreshSession, token_hash: token_hash, user_id: user_id) do
+      nil ->
+        {:error, :not_found}
+
+      %RefreshSession{} = session ->
+        session
+        |> RefreshSession.changeset(%{revoked_at: now})
+        |> Repo.update()
+    end
+  end
+
   def issue_mfa_challenge_token(%User{} = user) do
     Guardian.encode_and_sign(user, %{"mfa" => true}, token_type: "mfa", ttl: {5, :minute})
   end
@@ -156,4 +212,10 @@ defmodule Kaarobar.Accounts do
         end
     end
   end
+
+  defp random_token do
+    :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false)
+  end
+
+  defp hash_token(token), do: :crypto.hash(:sha256, token) |> Base.encode16(case: :lower)
 end

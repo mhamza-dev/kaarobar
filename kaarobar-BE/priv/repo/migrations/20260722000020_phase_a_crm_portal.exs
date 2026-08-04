@@ -17,7 +17,10 @@ defmodule Kaarobar.Repo.Migrations.PhaseACrmPortal do
 
     create table(:loyalty_tiers, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :owner_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
       add :name, :string, null: false
       add :min_points, :integer, null: false, default: 0
@@ -33,7 +36,10 @@ defmodule Kaarobar.Repo.Migrations.PhaseACrmPortal do
 
     create table(:campaign_segments, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :owner_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
       add :name, :string, null: false
       add :filters, :map, null: false, default: %{}
@@ -46,7 +52,10 @@ defmodule Kaarobar.Repo.Migrations.PhaseACrmPortal do
 
     create table(:coupons, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :owner_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
       add :code, :string, null: false
       add :discount_type, :string, null: false
@@ -102,9 +111,15 @@ defmodule Kaarobar.Repo.Migrations.PhaseACrmPortal do
 
     create table(:customer_accounts, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :customer_id, references(:customers, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :customer_id, references(:customers, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :owner_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :email, :string, null: false
       add :password_hash, :string, null: false
       add :email_verified, :boolean, null: false, default: false
@@ -125,6 +140,7 @@ defmodule Kaarobar.Repo.Migrations.PhaseACrmPortal do
 
     create table(:customer_sessions, primary_key: false) do
       add :id, :binary_id, primary_key: true
+
       add :customer_account_id,
           references(:customer_accounts, type: :binary_id, on_delete: :delete_all),
           null: false

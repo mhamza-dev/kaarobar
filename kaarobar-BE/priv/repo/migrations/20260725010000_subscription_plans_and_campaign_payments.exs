@@ -32,8 +32,13 @@ defmodule Kaarobar.Repo.Migrations.SubscriptionPlansAndCampaignPayments do
       add :lemon_checkout_id, :string
       add :checkout_url, :string
       add :paid_at, :utc_datetime
-      add :campaign_id, references(:crm_campaigns, type: :binary_id, on_delete: :delete_all), null: false
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :campaign_id, references(:crm_campaigns, type: :binary_id, on_delete: :delete_all),
+        null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :owner_id, references(:users, type: :binary_id, on_delete: :delete_all), null: false
       add :actor_id, references(:users, type: :binary_id, on_delete: :nilify_all)
 
@@ -43,8 +48,9 @@ defmodule Kaarobar.Repo.Migrations.SubscriptionPlansAndCampaignPayments do
     create index(:campaign_payments, [:campaign_id])
     create index(:campaign_payments, [:business_id])
     create index(:campaign_payments, [:status])
+
     create unique_index(:campaign_payments, [:lemon_order_id],
-      where: "lemon_order_id IS NOT NULL"
-    )
+             where: "lemon_order_id IS NOT NULL"
+           )
   end
 end

@@ -6,6 +6,7 @@ defmodule Kaarobar.Pos do
   import Ecto.Query
 
   alias Kaarobar.Repo
+
   alias Kaarobar.Schemas.{
     Branch,
     InventoryRecord,
@@ -21,6 +22,7 @@ defmodule Kaarobar.Pos do
     SaleReturnItem,
     Till
   }
+
   alias Kaarobar.Catalog
   alias Ecto.Multi
 
@@ -51,7 +53,8 @@ defmodule Kaarobar.Pos do
                    attrs[:payments] || attrs["payments"] || [],
                    money.total_amount
                  ),
-               {:ok, customer_id} <- validate_customer_for_sale(business_id, owner_id, attrs, payments),
+               {:ok, customer_id} <-
+                 validate_customer_for_sale(business_id, owner_id, attrs, payments),
                :ok <- validate_online_sale(attrs, cashier_id, payments) do
             do_create_sale(
               branch,
@@ -182,6 +185,7 @@ defmodule Kaarobar.Pos do
 
   defp validate_customer_for_sale(business_id, owner_id, attrs, payments) do
     customer_id = attrs[:customer_id] || attrs["customer_id"]
+
     khata_total =
       payments
       |> Enum.filter(&(&1.method in ["khata", "credit"]))
@@ -257,7 +261,11 @@ defmodule Kaarobar.Pos do
           true ->
             discount = Kaarobar.Loyalty.redeem_discount(points, business, customer)
             discount = Decimal.min(discount, money.total_amount)
-            new_total = Decimal.sub(money.total_amount, discount) |> max_dec(Decimal.new(0)) |> Decimal.round(2)
+
+            new_total =
+              Decimal.sub(money.total_amount, discount)
+              |> max_dec(Decimal.new(0))
+              |> Decimal.round(2)
 
             new_money = %{
               money
@@ -325,7 +333,9 @@ defmodule Kaarobar.Pos do
            ) do
         {:ok, coupon, discount} ->
           new_total =
-            Decimal.sub(money.total_amount, discount) |> max_dec(Decimal.new(0)) |> Decimal.round(2)
+            Decimal.sub(money.total_amount, discount)
+            |> max_dec(Decimal.new(0))
+            |> Decimal.round(2)
 
           new_money = %{
             money
@@ -438,7 +448,11 @@ defmodule Kaarobar.Pos do
 
   defp build_line(raw, branch_id, business_id, owner_id) do
     product_id = raw[:product_id] || raw["product_id"]
-    variant_id = raw[:variant_id] || raw["variant_id"] || raw[:product_variant_id] || raw["product_variant_id"]
+
+    variant_id =
+      raw[:variant_id] || raw["variant_id"] || raw[:product_variant_id] ||
+        raw["product_variant_id"]
+
     modifier_ids = List.wrap(raw[:modifier_ids] || raw["modifier_ids"] || [])
     notes = raw[:notes] || raw["notes"]
     qty = to_dec(raw[:quantity] || raw["quantity"])
@@ -512,7 +526,9 @@ defmodule Kaarobar.Pos do
     mods =
       from(m in Modifier,
         join: g in assoc(m, :modifier_group),
-        where: m.id in ^ids and g.business_id == ^business_id and g.owner_id == ^owner_id and m.is_active == true,
+        where:
+          m.id in ^ids and g.business_id == ^business_id and g.owner_id == ^owner_id and
+            m.is_active == true,
         select: m
       )
       |> Repo.all()
@@ -555,12 +571,20 @@ defmodule Kaarobar.Pos do
   defp compute_totals(items, attrs) do
     cart_discount = to_dec(attrs[:discount_amount] || attrs["discount_amount"] || 0)
     line_discount = Enum.reduce(items, Decimal.new(0), &Decimal.add(&2, &1.discount))
-    subtotal_gross = Enum.reduce(items, Decimal.new(0), fn i, acc ->
-      Decimal.add(acc, Decimal.mult(i.quantity, i.unit_price))
-    end)
+
+    subtotal_gross =
+      Enum.reduce(items, Decimal.new(0), fn i, acc ->
+        Decimal.add(acc, Decimal.mult(i.quantity, i.unit_price))
+      end)
+
     discount_amount = Decimal.add(line_discount, cart_discount)
-    subtotal = Decimal.sub(subtotal_gross, line_discount) |> max_dec(Decimal.new(0)) |> Decimal.round(2)
-    taxable_after_discount = Decimal.sub(subtotal, cart_discount) |> max_dec(Decimal.new(0)) |> Decimal.round(2)
+
+    subtotal =
+      Decimal.sub(subtotal_gross, line_discount) |> max_dec(Decimal.new(0)) |> Decimal.round(2)
+
+    taxable_after_discount =
+      Decimal.sub(subtotal, cart_discount) |> max_dec(Decimal.new(0)) |> Decimal.round(2)
+
     tax_after = resolve_tax_amount(items, attrs, subtotal, taxable_after_discount)
 
     total =
@@ -598,7 +622,8 @@ defmodule Kaarobar.Pos do
   defp auto_tax_amount(items, subtotal, taxable_after_discount) do
     tax_amount = Enum.reduce(items, Decimal.new(0), &Decimal.add(&2, &1.tax))
 
-    if Decimal.compare(taxable_after_discount, subtotal) == :lt and Decimal.compare(subtotal, 0) == :gt do
+    if Decimal.compare(taxable_after_discount, subtotal) == :lt and
+         Decimal.compare(subtotal, 0) == :gt do
       ratio = Decimal.div(taxable_after_discount, subtotal)
       Decimal.mult(tax_amount, ratio) |> Decimal.round(2)
     else
@@ -746,11 +771,14 @@ defmodule Kaarobar.Pos do
       else
         result =
           if Catalog.has_batches?(item.product_id, branch_id) do
-            with {:ok, _} <- Catalog.decrement_batches_fefo(item.product_id, branch_id, item.quantity) do
+            with {:ok, _} <-
+                   Catalog.decrement_batches_fefo(item.product_id, branch_id, item.quantity) do
               # Keep inventory_records in sync when batches are used
               from(i in InventoryRecord,
                 where: i.branch_id == ^branch_id and i.product_id == ^item.product_id,
-                update: [set: [quantity_on_hand: fragment("quantity_on_hand - ?", ^item.quantity)]]
+                update: [
+                  set: [quantity_on_hand: fragment("quantity_on_hand - ?", ^item.quantity)]
+                ]
               )
               |> Repo.update_all([])
 
@@ -762,11 +790,15 @@ defmodule Kaarobar.Pos do
                 where:
                   i.branch_id == ^branch_id and i.product_id == ^item.product_id and
                     i.quantity_on_hand >= ^item.quantity,
-                update: [set: [quantity_on_hand: fragment("quantity_on_hand - ?", ^item.quantity)]]
+                update: [
+                  set: [quantity_on_hand: fragment("quantity_on_hand - ?", ^item.quantity)]
+                ]
               )
               |> Repo.update_all([])
 
-            if count == 1, do: {:ok, :decremented}, else: {:error, {:insufficient_stock, item.product_id}}
+            if count == 1,
+              do: {:ok, :decremented},
+              else: {:error, {:insufficient_stock, item.product_id}}
           end
 
         case result do
@@ -957,7 +989,8 @@ defmodule Kaarobar.Pos do
   defp validate_refund_method(method) when method in ~w(cash card wallet), do: :ok
   defp validate_refund_method(_), do: {:error, :invalid_refund_method}
 
-  defp resolve_return_till(_branch_id, till_id, "cash") when is_binary(till_id) and till_id != "" do
+  defp resolve_return_till(_branch_id, till_id, "cash")
+       when is_binary(till_id) and till_id != "" do
     case Repo.get_by(Till, id: till_id, status: "open") do
       nil -> {:error, :till_required_for_cash_refund}
       till -> {:ok, till.id}
@@ -971,8 +1004,9 @@ defmodule Kaarobar.Pos do
     end
   end
 
-  defp resolve_return_till(_branch_id, till_id, _method) when is_binary(till_id) and till_id != "",
-    do: {:ok, till_id}
+  defp resolve_return_till(_branch_id, till_id, _method)
+       when is_binary(till_id) and till_id != "",
+       do: {:ok, till_id}
 
   defp resolve_return_till(_, _, _), do: {:ok, nil}
 
@@ -1235,7 +1269,10 @@ defmodule Kaarobar.Pos do
       Enum.filter(sale.returns || [], &(&1.status == "Approved"))
       |> Repo.preload(:items)
       |> then(fn _ ->
-        from(r in SaleReturn, where: r.sale_id == ^sale_id and r.status == "Approved", preload: [:items])
+        from(r in SaleReturn,
+          where: r.sale_id == ^sale_id and r.status == "Approved",
+          preload: [:items]
+        )
         |> Repo.all()
       end)
 
@@ -1320,8 +1357,7 @@ defmodule Kaarobar.Pos do
 
       cash_refunds =
         from(r in SaleReturn,
-          where:
-            r.till_id == ^till_id and r.status == "Approved" and r.refund_method == "cash",
+          where: r.till_id == ^till_id and r.status == "Approved" and r.refund_method == "cash",
           select: coalesce(sum(r.refund_amount), 0)
         )
         |> Repo.one()

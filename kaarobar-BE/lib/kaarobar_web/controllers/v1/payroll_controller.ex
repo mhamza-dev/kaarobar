@@ -32,8 +32,11 @@ defmodule KaarobarWeb.V1.PayrollController do
     to = parse_date(params["period_end"]) || Date.utc_today()
 
     case Hr.create_payroll_run(business_id, owner_id, from, to) do
-      {:ok, run} -> conn |> put_status(:created) |> json(%{data: serialize_run(run)})
-      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+      {:ok, run} ->
+        conn |> put_status(:created) |> json(%{data: serialize_run(run)})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
     end
   end
 
@@ -42,8 +45,11 @@ defmodule KaarobarWeb.V1.PayrollController do
     owner_id = conn.assigns[:owner_id] || user.id
 
     case Hr.submit_payroll(id, owner_id) do
-      {:ok, run} -> json(conn, %{data: serialize_run(Hr.get_payroll_run(run.id, owner_id) || run)})
-      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+      {:ok, run} ->
+        json(conn, %{data: serialize_run(Hr.get_payroll_run(run.id, owner_id) || run)})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
     end
   end
 
@@ -52,8 +58,11 @@ defmodule KaarobarWeb.V1.PayrollController do
     owner_id = conn.assigns[:owner_id] || user.id
 
     case Hr.recalculate_payroll(id, owner_id) do
-      {:ok, run} -> json(conn, %{data: serialize_run(run)})
-      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+      {:ok, run} ->
+        json(conn, %{data: serialize_run(run)})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
     end
   end
 
@@ -62,8 +71,11 @@ defmodule KaarobarWeb.V1.PayrollController do
     owner_id = conn.assigns[:owner_id] || user.id
 
     case Hr.approve_payroll(id, user.id, owner_id) do
-      {:ok, run} -> json(conn, %{data: serialize_run(run)})
-      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+      {:ok, run} ->
+        json(conn, %{data: serialize_run(run)})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
     end
   end
 
@@ -72,8 +84,11 @@ defmodule KaarobarWeb.V1.PayrollController do
     owner_id = conn.assigns[:owner_id] || user.id
 
     case Hr.reject_payroll(id, owner_id) do
-      {:ok, run} -> json(conn, %{data: serialize_run(run)})
-      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+      {:ok, run} ->
+        json(conn, %{data: serialize_run(run)})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
     end
   end
 

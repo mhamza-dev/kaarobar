@@ -23,7 +23,15 @@ defmodule Kaarobar.Schemas.PurchaseOrder do
 
   def changeset(po, attrs) do
     po
-    |> cast(attrs, [:status, :expected_delivery_date, :notes, :business_id, :branch_id, :owner_id, :supplier_id])
+    |> cast(attrs, [
+      :status,
+      :expected_delivery_date,
+      :notes,
+      :business_id,
+      :branch_id,
+      :owner_id,
+      :supplier_id
+    ])
     |> validate_required([:business_id, :branch_id, :owner_id, :supplier_id])
     |> validate_inclusion(:status, ["draft", "ordered", "partial", "received", "cancelled"])
     |> foreign_key_constraint(:business_id)

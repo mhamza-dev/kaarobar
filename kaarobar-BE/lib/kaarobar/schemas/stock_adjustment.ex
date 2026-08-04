@@ -21,8 +21,25 @@ defmodule Kaarobar.Schemas.StockAdjustment do
 
   def changeset(adjustment, attrs) do
     adjustment
-    |> cast(attrs, [:quantity_delta, :reason_code, :notes, :branch_id, :product_id, :owner_id, :business_id, :adjusted_by_id])
-    |> validate_required([:quantity_delta, :reason_code, :branch_id, :product_id, :owner_id, :business_id, :adjusted_by_id])
+    |> cast(attrs, [
+      :quantity_delta,
+      :reason_code,
+      :notes,
+      :branch_id,
+      :product_id,
+      :owner_id,
+      :business_id,
+      :adjusted_by_id
+    ])
+    |> validate_required([
+      :quantity_delta,
+      :reason_code,
+      :branch_id,
+      :product_id,
+      :owner_id,
+      :business_id,
+      :adjusted_by_id
+    ])
     |> foreign_key_constraint(:branch_id)
     |> foreign_key_constraint(:product_id)
     |> foreign_key_constraint(:adjusted_by_id)

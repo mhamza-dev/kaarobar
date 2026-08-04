@@ -10,10 +10,10 @@ import {
 } from "react-native";
 import {
   api,
-  clearSession,
   colors,
   getSession,
   hydrateSessionContext,
+  logoutSession,
   setSession,
   type Session,
 } from "../lib/api";
@@ -565,7 +565,7 @@ export default function DashboardScreen() {
       <Pressable
         style={styles.logout}
         onPress={async () => {
-          await clearSession();
+          await logoutSession();
           replacePath(navigation, "/landing");
         }}
       >

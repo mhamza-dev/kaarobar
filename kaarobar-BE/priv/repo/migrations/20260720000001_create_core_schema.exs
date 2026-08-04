@@ -38,7 +38,10 @@ defmodule Kaarobar.Repo.Migrations.CreateCoreSchema do
     # Branches table
     create table(:branches, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :owner_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
       add :name, :string, null: false
       add :address, :map
@@ -58,7 +61,10 @@ defmodule Kaarobar.Repo.Migrations.CreateCoreSchema do
       add :id, :binary_id, primary_key: true
       add :user_id, references(:users, type: :binary_id, on_delete: :delete_all), null: false
       add :owner_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :branch_id, references(:branches, type: :binary_id, on_delete: :delete_all)
       add :roles, {:array, :string}, default: [], null: false
       add :status, :string, default: "active", null: false
@@ -90,12 +96,17 @@ defmodule Kaarobar.Repo.Migrations.CreateCoreSchema do
     # Chart of accounts table
     create table(:chart_of_accounts, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :owner_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
       add :code, :string, null: false
       add :name, :string, null: false
       add :type, :string, null: false
-      add :parent_account_id, references(:chart_of_accounts, type: :binary_id, on_delete: :nothing)
+
+      add :parent_account_id,
+          references(:chart_of_accounts, type: :binary_id, on_delete: :nothing)
 
       timestamps(type: :utc_datetime)
     end
@@ -106,7 +117,10 @@ defmodule Kaarobar.Repo.Migrations.CreateCoreSchema do
     # Products table
     create table(:products, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :owner_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
       add :sku, :string, null: false
       add :name, :string, null: false
@@ -123,10 +137,16 @@ defmodule Kaarobar.Repo.Migrations.CreateCoreSchema do
     # Product branch prices table
     create table(:product_branch_prices, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :product_id, references(:products, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :product_id, references(:products, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :branch_id, references(:branches, type: :binary_id, on_delete: :delete_all), null: false
       add :owner_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :price, :decimal, precision: 15, scale: 2, null: false
 
       timestamps(type: :utc_datetime)
@@ -139,9 +159,15 @@ defmodule Kaarobar.Repo.Migrations.CreateCoreSchema do
     create table(:inventory_records, primary_key: false) do
       add :id, :binary_id, primary_key: true
       add :branch_id, references(:branches, type: :binary_id, on_delete: :delete_all), null: false
-      add :product_id, references(:products, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :product_id, references(:products, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :owner_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :quantity_on_hand, :decimal, precision: 15, scale: 4, default: 0, null: false
       add :avg_cost, :decimal, precision: 15, scale: 2, default: 0, null: false
 
@@ -154,7 +180,10 @@ defmodule Kaarobar.Repo.Migrations.CreateCoreSchema do
     # Suppliers table
     create table(:suppliers, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :owner_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
       add :name, :string, null: false
       add :contact, :map
@@ -168,7 +197,10 @@ defmodule Kaarobar.Repo.Migrations.CreateCoreSchema do
     # Purchase orders table
     create table(:purchase_orders, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :branch_id, references(:branches, type: :binary_id, on_delete: :delete_all), null: false
       add :owner_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
       add :supplier_id, references(:suppliers, type: :binary_id, on_delete: :nothing), null: false
@@ -184,7 +216,11 @@ defmodule Kaarobar.Repo.Migrations.CreateCoreSchema do
     # Purchase order items table
     create table(:purchase_order_items, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :purchase_order_id, references(:purchase_orders, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :purchase_order_id,
+          references(:purchase_orders, type: :binary_id, on_delete: :delete_all),
+          null: false
+
       add :product_id, references(:products, type: :binary_id, on_delete: :nothing), null: false
       add :quantity, :decimal, precision: 15, scale: 4, null: false
       add :unit_cost, :decimal, precision: 15, scale: 2, null: false
@@ -197,10 +233,16 @@ defmodule Kaarobar.Repo.Migrations.CreateCoreSchema do
     # Goods receipts table
     create table(:goods_receipts, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :purchase_order_id, references(:purchase_orders, type: :binary_id, on_delete: :nothing), null: false
+
+      add :purchase_order_id, references(:purchase_orders, type: :binary_id, on_delete: :nothing),
+        null: false
+
       add :branch_id, references(:branches, type: :binary_id, on_delete: :delete_all), null: false
       add :owner_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :received_by_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
       add :status, :string, default: "pending", null: false
       add :notes, :text
@@ -213,7 +255,11 @@ defmodule Kaarobar.Repo.Migrations.CreateCoreSchema do
     # Goods receipt items table
     create table(:goods_receipt_items, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :goods_receipt_id, references(:goods_receipts, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :goods_receipt_id,
+          references(:goods_receipts, type: :binary_id, on_delete: :delete_all),
+          null: false
+
       add :product_id, references(:products, type: :binary_id, on_delete: :nothing), null: false
       add :quantity_received, :decimal, precision: 15, scale: 4, null: false
 
@@ -225,9 +271,15 @@ defmodule Kaarobar.Repo.Migrations.CreateCoreSchema do
     # Stock transfers table
     create table(:stock_transfers, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :owner_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
-      add :from_branch_id, references(:branches, type: :binary_id, on_delete: :nothing), null: false
+
+      add :from_branch_id, references(:branches, type: :binary_id, on_delete: :nothing),
+        null: false
+
       add :to_branch_id, references(:branches, type: :binary_id, on_delete: :nothing), null: false
       add :status, :string, default: "pending", null: false
       add :notes, :text
@@ -240,7 +292,11 @@ defmodule Kaarobar.Repo.Migrations.CreateCoreSchema do
     # Stock transfer items table
     create table(:stock_transfer_items, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :stock_transfer_id, references(:stock_transfers, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :stock_transfer_id,
+          references(:stock_transfers, type: :binary_id, on_delete: :delete_all),
+          null: false
+
       add :product_id, references(:products, type: :binary_id, on_delete: :nothing), null: false
       add :quantity, :decimal, precision: 15, scale: 4, null: false
 
@@ -255,7 +311,10 @@ defmodule Kaarobar.Repo.Migrations.CreateCoreSchema do
       add :branch_id, references(:branches, type: :binary_id, on_delete: :delete_all), null: false
       add :product_id, references(:products, type: :binary_id, on_delete: :nothing), null: false
       add :owner_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :quantity_delta, :decimal, precision: 15, scale: 4, null: false
       add :reason_code, :string, null: false
       add :notes, :text
@@ -269,7 +328,10 @@ defmodule Kaarobar.Repo.Migrations.CreateCoreSchema do
     # Customers table
     create table(:customers, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :owner_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
       add :name, :string, null: false
       add :phone, :string
@@ -286,7 +348,10 @@ defmodule Kaarobar.Repo.Migrations.CreateCoreSchema do
       add :id, :binary_id, primary_key: true
       add :branch_id, references(:branches, type: :binary_id, on_delete: :delete_all), null: false
       add :owner_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :cashier_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
       add :opened_at, :utc_datetime, null: false
       add :closed_at, :utc_datetime
@@ -305,7 +370,10 @@ defmodule Kaarobar.Repo.Migrations.CreateCoreSchema do
       add :id, :binary_id, primary_key: true
       add :branch_id, references(:branches, type: :binary_id, on_delete: :delete_all), null: false
       add :owner_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :cashier_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
       add :customer_id, references(:customers, type: :binary_id, on_delete: :nothing)
       add :till_id, references(:tills, type: :binary_id, on_delete: :nothing)
@@ -362,7 +430,10 @@ defmodule Kaarobar.Repo.Migrations.CreateCoreSchema do
       add :id, :binary_id, primary_key: true
       add :sale_id, references(:sales, type: :binary_id, on_delete: :nothing), null: false
       add :owner_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :branch_id, references(:branches, type: :binary_id, on_delete: :delete_all), null: false
       add :requested_by_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
       add :approved_by_id, references(:users, type: :binary_id, on_delete: :nothing)
@@ -378,8 +449,13 @@ defmodule Kaarobar.Repo.Migrations.CreateCoreSchema do
     # Sale return items table
     create table(:sale_return_items, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :sale_return_id, references(:sale_returns, type: :binary_id, on_delete: :delete_all), null: false
-      add :sale_item_id, references(:sale_items, type: :binary_id, on_delete: :nothing), null: false
+
+      add :sale_return_id, references(:sale_returns, type: :binary_id, on_delete: :delete_all),
+        null: false
+
+      add :sale_item_id, references(:sale_items, type: :binary_id, on_delete: :nothing),
+        null: false
+
       add :product_id, references(:products, type: :binary_id, on_delete: :nothing)
       add :quantity, :decimal, precision: 15, scale: 4, null: false
       add :amount, :decimal, precision: 15, scale: 2, null: false
@@ -392,7 +468,10 @@ defmodule Kaarobar.Repo.Migrations.CreateCoreSchema do
     # Journal entries table
     create table(:journal_entries, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :owner_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
       add :branch_id, references(:branches, type: :binary_id, on_delete: :delete_all)
       add :date, :date, null: false
@@ -412,8 +491,14 @@ defmodule Kaarobar.Repo.Migrations.CreateCoreSchema do
     # Journal lines table
     create table(:journal_lines, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :journal_entry_id, references(:journal_entries, type: :binary_id, on_delete: :delete_all), null: false
-      add :account_id, references(:chart_of_accounts, type: :binary_id, on_delete: :nothing), null: false
+
+      add :journal_entry_id,
+          references(:journal_entries, type: :binary_id, on_delete: :delete_all),
+          null: false
+
+      add :account_id, references(:chart_of_accounts, type: :binary_id, on_delete: :nothing),
+        null: false
+
       add :debit, :decimal, precision: 15, scale: 2, default: 0
       add :credit, :decimal, precision: 15, scale: 2, default: 0
       add :memo, :string
@@ -428,7 +513,10 @@ defmodule Kaarobar.Repo.Migrations.CreateCoreSchema do
     create table(:employees, primary_key: false) do
       add :id, :binary_id, primary_key: true
       add :user_id, references(:users, type: :binary_id, on_delete: :nilify_all)
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :owner_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
       add :branch_id, references(:branches, type: :binary_id, on_delete: :delete_all), null: false
       add :employee_code, :string, null: false
@@ -448,10 +536,16 @@ defmodule Kaarobar.Repo.Migrations.CreateCoreSchema do
     # Attendance records table
     create table(:attendance_records, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :employee_id, references(:employees, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :employee_id, references(:employees, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :branch_id, references(:branches, type: :binary_id, on_delete: :delete_all), null: false
       add :owner_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :date, :date, null: false
       add :clock_in, :utc_datetime
       add :clock_out, :utc_datetime
@@ -466,9 +560,15 @@ defmodule Kaarobar.Repo.Migrations.CreateCoreSchema do
     # Leave requests table
     create table(:leave_requests, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :employee_id, references(:employees, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :employee_id, references(:employees, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :owner_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :type, :string, null: false
       add :start_date, :date, null: false
       add :end_date, :date, null: false
@@ -484,7 +584,10 @@ defmodule Kaarobar.Repo.Migrations.CreateCoreSchema do
     # Payroll runs table
     create table(:payroll_runs, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :owner_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
       add :period_start, :date, null: false
       add :period_end, :date, null: false
@@ -500,8 +603,13 @@ defmodule Kaarobar.Repo.Migrations.CreateCoreSchema do
     # Payslips table
     create table(:payslips, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :payroll_run_id, references(:payroll_runs, type: :binary_id, on_delete: :delete_all), null: false
-      add :employee_id, references(:employees, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :payroll_run_id, references(:payroll_runs, type: :binary_id, on_delete: :delete_all),
+        null: false
+
+      add :employee_id, references(:employees, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :gross_pay, :decimal, precision: 15, scale: 2, null: false
       add :deductions, :map
       add :net_pay, :decimal, precision: 15, scale: 2, null: false

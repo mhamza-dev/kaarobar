@@ -10,7 +10,7 @@ import {
   UserRound,
   Wallet,
 } from "lucide-react";
-import { clearSession, getSession } from "@/lib/api/client";
+import { getSession, logoutSession } from "@/lib/api/client";
 import { routes } from "@/lib/navigation";
 import Button from "@/components/ui/Button";
 import { BuyerCard, BuyerHero } from "@/components/buyer/BuyerLayout";
@@ -136,7 +136,7 @@ export default function BuyerAccount() {
         className="w-full rounded-md sm:w-auto"
         startIcon={<LogOut className="h-4 w-4" />}
         onClick={() => {
-          clearSession();
+          void logoutSession();
           router.push(routes.login);
         }}
       >

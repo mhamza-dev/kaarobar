@@ -211,7 +211,9 @@ defmodule KaarobarWeb.V1.ArApController do
     end
   end
 
-  defp portal_linked?(%Customer{customer_account_id: id}) when is_binary(id) and id != "", do: true
+  defp portal_linked?(%Customer{customer_account_id: id}) when is_binary(id) and id != "",
+    do: true
+
   defp portal_linked?(_), do: false
 
   # Once on the portal, identity lives on customer_accounts. Staff may still patch

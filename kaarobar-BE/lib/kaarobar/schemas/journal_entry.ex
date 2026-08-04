@@ -25,7 +25,18 @@ defmodule Kaarobar.Schemas.JournalEntry do
 
   def changeset(entry, attrs) do
     entry
-    |> cast(attrs, [:date, :source_type, :source_id, :description, :is_locked, :business_id, :owner_id, :branch_id, :posted_by_id, :reversed_entry_id])
+    |> cast(attrs, [
+      :date,
+      :source_type,
+      :source_id,
+      :description,
+      :is_locked,
+      :business_id,
+      :owner_id,
+      :branch_id,
+      :posted_by_id,
+      :reversed_entry_id
+    ])
     |> validate_required([:date, :business_id, :owner_id, :posted_by_id])
     |> foreign_key_constraint(:business_id)
     |> foreign_key_constraint(:posted_by_id)

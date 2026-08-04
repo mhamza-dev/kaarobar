@@ -137,8 +137,11 @@ defmodule KaarobarWeb.V1.InventoryController do
     owner_id = conn.assigns[:owner_id] || user.id
 
     case Inventory.confirm_transfer(id, owner_id) do
-      {:ok, transfer} -> json(conn, %{data: serialize_transfer(transfer)})
-      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+      {:ok, transfer} ->
+        json(conn, %{data: serialize_transfer(transfer)})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
     end
   end
 
@@ -172,8 +175,11 @@ defmodule KaarobarWeb.V1.InventoryController do
     branch_id = params["branch_id"] || conn.assigns[:branch_id]
 
     case Inventory.create_purchase_order(business_id, branch_id, owner_id, params) do
-      {:ok, po} -> conn |> put_status(:created) |> json(%{data: serialize_po(po)})
-      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+      {:ok, po} ->
+        conn |> put_status(:created) |> json(%{data: serialize_po(po)})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
     end
   end
 
@@ -182,8 +188,11 @@ defmodule KaarobarWeb.V1.InventoryController do
     owner_id = conn.assigns[:owner_id] || user.id
 
     case Inventory.update_purchase_order_status(id, owner_id, params["status"]) do
-      {:ok, po} -> json(conn, %{data: serialize_po(po)})
-      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+      {:ok, po} ->
+        json(conn, %{data: serialize_po(po)})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
     end
   end
 
@@ -214,8 +223,11 @@ defmodule KaarobarWeb.V1.InventoryController do
            user.id,
            params
          ) do
-      {:ok, grn} -> conn |> put_status(:created) |> json(%{data: serialize_grn(grn)})
-      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+      {:ok, grn} ->
+        conn |> put_status(:created) |> json(%{data: serialize_grn(grn)})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
     end
   end
 

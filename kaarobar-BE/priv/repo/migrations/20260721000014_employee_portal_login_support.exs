@@ -19,9 +19,9 @@ defmodule Kaarobar.Repo.Migrations.EmployeePortalLoginSupport do
 
     # One portal login maps to at most one HR employee profile (ESS / staff tools).
     create unique_index(:employees, [:user_id],
-      name: :employees_user_id_unique,
-      where: "user_id IS NOT NULL"
-    )
+             name: :employees_user_id_unique,
+             where: "user_id IS NOT NULL"
+           )
 
     # Deduplicate business-wide memberships (NULL branch_id) before unique index.
     execute("""
@@ -42,25 +42,25 @@ defmodule Kaarobar.Repo.Migrations.EmployeePortalLoginSupport do
     # PostgreSQL treats NULL as distinct in unique indexes, so business-wide
     # memberships (branch_id IS NULL) could be duplicated. Enforce one per user/business.
     create unique_index(:memberships, [:user_id, :business_id],
-      name: :memberships_user_business_null_branch_uidx,
-      where: "branch_id IS NULL"
-    )
+             name: :memberships_user_business_null_branch_uidx,
+             where: "branch_id IS NULL"
+           )
 
     # Helpful lookup for "which employee is this logged-in user?"
     create index(:employees, [:business_id, :user_id],
-      name: :employees_business_user_id_index,
-      where: "user_id IS NOT NULL"
-    )
+             name: :employees_business_user_id_index,
+             where: "user_id IS NOT NULL"
+           )
   end
 
   def down do
     drop_if_exists index(:employees, [:business_id, :user_id],
-      name: :employees_business_user_id_index
-    )
+                     name: :employees_business_user_id_index
+                   )
 
     drop_if_exists index(:memberships, [:user_id, :business_id],
-      name: :memberships_user_business_null_branch_uidx
-    )
+                     name: :memberships_user_business_null_branch_uidx
+                   )
 
     drop_if_exists index(:employees, [:user_id], name: :employees_user_id_unique)
   end

@@ -54,6 +54,13 @@ const LoginForm = ({ actor, onActorChange }: LoginFormProps): React.ReactElement
     }
   }, [searchParams, onActorChange]);
 
+  useEffect(() => {
+    const reason = searchParams.get("reason");
+    if (reason === "session_timeout") {
+      setFormError("Session timeout. Please login again.");
+    }
+  }, [searchParams]);
+
   const initialValues: LoginFormValues = {
     loginMethod: "email",
     email: "",
@@ -147,6 +154,7 @@ const LoginForm = ({ actor, onActorChange }: LoginFormProps): React.ReactElement
 
       const result = await api<{
         access_token: string;
+        refresh_token?: string;
         user: {
           id: string;
           email: string;
@@ -170,6 +178,7 @@ const LoginForm = ({ actor, onActorChange }: LoginFormProps): React.ReactElement
       const base: StoredSession = {
         actor: "business",
         access_token: result.access_token,
+        refresh_token: result.refresh_token,
         user: result.user,
       };
       setSession(base);

@@ -24,7 +24,8 @@ defmodule Kaarobar.Integrations.Fbr do
         {:ok, sale.fbr_invoice_no}
 
       true ->
-        mock_fbr_invoice = "FBR-#{String.slice(sale.id, 0, 8)}-#{:erlang.phash2(sale.invoice_number, 999_999)}"
+        mock_fbr_invoice =
+          "FBR-#{String.slice(sale.id, 0, 8)}-#{:erlang.phash2(sale.invoice_number, 999_999)}"
 
         qr =
           Jason.encode!(%{

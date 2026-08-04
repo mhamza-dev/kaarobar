@@ -12,6 +12,7 @@ export type BuyerMembership = {
 
 export type StoredSession = {
   access_token: string;
+  refresh_token?: string;
   actor?: AuthActor;
   user: {
     id: string;
@@ -48,6 +49,8 @@ export type StoredSession = {
 };
 
 const SESSION_KEY = "kaarobar_session";
+const SESSION_TIMEOUT_REASON = "session_timeout";
+let refreshPromise: Promise<StoredSession | null> | null = null;
 
 export function getSession(): StoredSession | null {
   if (typeof window === "undefined") return null;
@@ -72,6 +75,61 @@ export function clearSession() {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("kaarobar:session", { detail: null }));
   }
+}
+
+function redirectToLoginWithTimeout() {
+  if (typeof window === "undefined") return;
+  const next = `/login?reason=${SESSION_TIMEOUT_REASON}`;
+  if (window.location.pathname !== "/login") {
+    window.location.assign(next);
+  } else {
+    const url = new URL(window.location.href);
+    url.searchParams.set("reason", SESSION_TIMEOUT_REASON);
+    window.history.replaceState({}, "", url.toString());
+  }
+}
+
+function shouldAttemptRefresh(path: string): boolean {
+  return path !== "/auth/login" && path !== "/auth/refresh";
+}
+
+async function refreshAccessToken(
+  session: StoredSession
+): Promise<StoredSession | null> {
+  if (!session.refresh_token) return null;
+
+  const headers = new Headers({ "Content-Type": "application/json" });
+  if (session.business_id && !isConsumerSession(session)) {
+    headers.set("x-business-id", session.business_id);
+  }
+  if (session.branch_id && !isConsumerSession(session)) {
+    headers.set("x-branch-id", session.branch_id);
+  }
+
+  const res = await fetch(`${API_URL}/auth/refresh`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ refresh_token: session.refresh_token }),
+  });
+  if (!res.ok) return null;
+
+  const body = (await res.json().catch(() => null)) as
+    | { access_token?: string }
+    | null;
+  if (!body?.access_token) return null;
+
+  const next = { ...session, access_token: body.access_token };
+  setSession(next);
+  return next;
+}
+
+async function withRefresh(session: StoredSession): Promise<StoredSession | null> {
+  if (!refreshPromise) {
+    refreshPromise = refreshAccessToken(session).finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
 }
 
 export function isConsumerSession(session?: StoredSession | null): boolean {
@@ -204,32 +262,90 @@ export async function hydrateSessionContext(
   return merged;
 }
 
+export async function logoutSession(session?: StoredSession | null) {
+  const current = session === undefined ? getSession() : session;
+  if (!current) {
+    clearSession();
+    return;
+  }
+
+  try {
+    if (!isConsumerSession(current) && current.refresh_token) {
+      const headers = new Headers({
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${current.access_token}`,
+      });
+      if (current.business_id) headers.set("x-business-id", current.business_id);
+      if (current.branch_id) headers.set("x-branch-id", current.branch_id);
+      await fetch(`${API_URL}/auth/logout`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ refresh_token: current.refresh_token }),
+      });
+    } else if (isConsumerSession(current)) {
+      const headers = new Headers({
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${current.access_token}`,
+      });
+      await fetch(`${API_URL}/portal/auth/logout`, { method: "POST", headers });
+    }
+  } catch {
+    // Best-effort remote revoke, then local clear.
+  } finally {
+    clearSession();
+  }
+}
+
 export async function api<T>(
   path: string,
   options: RequestInit = {},
   session?: StoredSession | null
 ): Promise<T> {
-  const current = session === undefined ? getSession() : session;
-  const headers = new Headers(options.headers);
-  const isFormData =
-    typeof FormData !== "undefined" && options.body instanceof FormData;
-  if (!isFormData && !headers.has("Content-Type")) {
-    headers.set("Content-Type", "application/json");
-  }
-  if (current?.access_token) {
-    headers.set("Authorization", `Bearer ${current.access_token}`);
-  }
-  // Buyers shop across stores — do not send staff tenant headers on portal calls.
-  if (current?.business_id && !isConsumerSession(current)) {
-    headers.set("x-business-id", current.business_id);
-  }
-  if (current?.branch_id && !isConsumerSession(current)) {
-    headers.set("x-branch-id", current.branch_id);
+  const makeRequest = async (current: StoredSession | null | undefined) => {
+    const headers = new Headers(options.headers);
+    const isFormData =
+      typeof FormData !== "undefined" && options.body instanceof FormData;
+    if (!isFormData && !headers.has("Content-Type")) {
+      headers.set("Content-Type", "application/json");
+    }
+    if (current?.access_token) {
+      headers.set("Authorization", `Bearer ${current.access_token}`);
+    }
+    if (current?.business_id && !isConsumerSession(current)) {
+      headers.set("x-business-id", current.business_id);
+    }
+    if (current?.branch_id && !isConsumerSession(current)) {
+      headers.set("x-branch-id", current.branch_id);
+    }
+    const res = await fetch(`${API_URL}${path}`, { ...options, headers });
+    const body = await res.json().catch(() => ({}));
+    return { res, body };
+  };
+
+  let current = session === undefined ? getSession() : session;
+  let { res, body } = await makeRequest(current);
+
+  if (
+    res.status === 401 &&
+    current &&
+    shouldAttemptRefresh(path) &&
+    !isConsumerSession(current)
+  ) {
+    const refreshed = await withRefresh(current);
+    if (refreshed) {
+      ({ res, body } = await makeRequest(refreshed));
+    } else if (session === undefined) {
+      clearSession();
+      redirectToLoginWithTimeout();
+      throw new Error("session_timeout");
+    }
   }
 
-  const res = await fetch(`${API_URL}${path}`, { ...options, headers });
-  const body = await res.json().catch(() => ({}));
   if (!res.ok) {
+    if (res.status === 401 && session === undefined) {
+      clearSession();
+      redirectToLoginWithTimeout();
+    }
     throw new Error(
       (body as { error?: string }).error || res.statusText || "request_failed"
     );

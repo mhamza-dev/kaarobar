@@ -79,8 +79,11 @@ defmodule KaarobarWeb.V1.ReturnController do
     owner_id = conn.assigns[:owner_id] || user.id
 
     case Pos.approve_return(id, user.id, owner_id) do
-      {:ok, ret} -> json(conn, %{data: serialize(ret)})
-      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+      {:ok, ret} ->
+        json(conn, %{data: serialize(ret)})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
     end
   end
 
@@ -89,8 +92,11 @@ defmodule KaarobarWeb.V1.ReturnController do
     owner_id = conn.assigns[:owner_id] || user.id
 
     case Pos.reject_return(id, user.id, owner_id, params["reason"]) do
-      {:ok, ret} -> json(conn, %{data: serialize(ret)})
-      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+      {:ok, ret} ->
+        json(conn, %{data: serialize(ret)})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
     end
   end
 

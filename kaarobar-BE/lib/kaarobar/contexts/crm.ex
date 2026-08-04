@@ -7,6 +7,7 @@ defmodule Kaarobar.Crm do
   import Ecto.Query
 
   alias Kaarobar.{Audit, Mailer, Notifications, Repo}
+
   alias Kaarobar.Schemas.{
     Business,
     CampaignPayment,
@@ -119,7 +120,9 @@ defmodule Kaarobar.Crm do
       is_nil(budget) or Decimal.compare(estimated, budget) != :gt
 
     within_wallet = Decimal.compare(estimated, wallet) != :gt
-    requires_payment = paid_channel?(channel) and Decimal.compare(estimated, Decimal.new("0")) == :gt
+
+    requires_payment =
+      paid_channel?(channel) and Decimal.compare(estimated, Decimal.new("0")) == :gt
 
     %{
       count: count,
@@ -165,11 +168,19 @@ defmodule Kaarobar.Crm do
             {:error, :payment_required}
 
           not paid_channel?(campaign.channel) and
-              Decimal.compare(estimated, wallet) == :gt and Decimal.compare(estimated, Decimal.new("0")) == :gt ->
+            Decimal.compare(estimated, wallet) == :gt and
+              Decimal.compare(estimated, Decimal.new("0")) == :gt ->
             {:error, :insufficient_credits}
 
           true ->
-            do_send_campaign(campaign, customers, estimated, unit, business_id, owner_id, actor_id,
+            do_send_campaign(
+              campaign,
+              customers,
+              estimated,
+              unit,
+              business_id,
+              owner_id,
+              actor_id,
               skip_wallet: paid_channel?(campaign.channel) and paid?
             )
         end
@@ -240,7 +251,8 @@ defmodule Kaarobar.Crm do
                 })
                 |> Repo.update()
 
-                {:ok, %{payment: payment, checkout_url: url, amount: Decimal.to_string(estimated)}}
+                {:ok,
+                 %{payment: payment, checkout_url: url, amount: Decimal.to_string(estimated)}}
 
               {:error, :not_configured} ->
                 # Dev fallback: mark checkout_url as local confirm path
@@ -283,21 +295,29 @@ defmodule Kaarobar.Crm do
         {:error, :forbidden}
 
       payment.status == "paid" ->
-        send_campaign(campaign_id, business_id, owner_id, payment.actor_id || owner_id, prepaid: true)
+        send_campaign(campaign_id, business_id, owner_id, payment.actor_id || owner_id,
+          prepaid: true
+        )
 
       true ->
         now = DateTime.utc_now() |> DateTime.truncate(:second)
 
         {:ok, _} =
           payment
-          |> CampaignPayment.changeset(%{status: "paid", paid_at: now, lemon_order_id: "dev-#{payment.id}"})
+          |> CampaignPayment.changeset(%{
+            status: "paid",
+            paid_at: now,
+            lemon_order_id: "dev-#{payment.id}"
+          })
           |> Repo.update()
 
         # Credit wallet then send as prepaid (ledger still records spend)
         _ =
           top_up_wallet(business_id, owner_id, payment.amount, "Safepay campaign payment (dev)")
 
-        send_campaign(campaign_id, business_id, owner_id, payment.actor_id || owner_id, prepaid: true)
+        send_campaign(campaign_id, business_id, owner_id, payment.actor_id || owner_id,
+          prepaid: true
+        )
     end
   end
 
@@ -309,6 +329,7 @@ defmodule Kaarobar.Crm do
     actor_id = custom["actor_id"] || owner_id
 
     data = payload["data"] || payload
+
     order_id =
       to_string(
         data["token"] || data["tracker"] || data["id"] || payload["tracker"] ||
@@ -326,7 +347,9 @@ defmodule Kaarobar.Crm do
     if event_ok? and is_binary(campaign_id) and is_binary(business_id) do
       payment =
         cond do
-          is_binary(payment_id) -> Repo.get(CampaignPayment, payment_id)
+          is_binary(payment_id) ->
+            Repo.get(CampaignPayment, payment_id)
+
           true ->
             from(p in CampaignPayment,
               where: p.campaign_id == ^campaign_id and p.status == "pending",
@@ -374,103 +397,114 @@ defmodule Kaarobar.Crm do
     end
   end
 
-  defp do_send_campaign(campaign, customers, estimated, unit, business_id, owner_id, actor_id, opts) do
-        skip_wallet = Keyword.get(opts, :skip_wallet, false)
-        now = DateTime.utc_now() |> DateTime.truncate(:second)
+  defp do_send_campaign(
+         campaign,
+         customers,
+         estimated,
+         unit,
+         business_id,
+         owner_id,
+         actor_id,
+         opts
+       ) do
+    skip_wallet = Keyword.get(opts, :skip_wallet, false)
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
 
-        recipients =
-          Enum.map(customers, fn customer ->
-            {status, user_id} = deliver_to_customer(campaign, customer, owner_id)
+    recipients =
+      Enum.map(customers, fn customer ->
+        {status, user_id} = deliver_to_customer(campaign, customer, owner_id)
 
-            %{
-              campaign_id: campaign.id,
-              customer_id: customer.id,
-              user_id: user_id,
-              channel_status: status,
-              delivered_at: if(status in ~w(notified email_only sms_queued whatsapp_queued), do: now, else: nil)
-            }
-          end)
+        %{
+          campaign_id: campaign.id,
+          customer_id: customer.id,
+          user_id: user_id,
+          channel_status: status,
+          delivered_at:
+            if(status in ~w(notified email_only sms_queued whatsapp_queued), do: now, else: nil)
+        }
+      end)
 
-        Repo.transaction(fn ->
-          biz =
-            Repo.get_by!(Business, id: business_id, owner_id: owner_id)
+    Repo.transaction(fn ->
+      biz =
+        Repo.get_by!(Business, id: business_id, owner_id: owner_id)
 
-          unless skip_wallet do
-            new_balance = Decimal.sub(biz.messaging_wallet_balance || Decimal.new("0"), estimated)
+      unless skip_wallet do
+        new_balance = Decimal.sub(biz.messaging_wallet_balance || Decimal.new("0"), estimated)
 
-            if Decimal.compare(new_balance, Decimal.new("0")) == :lt do
-              Repo.rollback(:insufficient_credits)
-            end
-
-            biz
-            |> Business.changeset(%{messaging_wallet_balance: new_balance})
-            |> Repo.update!()
-          else
-            # Prepaid via Safepay: still debit if wallet was credited on payment
-            new_balance = Decimal.sub(biz.messaging_wallet_balance || Decimal.new("0"), estimated)
-
-            if Decimal.compare(new_balance, Decimal.new("0")) == :lt do
-              # Allow zeroing if credit race; clamp at 0
-              biz
-              |> Business.changeset(%{messaging_wallet_balance: Decimal.new("0")})
-              |> Repo.update!()
-            else
-              biz
-              |> Business.changeset(%{messaging_wallet_balance: new_balance})
-              |> Repo.update!()
-            end
-          end
-
-          %MessagingWalletLedger{}
-          |> MessagingWalletLedger.changeset(%{
-            business_id: business_id,
-            owner_id: owner_id,
-            amount: Decimal.negate(estimated),
-            kind: "campaign_spend",
-            note: "Campaign #{campaign.name}",
-            campaign_id: campaign.id
-          })
-          |> Repo.insert!()
-
-          Enum.each(recipients, fn attrs ->
-            %CrmCampaignRecipient{}
-            |> CrmCampaignRecipient.changeset(attrs)
-            |> Repo.insert!()
-          end)
-
-          {:ok, updated} =
-            campaign
-            |> CrmCampaign.changeset(%{
-              status: "Sent",
-              sent_at: now,
-              estimated_cost: estimated,
-              actual_cost: estimated,
-              unit_cost_snapshot: unit
-            })
-            |> Repo.update()
-
-          Audit.log(%{
-            owner_id: owner_id,
-            user_id: actor_id,
-            action: "crm.campaign_send",
-            entity_type: "crm_campaign",
-            entity_id: campaign.id,
-            metadata: %{
-              recipients: length(recipients),
-              channel: campaign.channel,
-              estimated_cost: Decimal.to_string(estimated),
-              notified: Enum.count(recipients, &(&1.channel_status == "notified")),
-              email_only: Enum.count(recipients, &(&1.channel_status == "email_only")),
-              skipped: Enum.count(recipients, &(&1.channel_status in ~w(skipped_no_user skipped_opt_out)))
-            }
-          })
-
-          Repo.preload(updated, recipients: :customer)
-        end)
-        |> case do
-          {:ok, updated} -> {:ok, updated}
-          {:error, reason} -> {:error, reason}
+        if Decimal.compare(new_balance, Decimal.new("0")) == :lt do
+          Repo.rollback(:insufficient_credits)
         end
+
+        biz
+        |> Business.changeset(%{messaging_wallet_balance: new_balance})
+        |> Repo.update!()
+      else
+        # Prepaid via Safepay: still debit if wallet was credited on payment
+        new_balance = Decimal.sub(biz.messaging_wallet_balance || Decimal.new("0"), estimated)
+
+        if Decimal.compare(new_balance, Decimal.new("0")) == :lt do
+          # Allow zeroing if credit race; clamp at 0
+          biz
+          |> Business.changeset(%{messaging_wallet_balance: Decimal.new("0")})
+          |> Repo.update!()
+        else
+          biz
+          |> Business.changeset(%{messaging_wallet_balance: new_balance})
+          |> Repo.update!()
+        end
+      end
+
+      %MessagingWalletLedger{}
+      |> MessagingWalletLedger.changeset(%{
+        business_id: business_id,
+        owner_id: owner_id,
+        amount: Decimal.negate(estimated),
+        kind: "campaign_spend",
+        note: "Campaign #{campaign.name}",
+        campaign_id: campaign.id
+      })
+      |> Repo.insert!()
+
+      Enum.each(recipients, fn attrs ->
+        %CrmCampaignRecipient{}
+        |> CrmCampaignRecipient.changeset(attrs)
+        |> Repo.insert!()
+      end)
+
+      {:ok, updated} =
+        campaign
+        |> CrmCampaign.changeset(%{
+          status: "Sent",
+          sent_at: now,
+          estimated_cost: estimated,
+          actual_cost: estimated,
+          unit_cost_snapshot: unit
+        })
+        |> Repo.update()
+
+      Audit.log(%{
+        owner_id: owner_id,
+        user_id: actor_id,
+        action: "crm.campaign_send",
+        entity_type: "crm_campaign",
+        entity_id: campaign.id,
+        metadata: %{
+          recipients: length(recipients),
+          channel: campaign.channel,
+          estimated_cost: Decimal.to_string(estimated),
+          notified: Enum.count(recipients, &(&1.channel_status == "notified")),
+          email_only: Enum.count(recipients, &(&1.channel_status == "email_only")),
+          skipped:
+            Enum.count(recipients, &(&1.channel_status in ~w(skipped_no_user skipped_opt_out)))
+        }
+      })
+
+      Repo.preload(updated, recipients: :customer)
+    end)
+    |> case do
+      {:ok, updated} -> {:ok, updated}
+      {:error, reason} -> {:error, reason}
+    end
   end
 
   @doc """
@@ -546,8 +580,7 @@ defmodule Kaarobar.Crm do
             left_join: s in Sale,
             on: s.customer_id == c.id and s.business_id == c.business_id,
             group_by: c.id,
-            having:
-              max(s.inserted_at) < ^cutoff or is_nil(max(s.inserted_at))
+            having: max(s.inserted_at) < ^cutoff or is_nil(max(s.inserted_at))
           )
 
         _ ->
@@ -676,6 +709,7 @@ defmodule Kaarobar.Crm do
 
   defp parse_int(nil), do: nil
   defp parse_int(n) when is_integer(n), do: n
+
   defp parse_int(n) when is_binary(n) do
     case Integer.parse(n) do
       {i, _} -> i
@@ -687,6 +721,7 @@ defmodule Kaarobar.Crm do
   defp parse_decimal(%Decimal{} = d), do: d
   defp parse_decimal(n) when is_integer(n), do: Decimal.new(n)
   defp parse_decimal(n) when is_float(n), do: Decimal.from_float(n)
+
   defp parse_decimal(n) when is_binary(n) do
     case Decimal.parse(n) do
       {d, _} -> d

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, Lock, Mail, Phone } from "lucide-react";
 
 import CustomForm from "@/components/ui/CustomForm";
@@ -23,9 +23,17 @@ interface LoginFormValues {
 
 const LoginForm = (): React.ReactElement => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useI18n();
   const toast = useToast();
   const [formError, setFormError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("reason") === "session_timeout") {
+      setFormError("Session timeout. Please login again.");
+    }
+  }, [location.search]);
 
   const initialValues: LoginFormValues = {
     loginMethod: "email",
@@ -44,6 +52,7 @@ const LoginForm = (): React.ReactElement => {
       }
       const result = await api<{
         access_token: string;
+        refresh_token?: string;
         user: {
           id: string;
           email: string;
@@ -63,6 +72,7 @@ const LoginForm = (): React.ReactElement => {
       const base = {
         actor: "business" as const,
         access_token: result.access_token,
+        refresh_token: result.refresh_token,
         user: result.user,
       };
       setSession(base);

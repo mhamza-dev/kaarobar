@@ -59,7 +59,9 @@ defmodule KaarobarWeb.V1.AppointmentController do
 
     date =
       case params["date"] do
-        nil -> Date.utc_today()
+        nil ->
+          Date.utc_today()
+
         str ->
           case Date.from_iso8601(str) do
             {:ok, d} -> d

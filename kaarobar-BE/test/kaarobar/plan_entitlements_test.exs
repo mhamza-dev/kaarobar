@@ -121,7 +121,10 @@ defmodule Kaarobar.PlanEntitlementsTest do
     branch: branch
   } do
     past = DateTime.add(DateTime.utc_now(), -86_400, :second) |> DateTime.truncate(:second)
-    assert {:ok, _} = Billing.set_plan(owner.id, "trial", %{trial_ends_at: past, status: "active"})
+
+    assert {:ok, _} =
+             Billing.set_plan(owner.id, "trial", %{trial_ends_at: past, status: "active"})
+
     refute Billing.subscription_allows_writes?(owner.id)
 
     # Upgrade to starter so plan limits allow another business, then expire again

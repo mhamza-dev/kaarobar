@@ -19,6 +19,22 @@ defmodule KaarobarWeb.V1.AuthController do
     end
   end
 
+  def refresh(conn, %{"refresh_token" => refresh_token}) do
+    case Accounts.issue_access_token_from_refresh(refresh_token) do
+      {:ok, access_token} ->
+        json(conn, %{
+          access_token: access_token,
+          token_type: "Bearer",
+          expires_in: 24 * 60 * 60
+        })
+
+      {:error, _} ->
+        unauthorized(conn, "invalid_refresh_token")
+    end
+  end
+
+  def refresh(conn, _params), do: unauthorized(conn, "refresh_token_required")
+
   def accept_buyer_invite(conn, params) do
     token = params["token"] || params["invite"]
     password = params["password"]
@@ -55,13 +71,16 @@ defmodule KaarobarWeb.V1.AuthController do
     with {:ok, user} <- Accounts.register(attrs),
          {:ok, _sub} <- Billing.ensure_subscription(user.id),
          :ok <- maybe_create_business(user, params["business_name"]),
-         {:ok, token, _claims} <- Accounts.issue_access_token(user) do
+         {:ok, token, _claims} <- Accounts.issue_access_token(user),
+         {:ok, refresh_token} <- Accounts.create_refresh_session(user, user_agent(conn)) do
       conn
       |> put_status(:created)
       |> json(%{
         actor: "business",
         access_token: token,
+        refresh_token: refresh_token,
         token_type: "Bearer",
+        expires_in: 24 * 60 * 60,
         mfa_required: user.mfa_required,
         mfa_enabled: Accounts.mfa_enabled?(user),
         user: serialize_user(user)
@@ -178,6 +197,22 @@ defmodule KaarobarWeb.V1.AuthController do
         |> Tenancy.list_memberships_for_user()
         |> Enum.map(&serialize_membership/1)
     })
+  end
+
+  def logout(conn, params) do
+    user = Guardian.Plug.current_resource(conn)
+    refresh_token = params["refresh_token"]
+
+    cond do
+      not is_binary(refresh_token) or String.trim(refresh_token) == "" ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: "refresh_token_required"})
+
+      true ->
+        case Accounts.revoke_refresh_session_for_user(refresh_token, user.id) do
+          {:ok, _} -> json(conn, %{ok: true})
+          {:error, _} -> unauthorized(conn, "invalid_refresh_token")
+        end
+    end
   end
 
   def update_me(conn, params) do
@@ -303,6 +338,7 @@ defmodule KaarobarWeb.V1.AuthController do
   defp issue_login(conn, user, opts) do
     remember_me = Keyword.get(opts, :remember_me, false)
     {:ok, token, _claims} = Accounts.issue_access_token(user, remember_me: remember_me)
+    {:ok, refresh_token} = Accounts.create_refresh_session(user, user_agent(conn))
 
     memberships =
       user.id
@@ -322,6 +358,7 @@ defmodule KaarobarWeb.V1.AuthController do
     json(conn, %{
       actor: "business",
       access_token: token,
+      refresh_token: refresh_token,
       token_type: "Bearer",
       expires_in: if(remember_me, do: 10 * 24 * 60 * 60, else: 24 * 60 * 60),
       mfa_required: user.mfa_required,

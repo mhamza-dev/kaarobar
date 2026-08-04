@@ -85,26 +85,32 @@ defmodule Kaarobar.Schemas.Business do
 
   defp blank_to_nil(nil), do: nil
   defp blank_to_nil(""), do: nil
+
   defp blank_to_nil(v) when is_binary(v) do
     s = String.trim(v)
     if s == "", do: nil, else: String.downcase(s)
   end
+
   defp blank_to_nil(v), do: v
 
   defp blank_to_nil_text(nil), do: nil
   defp blank_to_nil_text(""), do: nil
+
   defp blank_to_nil_text(v) when is_binary(v) do
     s = String.trim(v)
     if s == "", do: nil, else: s
   end
+
   defp blank_to_nil_text(v), do: v
 
   defp normalize_color(nil), do: nil
   defp normalize_color(""), do: nil
+
   defp normalize_color(v) when is_binary(v) do
     s = String.trim(v)
     if s == "", do: nil, else: String.upcase(s)
   end
+
   defp normalize_color(v), do: v
 
   defp validate_primary_color(changeset) do

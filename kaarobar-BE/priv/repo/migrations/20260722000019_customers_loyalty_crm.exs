@@ -27,7 +27,10 @@ defmodule Kaarobar.Repo.Migrations.CustomersLoyaltyCrm do
 
     create table(:crm_campaigns, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :owner_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
       add :created_by_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
       add :name, :string, null: false
@@ -46,10 +49,13 @@ defmodule Kaarobar.Repo.Migrations.CustomersLoyaltyCrm do
 
     create table(:crm_campaign_recipients, primary_key: false) do
       add :id, :binary_id, primary_key: true
+
       add :campaign_id, references(:crm_campaigns, type: :binary_id, on_delete: :delete_all),
         null: false
 
-      add :customer_id, references(:customers, type: :binary_id, on_delete: :delete_all), null: false
+      add :customer_id, references(:customers, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :user_id, references(:users, type: :binary_id, on_delete: :nilify_all)
       add :channel_status, :string, null: false, default: "skipped_no_user"
       add :delivered_at, :utc_datetime

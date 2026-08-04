@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigation } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
 import { replacePath, pushPath } from "../lib/nav";
@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import {
   api,
+  consumeSessionTimedOut,
   colors,
   hydrateSessionContext,
   setSession,
@@ -30,6 +31,12 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("Password@123");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (consumeSessionTimedOut()) {
+      setError("Session timeout. Please login again.");
+    }
+  }, []);
 
   async function onSubmit() {
     setBusy(true);

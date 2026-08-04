@@ -14,14 +14,14 @@ defmodule Kaarobar.Repo.Migrations.ReturnsTillsProcurement do
 
     # One open till per branch
     create unique_index(:tills, [:branch_id],
-      where: "status = 'open'",
-      name: :tills_one_open_per_branch_index
-    )
+             where: "status = 'open'",
+             name: :tills_one_open_per_branch_index
+           )
 
     # Idempotent auto-journals by source
     create unique_index(:journal_entries, [:source_type, :source_id],
-      where: "source_id IS NOT NULL",
-      name: :journal_entries_source_unique_index
-    )
+             where: "source_id IS NOT NULL",
+             name: :journal_entries_source_unique_index
+           )
   end
 end

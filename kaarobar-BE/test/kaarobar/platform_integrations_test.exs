@@ -64,7 +64,10 @@ defmodule Kaarobar.PlatformIntegrationsTest do
 
   test "ADM-FR-005 expired trial blocks writes", %{owner: owner} do
     past = DateTime.add(DateTime.utc_now(), -86_400, :second) |> DateTime.truncate(:second)
-    assert {:ok, _} = Billing.set_plan(owner.id, "trial", %{trial_ends_at: past, status: "active"})
+
+    assert {:ok, _} =
+             Billing.set_plan(owner.id, "trial", %{trial_ends_at: past, status: "active"})
+
     refute Billing.subscription_allows_writes?(owner.id)
     refute Billing.within_limits?(owner.id, :branch)
   end
@@ -120,7 +123,9 @@ defmodule Kaarobar.PlatformIntegrationsTest do
       |> Base.encode16(case: :lower)
 
     assert :ok = Billing.verify_webhook_signature(body, sig, %{data: data})
-    assert {:error, :invalid_signature} = Billing.verify_webhook_signature(body, "bad", %{data: data})
+
+    assert {:error, :invalid_signature} =
+             Billing.verify_webhook_signature(body, "bad", %{data: data})
   end
 
   test "RPT-FR branch dashboard and sales-by-day", %{

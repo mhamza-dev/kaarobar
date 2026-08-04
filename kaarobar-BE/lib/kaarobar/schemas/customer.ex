@@ -77,6 +77,9 @@ defmodule Kaarobar.Schemas.Customer do
 
   defp blank_to_nil(nil), do: nil
   defp blank_to_nil(""), do: nil
-  defp blank_to_nil(v) when is_binary(v), do: String.trim(v) |> then(fn s -> if s == "", do: nil, else: s end)
+
+  defp blank_to_nil(v) when is_binary(v),
+    do: String.trim(v) |> then(fn s -> if s == "", do: nil, else: s end)
+
   defp blank_to_nil(v), do: v
 end

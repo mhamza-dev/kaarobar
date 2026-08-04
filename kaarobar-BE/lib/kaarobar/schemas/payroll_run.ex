@@ -22,9 +22,24 @@ defmodule Kaarobar.Schemas.PayrollRun do
 
   def changeset(run, attrs) do
     run
-    |> cast(attrs, [:period_start, :period_end, :status, :business_id, :owner_id, :approved_by_id, :journal_entry_id])
+    |> cast(attrs, [
+      :period_start,
+      :period_end,
+      :status,
+      :business_id,
+      :owner_id,
+      :approved_by_id,
+      :journal_entry_id
+    ])
     |> validate_required([:period_start, :period_end, :business_id, :owner_id])
-    |> validate_inclusion(:status, ["Draft", "PendingApproval", "Approved", "Rejected", "Posted", "Disbursed"])
+    |> validate_inclusion(:status, [
+      "Draft",
+      "PendingApproval",
+      "Approved",
+      "Rejected",
+      "Posted",
+      "Disbursed"
+    ])
     |> foreign_key_constraint(:business_id)
   end
 end

@@ -121,7 +121,8 @@ defmodule Kaarobar.OpsApprovalsKhataTest do
 
     count1 =
       from(n in Notification,
-        where: n.type == "inventory.low_stock" and n.channel == "in_app" and n.user_id == ^owner.id
+        where:
+          n.type == "inventory.low_stock" and n.channel == "in_app" and n.user_id == ^owner.id
       )
       |> Repo.aggregate(:count)
 
@@ -131,7 +132,8 @@ defmodule Kaarobar.OpsApprovalsKhataTest do
 
     count2 =
       from(n in Notification,
-        where: n.type == "inventory.low_stock" and n.channel == "in_app" and n.user_id == ^owner.id
+        where:
+          n.type == "inventory.low_stock" and n.channel == "in_app" and n.user_id == ^owner.id
       )
       |> Repo.aggregate(:count)
 

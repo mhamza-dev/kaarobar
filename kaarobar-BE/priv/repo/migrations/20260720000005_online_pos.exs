@@ -5,7 +5,10 @@ defmodule Kaarobar.Repo.Migrations.OnlinePos do
     create table(:invoice_sequences, primary_key: false) do
       add :id, :binary_id, primary_key: true
       add :owner_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :branch_id, references(:branches, type: :binary_id, on_delete: :delete_all), null: false
       add :next_number, :integer, null: false, default: 1
 

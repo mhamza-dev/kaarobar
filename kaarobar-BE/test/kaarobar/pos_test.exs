@@ -59,7 +59,10 @@ defmodule Kaarobar.PosTest do
     # unit 100 + 18% tax = 118 per unit when explicit tax is not provided
     unit_subtotal = Decimal.mult(Decimal.new(qty), Decimal.new("100"))
     computed_tax = Decimal.mult(Decimal.new(qty), Decimal.new("18"))
-    effective_tax = if is_nil(tax_amount), do: computed_tax, else: Decimal.new(to_string(tax_amount))
+
+    effective_tax =
+      if is_nil(tax_amount), do: computed_tax, else: Decimal.new(to_string(tax_amount))
+
     total =
       unit_subtotal
       |> Decimal.sub(Decimal.new(discount))
@@ -102,6 +105,7 @@ defmodule Kaarobar.PosTest do
     product: product
   } do
     attrs = sale_attrs(product, qty: "11")
+
     assert {:error, {:insufficient_stock, _}} =
              Pos.create_sale(branch.id, owner.id, business.id, owner.id, attrs)
 

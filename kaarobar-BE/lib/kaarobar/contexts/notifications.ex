@@ -166,8 +166,7 @@ defmodule Kaarobar.Notifications do
 
   def unread_count_for_customer_account(account_id) do
     from(n in Notification,
-      where:
-        n.customer_account_id == ^account_id and n.channel == "in_app" and is_nil(n.read_at),
+      where: n.customer_account_id == ^account_id and n.channel == "in_app" and is_nil(n.read_at),
       select: count(n.id)
     )
     |> Repo.one()

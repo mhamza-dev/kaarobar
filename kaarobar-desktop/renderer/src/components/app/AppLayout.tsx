@@ -21,7 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { appNav, appNavGroups, routes } from "@/lib/navigation";
-import { clearSession, getSession, hydrateSessionContext, type StoredSession } from "@/lib/api/client";
+import { getSession, hydrateSessionContext, logoutSession, type StoredSession } from "@/lib/api/client";
 import { canAccessBundle, canAccessPath, isPlanFeatureLocked } from "@/lib/rbac";
 import TenantSwitcher from "@/components/app/TenantSwitcher";
 import LanguageSwitcher from "@/components/app/LanguageSwitcher";
@@ -78,7 +78,7 @@ export default function AppLayout() {
         if (cancelled) return;
         // Desktop is staff-only — reject accidental buyer tokens
         if ((ready as { actor?: string }).actor === "consumer") {
-          clearSession();
+          void logoutSession();
           navigate(routes.login, { replace: true });
           return;
         }
@@ -242,7 +242,7 @@ export default function AppLayout() {
           <button
             type="button"
             onClick={() => {
-              clearSession();
+              void logoutSession();
               navigate(routes.login);
             }}
             className="nav-pill flex w-full items-center gap-3 px-3 py-2.5 text-sm font-medium text-rail-muted hover:bg-rail-hover/80 hover:text-heading"

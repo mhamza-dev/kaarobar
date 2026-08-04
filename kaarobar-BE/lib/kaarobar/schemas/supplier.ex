@@ -87,8 +87,12 @@ defmodule Kaarobar.Schemas.Supplier do
 
   defp validate_optional_email(changeset, field) do
     case get_field(changeset, field) do
-      nil -> changeset
-      "" -> put_change(changeset, field, nil)
+      nil ->
+        changeset
+
+      "" ->
+        put_change(changeset, field, nil)
+
       email ->
         if Regex.match?(~r/^[^\s]+@[^\s]+$/, email) do
           changeset
@@ -100,8 +104,12 @@ defmodule Kaarobar.Schemas.Supplier do
 
   defp validate_optional_inclusion(changeset, field, values) do
     case get_field(changeset, field) do
-      nil -> changeset
-      "" -> put_change(changeset, field, nil)
+      nil ->
+        changeset
+
+      "" ->
+        put_change(changeset, field, nil)
+
       value ->
         if value in values do
           changeset

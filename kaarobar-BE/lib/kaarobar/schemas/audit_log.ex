@@ -22,7 +22,15 @@ defmodule Kaarobar.Schemas.AuditLog do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
 
     audit_log
-    |> cast(attrs, [:action, :entity_type, :entity_id, :metadata, :ip_address, :owner_id, :user_id])
+    |> cast(attrs, [
+      :action,
+      :entity_type,
+      :entity_id,
+      :metadata,
+      :ip_address,
+      :owner_id,
+      :user_id
+    ])
     |> validate_required([:action, :entity_type, :owner_id])
     |> put_change(:inserted_at, now)
   end

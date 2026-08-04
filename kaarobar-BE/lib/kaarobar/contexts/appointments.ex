@@ -11,6 +11,7 @@ defmodule Kaarobar.Appointments do
   alias Kaarobar.Repo
   alias Kaarobar.Pos
   alias Kaarobar.Inventory
+
   alias Kaarobar.Schemas.{
     Appointment,
     Branch,
@@ -120,8 +121,10 @@ defmodule Kaarobar.Appointments do
 
   def list_slots(business_id, owner_id, attrs) do
     with {:ok, _business} <- require_enabled(business_id),
-         {:ok, product} <- fetch_service(business_id, owner_id, attrs[:product_id] || attrs["product_id"]),
-         {:ok, staff} <- fetch_staff(business_id, owner_id, attrs[:staff_id] || attrs["staff_id"]),
+         {:ok, product} <-
+           fetch_service(business_id, owner_id, attrs[:product_id] || attrs["product_id"]),
+         {:ok, staff} <-
+           fetch_staff(business_id, owner_id, attrs[:staff_id] || attrs["staff_id"]),
          {:ok, branch} <-
            fetch_branch(business_id, owner_id, attrs[:branch_id] || attrs["branch_id"]),
          {:ok, date} <- parse_date(attrs[:date] || attrs["date"]) do
@@ -133,7 +136,8 @@ defmodule Kaarobar.Appointments do
         generate_slots(day_start, day_end, duration, @default_slot_step_minutes)
         |> Enum.reject(fn {starts, ends} ->
           Enum.any?(existing, fn appt ->
-            appt.status in @active_statuses and overlaps?(starts, ends, appt.starts_at, appt.ends_at)
+            appt.status in @active_statuses and
+              overlaps?(starts, ends, appt.starts_at, appt.ends_at)
           end)
         end)
         |> Enum.map(fn {starts, ends} ->
@@ -155,8 +159,10 @@ defmodule Kaarobar.Appointments do
 
   def book(business_id, owner_id, attrs) do
     with {:ok, business} <- require_enabled(business_id),
-         {:ok, product} <- fetch_service(business_id, owner_id, attrs[:product_id] || attrs["product_id"]),
-         {:ok, staff} <- fetch_staff(business_id, owner_id, attrs[:staff_id] || attrs["staff_id"]),
+         {:ok, product} <-
+           fetch_service(business_id, owner_id, attrs[:product_id] || attrs["product_id"]),
+         {:ok, staff} <-
+           fetch_staff(business_id, owner_id, attrs[:staff_id] || attrs["staff_id"]),
          {:ok, branch} <-
            fetch_branch(business_id, owner_id, attrs[:branch_id] || attrs["branch_id"]),
          {:ok, starts_at} <- parse_dt(attrs[:starts_at] || attrs["starts_at"]),
@@ -461,8 +467,7 @@ defmodule Kaarobar.Appointments do
   end
 
   defp day_bounds(%Date{} = date) do
-    {DateTime.new!(date, ~T[00:00:00], "Etc/UTC"),
-     DateTime.new!(date, ~T[23:59:59], "Etc/UTC")}
+    {DateTime.new!(date, ~T[00:00:00], "Etc/UTC"), DateTime.new!(date, ~T[23:59:59], "Etc/UTC")}
   end
 
   defp parse_date(%Date{} = d), do: {:ok, d}

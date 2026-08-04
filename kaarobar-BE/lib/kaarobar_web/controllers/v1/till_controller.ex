@@ -39,8 +39,11 @@ defmodule KaarobarWeb.V1.TillController do
     branch_id = params["branch_id"] || conn.assigns[:branch_id]
 
     case Pos.open_till(branch_id, owner_id, business_id, user.id, params["opening_cash"] || "0") do
-      {:ok, till} -> conn |> put_status(:created) |> json(%{data: serialize(till)})
-      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+      {:ok, till} ->
+        conn |> put_status(:created) |> json(%{data: serialize(till)})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
     end
   end
 
@@ -49,8 +52,11 @@ defmodule KaarobarWeb.V1.TillController do
     owner_id = conn.assigns[:owner_id] || user.id
 
     case Pos.close_till(id, owner_id, params["closing_cash"] || "0") do
-      {:ok, till} -> json(conn, %{data: serialize(till)})
-      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+      {:ok, till} ->
+        json(conn, %{data: serialize(till)})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
     end
   end
 

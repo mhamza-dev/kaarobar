@@ -46,7 +46,10 @@ defmodule Kaarobar.Catalog do
 
   def list_categories(business_id, owner_id) do
     ProductCategory
-    |> where([c], c.business_id == ^business_id and c.owner_id == ^owner_id and c.is_active == true)
+    |> where(
+      [c],
+      c.business_id == ^business_id and c.owner_id == ^owner_id and c.is_active == true
+    )
     |> order_by([c], asc: c.sort_order, asc: c.name)
     |> Repo.all()
   end
@@ -142,7 +145,12 @@ defmodule Kaarobar.Catalog do
           q
         end
       end)
-      |> preload([:images, :variants, :product_category, product_modifier_groups: [modifier_group: :modifiers]])
+      |> preload([
+        :images,
+        :variants,
+        :product_category,
+        product_modifier_groups: [modifier_group: :modifiers]
+      ])
       |> order_by([p], asc: p.name)
 
     Repo.all(query)
@@ -150,8 +158,16 @@ defmodule Kaarobar.Catalog do
 
   def get_product(product_id, business_id, owner_id) do
     Product
-    |> where([p], p.id == ^product_id and p.business_id == ^business_id and p.owner_id == ^owner_id)
-    |> preload([:images, :variants, :product_category, product_modifier_groups: [modifier_group: :modifiers]])
+    |> where(
+      [p],
+      p.id == ^product_id and p.business_id == ^business_id and p.owner_id == ^owner_id
+    )
+    |> preload([
+      :images,
+      :variants,
+      :product_category,
+      product_modifier_groups: [modifier_group: :modifiers]
+    ])
     |> Repo.one()
   end
 
@@ -165,7 +181,12 @@ defmodule Kaarobar.Catalog do
         p.business_id == ^business_id and p.owner_id == ^owner_id and p.barcode == ^code and
           p.is_active == true
       )
-      |> preload([:images, :variants, :product_category, product_modifier_groups: [modifier_group: :modifiers]])
+      |> preload([
+        :images,
+        :variants,
+        :product_category,
+        product_modifier_groups: [modifier_group: :modifiers]
+      ])
       |> Repo.one()
 
     case product do
@@ -180,7 +201,14 @@ defmodule Kaarobar.Catalog do
             v.business_id == ^business_id and v.owner_id == ^owner_id and v.barcode == ^code and
               v.is_active == true
           )
-          |> preload(product: [:images, :variants, :product_category, product_modifier_groups: [modifier_group: :modifiers]])
+          |> preload(
+            product: [
+              :images,
+              :variants,
+              :product_category,
+              product_modifier_groups: [modifier_group: :modifiers]
+            ]
+          )
           |> Repo.one()
 
         case variant do
@@ -235,9 +263,7 @@ defmodule Kaarobar.Catalog do
 
       Enum.each(modifiers, fn m ->
         %Modifier{}
-        |> Modifier.changeset(
-          Map.merge(stringify_keys(m), %{"modifier_group_id" => group.id})
-        )
+        |> Modifier.changeset(Map.merge(stringify_keys(m), %{"modifier_group_id" => group.id}))
         |> Repo.insert!()
       end)
 
@@ -247,7 +273,10 @@ defmodule Kaarobar.Catalog do
 
   def list_modifier_groups(business_id, owner_id) do
     ModifierGroup
-    |> where([g], g.business_id == ^business_id and g.owner_id == ^owner_id and g.is_active == true)
+    |> where(
+      [g],
+      g.business_id == ^business_id and g.owner_id == ^owner_id and g.is_active == true
+    )
     |> preload(:modifiers)
     |> order_by([g], asc: g.name)
     |> Repo.all()
@@ -378,8 +407,7 @@ defmodule Kaarobar.Catalog do
 
   def has_batches?(product_id, branch_id) do
     from(b in ProductBatch,
-      where:
-        b.product_id == ^product_id and b.branch_id == ^branch_id and b.quantity_on_hand > 0,
+      where: b.product_id == ^product_id and b.branch_id == ^branch_id and b.quantity_on_hand > 0,
       select: count(b.id)
     )
     |> Repo.one()

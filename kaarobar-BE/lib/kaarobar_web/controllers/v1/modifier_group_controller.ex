@@ -38,8 +38,11 @@ defmodule KaarobarWeb.V1.ModifierGroupController do
 
   def attach(conn, %{"product_id" => product_id, "modifier_group_id" => group_id}) do
     case Catalog.attach_modifier_group(product_id, group_id) do
-      {:ok, _} -> json(conn, %{ok: true})
-      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+      {:ok, _} ->
+        json(conn, %{ok: true})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
     end
   end
 

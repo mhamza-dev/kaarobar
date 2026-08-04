@@ -2,6 +2,7 @@ defmodule KaarobarWeb.Controllers.Helpers.ListFilters do
   @moduledoc false
 
   import Ecto.Query, only: [limit: 2, offset: 2]
+
   @doc """
   Parse common list filter query params into keyword opts for context list functions.
 

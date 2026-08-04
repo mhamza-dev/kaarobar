@@ -67,20 +67,21 @@ defmodule Kaarobar.Tenancy do
              action: "business.update",
              entity_type: "business",
              entity_id: business.id,
-             metadata: Map.take(attrs, [
-               :name,
-               :industry,
-               :tax_jurisdiction,
-               :fbr_tier1,
-               :loyalty_earn_per_amount,
-               :loyalty_points_per_earn,
-               :loyalty_redeem_value,
-               :tagline,
-               :primary_color,
-               :marketplace_description,
-               :marketplace_enabled,
-               :marketplace_slug
-             ])
+             metadata:
+               Map.take(attrs, [
+                 :name,
+                 :industry,
+                 :tax_jurisdiction,
+                 :fbr_tier1,
+                 :loyalty_earn_per_amount,
+                 :loyalty_points_per_earn,
+                 :loyalty_redeem_value,
+                 :tagline,
+                 :primary_color,
+                 :marketplace_description,
+                 :marketplace_enabled,
+                 :marketplace_slug
+               ])
            }) do
       {:ok, updated}
     end
@@ -193,7 +194,13 @@ defmodule Kaarobar.Tenancy do
              action: "branch.update",
              entity_type: "branch",
              entity_id: branch.id,
-             metadata: Map.take(attrs, [:name, :timezone, :refund_auto_approve_limit, :discount_auto_approve_limit])
+             metadata:
+               Map.take(attrs, [
+                 :name,
+                 :timezone,
+                 :refund_auto_approve_limit,
+                 :discount_auto_approve_limit
+               ])
            }) do
       {:ok, updated}
     end
@@ -261,8 +268,12 @@ defmodule Kaarobar.Tenancy do
     normalized_roles = normalize_roles(roles)
 
     with {:ok, business} <- fetch_owned_business(business_id, actor.id),
-         true <- Kaarobar.Billing.subscription_allows_writes?(business.owner_id) || {:error, :subscription_inactive},
-         true <- Kaarobar.Billing.within_limits?(business.owner_id, :user) || {:error, :plan_limit_reached},
+         true <-
+           Kaarobar.Billing.subscription_allows_writes?(business.owner_id) ||
+             {:error, :subscription_inactive},
+         true <-
+           Kaarobar.Billing.within_limits?(business.owner_id, :user) ||
+             {:error, :plan_limit_reached},
          :ok <- Roles.validate_roles(List.wrap(normalized_roles)),
          {:ok, membership} <-
            %Membership{}
@@ -602,7 +613,11 @@ defmodule Kaarobar.Tenancy do
 
       branch ->
         if user_is_owner?(actor, branch.business_id) or
-             user_has_any_role?(actor, branch.business_id, branch.id, ["owner", "admin", "branch_manager"]) do
+             user_has_any_role?(actor, branch.business_id, branch.id, [
+               "owner",
+               "admin",
+               "branch_manager"
+             ]) do
           {:ok, branch}
         else
           {:error, :forbidden}

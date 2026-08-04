@@ -67,8 +67,11 @@ defmodule KaarobarWeb.V1.AttendanceController do
     owner_id = conn.assigns[:owner_id] || user.id
 
     case Hr.clock_out(id, owner_id) do
-      {:ok, rec} -> json(conn, %{data: serialize(Hr.preload_attendance(rec))})
-      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: to_string(reason)})
+      {:ok, rec} ->
+        json(conn, %{data: serialize(Hr.preload_attendance(rec))})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: to_string(reason)})
     end
   end
 
@@ -90,6 +93,7 @@ defmodule KaarobarWeb.V1.AttendanceController do
       source: rec.source
     }
   end
+
   defp employee_name(%{employee: %{name: name}}), do: name
   defp employee_name(_), do: nil
 

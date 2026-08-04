@@ -52,8 +52,11 @@ defmodule KaarobarWeb.V1.JournalController do
     }
 
     case Accounting.create_manual_journal(business_id, owner_id, user.id, attrs) do
-      {:ok, entry} -> conn |> put_status(:created) |> json(%{data: serialize(entry)})
-      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+      {:ok, entry} ->
+        conn |> put_status(:created) |> json(%{data: serialize(entry)})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
     end
   end
 
@@ -62,8 +65,11 @@ defmodule KaarobarWeb.V1.JournalController do
     owner_id = conn.assigns[:owner_id] || user.id
 
     case Accounting.reverse_journal(id, owner_id, user.id) do
-      {:ok, entry} -> conn |> put_status(:created) |> json(%{data: serialize(entry)})
-      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+      {:ok, entry} ->
+        conn |> put_status(:created) |> json(%{data: serialize(entry)})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
     end
   end
 

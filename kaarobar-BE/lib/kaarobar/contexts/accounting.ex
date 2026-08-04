@@ -35,7 +35,9 @@ defmodule Kaarobar.Accounting do
 
     Enum.each(accounts, fn account_attrs ->
       %ChartOfAccount{}
-      |> ChartOfAccount.changeset(Map.merge(account_attrs, %{business_id: business_id, owner_id: owner_id}))
+      |> ChartOfAccount.changeset(
+        Map.merge(account_attrs, %{business_id: business_id, owner_id: owner_id})
+      )
       |> Repo.insert()
     end)
 
@@ -70,7 +72,9 @@ defmodule Kaarobar.Accounting do
 
       account ->
         account
-        |> ChartOfAccount.changeset(Map.take(normalize_attrs(attrs), [:name, :type, :parent_account_id]))
+        |> ChartOfAccount.changeset(
+          Map.take(normalize_attrs(attrs), [:name, :type, :parent_account_id])
+        )
         |> Repo.update()
     end
   end
@@ -110,7 +114,9 @@ defmodule Kaarobar.Accounting do
           results =
             Enum.map(lines, fn line_attrs ->
               %JournalLine{}
-              |> JournalLine.changeset(Map.merge(normalize_line(line_attrs), %{journal_entry_id: entry.id}))
+              |> JournalLine.changeset(
+                Map.merge(normalize_line(line_attrs), %{journal_entry_id: entry.id})
+              )
               |> Repo.insert()
             end)
 
@@ -206,7 +212,9 @@ defmodule Kaarobar.Accounting do
   end
 
   def reverse_journal(journal_entry_id, owner_id, posted_by_id) do
-    entry = Repo.get_by(JournalEntry, id: journal_entry_id, owner_id: owner_id) |> then(&(&1 && Repo.preload(&1, :lines)))
+    entry =
+      Repo.get_by(JournalEntry, id: journal_entry_id, owner_id: owner_id)
+      |> then(&(&1 && Repo.preload(&1, :lines)))
 
     cond do
       is_nil(entry) ->
@@ -756,6 +764,7 @@ defmodule Kaarobar.Accounting do
 
       # Approximate tax portion from original sale ratio
       sale = sale_return.sale
+
       tax_portion =
         if sale && Decimal.compare(sale.total_amount || Decimal.new(0), 0) == :gt do
           Decimal.mult(refund, Decimal.div(sale.tax_amount || Decimal.new(0), sale.total_amount))
@@ -772,7 +781,12 @@ defmodule Kaarobar.Accounting do
       lines = [
         %{account_id: returns_account.id, debit: net_portion, credit: 0, memo: "Sales returns"},
         %{account_id: sales_tax_account.id, debit: tax_portion, credit: 0, memo: "Tax refund"},
-        %{account_id: tender_account.id, debit: 0, credit: refund, memo: "Refund (#{sale_return.refund_method})"}
+        %{
+          account_id: tender_account.id,
+          debit: 0,
+          credit: refund,
+          memo: "Refund (#{sale_return.refund_method})"
+        }
       ]
 
       # Reverse COGS using avg cost on restored items
@@ -798,7 +812,12 @@ defmodule Kaarobar.Accounting do
         if Decimal.compare(total_cost, 0) == :gt do
           lines ++
             [
-              %{account_id: inventory_account.id, debit: total_cost, credit: 0, memo: "Stock restored"},
+              %{
+                account_id: inventory_account.id,
+                debit: total_cost,
+                credit: 0,
+                memo: "Stock restored"
+              },
               %{account_id: cogs_account.id, debit: 0, credit: total_cost, memo: "COGS reversal"}
             ]
         else
@@ -829,7 +848,12 @@ defmodule Kaarobar.Accounting do
     total =
       Enum.reduce(gr.items, Decimal.new(0), fn gr_item, acc ->
         po_item = Enum.find(po.items || [], &(&1.product_id == gr_item.product_id))
-        cost = if po_item, do: Decimal.mult(gr_item.quantity_received, po_item.unit_cost), else: Decimal.new(0)
+
+        cost =
+          if po_item,
+            do: Decimal.mult(gr_item.quantity_received, po_item.unit_cost),
+            else: Decimal.new(0)
+
         Decimal.add(acc, cost)
       end)
 
@@ -844,7 +868,12 @@ defmodule Kaarobar.Accounting do
                source_id: gr_id,
                branch_id: gr.branch_id,
                lines: [
-                 %{account_id: inventory_account.id, debit: total, credit: 0, memo: "Stock received"},
+                 %{
+                   account_id: inventory_account.id,
+                   debit: total,
+                   credit: 0,
+                   memo: "Stock received"
+                 },
                  %{account_id: ap_account.id, debit: 0, credit: total, memo: "Accounts payable"}
                ]
              }) do
@@ -898,13 +927,18 @@ defmodule Kaarobar.Accounting do
 
       total_tax =
         Enum.reduce(payroll.payslips, Decimal.new(0), fn slip, acc ->
-          tax = Map.get(slip.deductions || %{}, "income_tax") || Map.get(slip.deductions || %{}, :income_tax) || 0
+          tax =
+            Map.get(slip.deductions || %{}, "income_tax") ||
+              Map.get(slip.deductions || %{}, :income_tax) || 0
+
           Decimal.add(acc, to_dec(tax))
         end)
 
       total_eobi =
         Enum.reduce(payroll.payslips, Decimal.new(0), fn slip, acc ->
-          eobi = Map.get(slip.deductions || %{}, "eobi") || Map.get(slip.deductions || %{}, :eobi) || 0
+          eobi =
+            Map.get(slip.deductions || %{}, "eobi") || Map.get(slip.deductions || %{}, :eobi) || 0
+
           Decimal.add(acc, to_dec(eobi))
         end)
 
@@ -972,7 +1006,10 @@ defmodule Kaarobar.Accounting do
     subtotal = to_dec(attrs[:subtotal] || attrs["subtotal"] || 0)
     tax = to_dec(attrs[:tax_amount] || attrs["tax_amount"] || 0)
     total = Decimal.add(subtotal, tax) |> Decimal.round(2)
-    invoice_number = attrs[:invoice_number] || attrs["invoice_number"] || "AR-#{System.unique_integer([:positive])}"
+
+    invoice_number =
+      attrs[:invoice_number] || attrs["invoice_number"] ||
+        "AR-#{System.unique_integer([:positive])}"
 
     ar_account = get_account_by_code(business_id, "1100")
     revenue_account = get_account_by_code(business_id, "4000")
@@ -1009,7 +1046,8 @@ defmodule Kaarobar.Accounting do
         customer_id: customer_id,
         invoice_number: invoice_number,
         invoice_date: parse_date(attrs[:invoice_date] || attrs["invoice_date"]),
-        due_date: parse_date(attrs[:due_date] || attrs["due_date"] || Date.add(Date.utc_today(), 30)),
+        due_date:
+          parse_date(attrs[:due_date] || attrs["due_date"] || Date.add(Date.utc_today(), 30)),
         subtotal: subtotal,
         tax_amount: tax,
         total_amount: total,
@@ -1042,7 +1080,10 @@ defmodule Kaarobar.Accounting do
 
       true ->
         method = attrs[:method] || attrs["method"] || "cash"
-        cash = get_account_by_code(invoice.business_id, if(method == "cash", do: "1000", else: "1010"))
+
+        cash =
+          get_account_by_code(invoice.business_id, if(method == "cash", do: "1000", else: "1010"))
+
         ar = get_account_by_code(invoice.business_id, "1100")
 
         Multi.new()
@@ -1105,9 +1146,13 @@ defmodule Kaarobar.Accounting do
   def create_ap_bill(business_id, owner_id, posted_by_id, attrs) do
     supplier_id = attrs[:supplier_id] || attrs["supplier_id"]
     total = to_dec(attrs[:total_amount] || attrs["total_amount"])
-    bill_number = attrs[:bill_number] || attrs["bill_number"] || "AP-#{System.unique_integer([:positive])}"
 
-    expense_or_inv = get_account_by_code(business_id, attrs[:account_code] || attrs["account_code"] || "1200")
+    bill_number =
+      attrs[:bill_number] || attrs["bill_number"] || "AP-#{System.unique_integer([:positive])}"
+
+    expense_or_inv =
+      get_account_by_code(business_id, attrs[:account_code] || attrs["account_code"] || "1200")
+
     ap = get_account_by_code(business_id, "2000")
 
     Multi.new()
@@ -1132,7 +1177,8 @@ defmodule Kaarobar.Accounting do
         supplier_id: supplier_id,
         bill_number: bill_number,
         bill_date: parse_date(attrs[:bill_date] || attrs["bill_date"]),
-        due_date: parse_date(attrs[:due_date] || attrs["due_date"] || Date.add(Date.utc_today(), 30)),
+        due_date:
+          parse_date(attrs[:due_date] || attrs["due_date"] || Date.add(Date.utc_today(), 30)),
         total_amount: total,
         balance_due: total,
         status: "open",
@@ -1163,7 +1209,10 @@ defmodule Kaarobar.Accounting do
 
       true ->
         method = attrs[:method] || attrs["method"] || "cash"
-        cash = get_account_by_code(bill.business_id, if(method == "cash", do: "1000", else: "1010"))
+
+        cash =
+          get_account_by_code(bill.business_id, if(method == "cash", do: "1000", else: "1010"))
+
         ap = get_account_by_code(bill.business_id, "2000")
 
         Multi.new()
@@ -1480,7 +1529,8 @@ defmodule Kaarobar.Accounting do
           kind: "sale",
           date: DateTime.to_date(s.inserted_at),
           reference: s.invoice_number,
-          description: if(Decimal.compare(khata, 0) == :gt, do: "POS khata sale", else: "POS sale"),
+          description:
+            if(Decimal.compare(khata, 0) == :gt, do: "POS khata sale", else: "POS sale"),
           debit: to_string(s.total_amount),
           credit: "0",
           balance_due: nil,

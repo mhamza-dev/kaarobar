@@ -231,8 +231,7 @@ defmodule KaarobarWeb.V1.ProductController do
                 name: variant.name,
                 sku: variant.sku,
                 barcode: variant.barcode,
-                price_override:
-                  variant.price_override && to_string(variant.price_override)
+                price_override: variant.price_override && to_string(variant.price_override)
               }
             })
 
@@ -287,9 +286,14 @@ defmodule KaarobarWeb.V1.ProductController do
 
       _product ->
         case Catalog.delete_product_image(image_id, business_id, owner_id) do
-          {:ok, _} -> json(conn, %{ok: true})
-          {:error, :not_found} -> conn |> put_status(:not_found) |> json(%{error: "not_found"})
-          {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+          {:ok, _} ->
+            json(conn, %{ok: true})
+
+          {:error, :not_found} ->
+            conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+          {:error, reason} ->
+            conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
         end
     end
   end
@@ -315,9 +319,14 @@ defmodule KaarobarWeb.V1.ProductController do
         }
       })
     else
-      nil -> conn |> put_status(:not_found) |> json(%{error: "not_found"})
-      {:error, :branch_required} -> conn |> put_status(:bad_request) |> json(%{error: "branch required"})
-      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+      nil ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      {:error, :branch_required} ->
+        conn |> put_status(:bad_request) |> json(%{error: "branch required"})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
     end
   end
 

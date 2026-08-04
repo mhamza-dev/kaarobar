@@ -24,10 +24,10 @@ import {
 } from "lucide-react";
 import { appNav, appNavGroups, buyerNav, routes } from "@/lib/navigation";
 import {
-  clearSession,
   getSession,
   hydrateSessionContext,
   isConsumerSession,
+  logoutSession,
   type StoredSession,
 } from "@/lib/api/client";
 import { canAccessBundle, canAccessPath, isPlanFeatureLocked } from "@/lib/rbac";
@@ -419,7 +419,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     <button
                       type="button"
                       onClick={() => {
-                        clearSession();
+                        void logoutSession();
                         router.push(routes.login);
                       }}
                       className="mt-1 flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-muted hover:bg-bg-secondary hover:text-heading"
@@ -480,7 +480,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <button
             type="button"
             onClick={() => {
-              clearSession();
+              void logoutSession();
               router.push(routes.login);
             }}
             className="nav-pill flex w-full items-center gap-3 px-3 py-2.5 text-sm font-medium text-rail-muted hover:bg-rail-hover/80 hover:text-heading"

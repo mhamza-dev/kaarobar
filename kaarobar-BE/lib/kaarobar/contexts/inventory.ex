@@ -1,11 +1,22 @@
 defmodule Kaarobar.Inventory do
   import Ecto.Query
   alias Kaarobar.Repo
+
   alias Kaarobar.Schemas.{
-    ProductBranchPrice, InventoryRecord,
-    PurchaseOrder, PurchaseOrderItem, GoodsReceipt, GoodsReceiptItem,
-    StockTransfer, StockTransferItem, StockAdjustment, Supplier, ProductSupplier, Product
+    ProductBranchPrice,
+    InventoryRecord,
+    PurchaseOrder,
+    PurchaseOrderItem,
+    GoodsReceipt,
+    GoodsReceiptItem,
+    StockTransfer,
+    StockTransferItem,
+    StockAdjustment,
+    Supplier,
+    ProductSupplier,
+    Product
   }
+
   alias Ecto.Multi
 
   def create_product(business_id, owner_id, attrs) do
@@ -46,8 +57,11 @@ defmodule Kaarobar.Inventory do
 
   def get_inventory(branch_id, product_id, owner_id, business_id) do
     InventoryRecord
-    |> where([i], i.branch_id == ^branch_id and i.product_id == ^product_id and
-                  i.owner_id == ^owner_id and i.business_id == ^business_id)
+    |> where(
+      [i],
+      i.branch_id == ^branch_id and i.product_id == ^product_id and
+        i.owner_id == ^owner_id and i.business_id == ^business_id
+    )
     |> Repo.one()
   end
 
@@ -151,7 +165,14 @@ defmodule Kaarobar.Inventory do
     end
   end
 
-  def create_goods_receipt(purchase_order_id, branch_id, owner_id, business_id, received_by_id, attrs) do
+  def create_goods_receipt(
+        purchase_order_id,
+        branch_id,
+        owner_id,
+        business_id,
+        received_by_id,
+        attrs
+      ) do
     items = attrs[:items] || attrs["items"] || []
 
     with %PurchaseOrder{} = po <-
@@ -250,7 +271,13 @@ defmodule Kaarobar.Inventory do
 
       Enum.reduce_while(items, :ok, fn raw, :ok ->
         product_id = raw[:product_id] || raw["product_id"]
-        qty = to_dec(raw[:quantity_received] || raw["quantity_received"] || raw[:quantity] || raw["quantity"])
+
+        qty =
+          to_dec(
+            raw[:quantity_received] || raw["quantity_received"] || raw[:quantity] ||
+              raw["quantity"]
+          )
+
         po_item = Enum.find(po.items, &(&1.product_id == product_id))
         prior = Map.get(already, product_id, Decimal.new(0))
 
@@ -299,7 +326,10 @@ defmodule Kaarobar.Inventory do
 
       existing ->
         new_qty = Decimal.add(existing.quantity_on_hand, gr_item.quantity_received)
-        total_old_cost = Decimal.mult(existing.quantity_on_hand, existing.avg_cost || Decimal.new(0))
+
+        total_old_cost =
+          Decimal.mult(existing.quantity_on_hand, existing.avg_cost || Decimal.new(0))
+
         total_new_cost = Decimal.mult(gr_item.quantity_received, po_item.unit_cost)
         new_avg_cost = Decimal.div(Decimal.add(total_old_cost, total_new_cost), new_qty)
 
@@ -450,7 +480,10 @@ defmodule Kaarobar.Inventory do
 
   def list_inventory_for_branch(branch_id, owner_id, business_id) do
     InventoryRecord
-    |> where([i], i.branch_id == ^branch_id and i.owner_id == ^owner_id and i.business_id == ^business_id)
+    |> where(
+      [i],
+      i.branch_id == ^branch_id and i.owner_id == ^owner_id and i.business_id == ^business_id
+    )
     |> preload(:product)
     |> Repo.all()
   end
@@ -471,7 +504,14 @@ defmodule Kaarobar.Inventory do
   end
 
   def receive_goods(purchase_order_id, branch_id, owner_id, business_id, received_by_id, attrs) do
-    create_goods_receipt(purchase_order_id, branch_id, owner_id, business_id, received_by_id, attrs)
+    create_goods_receipt(
+      purchase_order_id,
+      branch_id,
+      owner_id,
+      business_id,
+      received_by_id,
+      attrs
+    )
   end
 
   @doc """
@@ -585,8 +625,7 @@ defmodule Kaarobar.Inventory do
 
             {count, _} =
               from(i in InventoryRecord,
-                where:
-                  i.id == ^from_inv.id and i.quantity_on_hand >= ^item.quantity,
+                where: i.id == ^from_inv.id and i.quantity_on_hand >= ^item.quantity,
                 update: [
                   set: [quantity_on_hand: fragment("quantity_on_hand - ?", ^item.quantity)]
                 ]
@@ -695,6 +734,7 @@ defmodule Kaarobar.Inventory do
 
       true ->
         now = DateTime.utc_now() |> DateTime.truncate(:second)
+
         already =
           case inv.low_stock_notified_at do
             %DateTime{} = at -> DateTime.to_date(at) == DateTime.to_date(now)

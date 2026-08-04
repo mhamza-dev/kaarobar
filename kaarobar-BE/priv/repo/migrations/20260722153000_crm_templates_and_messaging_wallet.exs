@@ -8,7 +8,10 @@ defmodule Kaarobar.Repo.Migrations.CrmTemplatesAndMessagingWallet do
 
     create table(:crm_message_templates, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :name, :string, null: false
       add :channel, :string, null: false, default: "email"
       add :title_template, :string, null: false
@@ -22,7 +25,10 @@ defmodule Kaarobar.Repo.Migrations.CrmTemplatesAndMessagingWallet do
 
     create table(:messaging_wallet_ledger, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :business_id, references(:businesses, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :owner_id, references(:users, type: :binary_id, on_delete: :nothing), null: false
       add :amount, :decimal, precision: 14, scale: 2, null: false
       add :kind, :string, null: false
@@ -35,7 +41,9 @@ defmodule Kaarobar.Repo.Migrations.CrmTemplatesAndMessagingWallet do
     create index(:messaging_wallet_ledger, [:business_id])
 
     alter table(:crm_campaigns) do
-      add :template_id, references(:crm_message_templates, type: :binary_id, on_delete: :nilify_all)
+      add :template_id,
+          references(:crm_message_templates, type: :binary_id, on_delete: :nilify_all)
+
       add :budget_amount, :decimal, precision: 14, scale: 2
       add :estimated_cost, :decimal, precision: 14, scale: 2
       add :actual_cost, :decimal, precision: 14, scale: 2

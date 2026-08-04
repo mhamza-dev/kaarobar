@@ -10,7 +10,19 @@ defmodule KaarobarWeb.V1.SaleController do
     business_id = conn.assigns[:business_id]
     owner_id = conn.assigns[:owner_id] || user.id
     branch_id = conn.assigns[:branch_id]
-    opts = ListFilters.parse(params, [:q, :from, :to, :status, :source, :amount_min, :amount_max, :limit, :cursor])
+
+    opts =
+      ListFilters.parse(params, [
+        :q,
+        :from,
+        :to,
+        :status,
+        :source,
+        :amount_min,
+        :amount_max,
+        :limit,
+        :cursor
+      ])
 
     if is_nil(business_id) do
       conn |> put_status(:bad_request) |> json(%{error: "business_required"})

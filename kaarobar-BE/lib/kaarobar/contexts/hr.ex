@@ -6,6 +6,7 @@ defmodule Kaarobar.Hr do
   import Ecto.Query
   alias Ecto.Multi
   alias Kaarobar.{Audit, PayrollDeductions, Repo}
+
   alias Kaarobar.Schemas.{
     AttendanceRecord,
     Employee,
@@ -160,6 +161,7 @@ defmodule Kaarobar.Hr do
   end
 
   def compute_shift_hours(_, _), do: Decimal.new(0)
+
   def list_attendance(business_id, owner_id, opts \\ []) do
     employee_id = Keyword.get(opts, :employee_id)
     from_date = Keyword.get(opts, :from)
@@ -455,9 +457,14 @@ defmodule Kaarobar.Hr do
             approved.owner_id,
             ["owner", "admin", "accountant"],
             "payroll.approved",
-            %{payroll_run_id: approved.id, period_start: approved.period_start, period_end: approved.period_end},
+            %{
+              payroll_run_id: approved.id,
+              period_start: approved.period_start,
+              period_end: approved.period_end
+            },
             title: "Payroll approved",
-            body: "Payroll #{approved.period_start}–#{approved.period_end} was approved and is posting to the ledger."
+            body:
+              "Payroll #{approved.period_start}–#{approved.period_end} was approved and is posting to the ledger."
           )
 
           {:ok, get_payroll_run!(approved.id)}

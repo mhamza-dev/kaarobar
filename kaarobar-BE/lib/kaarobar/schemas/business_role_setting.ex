@@ -27,7 +27,9 @@ defmodule Kaarobar.Schemas.BusinessRoleSetting do
       if Roles.valid?(role), do: [], else: [role: "invalid role"]
     end)
     |> validate_change(:bundle, fn :bundle, bundle ->
-      if bundle in Enum.map(Roles.bundles(), &Atom.to_string/1), do: [], else: [bundle: "invalid bundle"]
+      if bundle in Enum.map(Roles.bundles(), &Atom.to_string/1),
+        do: [],
+        else: [bundle: "invalid bundle"]
     end)
     |> foreign_key_constraint(:business_id)
     |> foreign_key_constraint(:owner_id)

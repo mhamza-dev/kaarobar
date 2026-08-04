@@ -148,24 +148,37 @@ defmodule KaarobarWeb.V1.CrmController do
 
   def create_segment(conn, params) do
     case Crm.create_segment(conn.assigns.business_id, conn.assigns.owner_id, params) do
-      {:ok, s} -> conn |> put_status(:created) |> json(%{data: serialize_segment(s)})
-      {:error, cs} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(cs.errors)})
+      {:ok, s} ->
+        conn |> put_status(:created) |> json(%{data: serialize_segment(s)})
+
+      {:error, cs} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(cs.errors)})
     end
   end
 
   def update_segment(conn, %{"id" => id} = params) do
     case Crm.update_segment(id, conn.assigns.business_id, conn.assigns.owner_id, params) do
-      {:ok, s} -> json(conn, %{data: serialize_segment(s)})
-      {:error, :not_found} -> conn |> put_status(:not_found) |> json(%{error: "not_found"})
-      {:error, cs} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(cs.errors)})
+      {:ok, s} ->
+        json(conn, %{data: serialize_segment(s)})
+
+      {:error, :not_found} ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      {:error, cs} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(cs.errors)})
     end
   end
 
   def delete_segment(conn, %{"id" => id}) do
     case Crm.delete_segment(id, conn.assigns.business_id, conn.assigns.owner_id) do
-      {:ok, _} -> json(conn, %{data: %{ok: true}})
-      {:error, :not_found} -> conn |> put_status(:not_found) |> json(%{error: "not_found"})
-      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+      {:ok, _} ->
+        json(conn, %{data: %{ok: true}})
+
+      {:error, :not_found} ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
     end
   end
 
@@ -181,16 +194,24 @@ defmodule KaarobarWeb.V1.CrmController do
 
   def create_coupon(conn, params) do
     case Coupons.create(conn.assigns.business_id, conn.assigns.owner_id, params) do
-      {:ok, c} -> conn |> put_status(:created) |> json(%{data: serialize_coupon(c)})
-      {:error, cs} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(cs.errors)})
+      {:ok, c} ->
+        conn |> put_status(:created) |> json(%{data: serialize_coupon(c)})
+
+      {:error, cs} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(cs.errors)})
     end
   end
 
   def update_coupon(conn, %{"id" => id} = params) do
     case Coupons.update(id, conn.assigns.business_id, conn.assigns.owner_id, params) do
-      {:ok, c} -> json(conn, %{data: serialize_coupon(c)})
-      {:error, :not_found} -> conn |> put_status(:not_found) |> json(%{error: "not_found"})
-      {:error, cs} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(cs.errors)})
+      {:ok, c} ->
+        json(conn, %{data: serialize_coupon(c)})
+
+      {:error, :not_found} ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      {:error, cs} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(cs.errors)})
     end
   end
 
@@ -224,24 +245,37 @@ defmodule KaarobarWeb.V1.CrmController do
 
   def create_tier(conn, params) do
     case Loyalty.create_tier(conn.assigns.business_id, conn.assigns.owner_id, params) do
-      {:ok, t} -> conn |> put_status(:created) |> json(%{data: serialize_tier(t)})
-      {:error, cs} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(cs.errors)})
+      {:ok, t} ->
+        conn |> put_status(:created) |> json(%{data: serialize_tier(t)})
+
+      {:error, cs} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(cs.errors)})
     end
   end
 
   def update_tier(conn, %{"id" => id} = params) do
     case Loyalty.update_tier(id, conn.assigns.business_id, conn.assigns.owner_id, params) do
-      {:ok, t} -> json(conn, %{data: serialize_tier(t)})
-      {:error, :not_found} -> conn |> put_status(:not_found) |> json(%{error: "not_found"})
-      {:error, cs} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(cs.errors)})
+      {:ok, t} ->
+        json(conn, %{data: serialize_tier(t)})
+
+      {:error, :not_found} ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      {:error, cs} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(cs.errors)})
     end
   end
 
   def delete_tier(conn, %{"id" => id}) do
     case Loyalty.delete_tier(id, conn.assigns.business_id, conn.assigns.owner_id) do
-      {:ok, _} -> json(conn, %{data: %{ok: true}})
-      {:error, :not_found} -> conn |> put_status(:not_found) |> json(%{error: "not_found"})
-      {:error, reason} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
+      {:ok, _} ->
+        json(conn, %{data: %{ok: true}})
+
+      {:error, :not_found} ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      {:error, reason} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
     end
   end
 
@@ -273,16 +307,24 @@ defmodule KaarobarWeb.V1.CrmController do
 
   def create_template(conn, params) do
     case Crm.create_template(conn.assigns.business_id, params) do
-      {:ok, t} -> conn |> put_status(:created) |> json(%{data: serialize_template(t)})
-      {:error, cs} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(cs.errors)})
+      {:ok, t} ->
+        conn |> put_status(:created) |> json(%{data: serialize_template(t)})
+
+      {:error, cs} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(cs.errors)})
     end
   end
 
   def update_template(conn, %{"id" => id} = params) do
     case Crm.update_template(id, conn.assigns.business_id, params) do
-      {:ok, t} -> json(conn, %{data: serialize_template(t)})
-      {:error, :not_found} -> conn |> put_status(:not_found) |> json(%{error: "not_found"})
-      {:error, cs} -> conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(cs.errors)})
+      {:ok, t} ->
+        json(conn, %{data: serialize_template(t)})
+
+      {:error, :not_found} ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      {:error, cs} ->
+        conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(cs.errors)})
     end
   end
 
@@ -306,6 +348,7 @@ defmodule KaarobarWeb.V1.CrmController do
       )
 
     biz = Crm.business_template_vars(business_id)
+
     logo_url =
       case Kaarobar.Repo.get(Kaarobar.Schemas.Business, business_id) do
         nil -> nil
@@ -445,7 +488,8 @@ defmodule KaarobarWeb.V1.CrmController do
       email_only: Enum.count(recipients, &(&1.channel_status == "email_only")),
       sms_queued: Enum.count(recipients, &(&1.channel_status == "sms_queued")),
       whatsapp_queued: Enum.count(recipients, &(&1.channel_status == "whatsapp_queued")),
-      skipped: Enum.count(recipients, &(&1.channel_status in ~w(skipped_no_user skipped_opt_out))),
+      skipped:
+        Enum.count(recipients, &(&1.channel_status in ~w(skipped_no_user skipped_opt_out))),
       total: length(recipients)
     }
   end

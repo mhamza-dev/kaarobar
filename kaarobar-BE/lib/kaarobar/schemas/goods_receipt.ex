@@ -22,8 +22,22 @@ defmodule Kaarobar.Schemas.GoodsReceipt do
 
   def changeset(gr, attrs) do
     gr
-    |> cast(attrs, [:status, :notes, :purchase_order_id, :branch_id, :owner_id, :business_id, :received_by_id])
-    |> validate_required([:purchase_order_id, :branch_id, :owner_id, :business_id, :received_by_id])
+    |> cast(attrs, [
+      :status,
+      :notes,
+      :purchase_order_id,
+      :branch_id,
+      :owner_id,
+      :business_id,
+      :received_by_id
+    ])
+    |> validate_required([
+      :purchase_order_id,
+      :branch_id,
+      :owner_id,
+      :business_id,
+      :received_by_id
+    ])
     |> validate_inclusion(:status, ["pending", "received", "cancelled"])
     |> foreign_key_constraint(:purchase_order_id)
     |> foreign_key_constraint(:branch_id)

@@ -22,7 +22,17 @@ defmodule Kaarobar.Schemas.LeaveRequest do
 
   def changeset(request, attrs) do
     request
-    |> cast(attrs, [:type, :start_date, :end_date, :status, :reason, :employee_id, :owner_id, :business_id, :approved_by_id])
+    |> cast(attrs, [
+      :type,
+      :start_date,
+      :end_date,
+      :status,
+      :reason,
+      :employee_id,
+      :owner_id,
+      :business_id,
+      :approved_by_id
+    ])
     |> validate_required([:type, :start_date, :end_date, :employee_id, :owner_id, :business_id])
     |> validate_inclusion(:status, ["Pending", "Approved", "Rejected"])
     |> foreign_key_constraint(:employee_id)

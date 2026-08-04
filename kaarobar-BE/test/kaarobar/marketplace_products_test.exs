@@ -94,7 +94,8 @@ defmodule Kaarobar.MarketplaceProductsTest do
         tax_rate: "0"
       })
 
-    {:ok, _} = Inventory.set_branch_price(cut.id, other_branch.id, owner_b.id, other_pub.id, "500")
+    {:ok, _} =
+      Inventory.set_branch_price(cut.id, other_branch.id, owner_b.id, other_pub.id, "500")
 
     {:ok, inactive} =
       Catalog.create_product(pub_biz.id, owner_a.id, %{

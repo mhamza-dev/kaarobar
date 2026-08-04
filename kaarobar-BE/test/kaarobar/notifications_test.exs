@@ -47,7 +47,11 @@ defmodule Kaarobar.NotificationsTest do
 
   test "notify fans out in_app + email when prefs allow", %{owner: owner, user: user} do
     assert {:ok, created} =
-             Notifications.notify(user.id, owner.id, "leave_request", %{"message" => "Please review"},
+             Notifications.notify(
+               user.id,
+               owner.id,
+               "leave_request",
+               %{"message" => "Please review"},
                title: "Leave request",
                body: "Please review"
              )

@@ -117,7 +117,8 @@ if config_env() == :prod do
 end
 
 # Storage — local by default; S3-compatible when STORAGE_BACKEND=s3
-storage_backend = System.get_env("STORAGE_BACKEND") || if(config_env() == :prod, do: "s3", else: "local")
+storage_backend =
+  System.get_env("STORAGE_BACKEND") || if(config_env() == :prod, do: "s3", else: "local")
 
 if storage_backend == "s3" and System.get_env("S3_BUCKET") do
   config :kaarobar,

@@ -452,164 +452,170 @@ generated_base_catalog =
 base_catalog = base_catalog ++ generated_base_catalog
 
 industry_extras = %{
-  "pharmacy" => [
-    %{
-      sku: "MED-01",
-      barcode: "8902001100018",
-      name: "Paracetamol 500mg",
-      category: "OTC",
-      price: "60",
-      qty: "200",
-      product_kind: "goods"
-    },
-    %{
-      sku: "MED-02",
-      barcode: "8902001100025",
-      name: "ORS Sachet Pack",
-      category: "OTC",
-      price: "120",
-      qty: "150",
-      product_kind: "goods"
-    }
-  ] ++
-    Enum.map(1..18, fn i ->
+  "pharmacy" =>
+    [
       %{
-        sku: "MED-X#{String.pad_leading("#{i}", 2, "0")}",
-        barcode: "89020011#{String.pad_leading("#{100 + i}", 4, "0")}",
-        name: Enum.at(
-          [
-            "Vitamin C 500mg",
-            "Cough Syrup 100ml",
-            "Antacid Tablets",
-            "Antiseptic Cream",
-            "Bandage Roll",
-            "Digital Thermometer",
-            "Face Mask Pack 50",
-            "Hand Sanitizer 250ml",
-            "Multivitamin Adults",
-            "Iron Syrup 200ml",
-            "Calcium Tablets",
-            "Allergy Relief 10mg",
-            "Eye Drops 10ml",
-            "Pain Relief Gel",
-            "Glucose Powder 400g",
-            "Baby Formula 400g",
-            "Pregnancy Test Kit",
-            "BP Monitor Cuff"
-          ],
-          i - 1
-        ),
-        category: Enum.at(["OTC", "Rx", "Devices", "Wellness"], rem(i, 4)),
-        price: "#{80 + i * 35}",
-        qty: "#{80 + rem(i * 13, 120)}",
+        sku: "MED-01",
+        barcode: "8902001100018",
+        name: "Paracetamol 500mg",
+        category: "OTC",
+        price: "60",
+        qty: "200",
+        product_kind: "goods"
+      },
+      %{
+        sku: "MED-02",
+        barcode: "8902001100025",
+        name: "ORS Sachet Pack",
+        category: "OTC",
+        price: "120",
+        qty: "150",
         product_kind: "goods"
       }
-    end),
-  "restaurant" => [
-    %{
-      sku: "FOOD-01",
-      barcode: "8903001100015",
-      name: "Chicken Karahi (portion)",
-      category: "Food",
-      price: "850",
-      qty: "40",
-      product_kind: "goods"
-    },
-    %{
-      sku: "FOOD-02",
-      barcode: "8903001100022",
-      name: "Biryani Plate",
-      category: "Food",
-      price: "450",
-      qty: "60",
-      product_kind: "goods"
-    },
-    %{
-      sku: "FOOD-03",
-      barcode: "8903001100039",
-      name: "Fresh Lime",
-      category: "Beverages",
-      price: "180",
-      qty: "80",
-      product_kind: "goods"
-    }
-  ] ++
-    Enum.map(1..15, fn i ->
+    ] ++
+      Enum.map(1..18, fn i ->
+        %{
+          sku: "MED-X#{String.pad_leading("#{i}", 2, "0")}",
+          barcode: "89020011#{String.pad_leading("#{100 + i}", 4, "0")}",
+          name:
+            Enum.at(
+              [
+                "Vitamin C 500mg",
+                "Cough Syrup 100ml",
+                "Antacid Tablets",
+                "Antiseptic Cream",
+                "Bandage Roll",
+                "Digital Thermometer",
+                "Face Mask Pack 50",
+                "Hand Sanitizer 250ml",
+                "Multivitamin Adults",
+                "Iron Syrup 200ml",
+                "Calcium Tablets",
+                "Allergy Relief 10mg",
+                "Eye Drops 10ml",
+                "Pain Relief Gel",
+                "Glucose Powder 400g",
+                "Baby Formula 400g",
+                "Pregnancy Test Kit",
+                "BP Monitor Cuff"
+              ],
+              i - 1
+            ),
+          category: Enum.at(["OTC", "Rx", "Devices", "Wellness"], rem(i, 4)),
+          price: "#{80 + i * 35}",
+          qty: "#{80 + rem(i * 13, 120)}",
+          product_kind: "goods"
+        }
+      end),
+  "restaurant" =>
+    [
       %{
-        sku: "FOOD-X#{String.pad_leading("#{i}", 2, "0")}",
-        barcode: "89030011#{String.pad_leading("#{100 + i}", 4, "0")}",
-        name: Enum.at(
-          [
-            "Chicken Tikka",
-            "Seekh Kebab Plate",
-            "Daal Mash Bowl",
-            "Naan Basket",
-            "Garlic Naan",
-            "Mutton Pulao",
-            "Fish Fry",
-            "Club Sandwich",
-            "French Fries",
-            "Chicken Burger",
-            "Mint Margarita",
-            "Kashmiri Chai",
-            "Soft Drink Can",
-            "Raita Cup",
-            "Gulab Jamun 2pc"
-          ],
-          i - 1
-        ),
-        category: Enum.at(["Food", "Sides", "Beverages", "Dessert"], rem(i, 4)),
-        price: "#{220 + i * 55}",
-        qty: "#{30 + rem(i * 9, 50)}",
+        sku: "FOOD-01",
+        barcode: "8903001100015",
+        name: "Chicken Karahi (portion)",
+        category: "Food",
+        price: "850",
+        qty: "40",
+        product_kind: "goods"
+      },
+      %{
+        sku: "FOOD-02",
+        barcode: "8903001100022",
+        name: "Biryani Plate",
+        category: "Food",
+        price: "450",
+        qty: "60",
+        product_kind: "goods"
+      },
+      %{
+        sku: "FOOD-03",
+        barcode: "8903001100039",
+        name: "Fresh Lime",
+        category: "Beverages",
+        price: "180",
+        qty: "80",
         product_kind: "goods"
       }
-    end),
+    ] ++
+      Enum.map(1..15, fn i ->
+        %{
+          sku: "FOOD-X#{String.pad_leading("#{i}", 2, "0")}",
+          barcode: "89030011#{String.pad_leading("#{100 + i}", 4, "0")}",
+          name:
+            Enum.at(
+              [
+                "Chicken Tikka",
+                "Seekh Kebab Plate",
+                "Daal Mash Bowl",
+                "Naan Basket",
+                "Garlic Naan",
+                "Mutton Pulao",
+                "Fish Fry",
+                "Club Sandwich",
+                "French Fries",
+                "Chicken Burger",
+                "Mint Margarita",
+                "Kashmiri Chai",
+                "Soft Drink Can",
+                "Raita Cup",
+                "Gulab Jamun 2pc"
+              ],
+              i - 1
+            ),
+          category: Enum.at(["Food", "Sides", "Beverages", "Dessert"], rem(i, 4)),
+          price: "#{220 + i * 55}",
+          qty: "#{30 + rem(i * 9, 50)}",
+          product_kind: "goods"
+        }
+      end),
   "salon" => [],
   # Beauty catalogs are built below (hair / makeup / aesthetic) — not mixed with grocery base.
-  "wholesale" => [
-    %{
-      sku: "CTN-01",
-      barcode: "8905001100019",
-      name: "Carton Tape Roll",
-      category: "Bulk",
-      price: "95",
-      qty: "300"
-    },
-    %{
-      sku: "CTN-02",
-      barcode: "8905001100026",
-      name: "Packing Boxes (10)",
-      category: "Cases",
-      price: "780",
-      qty: "90"
-    }
-  ] ++
-    Enum.map(1..12, fn i ->
+  "wholesale" =>
+    [
       %{
-        sku: "CTN-X#{String.pad_leading("#{i}", 2, "0")}",
-        barcode: "89050011#{String.pad_leading("#{100 + i}", 4, "0")}",
-        name: Enum.at(
-          [
-            "Stretch Wrap Roll",
-            "Pallet Wrap Heavy",
-            "Corrugated Sheets",
-            "Bubble Wrap 50m",
-            "Shipping Labels 500",
-            "Marker Carton Pack",
-            "Cable Ties 100pc",
-            "Hand Strapping Kit",
-            "Bulk Gloves Carton",
-            "Floor Cleaner 5L",
-            "Bulk Sugar Sack 50kg",
-            "Rice Bag 25kg"
-          ],
-          i - 1
-        ),
-        category: Enum.at(["Bulk", "Cases", "Packaging", "Consumables"], rem(i, 4)),
-        price: "#{150 + i * 90}",
-        qty: "#{100 + i * 25}"
+        sku: "CTN-01",
+        barcode: "8905001100019",
+        name: "Carton Tape Roll",
+        category: "Bulk",
+        price: "95",
+        qty: "300"
+      },
+      %{
+        sku: "CTN-02",
+        barcode: "8905001100026",
+        name: "Packing Boxes (10)",
+        category: "Cases",
+        price: "780",
+        qty: "90"
       }
-    end)
+    ] ++
+      Enum.map(1..12, fn i ->
+        %{
+          sku: "CTN-X#{String.pad_leading("#{i}", 2, "0")}",
+          barcode: "89050011#{String.pad_leading("#{100 + i}", 4, "0")}",
+          name:
+            Enum.at(
+              [
+                "Stretch Wrap Roll",
+                "Pallet Wrap Heavy",
+                "Corrugated Sheets",
+                "Bubble Wrap 50m",
+                "Shipping Labels 500",
+                "Marker Carton Pack",
+                "Cable Ties 100pc",
+                "Hand Strapping Kit",
+                "Bulk Gloves Carton",
+                "Floor Cleaner 5L",
+                "Bulk Sugar Sack 50kg",
+                "Rice Bag 25kg"
+              ],
+              i - 1
+            ),
+          category: Enum.at(["Bulk", "Cases", "Packaging", "Consumables"], rem(i, 4)),
+          price: "#{150 + i * 90}",
+          qty: "#{100 + i * 25}"
+        }
+      end)
 }
 
 # —— Beauty vertical catalogs (salon industry: hair / makeup / aesthetic) ———
@@ -673,7 +679,14 @@ hair_salon_catalog = [
   svc.("SVC-FACE", "8904001100104", "Classic Facial", "Skin", "2500", 60),
   svc.("SVC-KIDS", "8904001100111", "Kids Haircut", "Hair", "600", 25),
   svc.("SVC-MASSAGE", "8904001100128", "Head & Shoulder Massage", "Skin", "1800", 35),
-  pkg.("PKG-GLOW", "8904001200019", "Glow Package (Cut + Facial + Brow)", "Packages", "4200", 120),
+  pkg.(
+    "PKG-GLOW",
+    "8904001200019",
+    "Glow Package (Cut + Facial + Brow)",
+    "Packages",
+    "4200",
+    120
+  ),
   pkg.("PKG-BRIDE-HAIR", "8904001200026", "Bridal Hair Trail Package", "Packages", "12000", 180),
   pkg.("PKG-NAIL-DAY", "8904001200033", "Nail Day (Mani + Pedi)", "Packages", "2400", 90),
   deal.("DEAL-WEEKDAY", "8904001300016", "Weekday Cut Deal (20% off)", "640", 30),
@@ -693,9 +706,23 @@ makeup_artist_catalog = [
   svc.("MU-LASH", "8904101100095", "Lash Application", "Makeup", "2500", 30),
   svc.("MU-HAIR-UP", "8904101100101", "Hair Styling / Updo", "Hair", "6000", 60),
   svc.("MU-SARI-DRAPE", "8904101100118", "Sari / Dupatta Draping", "Makeup", "2000", 25),
-  pkg.("PKG-BRIDE-FULL", "8904101200016", "Full Bridal Package (MU + Hair + Trial)", "Packages", "38000", 360),
+  pkg.(
+    "PKG-BRIDE-FULL",
+    "8904101200016",
+    "Full Bridal Package (MU + Hair + Trial)",
+    "Packages",
+    "38000",
+    360
+  ),
   pkg.("PKG-WALIMA", "8904101200023", "Walima Glam Package", "Packages", "22000", 150),
-  pkg.("PKG-FAMILY", "8904101200030", "Family Makeup Package (3 guests)", "Packages", "18000", 180),
+  pkg.(
+    "PKG-FAMILY",
+    "8904101200030",
+    "Family Makeup Package (3 guests)",
+    "Packages",
+    "18000",
+    180
+  ),
   deal.("DEAL-OFFPEAK", "8904101300013", "Off-peak Soft Glam Deal", "4500", 60),
   deal.("DEAL-TRIAL-BUNDLE", "8904101300020", "Trial + Party Makeup Deal", "11000", 150),
   deal.("DEAL-SISTERS", "8904101300037", "Sisters Duo Makeup Deal", "14000", 120)
@@ -708,14 +735,35 @@ aesthetic_clinic_catalog = [
   svc.("AES-HYDRA", "8904201100047", "Hydrafacial", "Aesthetic", "9000", 60),
   svc.("AES-MICRONEEDLE", "8904201100054", "Microneedling Session", "Aesthetic", "12000", 75),
   svc.("AES-LASER-FACE", "8904201100061", "Laser Hair Reduction — Face", "Aesthetic", "8000", 40),
-  svc.("AES-LASER-FULL", "8904201100078", "Laser Hair Reduction — Full Body", "Aesthetic", "35000", 120),
+  svc.(
+    "AES-LASER-FULL",
+    "8904201100078",
+    "Laser Hair Reduction — Full Body",
+    "Aesthetic",
+    "35000",
+    120
+  ),
   svc.("AES-PRP", "8904201100085", "PRP Hair / Skin Session", "Aesthetic", "15000", 60),
   svc.("AES-BOTOX", "8904201100092", "Botox Unit Session", "Aesthetic", "18000", 45),
   svc.("AES-FILLER", "8904201100108", "Dermal Filler Session", "Aesthetic", "25000", 50),
   svc.("AES-ACNE", "8904201100115", "Acne Treatment Session", "Skin", "5000", 40),
   svc.("AES-WHITENING", "8904201100122", "Skin Whitening Facial", "Skin", "7000", 70),
-  pkg.("PKG-SKIN-RESET", "8904201200013", "Skin Reset Package (3 sessions)", "Packages", "22000", 180),
-  pkg.("PKG-LASER-6", "8904201200020", "Laser Face Package (6 sessions)", "Packages", "40000", 240),
+  pkg.(
+    "PKG-SKIN-RESET",
+    "8904201200013",
+    "Skin Reset Package (3 sessions)",
+    "Packages",
+    "22000",
+    180
+  ),
+  pkg.(
+    "PKG-LASER-6",
+    "8904201200020",
+    "Laser Face Package (6 sessions)",
+    "Packages",
+    "40000",
+    240
+  ),
   pkg.("PKG-BRIDE-SKIN", "8904201200037", "Bridal Skin Prep Package", "Packages", "55000", 300),
   deal.("DEAL-FIRST-VISIT", "8904201300010", "First Visit Facial Deal", "2800", 60),
   deal.("DEAL-PEEL", "8904201300027", "Peel + Consultation Deal", "7200", 70),
@@ -731,7 +779,7 @@ beauty_catalog_for = fn business_name ->
       makeup_artist_catalog
 
     String.contains?(name, "aesthetic") or String.contains?(name, "derma") or
-        String.contains?(name, "skin clinic") or String.contains?(name, "laser") ->
+      String.contains?(name, "skin clinic") or String.contains?(name, "laser") ->
       aesthetic_clinic_catalog
 
     true ->
@@ -1471,7 +1519,11 @@ generated_suppliers =
       legal_name: "Supplier #{i} Trading Co",
       code: "SUP-X#{String.pad_leading("#{i}", 2, "0")}",
       tax_id: "#{4_000_000 + i}-#{rem(i, 9)}",
-      industry: Enum.at(["FMCG wholesale", "General wholesale", "Regional wholesale", "Cash & carry"], rem(i, 4)),
+      industry:
+        Enum.at(
+          ["FMCG wholesale", "General wholesale", "Regional wholesale", "Cash & carry"],
+          rem(i, 4)
+        ),
       contact_name: Enum.at(employee_names, rem(i, length(employee_names))),
       contact_role: "Sales",
       contact_email: "orders#{i}@supplier-demo.pk",
@@ -1888,7 +1940,10 @@ seed_branch_sales = fn owner, business, branch, products, cashier ->
     Enum.each(1..12, fn i ->
       product = Enum.at(products, rem(i + :erlang.phash2(branch.id), length(products)))
       qty = Decimal.new(1 + rem(i, 3))
-      track? = product.track_inventory != false and product.product_kind not in ["service", "combo"]
+
+      track? =
+        product.track_inventory != false and product.product_kind not in ["service", "combo"]
+
       inv = if track?, do: Inventory.get_inventory(branch.id, product.id, owner.id, business.id)
 
       can_sell? =
@@ -2025,7 +2080,9 @@ seed_scenario_pack = fn owner, business, branches, products, employees, cashier 
 
     track? = product.track_inventory != false and product.product_kind not in ["service", "combo"]
     inv = if track?, do: Inventory.get_inventory(branch.id, product.id, owner.id, business.id)
-    can_sell? = if track?, do: inv && Decimal.compare(inv.quantity_on_hand, qty) in [:gt, :eq], else: true
+
+    can_sell? =
+      if track?, do: inv && Decimal.compare(inv.quantity_on_hand, qty) in [:gt, :eq], else: true
 
     if can_sell? do
       # Offline / idempotent sale
@@ -2302,8 +2359,10 @@ seed_scenario_pack = fn owner, business, branches, products, employees, cashier 
       |> Repo.exists?()
 
     unless already_reversed? do
-      expense = Accounting.get_account_by_code(business.id, "5900") ||
-        Accounting.get_account_by_code(business.id, "5100")
+      expense =
+        Accounting.get_account_by_code(business.id, "5900") ||
+          Accounting.get_account_by_code(business.id, "5100")
+
       cash = Accounting.get_account_by_code(business.id, "1000")
 
       if expense && cash do
@@ -2665,7 +2724,7 @@ marketplace_branding_for = fn business ->
              "Professional makeup, bridal packages, and event deals. Book online, visit the studio."}
 
           String.contains?(name_l, "aesthetic") or String.contains?(name_l, "derma") or
-              String.contains?(name_l, "skin clinic") or String.contains?(name_l, "laser") ->
+            String.contains?(name_l, "skin clinic") or String.contains?(name_l, "laser") ->
             {"Skin science, personal care", "#00897B",
              "Aesthetic treatments, laser packages, and skin deals. Consult online then visit the clinic."}
 
@@ -3203,7 +3262,10 @@ seed_salon_appointments = fn owner, business, branches, products, employees ->
             date = Date.add(today, day_offset)
             starts = DateTime.new!(date, Time.new!(hour, 0, 0), "Etc/UTC")
             ends = DateTime.add(starts, duration * 60, :second)
-            customer = if customers != [], do: Enum.at(customers, rem(day_offset + slot, length(customers)))
+
+            customer =
+              if customers != [],
+                do: Enum.at(customers, rem(day_offset + slot, length(customers)))
 
             status =
               cond do

@@ -43,6 +43,7 @@ export type BuyerMembership = {
 
 export type Session = {
   access_token: string;
+  refresh_token?: string;
   actor?: AuthActor;
   user: {
     id: string;
@@ -79,6 +80,8 @@ export type Session = {
 const SESSION_KEY = "kaarobar_session";
 
 let memorySession: Session | null = null;
+let refreshPromise: Promise<Session | null> | null = null;
+let sessionTimedOut = false;
 
 export function isConsumerSession(session?: Session | null): boolean {
   return (session ?? memorySession)?.actor === "consumer";
@@ -114,40 +117,107 @@ export async function clearSession() {
   }
 }
 
+export function markSessionTimedOut() {
+  sessionTimedOut = true;
+}
+
+export function consumeSessionTimedOut(): boolean {
+  const value = sessionTimedOut;
+  sessionTimedOut = false;
+  return value;
+}
+
+function shouldAttemptRefresh(path: string): boolean {
+  return path !== "/auth/login" && path !== "/auth/refresh";
+}
+
+async function refreshAccessToken(session: Session): Promise<Session | null> {
+  if (!session.refresh_token || isConsumerSession(session)) return null;
+  const headers = new Headers({ "Content-Type": "application/json" });
+  if (session.business_id) headers.set("x-business-id", session.business_id);
+  if (session.branch_id) headers.set("x-branch-id", session.branch_id);
+  const res = await fetch(`${API_URL}/auth/refresh`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ refresh_token: session.refresh_token }),
+  });
+  if (!res.ok) return null;
+  const body = (await res.json().catch(() => null)) as
+    | { access_token?: string }
+    | null;
+  if (!body?.access_token) return null;
+  const next = { ...session, access_token: body.access_token };
+  await setSession(next);
+  return next;
+}
+
+async function withRefresh(session: Session): Promise<Session | null> {
+  if (!refreshPromise) {
+    refreshPromise = refreshAccessToken(session).finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
+}
+
 export async function api<T>(
   path: string,
   init: RequestInit = {},
   session?: Session | null
 ): Promise<T> {
-  const current = session === undefined ? await getSession() : session;
-  const headers = new Headers(init.headers);
-  const isFormData =
-    typeof FormData !== "undefined" && init.body instanceof FormData;
-  if (!isFormData && !headers.has("Content-Type")) {
-    headers.set("Content-Type", "application/json");
-  }
-  if (current?.access_token) {
-    headers.set("Authorization", `Bearer ${current.access_token}`);
-  }
-  // Buyers shop across stores — do not send staff tenant headers on portal calls.
-  if (current?.business_id && !isConsumerSession(current)) {
-    headers.set("x-business-id", current.business_id);
-  }
-  if (current?.branch_id && !isConsumerSession(current)) {
-    headers.set("x-branch-id", current.branch_id);
-  }
+  const makeRequest = async (current: Session | null | undefined) => {
+    const headers = new Headers(init.headers);
+    const isFormData =
+      typeof FormData !== "undefined" && init.body instanceof FormData;
+    if (!isFormData && !headers.has("Content-Type")) {
+      headers.set("Content-Type", "application/json");
+    }
+    if (current?.access_token) {
+      headers.set("Authorization", `Bearer ${current.access_token}`);
+    }
+    if (current?.business_id && !isConsumerSession(current)) {
+      headers.set("x-business-id", current.business_id);
+    }
+    if (current?.branch_id && !isConsumerSession(current)) {
+      headers.set("x-branch-id", current.branch_id);
+    }
+    const res = await fetch(`${API_URL}${path}`, { ...init, headers });
+    const text = await res.text();
+    let body: unknown = null;
+    if (text) {
+      try {
+        body = JSON.parse(text);
+      } catch {
+        body = text;
+      }
+    }
+    return { res, body };
+  };
 
-  const res = await fetch(`${API_URL}${path}`, { ...init, headers });
-  const text = await res.text();
-  let body: unknown = null;
-  if (text) {
-    try {
-      body = JSON.parse(text);
-    } catch {
-      body = text;
+  let current = session === undefined ? await getSession() : session;
+  let { res, body } = await makeRequest(current);
+
+  if (
+    res.status === 401 &&
+    current &&
+    shouldAttemptRefresh(path) &&
+    !isConsumerSession(current)
+  ) {
+    const refreshed = await withRefresh(current);
+    if (refreshed) {
+      ({ res, body } = await makeRequest(refreshed));
+    } else if (session === undefined) {
+      markSessionTimedOut();
+      await clearSession();
+      throw new Error("session_timeout");
     }
   }
+
   if (!res.ok) {
+    if (res.status === 401 && session === undefined) {
+      markSessionTimedOut();
+      await clearSession();
+    }
     const payload =
       body && typeof body === "object" ? (body as Record<string, unknown>) : null;
     const apiError =
@@ -229,6 +299,40 @@ export async function hydrateSessionContext(session: Session): Promise<Session> 
 
   await setSession(merged);
   return merged;
+}
+
+export async function logoutSession(session?: Session | null) {
+  const current = session === undefined ? await getSession() : session;
+  if (!current) {
+    await clearSession();
+    return;
+  }
+
+  try {
+    if (!isConsumerSession(current) && current.refresh_token) {
+      const headers = new Headers({
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${current.access_token}`,
+      });
+      if (current.business_id) headers.set("x-business-id", current.business_id);
+      if (current.branch_id) headers.set("x-branch-id", current.branch_id);
+      await fetch(`${API_URL}/auth/logout`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ refresh_token: current.refresh_token }),
+      });
+    } else if (isConsumerSession(current)) {
+      const headers = new Headers({
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${current.access_token}`,
+      });
+      await fetch(`${API_URL}/portal/auth/logout`, { method: "POST", headers });
+    }
+  } catch {
+    // Best-effort remote revoke.
+  } finally {
+    await clearSession();
+  }
 }
 
 export async function billingCheckout(plan: string, redirectUrl?: string) {
