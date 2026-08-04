@@ -10,7 +10,7 @@ import {
   FormikSearchSelectField,
   FormikTextField,
 } from "@/components/ui/FormFields";
-import { Field, fieldClass } from "@/components/app/ui";
+import { Field, fieldClass, formStackClass } from "@/components/app/ui";
 import { formatDecimal } from "@/lib/decimal";
 import type {
   AdjustStockFormValues,
@@ -70,7 +70,7 @@ export function PurchaseOrderFormFields({
     useFormikContext<PurchaseOrderFormValues>();
 
   return (
-    <div className="space-y-5">
+    <div className={formStackClass}>
       <Field label={t("inventory.supplier")}>
         <SearchSelect
           options={supplierOptions}
@@ -182,7 +182,7 @@ export function GrnFormFields({
     openPos.find((p) => p.id === values.purchase_order_id) || null;
 
   return (
-    <div className="space-y-5">
+    <div className={formStackClass}>
       <Field label={t("inventory.selectPo")}>
         <SearchSelect
           options={openPos.map((p) => ({
@@ -272,7 +272,7 @@ export function TransferFormFields({
     useFormikContext<TransferFormValues>();
 
   return (
-    <div className="space-y-5">
+    <div className={formStackClass}>
       <Field label={t("inventory.toBranch")}>
         <SearchSelect
           options={branchOptions}
@@ -346,7 +346,7 @@ export function AdjustStockFormFields({
   t: (key: string) => string;
 }) {
   return (
-    <div className="space-y-3">
+    <div className={formStackClass}>
       <FormikSearchSelectField
         name="product_id"
         label={t("inventory.product")}
@@ -391,7 +391,7 @@ export function AttachSupplierFormFields({
   t: (key: string) => string;
 }) {
   return (
-    <div className="space-y-4">
+    <div className={formStackClass}>
       <FormikSearchSelectField
         name="supplier_id"
         label={t("inventory.supplier")}

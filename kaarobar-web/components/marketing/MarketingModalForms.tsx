@@ -2,12 +2,12 @@
 
 import { useField, useFormikContext } from "formik";
 import {
-  FormikCheckboxField,
   FormikDateTimeField,
   FormikSelectField,
+  FormikSwitchField,
   FormikTextField,
 } from "@/components/ui/FormFields";
-import { Field, fieldClass } from "@/components/app/ui";
+import { Field, fieldClass, formGridClass, formStackClass } from "@/components/app/ui";
 import type { TemplateFormValues } from "@/lib/validations/marketing";
 
 export type {
@@ -51,7 +51,7 @@ export function TemplateFormFields({
   }
 
   return (
-    <div className="grid gap-3">
+    <div className={formStackClass}>
       <FormikTextField name="name" label={t("common.name")} required />
       <FormikSelectField
         name="channel"
@@ -120,14 +120,14 @@ export function SegmentFormFields({
   t: (key: string) => string;
 }) {
   return (
-    <div className="grid gap-3">
+    <div className={formStackClass}>
       <FormikTextField name="name" label={t("common.name")} required />
       <FormikTextField
         name="min_points"
         label={t("marketing.minPoints")}
         type="number"
       />
-      <FormikCheckboxField name="khata" label={t("marketing.khataOnly")} />
+      <FormikSwitchField name="khata" label={t("marketing.khataOnly")} />
     </div>
   );
 }
@@ -158,36 +158,37 @@ export function CouponFormFields({
   t: (key: string) => string;
 }) {
   return (
-    <div className="grid gap-3">
+    <div className={formStackClass}>
       <CouponCodeField label={t("marketing.couponCode")} />
-      <FormikSelectField
-        name="discount_type"
-        label={t("marketing.discountType")}
-        options={[
-          { value: "percent", label: t("marketing.discountPercent") },
-          { value: "fixed", label: t("marketing.discountFixed") },
-        ]}
-      />
-      <FormikTextField
-        name="discount_value"
-        label={t("marketing.discountValue")}
-        required
-      />
-      <FormikDateTimeField
-        name="valid_from"
-        label={t("marketing.validFrom")}
-        mode="datetime"
-      />
-      <p className="-mt-1 text-xs text-muted">{t("marketing.validityOptional")}</p>
-      <FormikDateTimeField
-        name="valid_to"
-        label={t("marketing.validTo")}
-        mode="datetime"
-      />
-      <p className="-mt-1 text-xs text-muted">{t("marketing.validityOptional")}</p>
-      <FormikTextField name="usage_limit" label={t("marketing.usageLimit")} />
-      <FormikTextField name="min_cart" label={t("marketing.minCart")} />
-      <FormikCheckboxField name="stackable" label={t("marketing.stackable")} />
+      <div className={formGridClass}>
+        <FormikSelectField
+          name="discount_type"
+          label={t("marketing.discountType")}
+          options={[
+            { value: "percent", label: t("marketing.discountPercent") },
+            { value: "fixed", label: t("marketing.discountFixed") },
+          ]}
+        />
+        <FormikTextField
+          name="discount_value"
+          label={t("marketing.discountValue")}
+          required
+        />
+        <FormikDateTimeField
+          name="valid_from"
+          label={t("marketing.validFrom")}
+          mode="datetime"
+        />
+        <FormikDateTimeField
+          name="valid_to"
+          label={t("marketing.validTo")}
+          mode="datetime"
+        />
+        <FormikTextField name="usage_limit" label={t("marketing.usageLimit")} />
+        <FormikTextField name="min_cart" label={t("marketing.minCart")} />
+      </div>
+      <p className="text-xs text-muted">{t("marketing.validityOptional")}</p>
+      <FormikSwitchField name="stackable" label={t("marketing.stackable")} />
     </div>
   );
 }
@@ -198,16 +199,18 @@ export function LoyaltyTierFormFields({
   t: (key: string) => string;
 }) {
   return (
-    <div className="grid gap-3">
-      <FormikTextField name="name" label={t("common.name")} required />
-      <FormikTextField
-        name="min_points"
-        label={t("marketing.minPoints")}
-        type="number"
-        required
-      />
-      <FormikTextField name="earn_rate" label={t("marketing.earnRate")} />
-      <FormikTextField name="redeem_rate" label={t("marketing.redeemRate")} />
+    <div className={formStackClass}>
+      <div className={formGridClass}>
+        <FormikTextField name="name" label={t("common.name")} required />
+        <FormikTextField
+          name="min_points"
+          label={t("marketing.minPoints")}
+          type="number"
+          required
+        />
+        <FormikTextField name="earn_rate" label={t("marketing.earnRate")} />
+        <FormikTextField name="redeem_rate" label={t("marketing.redeemRate")} />
+      </div>
     </div>
   );
 }

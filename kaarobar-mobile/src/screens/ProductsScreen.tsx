@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBrandPalette } from "../lib/BrandThemeContext";
 import {
@@ -8,7 +8,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { api, apiAllPages, colors, getSession, type Session } from "../lib/api";
@@ -24,11 +23,44 @@ import { formatDecimal } from "../lib/decimal";
 import { generateBarcode } from "../lib/barcode";
 import { useNavigation } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
-import { SearchSelect, SearchMultiSelect } from "../components/SearchSelect";
 import { replacePath } from "../lib/nav";
 import { useTabParam } from "../hooks/useTabParam";
 import { inventoryKeys } from "../lib/queryClient";
 import { t } from "../lib/i18n";
+import CustomForm from "../components/ui/CustomForm";
+import {
+  FormikTextField,
+  FormikSearchSelectField,
+  FormikSearchMultiSelectField,
+} from "../components/ui/FormFields";
+import {
+  emptyProductForm,
+  emptySupplierForm,
+  productFormSchema,
+  supplierFormSchema,
+  type ProductFormValues,
+  type SupplierFormValues,
+} from "../lib/validations/products";
+import {
+  adjustStockFormSchema,
+  attachProductFormSchema,
+  attachSupplierFormSchema,
+  emptyAdjustStockForm,
+  emptyAttachProductForm,
+  emptyAttachSupplierForm,
+  emptyGrnForm,
+  emptyPurchaseOrderForm,
+  emptyTransferForm,
+  grnFormSchema,
+  purchaseOrderFormSchema,
+  transferFormSchema,
+  type AdjustStockFormValues,
+  type AttachProductFormValues,
+  type AttachSupplierFormValues,
+  type GrnFormValues,
+  type PurchaseOrderFormValues,
+  type TransferFormValues,
+} from "../lib/validations/inventory";
 
 type Tab = "stock" | "products" | "suppliers" | "pos" | "transfers" | "adjust";
 const PRODUCT_TABS: readonly Tab[] = [
@@ -94,73 +126,30 @@ export default function InventoryScreen() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const [productForm, setProductForm] = useState({
-    sku: "",
-    name: "",
-    price: "",
-    barcode: "",
-    unit: "pcs",
-    product_kind: "goods",
-  });
+  const [productInitial, setProductInitial] = useState(emptyProductForm());
   const [productImage, setProductImage] = useState<{
     uri: string;
     name: string;
     type: string;
   } | null>(null);
   const [scanOpen, setScanOpen] = useState(false);
-  const [supplierForm, setSupplierForm] = useState({
-    name: "",
-    contact_name: "",
-    contact_role: "",
-    contact_phone: "",
-    contact_email: "",
-    city: "",
-    payment_terms: "Net 30",
-  });
-
-  const [poForm, setPoForm] = useState<{
-    supplier_id: string;
-    product_ids: string[];
-    quantities: Record<string, string>;
-    unit_costs: Record<string, string>;
-  }>({
-    supplier_id: "",
-    product_ids: [],
-    quantities: {},
-    unit_costs: {},
-  });
+  const [supplierInitial] = useState(emptySupplierForm());
+  const [poInitial, setPoInitial] = useState(emptyPurchaseOrderForm());
+  const [poSupplierId, setPoSupplierId] = useState("");
   const [attachProductId, setAttachProductId] = useState<string | null>(null);
-  const [attachSupplierId, setAttachSupplierId] = useState<string | null>(null);
   const [attachToSupplierId, setAttachToSupplierId] = useState<string | null>(null);
-  const [attachProductForSupplierId, setAttachProductForSupplierId] = useState<
-    string | null
-  >(null);
   const [expandedSupplierId, setExpandedSupplierId] = useState<string | null>(null);
   const [supplierProductsById, setSupplierProductsById] = useState<
     Record<string, Product[]>
   >({});
   const [supplierProductsForPo, setSupplierProductsForPo] = useState<Product[]>([]);
-  const [grnForm, setGrnForm] = useState<{
-    purchase_order_id: string;
-    quantities: Record<string, string>;
-  }>({
-    purchase_order_id: "",
-    quantities: {},
-  });
-  const [transferForm, setTransferForm] = useState<{
-    to_branch_id: string;
-    product_ids: string[];
-    quantities: Record<string, string>;
-  }>({
-    to_branch_id: "",
-    product_ids: [],
-    quantities: {},
-  });
-  const [adjustForm, setAdjustForm] = useState({
-    product_id: "",
-    quantity_delta: "",
-    reason_code: "adjustment",
-  });
+  const [grnInitial, setGrnInitial] = useState(emptyGrnForm());
+  const [transferInitial, setTransferInitial] = useState(emptyTransferForm());
+  const [adjustInitial, setAdjustInitial] = useState(emptyAdjustStockForm());
+  const barcodeSetterRef = useRef<((code: string) => void) | null>(null);
+  const registerBarcodeSetter = useCallback((fn: (code: string) => void) => {
+    barcodeSetterRef.current = fn;
+  }, []);
 
   const businessId = session?.business_id ?? null;
   const ready = !!session;
@@ -266,7 +255,7 @@ export default function InventoryScreen() {
   }, [navigation]);
 
   useEffect(() => {
-    if (!poForm.supplier_id || (tab !== "pos" && modal !== "po")) {
+    if (!poSupplierId || (tab !== "pos" && modal !== "po")) {
       setSupplierProductsForPo([]);
       return;
     }
@@ -274,7 +263,7 @@ export default function InventoryScreen() {
     void (async () => {
       try {
         const res = await api<{ data: Product[] }>(
-          `/suppliers/${poForm.supplier_id}/products`
+          `/suppliers/${poSupplierId}/products`
         );
         if (!cancelled) setSupplierProductsForPo(res.data || []);
       } catch {
@@ -284,7 +273,7 @@ export default function InventoryScreen() {
     return () => {
       cancelled = true;
     };
-  }, [poForm.supplier_id, tab, modal]);
+  }, [poSupplierId, tab, modal]);
 
   useEffect(() => {
     if (tab !== "suppliers" || suppliers.length === 0) return;
@@ -335,10 +324,18 @@ export default function InventoryScreen() {
     }
   }
 
-  async function createProduct() {
+  async function createProduct(values: ProductFormValues) {
     try {
       const fd = new FormData();
-      Object.entries(productForm).forEach(([k, v]) => {
+      const payload: Record<string, string> = {
+        sku: values.sku,
+        name: values.name,
+        price: values.price,
+        barcode: values.barcode || "",
+        unit: values.unit,
+        product_kind: values.product_kind,
+      };
+      Object.entries(payload).forEach(([k, v]) => {
         if (v) fd.append(k, v);
       });
       if (productImage) {
@@ -349,14 +346,7 @@ export default function InventoryScreen() {
         } as unknown as Blob);
       }
       await api("/products", { method: "POST", body: fd });
-      setProductForm({
-        sku: "",
-        name: "",
-        price: "",
-        barcode: "",
-        unit: "pcs",
-        product_kind: "goods",
-      });
+      setProductInitial(emptyProductForm());
       setProductImage(null);
       setModal(null);
       setMessage("Product created");
@@ -378,31 +368,22 @@ export default function InventoryScreen() {
     }
   }
 
-  async function createSupplier() {
+  async function createSupplier(values: SupplierFormValues) {
     try {
       await api("/suppliers", {
         method: "POST",
         body: JSON.stringify({
-          name: supplierForm.name.trim(),
-          contact_name: supplierForm.contact_name.trim() || null,
-          contact_role: supplierForm.contact_role.trim() || null,
-          contact_phone: supplierForm.contact_phone.trim() || null,
-          contact_email: supplierForm.contact_email.trim() || null,
-          city: supplierForm.city.trim() || null,
-          payment_terms: supplierForm.payment_terms.trim() || null,
+          name: values.name.trim(),
+          contact_name: values.contact_name.trim() || null,
+          contact_role: values.contact_role.trim() || null,
+          contact_phone: values.contact_phone.trim() || null,
+          contact_email: values.contact_email.trim() || null,
+          city: values.city.trim() || null,
+          payment_terms: values.payment_terms.trim() || null,
           country: "PK",
           currency: "PKR",
           status: "active",
         }),
-      });
-      setSupplierForm({
-        name: "",
-        contact_name: "",
-        contact_role: "",
-        contact_phone: "",
-        contact_email: "",
-        city: "",
-        payment_terms: "Net 30",
       });
       setModal(null);
       setMessage(t("inventory.supplierAdded"));
@@ -413,16 +394,16 @@ export default function InventoryScreen() {
     }
   }
 
-  async function createPO() {
+  async function createPO(values: PurchaseOrderFormValues) {
     try {
-      const items = poForm.product_ids
+      const items = values.product_ids
         .map((product_id) => ({
           product_id,
-          quantity: poForm.quantities[product_id] || "1",
-          unit_cost: poForm.unit_costs[product_id] || "0",
+          quantity: values.quantities[product_id] || "1",
+          unit_cost: values.unit_costs[product_id] || "0",
         }))
         .filter((i) => Number(i.quantity) > 0);
-      if (!poForm.supplier_id || items.length === 0) {
+      if (!values.supplier_id || items.length === 0) {
         setError(t("inventory.poFailed"));
         return;
       }
@@ -430,16 +411,12 @@ export default function InventoryScreen() {
         method: "POST",
         body: JSON.stringify({
           branch_id: session?.branch_id,
-          supplier_id: poForm.supplier_id,
+          supplier_id: values.supplier_id,
           items,
         }),
       });
-      setPoForm({
-        supplier_id: "",
-        product_ids: [],
-        quantities: {},
-        unit_costs: {},
-      });
+      setPoInitial(emptyPurchaseOrderForm());
+      setPoSupplierId("");
       setSupplierProductsForPo([]);
       setModal(null);
       setMessage(t("inventory.poCreated"));
@@ -449,9 +426,9 @@ export default function InventoryScreen() {
     }
   }
 
-  async function attachSupplier() {
-    if (!attachProductId || !attachSupplierId) return;
-    const sid = attachSupplierId;
+  async function attachSupplier(values: AttachSupplierFormValues) {
+    if (!attachProductId) return;
+    const sid = values.supplier_id;
     try {
       await api(`/suppliers/${sid}/products`, {
         method: "POST",
@@ -459,7 +436,6 @@ export default function InventoryScreen() {
       });
       setMessage(t("inventory.productAttached"));
       setAttachProductId(null);
-      setAttachSupplierId(null);
       await refreshInventory();
       if (expandedSupplierId === sid) {
         await loadSupplierProducts(sid);
@@ -469,17 +445,16 @@ export default function InventoryScreen() {
     }
   }
 
-  async function attachProductToSupplier() {
-    if (!attachToSupplierId || !attachProductForSupplierId) return;
+  async function attachProductToSupplier(values: AttachProductFormValues) {
+    if (!attachToSupplierId) return;
     try {
       await api(`/suppliers/${attachToSupplierId}/products`, {
         method: "POST",
-        body: JSON.stringify({ product_id: attachProductForSupplierId }),
+        body: JSON.stringify({ product_id: values.product_id }),
       });
       setMessage(t("inventory.productAttached"));
       const sid = attachToSupplierId;
       setAttachToSupplierId(null);
-      setAttachProductForSupplierId(null);
       setModal(null);
       await loadSupplierProducts(sid);
       setExpandedSupplierId(sid);
@@ -518,16 +493,20 @@ export default function InventoryScreen() {
       for (const item of po?.items || []) {
         quantities[item.product_id] = item.quantity;
       }
-      setGrnForm({ purchase_order_id: poId, quantities });
+      setGrnInitial({ purchase_order_id: poId, quantities });
     } else {
-      setGrnForm({ purchase_order_id: "", quantities: {} });
+      setGrnInitial(emptyGrnForm());
     }
     setModal("grn");
   }
 
-  function selectPoForGrn(poId: string | null) {
+  function selectPoForGrn(
+    poId: string | null,
+    setFieldValue: (field: string, value: unknown) => void
+  ) {
     if (!poId) {
-      setGrnForm({ purchase_order_id: "", quantities: {} });
+      void setFieldValue("purchase_order_id", "");
+      void setFieldValue("quantities", {});
       return;
     }
     const po = pos.find((p) => p.id === poId);
@@ -535,16 +514,17 @@ export default function InventoryScreen() {
     for (const item of po?.items || []) {
       quantities[item.product_id] = item.quantity;
     }
-    setGrnForm({ purchase_order_id: poId, quantities });
+    void setFieldValue("purchase_order_id", poId);
+    void setFieldValue("quantities", quantities);
   }
 
-  async function receiveGRN() {
+  async function receiveGRN(values: GrnFormValues) {
     try {
-      if (!grnForm.purchase_order_id) {
+      if (!values.purchase_order_id) {
         setError(t("inventory.selectPo"));
         return;
       }
-      const items = Object.entries(grnForm.quantities)
+      const items = Object.entries(values.quantities)
         .map(([product_id, quantity_received]) => ({
           product_id,
           quantity_received,
@@ -558,12 +538,12 @@ export default function InventoryScreen() {
         method: "POST",
         body: JSON.stringify({
           branch_id: session?.branch_id,
-          purchase_order_id: grnForm.purchase_order_id,
+          purchase_order_id: values.purchase_order_id,
           items,
         }),
       });
       setMessage(t("inventory.grnReceived"));
-      setGrnForm({ purchase_order_id: "", quantities: {} });
+      setGrnInitial(emptyGrnForm());
       setModal(null);
       await refreshInventory();
     } catch (err) {
@@ -571,27 +551,27 @@ export default function InventoryScreen() {
     }
   }
 
-  async function createTransfer() {
+  async function createTransfer(values: TransferFormValues) {
     try {
-      if (!transferForm.to_branch_id || transferForm.product_ids.length === 0) {
+      if (!values.to_branch_id || values.product_ids.length === 0) {
         setError("Select branch and products");
         return;
       }
-      const items = transferForm.product_ids.map((product_id) => ({
+      const items = values.product_ids.map((product_id) => ({
         product_id,
-        quantity: transferForm.quantities[product_id] || "1",
+        quantity: values.quantities[product_id] || "1",
       }));
       await api("/inventory/transfers", {
         method: "POST",
         body: JSON.stringify({
           from_branch_id: session?.branch_id,
-          to_branch_id: transferForm.to_branch_id,
+          to_branch_id: values.to_branch_id,
           items,
         }),
       });
       setMessage(t("inventory.transferCreated"));
       setModal(null);
-      setTransferForm({ to_branch_id: "", product_ids: [], quantities: {} });
+      setTransferInitial(emptyTransferForm());
       await refreshInventory();
     } catch (err) {
       setError(err instanceof Error ? err.message : t("inventory.transferFailed"));
@@ -608,21 +588,17 @@ export default function InventoryScreen() {
     }
   }
 
-  async function adjustStock() {
-    if (!adjustForm.product_id) {
-      setError("Select a product");
-      return;
-    }
+  async function adjustStock(values: AdjustStockFormValues) {
     try {
       await api("/inventory/adjust", {
         method: "POST",
         body: JSON.stringify({
           branch_id: session?.branch_id,
-          ...adjustForm,
+          ...values,
         }),
       });
       setMessage("Stock adjusted");
-      setAdjustForm({ product_id: "", quantity_delta: "", reason_code: "adjustment" });
+      setAdjustInitial(emptyAdjustStockForm());
       await refreshInventory();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Adjust failed");
@@ -640,7 +616,6 @@ export default function InventoryScreen() {
   const openPos = pos.filter(
     (p) => p.status !== "received" && p.status !== "cancelled"
   );
-  const selectedGrnPo = openPos.find((p) => p.id === grnForm.purchase_order_id) || null;
   const poProductOptions = supplierProductsForPo.map((p) => ({
     value: p.id,
     label: `${p.name} (${p.sku})`,
@@ -719,7 +694,6 @@ export default function InventoryScreen() {
                 style={styles.chip}
                 onPress={() => {
                   setAttachProductId(p.id);
-                  setAttachSupplierId(null);
                 }}
               >
                 <Text style={styles.chipText}>Attach supplier</Text>
@@ -789,7 +763,6 @@ export default function InventoryScreen() {
                       style={styles.btn}
                       onPress={() => {
                         setAttachToSupplierId(s.id);
-                        setAttachProductForSupplierId(null);
                         setModal("attachToSupplier");
                       }}
                     >
@@ -809,12 +782,8 @@ export default function InventoryScreen() {
             <Pressable
               style={[styles.btn, { flex: 1 }]}
               onPress={() => {
-                setPoForm({
-                  supplier_id: "",
-                  product_ids: [],
-                  quantities: {},
-                  unit_costs: {},
-                });
+                setPoInitial(emptyPurchaseOrderForm());
+                setPoSupplierId("");
                 setSupplierProductsForPo([]);
                 setModal("po");
               }}
@@ -851,7 +820,7 @@ export default function InventoryScreen() {
           <Pressable
             style={styles.btn}
             onPress={() => {
-              setTransferForm({ to_branch_id: "", product_ids: [], quantities: {} });
+              setTransferInitial(emptyTransferForm());
               setModal("transfer");
             }}
           >
@@ -875,40 +844,40 @@ export default function InventoryScreen() {
 
       {tab === "adjust" ? (
         <ScreenCard style={styles.card}>
-          <SearchSelect
-            label="Product"
-            options={products.map((p) => ({
-              value: p.id,
-              label: `${p.name} (${p.sku})`,
-            }))}
-            value={adjustForm.product_id || null}
-            onChange={(product_id) =>
-              setAdjustForm((f) => ({ ...f, product_id: product_id || "" }))
-            }
-            placeholder="Select product"
-          />
-          <View style={{ height: 12 }} />
-          <TextInput
-            style={styles.input}
-            value={adjustForm.quantity_delta}
-            onChangeText={(v) =>
-              setAdjustForm({ ...adjustForm, quantity_delta: v })
-            }
-            placeholder="Qty delta (e.g. -2)"
-            placeholderTextColor={colors.muted}
-          />
-          <TextInput
-            style={styles.input}
-            value={adjustForm.reason_code}
-            onChangeText={(v) =>
-              setAdjustForm({ ...adjustForm, reason_code: v })
-            }
-            placeholder="Reason code"
-            placeholderTextColor={colors.muted}
-          />
-          <Pressable style={styles.btn} onPress={adjustStock}>
-            <Text style={styles.btnText}>Apply adjustment</Text>
-          </Pressable>
+          <CustomForm
+            initialValues={adjustInitial}
+            validationSchema={adjustStockFormSchema}
+            enableReinitialize
+            onSubmit={adjustStock}
+          >
+            {({ handleSubmit }) => (
+              <>
+                <FormikSearchSelectField
+                  name="product_id"
+                  label="Product"
+                  options={products.map((p) => ({
+                    value: p.id,
+                    label: `${p.name} (${p.sku})`,
+                  }))}
+                  placeholder="Select product"
+                />
+                <FormikTextField
+                  name="quantity_delta"
+                  style={styles.input}
+                  placeholder="Qty delta (e.g. -2)"
+                  keyboardType="numbers-and-punctuation"
+                />
+                <FormikTextField
+                  name="reason_code"
+                  style={styles.input}
+                  placeholder="Reason code"
+                />
+                <Pressable style={styles.btn} onPress={() => handleSubmit()}>
+                  <Text style={styles.btnText}>Apply adjustment</Text>
+                </Pressable>
+              </>
+            )}
+          </CustomForm>
         </ScreenCard>
       ) : null}
     </ScrollView>
@@ -918,65 +887,58 @@ export default function InventoryScreen() {
         title="New product"
         subtitle="Scan a barcode, add a photo, then save."
         onClose={() => setModal(null)}
-        onSubmit={createProduct}
         submitLabel="Create product"
+        initialValues={productInitial}
+        validationSchema={productFormSchema}
+        enableReinitialize
+        onSubmit={createProduct}
       >
-        <TextInput
-          style={styles.input}
-          placeholder="SKU"
-          value={productForm.sku}
-          onChangeText={(v) => setProductForm({ ...productForm, sku: v })}
-          placeholderTextColor={colors.muted}
-        />
-        <View style={styles.row}>
-          <TextInput
-            style={[styles.input, { flex: 1, marginBottom: 0 }]}
-            placeholder="Barcode"
-            value={productForm.barcode}
-            onChangeText={(v) => setProductForm({ ...productForm, barcode: v })}
-            placeholderTextColor={colors.muted}
-          />
-          <Pressable
-            style={styles.btn}
-            onPress={() => {
-              void (async () => {
-                const s = await getSession();
-                const shopName =
-                  s?.memberships?.find((m) => m.business_id === s.business_id)
-                    ?.business_name || null;
-                setProductForm((prev) => ({
-                  ...prev,
-                  barcode: generateBarcode(shopName),
-                }));
-              })();
-            }}
-          >
-            <Text style={styles.btnText}>Generate</Text>
-          </Pressable>
-          <Pressable style={styles.btn} onPress={() => setScanOpen(true)}>
-            <Text style={styles.btnText}>Scan</Text>
-          </Pressable>
-        </View>
-        <TextInput
-          style={styles.input}
-          placeholder="Name"
-          value={productForm.name}
-          onChangeText={(v) => setProductForm({ ...productForm, name: v })}
-          placeholderTextColor={colors.muted}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Price"
-          value={productForm.price}
-          onChangeText={(v) => setProductForm({ ...productForm, price: v })}
-          keyboardType="decimal-pad"
-          placeholderTextColor={colors.muted}
-        />
-        <Pressable style={styles.chip} onPress={pickImage}>
-          <Text style={styles.chipText}>
-            {productImage ? "Photo selected ✓" : "Add product photo"}
-          </Text>
-        </Pressable>
+        {({ setFieldValue }) => (
+          <>
+            <FormikTextField name="sku" style={styles.input} placeholder="SKU" />
+            <View style={styles.row}>
+              <FormikTextField
+                name="barcode"
+                style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                placeholder="Barcode"
+                containerStyle={{ flex: 1 }}
+              />
+              <Pressable
+                style={styles.btn}
+                onPress={() => {
+                  void (async () => {
+                    const s = await getSession();
+                    const shopName =
+                      s?.memberships?.find((m) => m.business_id === s.business_id)
+                        ?.business_name || null;
+                    void setFieldValue("barcode", generateBarcode(shopName));
+                  })();
+                }}
+              >
+                <Text style={styles.btnText}>Generate</Text>
+              </Pressable>
+              <Pressable style={styles.btn} onPress={() => setScanOpen(true)}>
+                <Text style={styles.btnText}>Scan</Text>
+              </Pressable>
+            </View>
+            <FormikTextField name="name" style={styles.input} placeholder="Name" />
+            <FormikTextField
+              name="price"
+              style={styles.input}
+              placeholder="Price"
+              keyboardType="decimal-pad"
+            />
+            <Pressable style={styles.chip} onPress={pickImage}>
+              <Text style={styles.chipText}>
+                {productImage ? "Photo selected ✓" : "Add product photo"}
+              </Text>
+            </Pressable>
+            <ProductBarcodeBridge
+              setBarcode={(code) => void setFieldValue("barcode", code)}
+              register={registerBarcodeSetter}
+            />
+          </>
+        )}
       </EntityFormModal>
 
       <EntityFormModal
@@ -984,61 +946,49 @@ export default function InventoryScreen() {
         title="Add supplier"
         subtitle={t("inventory.contactSection")}
         onClose={() => setModal(null)}
-        onSubmit={createSupplier}
         submitLabel="Add supplier"
+        initialValues={supplierInitial}
+        validationSchema={supplierFormSchema}
+        onSubmit={createSupplier}
       >
-        <TextInput
-          style={styles.input}
-          placeholder="Company / trade name *"
-          value={supplierForm.name}
-          onChangeText={(v) => setSupplierForm({ ...supplierForm, name: v })}
-          placeholderTextColor={colors.muted}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Contact person"
-          value={supplierForm.contact_name}
-          onChangeText={(v) => setSupplierForm({ ...supplierForm, contact_name: v })}
-          placeholderTextColor={colors.muted}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Role (e.g. Account manager)"
-          value={supplierForm.contact_role}
-          onChangeText={(v) => setSupplierForm({ ...supplierForm, contact_role: v })}
-          placeholderTextColor={colors.muted}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Phone"
-          value={supplierForm.contact_phone}
-          onChangeText={(v) => setSupplierForm({ ...supplierForm, contact_phone: v })}
-          keyboardType="phone-pad"
-          placeholderTextColor={colors.muted}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          value={supplierForm.contact_email}
-          onChangeText={(v) => setSupplierForm({ ...supplierForm, contact_email: v })}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          placeholderTextColor={colors.muted}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="City"
-          value={supplierForm.city}
-          onChangeText={(v) => setSupplierForm({ ...supplierForm, city: v })}
-          placeholderTextColor={colors.muted}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Payment terms (Net 30)"
-          value={supplierForm.payment_terms}
-          onChangeText={(v) => setSupplierForm({ ...supplierForm, payment_terms: v })}
-          placeholderTextColor={colors.muted}
-        />
+        {() => (
+          <>
+            <FormikTextField
+              name="name"
+              style={styles.input}
+              placeholder="Company / trade name *"
+            />
+            <FormikTextField
+              name="contact_name"
+              style={styles.input}
+              placeholder="Contact person"
+            />
+            <FormikTextField
+              name="contact_role"
+              style={styles.input}
+              placeholder="Role (e.g. Account manager)"
+            />
+            <FormikTextField
+              name="contact_phone"
+              style={styles.input}
+              placeholder="Phone"
+              keyboardType="phone-pad"
+            />
+            <FormikTextField
+              name="contact_email"
+              style={styles.input}
+              placeholder="Email"
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            <FormikTextField name="city" style={styles.input} placeholder="City" />
+            <FormikTextField
+              name="payment_terms"
+              style={styles.input}
+              placeholder="Payment terms (Net 30)"
+            />
+          </>
+        )}
       </EntityFormModal>
 
       <EntityFormModal
@@ -1046,82 +996,75 @@ export default function InventoryScreen() {
         title={t("inventory.newPoTitle")}
         subtitle={t("inventory.poModalDesc")}
         onClose={() => setModal(null)}
-        onSubmit={createPO}
         submitLabel={t("inventory.createPo")}
+        initialValues={poInitial}
+        validationSchema={purchaseOrderFormSchema}
+        enableReinitialize
+        onSubmit={createPO}
       >
-        <SearchSelect
-          label={t("inventory.supplier")}
-          options={suppliers.map((s) => ({ value: s.id, label: s.name }))}
-          value={poForm.supplier_id || null}
-          onChange={(supplier_id) =>
-            setPoForm({
-              supplier_id: supplier_id || "",
-              product_ids: [],
-              quantities: {},
-              unit_costs: {},
-            })
-          }
-          placeholder={t("inventory.selectSupplier")}
-        />
-        {poForm.supplier_id && poProductOptions.length === 0 ? (
-          <Text style={styles.hint}>{t("inventory.poNoSupplierProducts")}</Text>
-        ) : null}
-        {poForm.supplier_id && poProductOptions.length > 0 ? (
-          <Text style={styles.hint}>{t("inventory.supplierProductsHint")}</Text>
-        ) : null}
-        <SearchMultiSelect
-          label={t("inventory.products")}
-          options={poProductOptions}
-          value={poForm.product_ids}
-          onChange={(product_ids) =>
-            setPoForm((f) => ({
-              ...f,
-              product_ids,
-              quantities: Object.fromEntries(
-                product_ids.map((id) => [id, f.quantities[id] || "10"])
-              ),
-              unit_costs: Object.fromEntries(
-                product_ids.map((id) => [id, f.unit_costs[id] || "50"])
-              ),
-            }))
-          }
-          placeholder={t("inventory.selectProducts")}
-          disabled={!poForm.supplier_id}
-        />
-        {poForm.product_ids.map((id) => {
-          const p = supplierProductsForPo.find((x) => x.id === id);
-          return (
-            <View key={id} style={{ marginBottom: 8 }}>
-              <Text style={styles.hint}>{p?.name || id}</Text>
-              <TextInput
-                style={styles.input}
-                placeholder={t("common.quantity")}
-                value={poForm.quantities[id] || ""}
-                onChangeText={(v) =>
-                  setPoForm((f) => ({
-                    ...f,
-                    quantities: { ...f.quantities, [id]: v },
-                  }))
-                }
-                keyboardType="decimal-pad"
-                placeholderTextColor={colors.muted}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder={t("inventory.unitCost")}
-                value={poForm.unit_costs[id] || ""}
-                onChangeText={(v) =>
-                  setPoForm((f) => ({
-                    ...f,
-                    unit_costs: { ...f.unit_costs, [id]: v },
-                  }))
-                }
-                keyboardType="decimal-pad"
-                placeholderTextColor={colors.muted}
-              />
-            </View>
-          );
-        })}
+        {({ values, setFieldValue }) => (
+          <>
+            <FormikSearchSelectField
+              name="supplier_id"
+              label={t("inventory.supplier")}
+              options={suppliers.map((s) => ({ value: s.id, label: s.name }))}
+              placeholder={t("inventory.selectSupplier")}
+              onValueChange={(supplier_id) => {
+                setPoSupplierId(supplier_id || "");
+                void setFieldValue("product_ids", []);
+                void setFieldValue("quantities", {});
+                void setFieldValue("unit_costs", {});
+              }}
+            />
+            {values.supplier_id && poProductOptions.length === 0 ? (
+              <Text style={styles.hint}>{t("inventory.poNoSupplierProducts")}</Text>
+            ) : null}
+            {values.supplier_id && poProductOptions.length > 0 ? (
+              <Text style={styles.hint}>{t("inventory.supplierProductsHint")}</Text>
+            ) : null}
+            <FormikSearchMultiSelectField
+              name="product_ids"
+              label={t("inventory.products")}
+              options={poProductOptions}
+              placeholder={t("inventory.selectProducts")}
+              disabled={!values.supplier_id}
+              onValueChange={(product_ids) => {
+                void setFieldValue(
+                  "quantities",
+                  Object.fromEntries(
+                    product_ids.map((id) => [id, values.quantities[id] || "10"])
+                  )
+                );
+                void setFieldValue(
+                  "unit_costs",
+                  Object.fromEntries(
+                    product_ids.map((id) => [id, values.unit_costs[id] || "50"])
+                  )
+                );
+              }}
+            />
+            {values.product_ids.map((id) => {
+              const p = supplierProductsForPo.find((x) => x.id === id);
+              return (
+                <View key={id} style={{ marginBottom: 8 }}>
+                  <Text style={styles.hint}>{p?.name || id}</Text>
+                  <FormikTextField
+                    name={`quantities.${id}`}
+                    style={styles.input}
+                    placeholder={t("common.quantity")}
+                    keyboardType="decimal-pad"
+                  />
+                  <FormikTextField
+                    name={`unit_costs.${id}`}
+                    style={styles.input}
+                    placeholder={t("inventory.unitCost")}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+              );
+            })}
+          </>
+        )}
       </EntityFormModal>
 
       <EntityFormModal
@@ -1130,50 +1073,54 @@ export default function InventoryScreen() {
         subtitle={t("inventory.receiveGrnDesc")}
         onClose={() => {
           setModal(null);
-          setGrnForm({ purchase_order_id: "", quantities: {} });
+          setGrnInitial(emptyGrnForm());
         }}
-        onSubmit={receiveGRN}
         submitLabel={t("inventory.receiveGrn")}
+        initialValues={grnInitial}
+        validationSchema={grnFormSchema}
+        enableReinitialize
+        onSubmit={receiveGRN}
       >
-        <SearchSelect
-          label={t("inventory.selectPo")}
-          options={openPos.map((p) => ({
-            value: p.id,
-            label: `${p.supplier_name || p.id.slice(0, 8)} · ${p.status}`,
-          }))}
-          value={grnForm.purchase_order_id || null}
-          onChange={(poId) => selectPoForGrn(poId)}
-          placeholder={t("inventory.selectPo")}
-        />
-        {openPos.length === 0 ? (
-          <Text style={styles.hint}>{t("inventory.noOpenPos")}</Text>
-        ) : null}
-        {selectedGrnPo
-          ? (selectedGrnPo.items || []).map((item) => (
-              <View key={item.product_id} style={{ marginBottom: 10 }}>
-                <Text style={styles.body}>
-                  {item.product_name || item.product_id}
-                  {item.product_sku ? ` (${item.product_sku})` : ""}
-                </Text>
-                <Text style={styles.hint}>
-                  {t("inventory.orderedQty")}: {item.quantity}
-                </Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder={t("inventory.qtyReceived")}
-                  value={grnForm.quantities[item.product_id] || ""}
-                  onChangeText={(v) =>
-                    setGrnForm((f) => ({
-                      ...f,
-                      quantities: { ...f.quantities, [item.product_id]: v },
-                    }))
-                  }
-                  keyboardType="decimal-pad"
-                  placeholderTextColor={colors.muted}
-                />
-              </View>
-            ))
-          : null}
+        {({ values, setFieldValue }) => {
+          const selectedGrnPo =
+            openPos.find((p) => p.id === values.purchase_order_id) || null;
+          return (
+            <>
+              <FormikSearchSelectField
+                name="purchase_order_id"
+                label={t("inventory.selectPo")}
+                options={openPos.map((p) => ({
+                  value: p.id,
+                  label: `${p.supplier_name || p.id.slice(0, 8)} · ${p.status}`,
+                }))}
+                placeholder={t("inventory.selectPo")}
+                onValueChange={(poId) => selectPoForGrn(poId, setFieldValue)}
+              />
+              {openPos.length === 0 ? (
+                <Text style={styles.hint}>{t("inventory.noOpenPos")}</Text>
+              ) : null}
+              {selectedGrnPo
+                ? (selectedGrnPo.items || []).map((item) => (
+                    <View key={item.product_id} style={{ marginBottom: 10 }}>
+                      <Text style={styles.body}>
+                        {item.product_name || item.product_id}
+                        {item.product_sku ? ` (${item.product_sku})` : ""}
+                      </Text>
+                      <Text style={styles.hint}>
+                        {t("inventory.orderedQty")}: {item.quantity}
+                      </Text>
+                      <FormikTextField
+                        name={`quantities.${item.product_id}`}
+                        style={styles.input}
+                        placeholder={t("inventory.qtyReceived")}
+                        keyboardType="decimal-pad"
+                      />
+                    </View>
+                  ))
+                : null}
+            </>
+          );
+        }}
       </EntityFormModal>
 
       <EntityFormModal
@@ -1183,86 +1130,83 @@ export default function InventoryScreen() {
         onClose={() => {
           setModal(null);
           setAttachToSupplierId(null);
-          setAttachProductForSupplierId(null);
         }}
-        onSubmit={attachProductToSupplier}
         submitLabel={t("inventory.attachProduct")}
+        initialValues={emptyAttachProductForm()}
+        validationSchema={attachProductFormSchema}
+        onSubmit={attachProductToSupplier}
       >
-        <SearchSelect
-          label={t("inventory.product")}
-          options={products
-            .filter(
-              (p) =>
-                !attachToSupplierId ||
-                !(supplierProductsById[attachToSupplierId] || []).some(
-                  (sp) => sp.id === p.id
-                )
-            )
-            .map((p) => ({ value: p.id, label: `${p.name} (${p.sku})` }))}
-          value={attachProductForSupplierId}
-          onChange={setAttachProductForSupplierId}
-          placeholder={t("inventory.selectProduct")}
-        />
+        {() => (
+          <FormikSearchSelectField
+            name="product_id"
+            label={t("inventory.product")}
+            options={products
+              .filter(
+                (p) =>
+                  !attachToSupplierId ||
+                  !(supplierProductsById[attachToSupplierId] || []).some(
+                    (sp) => sp.id === p.id
+                  )
+              )
+              .map((p) => ({ value: p.id, label: `${p.name} (${p.sku})` }))}
+            placeholder={t("inventory.selectProduct")}
+          />
+        )}
       </EntityFormModal>
 
       <EntityFormModal
         visible={modal === "transfer"}
         title="Create transfer"
         onClose={() => setModal(null)}
-        onSubmit={createTransfer}
         submitLabel="Create transfer"
+        initialValues={transferInitial}
+        validationSchema={transferFormSchema}
+        enableReinitialize
+        onSubmit={createTransfer}
       >
-        <SearchSelect
-          label="To branch"
-          options={branches
-            .filter((b) => b.id !== session?.branch_id)
-            .map((b) => ({ value: b.id, label: b.name }))}
-          value={transferForm.to_branch_id || null}
-          onChange={(to_branch_id) =>
-            setTransferForm((f) => ({ ...f, to_branch_id: to_branch_id || "" }))
-          }
-          placeholder="Select branch"
-        />
-        <View style={{ height: 12 }} />
-        <SearchMultiSelect
-          label="Products"
-          options={products.map((p) => ({
-            value: p.id,
-            label: `${p.name} (${p.sku})`,
-          }))}
-          value={transferForm.product_ids}
-          onChange={(product_ids) =>
-            setTransferForm((f) => {
-              const quantities = { ...f.quantities };
-              for (const id of product_ids) {
-                if (!quantities[id]) quantities[id] = "1";
-              }
-              return { ...f, product_ids, quantities };
-            })
-          }
-          placeholder="Select products"
-        />
-        {transferForm.product_ids.map((id) => {
-          const p = products.find((x) => x.id === id);
-          return (
-            <View key={id} style={{ marginTop: 10 }}>
-              <Text style={styles.body}>{p?.name || id}</Text>
-              <TextInput
-                style={styles.input}
-                value={transferForm.quantities[id] || "1"}
-                onChangeText={(v) =>
-                  setTransferForm((f) => ({
-                    ...f,
-                    quantities: { ...f.quantities, [id]: v },
-                  }))
+        {({ values, setFieldValue }) => (
+          <>
+            <FormikSearchSelectField
+              name="to_branch_id"
+              label="To branch"
+              options={branches
+                .filter((b) => b.id !== session?.branch_id)
+                .map((b) => ({ value: b.id, label: b.name }))}
+              placeholder="Select branch"
+            />
+            <View style={{ height: 12 }} />
+            <FormikSearchMultiSelectField
+              name="product_ids"
+              label="Products"
+              options={products.map((p) => ({
+                value: p.id,
+                label: `${p.name} (${p.sku})`,
+              }))}
+              placeholder="Select products"
+              onValueChange={(product_ids) => {
+                const quantities = { ...values.quantities };
+                for (const id of product_ids) {
+                  if (!quantities[id]) quantities[id] = "1";
                 }
-                keyboardType="decimal-pad"
-                placeholder="Qty"
-                placeholderTextColor={colors.muted}
-              />
-            </View>
-          );
-        })}
+                void setFieldValue("quantities", quantities);
+              }}
+            />
+            {values.product_ids.map((id) => {
+              const p = products.find((x) => x.id === id);
+              return (
+                <View key={id} style={{ marginTop: 10 }}>
+                  <Text style={styles.body}>{p?.name || id}</Text>
+                  <FormikTextField
+                    name={`quantities.${id}`}
+                    style={styles.input}
+                    keyboardType="decimal-pad"
+                    placeholder="Qty"
+                  />
+                </View>
+              );
+            })}
+          </>
+        )}
       </EntityFormModal>
 
       <EntityFormModal
@@ -1270,27 +1214,43 @@ export default function InventoryScreen() {
         title="Attach supplier"
         onClose={() => {
           setAttachProductId(null);
-          setAttachSupplierId(null);
         }}
+        initialValues={emptyAttachSupplierForm()}
+        validationSchema={attachSupplierFormSchema}
         onSubmit={attachSupplier}
       >
-        <SearchSelect
-          label="Supplier"
-          options={suppliers.map((s) => ({ value: s.id, label: s.name }))}
-          value={attachSupplierId}
-          onChange={setAttachSupplierId}
-          placeholder="Select supplier…"
-        />
+        {() => (
+          <FormikSearchSelectField
+            name="supplier_id"
+            label="Supplier"
+            options={suppliers.map((s) => ({ value: s.id, label: s.name }))}
+            placeholder="Select supplier…"
+          />
+        )}
       </EntityFormModal>
 
       <BarcodeScannerModal
         visible={scanOpen}
         onClose={() => setScanOpen(false)}
-        onScan={(code) => setProductForm((prev) => ({ ...prev, barcode: code }))}
+        onScan={(code) => {
+          barcodeSetterRef.current?.(code);
+          setScanOpen(false);
+        }}
         title="Scan product barcode"
       />
     </>
   );
+}
+
+function ProductBarcodeBridge({
+  setBarcode,
+  register,
+}: {
+  setBarcode: (code: string) => void;
+  register: (fn: (code: string) => void) => void;
+}) {
+  register(setBarcode);
+  return null;
 }
 
 function createStyles(palette: import("../lib/brandTheme").BrandPalette) {

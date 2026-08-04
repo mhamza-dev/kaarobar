@@ -37,6 +37,7 @@ import {
 } from "@/lib/listFilters";
 import WorkspacePageScaffold from "@/components/app/WorkspacePageScaffold";
 import FormModal from "@/components/app/FormModal";
+import { formStackClass } from "@/components/app/ui";
 
 type Tab = "coa" | "journals" | "tb" | "pl" | "bs" | "cf" | "gl" | "ar" | "ap";
 const ACCOUNTING_TABS: readonly Tab[] = [
@@ -1145,7 +1146,7 @@ function StaffAccountingPage() {
       >
         <CustomForm
           id="account-modal-form"
-          className="space-y-4"
+          className={formStackClass}
           initialValues={accountInitial}
           validationSchema={accountFormSchema}
           enableReinitialize
@@ -1173,7 +1174,7 @@ function StaffAccountingPage() {
       >
         <CustomForm
           id="je-modal-form"
-          className="space-y-4"
+          className={formStackClass}
           initialValues={jeInitial}
           validationSchema={journalEntryFormSchema}
           enableReinitialize

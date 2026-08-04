@@ -2,13 +2,19 @@ import { useEffect, useState } from "react";
 import { useField } from "formik";
 import { api, getSession } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
+import FormModalFooter from "@/components/app/FormModalFooter";
 import Button from "@/components/ui/Button";
 import CustomForm from "@/components/ui/CustomForm";
 import {
   FormikSelectField,
   FormikTextField,
 } from "@/components/ui/FormFields";
-import { Field, fieldClass } from "@/components/app/ui";
+import {
+  Field,
+  fieldClass,
+  formGridClass,
+  formStackClass,
+} from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { formatDecimal } from "@/lib/decimal";
@@ -183,27 +189,26 @@ export default function ProductFormModal({
       }
       size="lg"
       footer={
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose}>
-            {t("common.cancel")}
-          </Button>
-          <Button type="submit" form="product-modal-form" loading={busy}>
-            {editing ? "Save changes" : "Create product"}
-          </Button>
-        </div>
+        <FormModalFooter
+          cancelLabel={t("common.cancel")}
+          submitLabel={editing ? "Save changes" : "Create product"}
+          onCancel={onClose}
+          submitFormId="product-modal-form"
+          loading={busy}
+        />
       }
     >
       <CustomForm<ProductFormValues>
         id="product-modal-form"
-        className="space-y-4"
+        className={formStackClass}
         initialValues={toFormState(product)}
         validationSchema={productFormSchema}
         enableReinitialize
         onSubmit={handleSubmit}
       >
         {({ values, setFieldValue }) => (
-          <>
-            <div className="grid gap-4 sm:grid-cols-2">
+          <div className={formStackClass}>
+            <div className={formGridClass}>
               <FormikTextField name="sku" label="SKU" required />
               <div>
                 <Field label={t("inventory.barcode")}>
@@ -261,7 +266,7 @@ export default function ProductFormModal({
               />
               <FormikDecimalField name="price" label="Branch price" required />
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className={formGridClass}>
               <FormikTextField name="brand" label="Brand" />
               <FormikSelectField
                 name="category_id"
@@ -289,7 +294,7 @@ export default function ProductFormModal({
                 onChange={(e) => setImage(e.target.files?.[0] || null)}
               />
             </Field>
-          </>
+          </div>
         )}
       </CustomForm>
     </Modal>

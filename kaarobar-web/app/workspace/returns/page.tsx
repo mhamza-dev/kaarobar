@@ -6,12 +6,16 @@ import { useRouter } from "next/navigation";
 import { api, getSession } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
-import Select from "@/components/ui/Select";
+import CustomForm from "@/components/ui/CustomForm";
+import {
+  FormikSelectField,
+  FormikTextField,
+} from "@/components/ui/FormFields";
 import {
   PageHeader,
   StatusBadge,
   SurfaceCard,
-  fieldClass,
+  formStackClass,
 } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
@@ -22,6 +26,14 @@ import {
   type ListFilterConfig,
   type StaffListFilterState,
 } from "@/lib/listFilters";
+import {
+  emptyReturnSubmitForm,
+  emptySaleLookupForm,
+  returnSubmitFormSchema,
+  saleLookupFormSchema,
+  type ReturnSubmitFormValues,
+  type SaleLookupFormValues,
+} from "@/lib/validations/returns";
 
 type SaleItem = {
   product_id: string;
@@ -63,11 +75,7 @@ export default function ReturnsPage() {
   const toast = useToast();
   const router = useRouter();
   const canApprove = canAccessBundle(getSession(), "pos_approve");
-  const [saleId, setSaleId] = useState("");
   const [sale, setSale] = useState<Sale | null>(null);
-  const [qtyByProduct, setQtyByProduct] = useState<Record<string, string>>({});
-  const [reason, setReason] = useState("");
-  const [refundMethod, setRefundMethod] = useState<"cash" | "card" | "wallet">("cash");
   const [pending, setPending] = useState<ReturnRow[]>([]);
   const [returns, setReturns] = useState<ReturnRow[]>([]);
   const [returnFilters, setReturnFilters] = useState<StaffListFilterState>(
@@ -77,6 +85,7 @@ export default function ReturnsPage() {
   const [tills, setTills] = useState<Till[]>([]);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [lookupInitial, setLookupInitial] = useState(emptySaleLookupForm());
 
   const returnFilterConfig = useMemo<ListFilterConfig>(
     () => ({
@@ -112,17 +121,12 @@ export default function ReturnsPage() {
     reload();
   }, [reload]);
 
-  async function lookupSale(e: React.FormEvent) {
-    e.preventDefault();
+  async function lookupSale(values: SaleLookupFormValues) {
     setBusy(true);
     try {
-      const res = await api<{ data: Sale }>(`/sales/${saleId.trim()}`);
+      const res = await api<{ data: Sale }>(`/sales/${values.sale_id.trim()}`);
       setSale(res.data);
-      const initial: Record<string, string> = {};
-      for (const item of res.data.items || []) {
-        initial[item.product_id] = "";
-      }
-      setQtyByProduct(initial);
+      setLookupInitial({ sale_id: values.sale_id.trim() });
     } catch (err) {
       setSale(null);
       toast.error(err instanceof Error ? err.message : t("common.error"));
@@ -131,11 +135,10 @@ export default function ReturnsPage() {
     }
   }
 
-  async function submitReturn(e: React.FormEvent) {
-    e.preventDefault();
+  async function submitReturn(values: ReturnSubmitFormValues) {
     if (!sale) return;
     const session = getSession();
-    const items = Object.entries(qtyByProduct)
+    const items = Object.entries(values.quantities)
       .filter(([, q]) => Number(q) > 0)
       .map(([product_id, quantity]) => ({ product_id, quantity }));
 
@@ -151,14 +154,14 @@ export default function ReturnsPage() {
         body: JSON.stringify({
           sale_id: sale.id,
           branch_id: session?.branch_id,
-          reason,
-          refund_method: refundMethod,
+          reason: values.reason,
+          refund_method: values.refund_method,
           items,
         }),
       });
       toast.success(`${t("returns.returnSubmitted")} · ${res.data.refund_amount}`);
       setSale(null);
-      setSaleId("");
+      setLookupInitial(emptySaleLookupForm());
       await reload();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.error"));
@@ -207,72 +210,78 @@ export default function ReturnsPage() {
 
       <SurfaceCard className="p-5">
         <h2 className="font-semibold text-heading">Create return</h2>
-        <form onSubmit={lookupSale} className="mt-3 flex flex-wrap gap-2">
-          <input
-            className={`${fieldClass} min-w-64 flex-1`}
-            placeholder="Sale ID"
-            value={saleId}
-            onChange={(e) => setSaleId(e.target.value)}
-            required
-          />
-          <Button type="submit" disabled={busy} loading={busy}>
-            Lookup
-          </Button>
-        </form>
+        <CustomForm
+          initialValues={lookupInitial}
+          validationSchema={saleLookupFormSchema}
+          onSubmit={lookupSale}
+          className="mt-3 flex flex-wrap gap-2"
+        >
+          {() => (
+            <>
+              <div className="min-w-64 flex-1">
+                <FormikTextField name="sale_id" placeholder="Sale ID" />
+              </div>
+              <Button type="submit" disabled={busy} loading={busy}>
+                Lookup
+              </Button>
+            </>
+          )}
+        </CustomForm>
 
         {sale ? (
-          <form onSubmit={submitReturn} className="mt-4 space-y-3">
-            <p className="text-sm text-heading">
-              Invoice {sale.invoice_number} · Total Rs {sale.total_amount}
-            </p>
-            <ul className="space-y-2 text-sm">
-              {sale.items.map((item) => (
-                <li key={item.product_id} className="flex items-center gap-3 text-heading">
-                  <span className="flex-1">
-                    {item.name} (sold {item.quantity})
-                  </span>
-                  <input
-                    className="w-24 rounded border border-border px-2 py-1"
-                    placeholder="Qty"
-                    value={qtyByProduct[item.product_id] || ""}
-                    onChange={(e) =>
-                      setQtyByProduct((prev) => ({
-                        ...prev,
-                        [item.product_id]: e.target.value,
-                      }))
-                    }
+          <CustomForm
+            key={sale.id}
+            initialValues={emptyReturnSubmitForm(
+              (sale.items || []).map((i) => i.product_id)
+            )}
+            validationSchema={returnSubmitFormSchema}
+            onSubmit={submitReturn}
+            className={`mt-4 ${formStackClass}`}
+          >
+            {() => (
+              <>
+                <p className="text-sm text-heading">
+                  Invoice {sale.invoice_number} · Total Rs {sale.total_amount}
+                </p>
+                <ul className="space-y-2 text-sm">
+                  {sale.items.map((item) => (
+                    <li
+                      key={item.product_id}
+                      className="flex items-center gap-3 text-heading"
+                    >
+                      <span className="flex-1">
+                        {item.name} (sold {item.quantity})
+                      </span>
+                      <FormikTextField
+                        name={`quantities.${item.product_id}`}
+                        placeholder="Qty"
+                        className="w-24"
+                      />
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex flex-wrap gap-3">
+                  <FormikSelectField
+                    name="refund_method"
+                    className="w-auto min-w-[10rem]"
+                    options={[
+                      { value: "cash", label: "Cash refund" },
+                      { value: "card", label: "Card refund" },
+                      { value: "wallet", label: "Wallet refund" },
+                    ]}
                   />
-                </li>
-              ))}
-            </ul>
-            <div className="flex flex-wrap gap-3">
-              <Select
-                className="w-auto min-w-[10rem]"
-                value={refundMethod}
-                onChange={(v) =>
-                  setRefundMethod(v as "cash" | "card" | "wallet")
-                }
-                options={[
-                  { value: "cash", label: "Cash refund" },
-                  { value: "card", label: "Card refund" },
-                  { value: "wallet", label: "Wallet refund" },
-                ]}
-              />
-              <input
-                className="min-w-48 flex-1 rounded-md border border-border px-3 py-2"
-                placeholder="Reason"
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-              />
-              <button
-                type="submit"
-                disabled={busy}
-                className="rounded-md bg-brand px-4 py-2 font-medium text-brand-foreground disabled:opacity-50"
-              >
-                Submit return
-              </button>
-            </div>
-          </form>
+                  <FormikTextField
+                    name="reason"
+                    placeholder="Reason"
+                    className="min-w-48 flex-1"
+                  />
+                  <Button type="submit" disabled={busy} loading={busy}>
+                    Submit return
+                  </Button>
+                </div>
+              </>
+            )}
+          </CustomForm>
         ) : null}
       </SurfaceCard>
 

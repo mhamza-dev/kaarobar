@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { useBrandPalette } from "../lib/BrandThemeContext";
 import {
   ActivityIndicator,
@@ -6,15 +6,23 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
+import { useField } from "formik";
 import { api, colors, getSession, type Session } from "../lib/api";
 import { canAccess, canAccessRoute } from "../lib/rbac";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
-import { replacePath, pushPath } from "../lib/nav";
+import { replacePath } from "../lib/nav";
 import { formatDecimal } from "../lib/decimal";
+import CustomForm from "../components/ui/CustomForm";
+import { FormikTextField } from "../components/ui/FormFields";
+import {
+  emptyReturnForm,
+  returnFormSchema,
+  saleLookupFormSchema,
+  type ReturnFormValues,
+} from "../lib/validations/returns";
 
 type SaleItem = {
   product_id: string;
@@ -48,16 +56,56 @@ type Till = {
   over_short?: string | null;
 };
 
+function QtyField({
+  productId,
+  styles,
+}: {
+  productId: string;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  return (
+    <FormikTextField
+      name={`quantities.${productId}`}
+      style={[styles.input, { width: 72, marginBottom: 0 }]}
+      placeholder="Qty"
+      keyboardType="decimal-pad"
+      containerStyle={{ width: 72 }}
+    />
+  );
+}
+
+function RefundMethodChips({
+  styles,
+}: {
+  styles: ReturnType<typeof createStyles>;
+}) {
+  const [field, , helpers] = useField<"cash" | "card" | "wallet">("refund_method");
+  return (
+    <View style={styles.methodRow}>
+      {(["cash", "card", "wallet"] as const).map((m) => (
+        <Pressable
+          key={m}
+          style={[styles.chip, field.value === m && styles.chipActive]}
+          onPress={() => void helpers.setValue(m)}
+        >
+          <Text
+            style={[styles.chipText, field.value === m && styles.chipTextActive]}
+          >
+            {m}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
 export default function ReturnsScreen() {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const palette = useBrandPalette();
   const styles = useMemo(() => createStyles(palette), [palette]);
   const [session, setLocal] = useState<Session | null>(null);
-  const [saleId, setSaleId] = useState("");
   const [sale, setSale] = useState<Sale | null>(null);
-  const [qtyByProduct, setQtyByProduct] = useState<Record<string, string>>({});
-  const [reason, setReason] = useState("");
-  const [refundMethod, setRefundMethod] = useState<"cash" | "card" | "wallet">("cash");
+  const [returnInitial, setReturnInitial] = useState(emptyReturnForm());
   const [pending, setPending] = useState<ReturnRow[]>([]);
   const [returns, setReturns] = useState<ReturnRow[]>([]);
   const [tills, setTills] = useState<Till[]>([]);
@@ -96,15 +144,19 @@ export default function ReturnsScreen() {
     })();
   }, [reload]);
 
-  async function lookupSale() {
+  async function lookupSale(saleId: string) {
     setBusy(true);
     setMessage(null);
     try {
       const res = await api<{ data: Sale }>(`/sales/${saleId.trim()}`);
       setSale(res.data);
-      const initial: Record<string, string> = {};
-      for (const item of res.data.items || []) initial[item.product_id] = "";
-      setQtyByProduct(initial);
+      const quantities: Record<string, string> = {};
+      for (const item of res.data.items || []) quantities[item.product_id] = "";
+      setReturnInitial({
+        reason: "",
+        refund_method: "cash",
+        quantities,
+      });
     } catch (err) {
       setSale(null);
       setMessage(err instanceof Error ? err.message : "Sale not found");
@@ -113,15 +165,11 @@ export default function ReturnsScreen() {
     }
   }
 
-  async function submitReturn() {
+  async function submitReturn(values: ReturnFormValues) {
     if (!sale || !session?.branch_id) return;
-    const items = Object.entries(qtyByProduct)
+    const items = Object.entries(values.quantities)
       .filter(([, q]) => Number(q) > 0)
       .map(([product_id, quantity]) => ({ product_id, quantity }));
-    if (items.length === 0) {
-      setMessage("Enter at least one return quantity");
-      return;
-    }
     setBusy(true);
     try {
       const res = await api<{ data: ReturnRow }>("/app/returns", {
@@ -129,8 +177,8 @@ export default function ReturnsScreen() {
         body: JSON.stringify({
           sale_id: sale.id,
           branch_id: session.branch_id,
-          reason,
-          refund_method: refundMethod,
+          reason: values.reason,
+          refund_method: values.refund_method,
           items,
         }),
       });
@@ -138,7 +186,7 @@ export default function ReturnsScreen() {
         `Return ${res.data.status} · Rs ${formatDecimal(res.data.refund_amount)}`
       );
       setSale(null);
-      setSaleId("");
+      setReturnInitial(emptyReturnForm());
       await reload();
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Return failed");
@@ -191,71 +239,61 @@ export default function ReturnsScreen() {
 
       <View style={styles.card}>
         <Text style={styles.section}>Create return</Text>
-        <View style={styles.row}>
-          <TextInput
-            style={[styles.input, { flex: 1 }]}
-            value={saleId}
-            onChangeText={setSaleId}
-            placeholder="Sale ID"
-            placeholderTextColor={colors.muted}
-            autoCapitalize="none"
-          />
-          <Pressable style={styles.btn} onPress={lookupSale} disabled={busy}>
-            <Text style={styles.btnText}>Lookup</Text>
-          </Pressable>
-        </View>
+        <CustomForm
+          initialValues={{ sale_id: "" }}
+          validationSchema={saleLookupFormSchema}
+          onSubmit={async (values) => {
+            await lookupSale(values.sale_id);
+          }}
+        >
+          {({ handleSubmit }) => (
+            <View style={styles.row}>
+              <FormikTextField
+                name="sale_id"
+                style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                placeholder="Sale ID"
+                autoCapitalize="none"
+                containerStyle={{ flex: 1 }}
+              />
+              <Pressable style={styles.btn} onPress={() => handleSubmit()} disabled={busy}>
+                <Text style={styles.btnText}>Lookup</Text>
+              </Pressable>
+            </View>
+          )}
+        </CustomForm>
 
         {sale ? (
-          <>
-            <Text style={styles.body}>
-              Invoice {sale.invoice_number} · Rs {formatDecimal(sale.total_amount)}
-            </Text>
-            {sale.items.map((item) => (
-              <View key={item.product_id} style={styles.row}>
-                <Text style={[styles.body, { flex: 1 }]}>
-                  {item.name} (sold {item.quantity})
+          <CustomForm
+            initialValues={returnInitial}
+            validationSchema={returnFormSchema}
+            enableReinitialize
+            onSubmit={submitReturn}
+          >
+            {({ handleSubmit }) => (
+              <>
+                <Text style={styles.body}>
+                  Invoice {sale.invoice_number} · Rs {formatDecimal(sale.total_amount)}
                 </Text>
-                <TextInput
-                  style={[styles.input, { width: 72, marginBottom: 0 }]}
-                  value={qtyByProduct[item.product_id] || ""}
-                  onChangeText={(v) =>
-                    setQtyByProduct((prev) => ({ ...prev, [item.product_id]: v }))
-                  }
-                  placeholder="Qty"
-                  keyboardType="decimal-pad"
-                  placeholderTextColor={colors.muted}
+                {sale.items.map((item) => (
+                  <View key={item.product_id} style={styles.row}>
+                    <Text style={[styles.body, { flex: 1 }]}>
+                      {item.name} (sold {item.quantity})
+                    </Text>
+                    <QtyField productId={item.product_id} styles={styles} />
+                  </View>
+                ))}
+                <RefundMethodChips styles={styles} />
+                <FormikTextField
+                  name="reason"
+                  style={styles.input}
+                  placeholder="Reason"
                 />
-              </View>
-            ))}
-            <View style={styles.methodRow}>
-              {(["cash", "card", "wallet"] as const).map((m) => (
-                <Pressable
-                  key={m}
-                  style={[styles.chip, refundMethod === m && styles.chipActive]}
-                  onPress={() => setRefundMethod(m)}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      refundMethod === m && styles.chipTextActive,
-                    ]}
-                  >
-                    {m}
-                  </Text>
+                <Pressable style={styles.btn} onPress={() => handleSubmit()} disabled={busy}>
+                  <Text style={styles.btnText}>Submit return</Text>
                 </Pressable>
-              ))}
-            </View>
-            <TextInput
-              style={styles.input}
-              value={reason}
-              onChangeText={setReason}
-              placeholder="Reason"
-              placeholderTextColor={colors.muted}
-            />
-            <Pressable style={styles.btn} onPress={submitReturn} disabled={busy}>
-              <Text style={styles.btnText}>Submit return</Text>
-            </Pressable>
-          </>
+              </>
+            )}
+          </CustomForm>
         ) : null}
       </View>
 
@@ -322,69 +360,69 @@ export default function ReturnsScreen() {
 
 function createStyles(palette: import("../lib/brandTheme").BrandPalette) {
   return StyleSheet.create({
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.bgPrimary,
-  },
-  container: { flex: 1, padding: 16, backgroundColor: colors.bgPrimary },
-  title: { fontSize: 22, fontWeight: "800", color: colors.heading, marginBottom: 8 },
-  message: { color: colors.body, marginBottom: 8 },
-  card: {
-    backgroundColor: colors.card,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 12,
-  },
-  section: { fontWeight: "700", color: colors.heading, marginBottom: 8 },
-  body: { color: colors.body, marginBottom: 6 },
-  productName: { fontWeight: "700", color: colors.heading },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: colors.white,
-    color: colors.heading,
-    marginBottom: 10,
-  },
-  row: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
-  btn: {
-    backgroundColor: palette.brand,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  btnText: { color: colors.white, fontWeight: "700" },
-  btnSecondary: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  btnSecondaryText: { color: colors.heading, fontWeight: "600" },
-  methodRow: { flexDirection: "row", gap: 8, marginBottom: 10 },
-  chip: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  chipActive: { backgroundColor: palette.brand, borderColor: palette.brand },
-  chipText: { color: colors.heading, textTransform: "capitalize" },
-  chipTextActive: { color: colors.white, fontWeight: "700" },
-  pendingRow: {
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingTop: 10,
-    marginTop: 8,
-  },
-});
+    center: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.bgPrimary,
+    },
+    container: { flex: 1, padding: 16, backgroundColor: colors.bgPrimary },
+    title: { fontSize: 22, fontWeight: "800", color: colors.heading, marginBottom: 8 },
+    message: { color: colors.body, marginBottom: 8 },
+    card: {
+      backgroundColor: colors.card,
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: 14,
+      padding: 14,
+      marginBottom: 12,
+    },
+    section: { fontWeight: "700", color: colors.heading, marginBottom: 8 },
+    body: { color: colors.body, marginBottom: 6 },
+    productName: { fontWeight: "700", color: colors.heading },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      backgroundColor: colors.white,
+      color: colors.heading,
+      marginBottom: 10,
+    },
+    row: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
+    btn: {
+      backgroundColor: palette.brand,
+      borderRadius: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      alignItems: "center",
+    },
+    btnText: { color: colors.white, fontWeight: "700" },
+    btnSecondary: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+    },
+    btnSecondaryText: { color: colors.heading, fontWeight: "600" },
+    methodRow: { flexDirection: "row", gap: 8, marginBottom: 10 },
+    chip: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 20,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+    },
+    chipActive: { backgroundColor: palette.brand, borderColor: palette.brand },
+    chipText: { color: colors.heading, textTransform: "capitalize" },
+    chipTextActive: { color: colors.white, fontWeight: "700" },
+    pendingRow: {
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      paddingTop: 10,
+      marginTop: 8,
+    },
+  });
 }

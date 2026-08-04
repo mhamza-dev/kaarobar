@@ -7,7 +7,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { pickImageFromLibrary } from "../lib/imagePicker";
@@ -18,7 +17,17 @@ import { loadLocale, t } from "../lib/i18n";
 import { useToast } from "../components/Toast";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
-import { replacePath, pushPath } from "../lib/nav";
+import { replacePath } from "../lib/nav";
+import CustomForm from "../components/ui/CustomForm";
+import { FormikTextField } from "../components/ui/FormFields";
+import {
+  branchFormSchema,
+  businessDetailFormSchema,
+  emptyBranchForm,
+  emptyBusinessDetailForm,
+  type BranchFormValues,
+  type BusinessDetailFormValues,
+} from "../lib/validations/businesses";
 
 type Business = {
   id: string;
@@ -53,7 +62,7 @@ export default function BusinessDetailScreen() {
   const toast = useToast();
   const [business, setBusiness] = useState<Business | null>(null);
   const [branches, setBranches] = useState<Branch[]>([]);
-  const [branchName, setBranchName] = useState("");
+  const [detailInitial, setDetailInitial] = useState(emptyBusinessDetailForm());
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -66,6 +75,13 @@ export default function BusinessDetailScreen() {
         api<{ data: Branch[] }>(`/businesses/${id}/branches?include_inactive=true`),
       ]);
       setBusiness(biz.data);
+      setDetailInitial({
+        name: biz.data.name || "",
+        industry: biz.data.industry || "general",
+        tagline: biz.data.tagline || "",
+        primary_color: biz.data.primary_color || "",
+        marketplace_description: biz.data.marketplace_description || "",
+      });
       setBranches(br.data || []);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.loadFailed"));
@@ -91,21 +107,28 @@ export default function BusinessDetailScreen() {
     })();
   }, [load]);
 
-  async function saveBusiness() {
+  async function saveBusiness(values: BusinessDetailFormValues) {
     if (!business) return;
     setBusy(true);
     try {
       const res = await api<{ data: Business }>(`/businesses/${business.id}`, {
         method: "PATCH",
         body: JSON.stringify({
-          name: business.name,
-          industry: business.industry || null,
-          tagline: business.tagline || null,
-          primary_color: business.primary_color || null,
-          marketplace_description: business.marketplace_description || null,
+          name: values.name.trim(),
+          industry: values.industry || null,
+          tagline: values.tagline.trim() || null,
+          primary_color: values.primary_color.trim() || null,
+          marketplace_description: values.marketplace_description.trim() || null,
         }),
       });
       setBusiness(res.data);
+      setDetailInitial({
+        name: res.data.name || "",
+        industry: res.data.industry || "general",
+        tagline: res.data.tagline || "",
+        primary_color: res.data.primary_color || "",
+        marketplace_description: res.data.marketplace_description || "",
+      });
       toast.success(t("businesses.saved"));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.saveFailed"));
@@ -155,15 +178,15 @@ export default function BusinessDetailScreen() {
     }
   }
 
-  async function createBranch() {
-    if (!business || !branchName.trim()) return;
+  async function createBranch(values: BranchFormValues, resetForm: () => void) {
+    if (!business) return;
     setBusy(true);
     try {
       await api(`/businesses/${business.id}/branches`, {
         method: "POST",
-        body: JSON.stringify({ name: branchName.trim() }),
+        body: JSON.stringify({ name: values.name.trim() }),
       });
-      setBranchName("");
+      resetForm();
       toast.success(t("businesses.branchCreated"));
       await load();
     } catch (err) {
@@ -199,140 +222,138 @@ export default function BusinessDetailScreen() {
 
   if (loading) {
     return (
-      <>
-        <View style={styles.center}>
-          <ActivityIndicator color={palette.brand} />
-        </View>
-      </>
+      <View style={styles.center}>
+        <ActivityIndicator color={palette.brand} />
+      </View>
     );
   }
 
   if (!business) {
     return (
-      <>
-        <View style={styles.center}>
-          <Text style={styles.sub}>{t("businesses.notFound")}</Text>
-          <Pressable style={styles.btn} onPress={() => navigation.goBack()}>
-            <Text style={styles.btnText}>{t("businesses.back")}</Text>
-          </Pressable>
-        </View>
-      </>
+      <View style={styles.center}>
+        <Text style={styles.sub}>{t("businesses.notFound")}</Text>
+        <Pressable style={styles.btn} onPress={() => navigation.goBack()}>
+          <Text style={styles.btnText}>{t("businesses.back")}</Text>
+        </Pressable>
+      </View>
     );
   }
 
   return (
-    <>
-      <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-        {business.is_active === false ? (
-          <View style={styles.banner}>
-            <Text style={styles.bannerText}>{t("businesses.inactiveBanner")}</Text>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      {business.is_active === false ? (
+        <View style={styles.banner}>
+          <Text style={styles.bannerText}>{t("businesses.inactiveBanner")}</Text>
+        </View>
+      ) : null}
+
+      <Pressable onPress={() => navigation.goBack()}>
+        <Text style={styles.backLink}>{t("businesses.back")}</Text>
+      </Pressable>
+
+      <View style={styles.logoRow}>
+        {business.logo_url ? (
+          <Image source={{ uri: business.logo_url }} style={styles.logo} />
+        ) : (
+          <View style={[styles.logo, styles.logoFallback]}>
+            <Text style={styles.logoText}>{business.name.slice(0, 1).toUpperCase()}</Text>
           </View>
-        ) : null}
-
-        <Pressable onPress={() => navigation.goBack()}>
-          <Text style={styles.backLink}>{t("businesses.back")}</Text>
-        </Pressable>
-
-        <View style={styles.logoRow}>
+        )}
+        <View style={{ flex: 1, gap: 8 }}>
+          <Pressable style={styles.secondaryBtn} onPress={uploadLogo} disabled={busy}>
+            <Text style={styles.secondaryBtnText}>{t("businesses.uploadLogo")}</Text>
+          </Pressable>
           {business.logo_url ? (
-            <Image source={{ uri: business.logo_url }} style={styles.logo} />
-          ) : (
-            <View style={[styles.logo, styles.logoFallback]}>
-              <Text style={styles.logoText}>{business.name.slice(0, 1).toUpperCase()}</Text>
-            </View>
-          )}
-          <View style={{ flex: 1, gap: 8 }}>
-            <Pressable style={styles.secondaryBtn} onPress={uploadLogo} disabled={busy}>
-              <Text style={styles.secondaryBtnText}>{t("businesses.uploadLogo")}</Text>
+            <Pressable style={styles.secondaryBtn} onPress={clearLogo} disabled={busy}>
+              <Text style={styles.secondaryBtnText}>{t("businesses.removeLogo")}</Text>
             </Pressable>
-            {business.logo_url ? (
-              <Pressable style={styles.secondaryBtn} onPress={clearLogo} disabled={busy}>
-                <Text style={styles.secondaryBtnText}>{t("businesses.removeLogo")}</Text>
+          ) : null}
+        </View>
+      </View>
+
+      <CustomForm
+        initialValues={detailInitial}
+        validationSchema={businessDetailFormSchema}
+        enableReinitialize
+        onSubmit={saveBusiness}
+      >
+        {({ handleSubmit }) => (
+          <>
+            <FormikTextField name="name" label={t("businesses.name")} style={styles.input} />
+            <FormikTextField
+              name="tagline"
+              label={t("businesses.tagline")}
+              style={styles.input}
+              placeholder={t("businesses.taglinePlaceholder")}
+            />
+            <FormikTextField
+              name="primary_color"
+              label={t("businesses.brandColor")}
+              style={styles.input}
+              placeholder="#1d4ed8"
+              autoCapitalize="none"
+            />
+            <FormikTextField
+              name="marketplace_description"
+              label={t("businesses.marketplaceDescription")}
+              style={[styles.input, { minHeight: 80 }]}
+              multiline
+              placeholder={t("businesses.marketplaceDescriptionPlaceholder")}
+            />
+            <Pressable style={styles.btn} onPress={() => handleSubmit()} disabled={busy}>
+              {busy ? (
+                <ActivityIndicator color={colors.white} />
+              ) : (
+                <Text style={styles.btnText}>{t("common.save")}</Text>
+              )}
+            </Pressable>
+          </>
+        )}
+      </CustomForm>
+
+      <Text style={styles.sectionTitle}>{t("settings.branches")}</Text>
+      <CustomForm
+        initialValues={emptyBranchForm()}
+        validationSchema={branchFormSchema}
+        onSubmit={async (values, helpers) => {
+          await createBranch(values, () => helpers.resetForm({ values: emptyBranchForm() }));
+        }}
+      >
+        {({ handleSubmit }) => (
+          <>
+            <FormikTextField
+              name="name"
+              label={t("businesses.branchName")}
+              style={styles.input}
+              placeholder={t("businesses.branchNamePlaceholder")}
+            />
+            <Pressable style={styles.secondaryBtn} onPress={() => handleSubmit()} disabled={busy}>
+              <Text style={styles.secondaryBtnText}>{t("businesses.addBranch")}</Text>
+            </Pressable>
+          </>
+        )}
+      </CustomForm>
+
+      {branches.length === 0 ? (
+        <Text style={styles.sub}>{t("businesses.noBranches")}</Text>
+      ) : (
+        branches.map((branch) => (
+          <View key={branch.id} style={styles.branchRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.branchName}>{branch.name}</Text>
+              {branch.is_active === false ? (
+                <Text style={styles.sub}>{t("businesses.inactive")}</Text>
+              ) : null}
+            </View>
+            {branch.is_active !== false ? (
+              <Pressable onPress={() => deactivateBranch(branch)}>
+                <Text style={styles.deactivate}>{t("businesses.deactivate")}</Text>
               </Pressable>
             ) : null}
           </View>
-        </View>
-
-        <Text style={styles.label}>{t("businesses.name")}</Text>
-        <TextInput
-          style={styles.input}
-          value={business.name}
-          onChangeText={(name) => setBusiness({ ...business, name })}
-        />
-
-        <Text style={styles.label}>{t("businesses.tagline")}</Text>
-        <TextInput
-          style={styles.input}
-          value={business.tagline || ""}
-          onChangeText={(tagline) => setBusiness({ ...business, tagline })}
-          placeholder={t("businesses.taglinePlaceholder")}
-          placeholderTextColor={colors.muted}
-        />
-
-        <Text style={styles.label}>{t("businesses.brandColor")}</Text>
-        <TextInput
-          style={styles.input}
-          value={business.primary_color || ""}
-          onChangeText={(primary_color) => setBusiness({ ...business, primary_color })}
-          placeholder="#1d4ed8"
-          placeholderTextColor={colors.muted}
-          autoCapitalize="none"
-        />
-
-        <Text style={styles.label}>{t("businesses.marketplaceDescription")}</Text>
-        <TextInput
-          style={[styles.input, { minHeight: 80 }]}
-          multiline
-          value={business.marketplace_description || ""}
-          onChangeText={(marketplace_description) =>
-            setBusiness({ ...business, marketplace_description })
-          }
-          placeholder={t("businesses.marketplaceDescriptionPlaceholder")}
-          placeholderTextColor={colors.muted}
-        />
-
-        <Pressable style={styles.btn} onPress={saveBusiness} disabled={busy}>
-          {busy ? (
-            <ActivityIndicator color={colors.white} />
-          ) : (
-            <Text style={styles.btnText}>{t("common.save")}</Text>
-          )}
-        </Pressable>
-
-        <Text style={styles.sectionTitle}>{t("settings.branches")}</Text>
-        <Text style={styles.label}>{t("businesses.branchName")}</Text>
-        <TextInput
-          style={styles.input}
-          value={branchName}
-          onChangeText={setBranchName}
-          placeholder={t("businesses.branchNamePlaceholder")}
-          placeholderTextColor={colors.muted}
-        />
-        <Pressable style={styles.secondaryBtn} onPress={createBranch} disabled={busy}>
-          <Text style={styles.secondaryBtnText}>{t("businesses.addBranch")}</Text>
-        </Pressable>
-
-        {branches.length === 0 ? (
-          <Text style={styles.sub}>{t("businesses.noBranches")}</Text>
-        ) : (
-          branches.map((branch) => (
-            <View key={branch.id} style={styles.branchRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.branchName}>{branch.name}</Text>
-                {branch.is_active === false ? (
-                  <Text style={styles.sub}>{t("businesses.inactive")}</Text>
-                ) : null}
-              </View>
-              {branch.is_active !== false ? (
-                <Pressable onPress={() => deactivateBranch(branch)}>
-                  <Text style={styles.deactivate}>{t("businesses.deactivate")}</Text>
-                </Pressable>
-              ) : null}
-            </View>
-          ))
-        )}
-      </ScrollView>
-    </>
+        ))
+      )}
+    </ScrollView>
   );
 }
 
@@ -359,7 +380,6 @@ function createStyles(palette: import("../lib/brandTheme").BrandPalette) {
       justifyContent: "center",
     },
     logoText: { color: colors.white, fontWeight: "800", fontSize: 24 },
-    label: { marginTop: 12, marginBottom: 6, fontWeight: "600", color: colors.heading },
     input: {
       borderWidth: 1,
       borderColor: colors.border,
@@ -368,6 +388,7 @@ function createStyles(palette: import("../lib/brandTheme").BrandPalette) {
       paddingVertical: 10,
       color: colors.heading,
       backgroundColor: colors.card,
+      marginBottom: 8,
     },
     sub: { marginTop: 8, color: colors.body, fontSize: 13 },
     btn: {

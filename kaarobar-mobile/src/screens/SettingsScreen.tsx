@@ -7,7 +7,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -31,6 +30,14 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
 import { replacePath, pushPath } from "../lib/nav";
 import { settingsKeys } from "../lib/queryClient";
+import CustomForm from "../components/ui/CustomForm";
+import Switch from "../components/ui/Switch";
+import { FormikTextField } from "../components/ui/FormFields";
+import {
+  emptyProfileForm,
+  profileFormSchema,
+  type ProfileFormValues,
+} from "../lib/validations/auth";
 
 type SettingsTab = "profile" | "notifications" | "subscriptions";
 
@@ -104,12 +111,7 @@ export default function SettingsScreen() {
   const [localeTick, setLocaleTick] = useState(0);
   const [checkoutBusy, setCheckoutBusy] = useState<string | null>(null);
 
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    password: "",
-  });
+  const [profileInitial, setProfileInitial] = useState(emptyProfileForm());
   const [picUrl, setPicUrl] = useState<string | null>(null);
 
   const owner = isOwner(session);
@@ -159,7 +161,7 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     if (!profile) return;
-    setForm({
+    setProfileInitial({
       name: profile.name || "",
       email: profile.email || "",
       phone: profile.phone || "",
@@ -288,14 +290,14 @@ export default function SettingsScreen() {
     void savePrefs({ ...prefs, [key]: !prefs[key] });
   }
 
-  async function onSaveProfile() {
+  async function onSaveProfile(values: ProfileFormValues) {
     setBusy(true);
     try {
       const body: Record<string, string> = {
-        name: form.name.trim(),
-        phone: form.phone.trim(),
+        name: values.name.trim(),
+        phone: values.phone.trim(),
       };
-      if (form.password.trim()) body.password = form.password;
+      if (values.password.trim()) body.password = values.password;
 
       const res = await api<{
         user: {
@@ -328,7 +330,12 @@ export default function SettingsScreen() {
         phone: res.user.phone,
         profile_pic_url: picUrl,
       });
-      setForm((f) => ({ ...f, password: "" }));
+      setProfileInitial({
+        name: res.user.name || "",
+        email: res.user.email || "",
+        phone: res.user.phone || "",
+        password: "",
+      });
       toast.success(t("profile.saved"));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.error"));
@@ -397,69 +404,83 @@ export default function SettingsScreen() {
 
         {tab === "profile" ? (
           <View style={styles.section}>
-            <View style={styles.photoRow}>
-              {picUrl ? (
-                <Image source={{ uri: picUrl }} style={styles.avatar} />
-              ) : (
-                <View style={[styles.avatar, styles.avatarFallback]}>
-                  <Text style={styles.avatarText}>
-                    {(form.name || "?").trim().slice(0, 1).toUpperCase()}
-                  </Text>
-                </View>
-              )}
-              <View style={{ flex: 1, gap: 8 }}>
-                <Pressable style={styles.secondaryBtn} onPress={pickAndUploadPhoto} disabled={busy}>
-                  <Text style={styles.secondaryBtnText}>
-                    {picUrl ? t("profile.changePhoto") : t("profile.uploadPhoto")}
-                  </Text>
-                </Pressable>
-                {picUrl ? (
-                  <Pressable style={styles.secondaryBtn} onPress={removePhoto} disabled={busy}>
-                    <Text style={styles.secondaryBtnText}>{t("profile.removePhoto")}</Text>
+            <CustomForm
+              initialValues={profileInitial}
+              validationSchema={profileFormSchema}
+              enableReinitialize
+              onSubmit={onSaveProfile}
+            >
+              {({ handleSubmit, values }) => (
+                <>
+                  <View style={styles.photoRow}>
+                    {picUrl ? (
+                      <Image source={{ uri: picUrl }} style={styles.avatar} />
+                    ) : (
+                      <View style={[styles.avatar, styles.avatarFallback]}>
+                        <Text style={styles.avatarText}>
+                          {(values.name || "?").trim().slice(0, 1).toUpperCase()}
+                        </Text>
+                      </View>
+                    )}
+                    <View style={{ flex: 1, gap: 8 }}>
+                      <Pressable
+                        style={styles.secondaryBtn}
+                        onPress={pickAndUploadPhoto}
+                        disabled={busy}
+                      >
+                        <Text style={styles.secondaryBtnText}>
+                          {picUrl ? t("profile.changePhoto") : t("profile.uploadPhoto")}
+                        </Text>
+                      </Pressable>
+                      {picUrl ? (
+                        <Pressable
+                          style={styles.secondaryBtn}
+                          onPress={removePhoto}
+                          disabled={busy}
+                        >
+                          <Text style={styles.secondaryBtnText}>{t("profile.removePhoto")}</Text>
+                        </Pressable>
+                      ) : null}
+                    </View>
+                  </View>
+
+                  <FormikTextField name="name" label={t("profile.name")} style={styles.input} />
+                  <FormikTextField
+                    name="email"
+                    label={t("profile.email")}
+                    style={[styles.input, styles.disabled]}
+                    editable={false}
+                  />
+                  <Text style={styles.hint}>{t("profile.emailHint")}</Text>
+                  <FormikTextField
+                    name="phone"
+                    label={t("profile.phone")}
+                    style={styles.input}
+                    keyboardType="phone-pad"
+                  />
+                  <LanguageSwitcher onChange={() => setLocaleTick((n) => n + 1)} />
+                  <FormikTextField
+                    name="password"
+                    label={t("profile.newPassword")}
+                    style={styles.input}
+                    secureTextEntry
+                    autoCapitalize="none"
+                  />
+                  <Text style={styles.hint}>{t("profile.newPasswordHint")}</Text>
+                  <Pressable
+                    style={styles.btn}
+                    onPress={() => handleSubmit()}
+                    disabled={busy}
+                  >
+                    {busy ? (
+                      <ActivityIndicator color={colors.white} />
+                    ) : (
+                      <Text style={styles.btnText}>{t("profile.save")}</Text>
+                    )}
                   </Pressable>
-                ) : null}
-              </View>
-            </View>
-
-            <Text style={styles.label}>{t("profile.name")}</Text>
-            <TextInput
-              style={styles.input}
-              value={form.name}
-              onChangeText={(name) => setForm({ ...form, name })}
-            />
-
-            <Text style={styles.label}>{t("profile.email")}</Text>
-            <TextInput style={[styles.input, styles.disabled]} value={form.email} editable={false} />
-            <Text style={styles.hint}>{t("profile.emailHint")}</Text>
-
-            <Text style={styles.label}>{t("profile.phone")}</Text>
-            <TextInput
-              style={styles.input}
-              value={form.phone}
-              onChangeText={(phone) => setForm({ ...form, phone })}
-              keyboardType="phone-pad"
-            />
-
-            <LanguageSwitcher
-              onChange={() => setLocaleTick((n) => n + 1)}
-            />
-
-            <Text style={styles.label}>{t("profile.newPassword")}</Text>
-            <TextInput
-              style={styles.input}
-              value={form.password}
-              onChangeText={(password) => setForm({ ...form, password })}
-              secureTextEntry
-            />
-            <Text style={styles.hint}>{t("profile.newPasswordHint")}</Text>
-
-            <Pressable style={styles.btn} onPress={onSaveProfile} disabled={busy}>
-              {busy ? (
-                <ActivityIndicator color={colors.white} />
-              ) : (
-                <Text style={styles.btnText}>{t("profile.save")}</Text>
+                </>
               )}
-            </Pressable>
+            </CustomForm>
           </View>
         ) : null}
 
@@ -467,7 +488,7 @@ export default function SettingsScreen() {
           <View style={styles.section}>
             <Text style={styles.hint}>{t("settings.notificationsDesc")}</Text>
             {prefs ? (
-              <View style={{ marginTop: 12, gap: 8 }}>
+              <View style={{ marginTop: 12, gap: 12 }}>
                 {(
                   [
                     ["email", t("settings.prefEmail")],
@@ -475,15 +496,15 @@ export default function SettingsScreen() {
                     ["push", t("settings.prefPush")],
                   ] as const
                 ).map(([key, label]) => (
-                  <Pressable
+                  <Switch
                     key={key}
-                    style={[styles.chip, prefs[key] && styles.chipOn]}
-                    onPress={() => togglePref(key)}
-                  >
-                    <Text style={[styles.chipText, prefs[key] && styles.chipTextOn]}>
-                      {prefs[key] ? t("settings.prefOn") : t("settings.prefOff")} · {label}
-                    </Text>
-                  </Pressable>
+                    checked={prefs[key]}
+                    onChange={() => togglePref(key)}
+                    label={label}
+                    description={
+                      prefs[key] ? t("settings.prefOn") : t("settings.prefOff")
+                    }
+                  />
                 ))}
               </View>
             ) : (

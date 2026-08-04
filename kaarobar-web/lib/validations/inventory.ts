@@ -123,3 +123,16 @@ export const attachSupplierFormSchema: yup.ObjectSchema<AttachSupplierFormValues
   yup.object({
     supplier_id: yup.string().trim().required("Select a supplier"),
   });
+
+export type AttachProductFormValues = {
+  product_id: string;
+};
+
+export const emptyAttachProductForm = (): AttachProductFormValues => ({
+  product_id: "",
+});
+
+export const attachProductFormSchema: yup.ObjectSchema<AttachProductFormValues> =
+  yup.object({
+    product_id: yup.string().trim().required("Select a product"),
+  });

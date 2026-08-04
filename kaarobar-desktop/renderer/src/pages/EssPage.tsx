@@ -1,14 +1,24 @@
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { api, getSession } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
-import Select from "@/components/ui/Select";
+import CustomForm from "@/components/ui/CustomForm";
+import {
+  FormikDateTimeField,
+  FormikSelectField,
+  FormikTextField,
+} from "@/components/ui/FormFields";
 import ProfilePicEditor from "@/components/app/ProfilePicEditor";
-import { PageHeader, SurfaceCard, TabBar, fieldClass } from "@/components/app/ui";
+import { PageHeader, SurfaceCard, TabBar, formStackClass } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { formatDecimal } from "@/lib/decimal";
 import { useTabQueryParam } from "@/lib/hooks/useTabQueryParam";
 import { routes } from "@/lib/navigation";
+import {
+  emptyLeaveRequestForm,
+  leaveRequestFormSchema,
+  type LeaveRequestFormValues,
+} from "@/lib/validations/ess";
 
 type EssData = {
   employee?: {
@@ -68,10 +78,7 @@ function EssPageInner() {
   const [tab, setTab] = useTabQueryParam<EssTab>("clock", ESS_TABS, { pathname: routes.ess });
   const [data, setData] = useState<EssData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [leaveType, setLeaveType] = useState("annual");
-  const [leaveStart, setLeaveStart] = useState(() => new Date().toISOString().slice(0, 10));
-  const [leaveEnd, setLeaveEnd] = useState(() => new Date().toISOString().slice(0, 10));
-  const [leaveReason, setLeaveReason] = useState("");
+  const [leaveInitial, setLeaveInitial] = useState(emptyLeaveRequestForm());
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -121,20 +128,19 @@ function EssPageInner() {
     }
   }
 
-  async function submitLeave(e: React.FormEvent) {
-    e.preventDefault();
+  async function submitLeave(values: LeaveRequestFormValues) {
     try {
       await api("/leave", {
         method: "POST",
         body: JSON.stringify({
-          type: leaveType,
-          start_date: leaveStart,
-          end_date: leaveEnd,
-          reason: leaveReason,
+          type: values.type,
+          start_date: values.start_date,
+          end_date: values.end_date,
+          reason: values.reason,
         }),
       });
       toast.success("Leave requested");
-      setLeaveReason("");
+      setLeaveInitial(emptyLeaveRequestForm());
       await load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Leave request failed");
@@ -234,54 +240,46 @@ function EssPageInner() {
         <div className="space-y-4">
           <SurfaceCard className="p-5">
             <h3 className="mb-4 text-base font-bold text-heading">Request leave</h3>
-            <form className="grid max-w-xl gap-3" onSubmit={(e) => void submitLeave(e)}>
-              <label className="block text-sm">
-                <span className="mb-1.5 block font-medium text-heading">Type</span>
-                <Select
-                  value={leaveType}
-                  onChange={(v) => setLeaveType(v)}
-                  options={[
-                    { value: "annual", label: "annual" },
-                    { value: "sick", label: "sick" },
-                    { value: "other", label: "other" },
-                  ]}
-                  triggerClassName="border-border bg-bg-secondary/80"
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1.5 block font-medium text-heading">Start date</span>
-                <input
-                  type="date"
-                  className={fieldClass}
-                  value={leaveStart}
-                  onChange={(e) => setLeaveStart(e.target.value)}
-                  required
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1.5 block font-medium text-heading">End date</span>
-                <input
-                  type="date"
-                  className={fieldClass}
-                  value={leaveEnd}
-                  onChange={(e) => setLeaveEnd(e.target.value)}
-                  required
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1.5 block font-medium text-heading">Reason</span>
-                <input
-                  type="text"
-                  className={fieldClass}
-                  value={leaveReason}
-                  onChange={(e) => setLeaveReason(e.target.value)}
-                  placeholder="Reason"
-                />
-              </label>
-              <div>
-                <Button type="submit">Submit request</Button>
-              </div>
-            </form>
+            <CustomForm
+              initialValues={leaveInitial}
+              validationSchema={leaveRequestFormSchema}
+              onSubmit={submitLeave}
+              className={`max-w-xl ${formStackClass}`}
+            >
+              {() => (
+                <>
+                  <FormikSelectField
+                    name="type"
+                    label="Type"
+                    options={[
+                      { value: "annual", label: "annual" },
+                      { value: "sick", label: "sick" },
+                      { value: "other", label: "other" },
+                    ]}
+                  />
+                  <FormikDateTimeField
+                    name="start_date"
+                    label="Start date"
+                    mode="date"
+                    required
+                  />
+                  <FormikDateTimeField
+                    name="end_date"
+                    label="End date"
+                    mode="date"
+                    required
+                  />
+                  <FormikTextField
+                    name="reason"
+                    label="Reason"
+                    placeholder="Reason"
+                  />
+                  <div>
+                    <Button type="submit">Submit request</Button>
+                  </div>
+                </>
+              )}
+            </CustomForm>
           </SurfaceCard>
           <SurfaceCard className="p-5">
             <h3 className="mb-3 text-base font-bold text-heading">My requests</h3>

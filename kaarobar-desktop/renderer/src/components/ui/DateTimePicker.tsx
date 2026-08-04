@@ -10,6 +10,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { Calendar, ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import { fieldTriggerClass } from "@/components/app/ui";
 import { useI18n } from "@/lib/i18n";
 
 export type DateTimePickerMode = "date" | "datetime";
@@ -322,7 +323,7 @@ export default function DateTimePicker({
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => !disabled && setOpen((o) => !o)}
-        className="box-border flex h-[2.625rem] min-h-[2.625rem] w-full items-center gap-2 rounded-md border border-border bg-bg-secondary/80 px-3 text-start text-sm leading-none text-heading outline-none transition hover:border-brand/40 focus:border-brand/20 disabled:cursor-not-allowed disabled:opacity-60"
+        className={`${fieldTriggerClass} disabled:cursor-not-allowed disabled:opacity-60`}
       >
         <Calendar className="h-4 w-4 shrink-0 text-muted" />
         <span className={`min-w-0 flex-1 truncate ${display ? "" : "text-muted"}`}>

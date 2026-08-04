@@ -9,6 +9,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import { colors } from "../../lib/api";
+import Switch from "./Switch";
 
 type Props = {
   name: string;
@@ -38,6 +39,32 @@ export function FormikTextField({
         onBlur={() => void helpers.setTouched(true)}
         placeholderTextColor={inputProps.placeholderTextColor ?? colors.muted}
         style={[styles.input, inputStyle]}
+      />
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+    </View>
+  );
+}
+
+export function FormikSwitchField({
+  name,
+  label,
+  description,
+  style,
+}: {
+  name: string;
+  label?: string;
+  description?: string;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const [field, meta, helpers] = useField({ name, type: "checkbox" });
+  const error = meta.touched && meta.error ? meta.error : undefined;
+  return (
+    <View style={style}>
+      <Switch
+        checked={Boolean(field.value)}
+        onChange={(next) => void helpers.setValue(next)}
+        label={label}
+        description={description}
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </View>

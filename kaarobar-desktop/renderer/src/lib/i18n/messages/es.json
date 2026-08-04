@@ -52,7 +52,8 @@
     "sku": "SKU",
     "markRead": "Marcar como leído",
     "read": "leer",
-    "dismiss": "Descartar"
+    "dismiss": "Descartar",
+    "enterField": "Introduzca {field}"
   },
   "table": {
     "export": "Exportar",
@@ -660,7 +661,20 @@
       "bank": "Banco",
       "card": "Tarjeta",
       "wallet": "Billetera"
-    }
+    },
+    "phName": "Nombre completo",
+    "phCompany": "Empresa o nombre comercial",
+    "phPhone": "03XX XXXXXXX",
+    "phEmail": "nombre@ejemplo.com",
+    "phCnic": "XXXXX-XXXXXXX-X",
+    "phNtn": "XXXXXXX-X",
+    "phAddress": "Calle, ciudad",
+    "phCreditLimit": "0.00",
+    "phUserId": "UUID de usuario (opcional)",
+    "phNotes": "Notas internas…",
+    "phPortalPassword": "Establecer contraseña del portal",
+    "phDelta": "p. ej. 10 o -5",
+    "phReason": "Motivo del ajuste…"
   },
   "marketing": {
     "eyebrow": "Marketing",

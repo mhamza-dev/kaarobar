@@ -13,12 +13,12 @@ import {
   Truck,
 } from "lucide-react";
 import { api, apiAllPages, getSession } from "@/lib/api/client";
-import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
 import {
   SurfaceCard,
+  formStackClass,
 } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
@@ -60,6 +60,7 @@ import {
   type TransferFormValues,
 } from "@/lib/validations/inventory";
 import WorkspacePageScaffold from "@/components/app/WorkspacePageScaffold";
+import FormModal from "@/components/app/FormModal";
 import DateAndTime from "@/components/app/DateAndTime";
 
 type Tab = "stock" | "products" | "suppliers" | "pos" | "transfers" | "adjust";
@@ -1145,7 +1146,7 @@ function InventoryPageInner() {
       {tab === "adjust" ? (
         <SurfaceCard className="max-w-xl p-5">
           <CustomForm
-            className="space-y-3"
+            className={formStackClass}
             initialValues={adjustInitial}
             validationSchema={adjustStockFormSchema}
             onSubmit={adjustStock}
@@ -1182,26 +1183,20 @@ function InventoryPageInner() {
         }}
       />
 
-      <Modal
+      <FormModal
         isOpen={modal === "po"}
         onClose={() => setModal(null)}
         title={t("inventory.newPoTitle")}
         description={t("inventory.poModalDesc")}
         size="lg"
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setModal(null)}>
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" form="po-modal-form" loading={busy}>
-              {t("inventory.createPo")}
-            </Button>
-          </div>
-        }
+        formId="po-modal-form"
+        submitLabel={t("inventory.createPo")}
+        cancelLabel={t("common.cancel")}
+        submitLoading={busy}
       >
         <CustomForm
           id="po-modal-form"
-          className="space-y-5"
+          className={formStackClass}
           initialValues={poInitial}
           validationSchema={purchaseOrderFormSchema}
           onSubmit={createPO}
@@ -1217,9 +1212,9 @@ function InventoryPageInner() {
             />
           )}
         </CustomForm>
-      </Modal>
+      </FormModal>
 
-      <Modal
+      <FormModal
         isOpen={modal === "grn"}
         onClose={() => {
           setModal(null);
@@ -1228,31 +1223,15 @@ function InventoryPageInner() {
         title={t("inventory.receiveGrnTitle")}
         description={t("inventory.receiveGrnDesc")}
         size="lg"
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setModal(null);
-                setGrnInitial(emptyGrnForm());
-              }}
-            >
-              {t("common.cancel")}
-            </Button>
-            <Button
-              type="submit"
-              form="grn-modal-form"
-              loading={busy}
-              startIcon={<Check className="h-4 w-4" />}
-            >
-              {t("inventory.receiveGrn")}
-            </Button>
-          </div>
-        }
+        formId="grn-modal-form"
+        submitLabel={t("inventory.receiveGrn")}
+        cancelLabel={t("common.cancel")}
+        submitLoading={busy}
+        submitIcon={<Check className="h-4 w-4" />}
       >
         <CustomForm
           id="grn-modal-form"
-          className="space-y-5"
+          className={formStackClass}
           initialValues={grnInitial}
           validationSchema={grnFormSchema}
           onSubmit={receiveGRN}
@@ -1261,9 +1240,9 @@ function InventoryPageInner() {
             <GrnFormFields openPos={openPos} products={products} t={t} />
           )}
         </CustomForm>
-      </Modal>
+      </FormModal>
 
-      <Modal
+      <FormModal
         isOpen={!!attachSupplierProductId}
         onClose={() => {
           setAttachSupplierProductId(null);
@@ -1271,27 +1250,14 @@ function InventoryPageInner() {
         }}
         title={t("table.attachSupplier")}
         description={t("table.suppliersAttached")}
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              type="button"
-              onClick={() => {
-                setAttachSupplierProductId(null);
-                setAttachSupplierInitial(emptyAttachSupplierForm());
-              }}
-            >
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" form="attach-supplier-form" loading={busy}>
-              {t("table.attachSupplier")}
-            </Button>
-          </div>
-        }
+        formId="attach-supplier-form"
+        submitLabel={t("table.attachSupplier")}
+        cancelLabel={t("common.cancel")}
+        submitLoading={busy}
       >
         <CustomForm
           id="attach-supplier-form"
-          className="space-y-4"
+          className={formStackClass}
           initialValues={attachSupplierInitial}
           validationSchema={attachSupplierFormSchema}
           onSubmit={attachSupplier}
@@ -1300,28 +1266,22 @@ function InventoryPageInner() {
             <AttachSupplierFormFields supplierOptions={supplierOptions} t={t} />
           )}
         </CustomForm>
-      </Modal>
+      </FormModal>
 
-      <Modal
+      <FormModal
         isOpen={modal === "transfer"}
         onClose={() => setModal(null)}
         title={t("inventory.transferModalTitle")}
         description={t("inventory.transferModalDesc")}
         size="lg"
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setModal(null)}>
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" form="transfer-modal-form" loading={busy}>
-              {t("inventory.createTransfer")}
-            </Button>
-          </div>
-        }
+        formId="transfer-modal-form"
+        submitLabel={t("inventory.createTransfer")}
+        cancelLabel={t("common.cancel")}
+        submitLoading={busy}
       >
         <CustomForm
           id="transfer-modal-form"
-          className="space-y-5"
+          className={formStackClass}
           initialValues={transferInitial}
           validationSchema={transferFormSchema}
           onSubmit={createTransfer}
@@ -1335,7 +1295,7 @@ function InventoryPageInner() {
             />
           )}
         </CustomForm>
-      </Modal>
+      </FormModal>
     </WorkspacePageScaffold>
   );
 }

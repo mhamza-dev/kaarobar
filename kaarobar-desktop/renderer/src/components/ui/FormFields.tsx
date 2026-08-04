@@ -1,6 +1,8 @@
 "use client";
 
+import { useState, type ReactNode } from "react";
 import { useField, useFormikContext } from "formik";
+import { Eye, EyeOff } from "lucide-react";
 import Select, { type SelectOption } from "@/components/ui/Select";
 import SearchSelect, {
   type SearchSelectOption,
@@ -9,7 +11,10 @@ import SearchMultiSelect from "@/components/ui/SearchMultiSelect";
 import DateTimePicker, {
   type DateTimePickerMode,
 } from "@/components/ui/DateTimePicker";
-import { Field, fieldClass } from "@/components/app/ui";
+import Switch from "@/components/ui/Switch";
+import { Field, fieldClass, fieldTextareaClass } from "@/components/app/ui";
+import { inferFieldStartIcon } from "@/components/ui/fieldIcons";
+import { useT } from "@/lib/i18n";
 
 type BaseProps = {
   name: string;
@@ -25,40 +30,99 @@ export function FormikTextField({
   required,
   className,
   rows,
+  autoComplete,
+  hint,
+  startIcon,
+  endIcon,
+  showIcon = true,
 }: BaseProps & {
   type?: string;
   placeholder?: string;
   required?: boolean;
   rows?: number;
+  autoComplete?: string;
+  hint?: string;
+  startIcon?: ReactNode;
+  endIcon?: ReactNode;
+  /** When false, skip auto-inferred start icons. */
+  showIcon?: boolean;
 }) {
+  const t = useT();
   const [field, meta] = useField(name);
+  const [showPassword, setShowPassword] = useState(false);
   const error = meta.touched && meta.error ? meta.error : undefined;
+  const isPassword = type === "password";
+  const inputType = isPassword ? (showPassword ? "text" : "password") : type;
+  const resolvedStart =
+    startIcon === null
+      ? null
+      : startIcon ?? (showIcon ? inferFieldStartIcon(type, name) : null);
+  const resolvedEnd = isPassword ? null : endIcon ?? null;
+  const resolvedPlaceholder =
+    placeholder ??
+    (label ? t("common.enterField", { field: label }) : undefined);
+  const hasStart = Boolean(resolvedStart);
+  const hasEnd = Boolean(resolvedEnd) || isPassword;
+  const controlClass = `${type === "textarea" ? fieldTextareaClass : fieldClass}${
+    hasStart ? " has-start-icon" : ""
+  }${hasEnd ? " has-end-icon" : ""}${error ? " !border-danger" : ""}`;
+
   return (
     <div className={className}>
-      <Field label={label || ""}>
+      <Field label={label || ""} required={required} hint={hint} error={error}>
         {type === "textarea" ? (
-          <textarea
-            {...field}
-            rows={rows ?? 3}
-            placeholder={placeholder}
-            required={required}
-            className={fieldClass}
-          />
+          <div className="relative">
+            {resolvedStart ? (
+              <span className="glass-field-icon glass-field-icon-start !top-3.5 !translate-y-0">
+                {resolvedStart}
+              </span>
+            ) : null}
+            <textarea
+              {...field}
+              rows={rows ?? 3}
+              placeholder={resolvedPlaceholder}
+              required={required}
+              autoComplete={autoComplete}
+              className={controlClass}
+            />
+          </div>
         ) : (
-          <input
-            {...field}
-            type={type}
-            placeholder={placeholder}
-            required={required}
-            className={fieldClass}
-          />
+          <div className="relative">
+            {resolvedStart ? (
+              <span className="glass-field-icon glass-field-icon-start">
+                {resolvedStart}
+              </span>
+            ) : null}
+            <input
+              {...field}
+              type={inputType}
+              placeholder={resolvedPlaceholder}
+              required={required}
+              autoComplete={autoComplete}
+              className={controlClass}
+            />
+            {isPassword ? (
+              <button
+                type="button"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute end-3 top-1/2 -translate-y-1/2 text-muted transition-colors hover:text-heading"
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            ) : resolvedEnd ? (
+              <span className="glass-field-icon glass-field-icon-end">
+                {resolvedEnd}
+              </span>
+            ) : null}
+          </div>
         )}
       </Field>
-      {error ? <p className="mt-1 text-xs text-danger">{error}</p> : null}
     </div>
   );
 }
 
+/** Prefer FormikSwitchField for boolean form toggles. */
 export function FormikCheckboxField({
   name,
   label,
@@ -72,6 +136,28 @@ export function FormikCheckboxField({
       {label}
       {error ? <span className="text-xs text-danger">{error}</span> : null}
     </label>
+  );
+}
+
+export function FormikSwitchField({
+  name,
+  label,
+  description,
+  className,
+}: BaseProps & { description?: string }) {
+  const [field, meta, helpers] = useField({ name, type: "checkbox" });
+  const error = meta.touched && meta.error ? meta.error : undefined;
+  return (
+    <div className={className || "sm:col-span-2"}>
+      <Switch
+        checked={Boolean(field.value)}
+        onChange={(next) => helpers.setValue(next)}
+        label={label}
+        description={description}
+        name={name}
+      />
+      {error ? <p className="mt-1 text-xs text-danger">{error}</p> : null}
+    </div>
   );
 }
 
@@ -91,7 +177,7 @@ export function FormikSelectField({
   const error = meta.touched && meta.error ? meta.error : undefined;
   return (
     <div className={className}>
-      <Field label={label || ""}>
+      <Field label={label || ""} error={error}>
         <Select
           value={field.value ?? ""}
           selectedLabel={selectedLabel}
@@ -100,7 +186,6 @@ export function FormikSelectField({
           placeholder={placeholder}
         />
       </Field>
-      {error ? <p className="mt-1 text-xs text-danger">{error}</p> : null}
     </div>
   );
 }
@@ -121,7 +206,7 @@ export function FormikSearchSelectField({
   const error = meta.touched && meta.error ? meta.error : undefined;
   return (
     <div className={className}>
-      <Field label={label || ""}>
+      <Field label={label || ""} error={error}>
         <SearchSelect
           value={field.value || null}
           selectedLabel={selectedLabel}
@@ -131,7 +216,6 @@ export function FormikSearchSelectField({
           placeholder={placeholder}
         />
       </Field>
-      {error ? <p className="mt-1 text-xs text-danger">{error}</p> : null}
     </div>
   );
 }
@@ -152,7 +236,7 @@ export function FormikSearchMultiSelectField({
   const error = meta.touched && meta.error ? meta.error : undefined;
   return (
     <div className={className}>
-      <Field label={label || ""}>
+      <Field label={label || ""} error={error}>
         <SearchMultiSelect
           value={Array.isArray(field.value) ? field.value : []}
           selectedOptions={selectedOptions}
@@ -161,7 +245,6 @@ export function FormikSearchMultiSelectField({
           placeholder={placeholder}
         />
       </Field>
-      {error ? <p className="mt-1 text-xs text-danger">{error}</p> : null}
     </div>
   );
 }

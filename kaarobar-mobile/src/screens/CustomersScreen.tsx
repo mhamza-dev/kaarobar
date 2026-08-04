@@ -7,10 +7,10 @@ import {
   ScrollView,
   Pressable,
   StyleSheet,
-  Switch,
 } from "react-native";
 import { useField } from "formik";
 import { api, apiAllPages, colors, getSession, type Session } from "../lib/api";
+import Switch from "../components/ui/Switch";
 import { canAccess, canAccessRoute } from "../lib/rbac";
 import { t } from "../lib/i18n";
 import {
@@ -42,14 +42,12 @@ type LedgerEntry = {
 
 function CreditEnabledSwitch({ label }: { label: string }) {
   const [field, , helpers] = useField<boolean>("credit_enabled");
-  const palette = useBrandPalette();
   return (
-    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-      <Text style={{ color: colors.body, fontSize: 13 }}>{label}</Text>
+    <View style={{ marginBottom: 8 }}>
       <Switch
-        value={Boolean(field.value)}
-        onValueChange={(v) => void helpers.setValue(v)}
-        trackColor={{ true: palette.brand }}
+        checked={Boolean(field.value)}
+        onChange={(v) => void helpers.setValue(v)}
+        label={label}
       />
     </View>
   );

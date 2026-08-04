@@ -3,15 +3,20 @@
 import { useState } from "react";
 import { useField } from "formik";
 import { api } from "@/lib/api/client";
-import Modal from "@/components/modals/Modal";
-import Button from "@/components/ui/Button";
+import FormModal from "@/components/app/FormModal";
 import CustomForm from "@/components/ui/CustomForm";
 import {
-  FormikCheckboxField,
   FormikSelectField,
+  FormikSwitchField,
   FormikTextField,
 } from "@/components/ui/FormFields";
-import { Field, fieldClass } from "@/components/app/ui";
+import {
+  Field,
+  fieldClass,
+  formGridClass,
+  formSectionTitleClass,
+  formStackClass,
+} from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { formatDecimal } from "@/lib/decimal";
@@ -269,38 +274,30 @@ export default function SupplierFormModal({
   }
 
   return (
-    <Modal
+    <FormModal
       isOpen={isOpen}
       onClose={onClose}
       title={editing ? "Edit supplier" : "Add supplier"}
       description="Company details, liaison contact, address, and payment terms."
       size="xl"
-      footer={
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" form="supplier-modal-form" loading={busy}>
-            {editing ? "Save changes" : "Add supplier"}
-          </Button>
-        </div>
-      }
+      formId="supplier-modal-form"
+      submitLabel={editing ? "Save changes" : "Add supplier"}
+      cancelLabel={t("common.cancel")}
+      submitLoading={busy}
     >
       <CustomForm<SupplierFormValues>
         id="supplier-modal-form"
-        className="space-y-6"
+        className={formStackClass}
         initialValues={toFormState(supplier)}
         validationSchema={supplierFormSchema}
         enableReinitialize
         onSubmit={handleSubmit}
       >
         {() => (
-          <>
-            <section className="space-y-3">
-              <h3 className="text-sm font-bold uppercase tracking-wide text-muted">
-                Company
-              </h3>
-              <div className="grid gap-3 sm:grid-cols-2">
+          <div className={formStackClass}>
+            <section className={formStackClass}>
+              <h3 className={formSectionTitleClass}>Company</h3>
+              <div className={formGridClass}>
                 <FormikTextField name="name" label="Trade name" required />
                 <FormikTextField name="legal_name" label="Legal name" />
                 <FormikTextField
@@ -332,18 +329,15 @@ export default function SupplierFormModal({
                   label="Rating (1–5)"
                   type="number"
                 />
-                <FormikCheckboxField
+                <FormikSwitchField
                   name="is_preferred"
                   label="Preferred supplier"
-                  className="pt-7"
                 />
               </div>
             </section>
-            <section className="space-y-3">
-              <h3 className="text-sm font-bold uppercase tracking-wide text-muted">
-                Primary contact
-              </h3>
-              <div className="grid gap-3 sm:grid-cols-2">
+            <section className={formStackClass}>
+              <h3 className={formSectionTitleClass}>Primary contact</h3>
+              <div className={formGridClass}>
                 <FormikTextField name="contact_name" label="Person name" />
                 <FormikTextField
                   name="contact_role"
@@ -361,11 +355,9 @@ export default function SupplierFormModal({
                 <FormikTextField name="contact_cnic" label="CNIC" />
               </div>
             </section>
-            <section className="space-y-3">
-              <h3 className="text-sm font-bold uppercase tracking-wide text-muted">
-                Address
-              </h3>
-              <div className="grid gap-3 sm:grid-cols-2">
+            <section className={formStackClass}>
+              <h3 className={formSectionTitleClass}>Address</h3>
+              <div className={formGridClass}>
                 <FormikTextField name="address_line1" label="Address line 1" />
                 <FormikTextField name="address_line2" label="Address line 2" />
                 <FormikTextField name="city" label="City" />
@@ -374,11 +366,9 @@ export default function SupplierFormModal({
                 <FormikTextField name="country" label="Country" />
               </div>
             </section>
-            <section className="space-y-3">
-              <h3 className="text-sm font-bold uppercase tracking-wide text-muted">
-                Payment & credit
-              </h3>
-              <div className="grid gap-3 sm:grid-cols-2">
+            <section className={formStackClass}>
+              <h3 className={formSectionTitleClass}>Payment & credit</h3>
+              <div className={formGridClass}>
                 <FormikTextField
                   name="payment_terms"
                   label="Payment terms"
@@ -417,22 +407,21 @@ export default function SupplierFormModal({
                 />
               </div>
             </section>
-            <section className="space-y-3">
-              <h3 className="text-sm font-bold uppercase tracking-wide text-muted">
-                Notes & tags
-              </h3>
-              <div className="grid gap-3 sm:grid-cols-2">
+            <section className={formStackClass}>
+              <h3 className={formSectionTitleClass}>Notes & tags</h3>
+              <div className={formGridClass}>
                 <FormikTextField
                   name="tags"
                   label="Tags (comma-separated)"
                   placeholder="preferred, fmcg"
+                  className="sm:col-span-2"
                 />
               </div>
               <FormikTextField name="notes" label="Notes" type="textarea" />
             </section>
-          </>
+          </div>
         )}
       </CustomForm>
-    </Modal>
+    </FormModal>
   );
 }

@@ -6,7 +6,7 @@ import {
   FormikSelectField,
   FormikTextField,
 } from "@/components/ui/FormFields";
-import { Field } from "@/components/app/ui";
+import { Field, formStackClass } from "@/components/app/ui";
 import type { CampaignFormValues } from "@/lib/validations/marketing";
 
 export type { CampaignFormValues } from "@/lib/validations/marketing";
@@ -60,7 +60,7 @@ export default function CampaignFormFields({
   }
 
   return (
-    <div className="grid gap-3">
+    <div className={formStackClass}>
       <FormikTextField
         name="name"
         label={t("marketing.internalName")}

@@ -52,7 +52,8 @@
     "sku": "SKU",
     "markRead": "Marquer comme lu",
     "read": "lire",
-    "dismiss": "Fermer"
+    "dismiss": "Fermer",
+    "enterField": "Saisir {field}"
   },
   "table": {
     "export": "Exporter",
@@ -923,7 +924,20 @@
       "bank": "Banque",
       "card": "Carte",
       "wallet": "Portefeuille"
-    }
+    },
+    "phName": "Nom complet",
+    "phCompany": "Société ou nom commercial",
+    "phPhone": "03XX XXXXXXX",
+    "phEmail": "nom@exemple.com",
+    "phCnic": "XXXXX-XXXXXXX-X",
+    "phNtn": "XXXXXXX-X",
+    "phAddress": "Rue, ville",
+    "phCreditLimit": "0.00",
+    "phUserId": "UUID utilisateur (optionnel)",
+    "phNotes": "Notes internes…",
+    "phPortalPassword": "Définir le mot de passe du portail",
+    "phDelta": "ex. 10 ou -5",
+    "phReason": "Motif de l’ajustement…"
   },
   "marketing": {
     "eyebrow": "Commercialisation",

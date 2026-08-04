@@ -599,6 +599,197 @@ select:focus-visible,
     box-shadow: var(--shadow-sm);
   }
 
+  /* Elevated dialog surface — richer glass for FormModal / Modal */
+  .glass-modal {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border-radius: 1rem;
+    border: 1px solid color-mix(in srgb, var(--glass-border) 70%, var(--brand) 18%);
+    background:
+      linear-gradient(
+        155deg,
+        color-mix(in srgb, var(--glass-strong) 72%, transparent) 0%,
+        color-mix(in srgb, var(--glass) 78%, var(--glass-tint)) 48%,
+        color-mix(in srgb, var(--glass-strong) 86%, var(--brand) 6%) 100%
+      );
+    backdrop-filter: blur(28px) saturate(1.55);
+    -webkit-backdrop-filter: blur(28px) saturate(1.55);
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--brand) 12%, transparent),
+      0 24px 64px -16px color-mix(in srgb, var(--overlay) 55%, transparent),
+      0 8px 24px -8px color-mix(in srgb, var(--brand) 18%, transparent);
+  }
+
+  .glass-modal::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in srgb, #fff 55%, transparent),
+      color-mix(in srgb, var(--brand) 35%, transparent),
+      transparent
+    );
+    opacity: 0.85;
+    z-index: 2;
+  }
+
+  .glass-modal::after {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: -20% -10% auto auto;
+    width: 55%;
+    height: 45%;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      color-mix(in srgb, var(--brand) 22%, transparent),
+      transparent 70%
+    );
+    opacity: 0.55;
+    z-index: 0;
+  }
+
+  .glass-modal-backdrop {
+    background:
+      radial-gradient(
+        120% 80% at 50% -10%,
+        color-mix(in srgb, var(--brand) 22%, transparent),
+        transparent 55%
+      ),
+      color-mix(in srgb, var(--overlay) 78%, transparent);
+    backdrop-filter: blur(10px) saturate(1.2);
+    -webkit-backdrop-filter: blur(10px) saturate(1.2);
+  }
+
+  .glass-modal-header {
+    position: relative;
+    z-index: 1;
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--glass-strong) 55%, transparent),
+      transparent
+    );
+    border-bottom: 1px solid color-mix(in srgb, var(--glass-border) 80%, transparent);
+  }
+
+  .glass-modal-header::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: 0;
+    top: 0.85rem;
+    bottom: 0.85rem;
+    width: 3px;
+    border-radius: 999px;
+    background: linear-gradient(
+      180deg,
+      var(--brand),
+      color-mix(in srgb, var(--brand) 40%, transparent)
+    );
+  }
+
+  .glass-modal-body {
+    position: relative;
+    z-index: 1;
+  }
+
+  .glass-modal-footer {
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid color-mix(in srgb, var(--glass-border) 85%, transparent);
+    background: color-mix(in srgb, var(--glass) 70%, transparent);
+    backdrop-filter: blur(16px) saturate(1.3);
+    -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  }
+
+  /* Form controls — glassy inputs with clear borders */
+  .glass-field {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 2.625rem;
+    height: 2.625rem;
+    border-radius: 0.625rem;
+    border: 1px solid color-mix(in srgb, var(--glass-border) 88%, var(--brand) 12%);
+    background: color-mix(in srgb, var(--glass-strong) 62%, transparent);
+    color: var(--heading);
+    font-size: 0.875rem;
+    line-height: 1;
+    padding-inline: 0.875rem;
+    outline: none;
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, #fff 14%, transparent),
+      0 1px 2px color-mix(in srgb, var(--overlay) 6%, transparent);
+    backdrop-filter: blur(12px) saturate(1.25);
+    -webkit-backdrop-filter: blur(12px) saturate(1.25);
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease,
+      background-color 0.15s ease;
+  }
+
+  .glass-field::placeholder {
+    color: color-mix(in srgb, var(--muted) 92%, transparent);
+  }
+
+  .glass-field:hover:not(:disabled):not(:focus) {
+    border-color: color-mix(in srgb, var(--brand) 28%, var(--glass-border));
+    background: color-mix(in srgb, var(--glass-strong) 72%, transparent);
+  }
+
+  .glass-field:focus {
+    border-color: color-mix(in srgb, var(--brand) 55%, var(--glass-border));
+    background: color-mix(in srgb, var(--glass-strong) 82%, transparent);
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, #fff 16%, transparent),
+      0 0 0 3px color-mix(in srgb, var(--brand) 16%, transparent);
+  }
+
+  .glass-field:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+    background: color-mix(in srgb, var(--bg-tertiary) 80%, transparent);
+  }
+
+  .glass-field-textarea {
+    height: auto;
+    min-height: 5.5rem;
+    line-height: 1.45;
+    padding-block: 0.75rem;
+    resize: vertical;
+  }
+
+  .glass-field-icon {
+    pointer-events: none;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: color-mix(in srgb, var(--muted) 88%, var(--brand) 12%);
+  }
+
+  .glass-field-icon-start {
+    inset-inline-start: 0.75rem;
+  }
+
+  .glass-field-icon-end {
+    inset-inline-end: 0.75rem;
+  }
+
+  .glass-field.has-start-icon {
+    padding-inline-start: 2.5rem;
+  }
+
+  .glass-field.has-end-icon {
+    padding-inline-end: 2.5rem;
+  }
+
   .glass-nav {
     background: color-mix(in srgb, var(--glass) 85%, var(--rail));
     border-color: var(--glass-border);

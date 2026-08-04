@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, ChevronDown, Play, RefreshCw, Send, UserPlus, UserRoundPlus, X } from "lucide-react";
 import { api, getSession } from "@/lib/api/client";
-import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
@@ -14,6 +13,7 @@ import {
   EmptyState,
   StatusBadge,
   SurfaceCard,
+  formStackClass,
 } from "@/components/app/ui";
 import CustomForm from "@/components/ui/CustomForm";
 import {
@@ -929,7 +929,7 @@ function HrPageInner() {
         </div>
       ) : null}
 
-      <Modal
+      <FormModal
         isOpen={modal === "employee"}
         onClose={closeEmployeeModal}
         title={editingEmployeeId ? "Edit employee" : "Add employee"}
@@ -938,20 +938,14 @@ function HrPageInner() {
             ? "Update payroll details and employment status."
             : "Create a payroll record for someone at the active branch."
         }
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={closeEmployeeModal}>
-              Cancel
-            </Button>
-            <Button type="submit" form="employee-modal-form" loading={busy}>
-              {editingEmployeeId ? "Save changes" : "Save employee"}
-            </Button>
-          </div>
-        }
+        formId="employee-modal-form"
+        submitLabel={editingEmployeeId ? "Save changes" : "Save employee"}
+        cancelLabel="Cancel"
+        submitLoading={busy}
       >
         <CustomForm
           id="employee-modal-form"
-          className="space-y-4"
+          className={formStackClass}
           initialValues={empInitial}
           validationSchema={employeeFormSchema}
           enableReinitialize
@@ -963,7 +957,7 @@ function HrPageInner() {
             <EmployeeFormFields editing={Boolean(editingEmployeeId)} t={t} />
           )}
         </CustomForm>
-      </Modal>
+      </FormModal>
 
       <FormModal
         isOpen={modal === "invite"}
@@ -976,7 +970,7 @@ function HrPageInner() {
       >
         <CustomForm
           id="invite-modal-form"
-          className="space-y-4"
+          className={formStackClass}
           initialValues={inviteInitial}
           validationSchema={inviteFormSchema}
           enableReinitialize
@@ -999,6 +993,7 @@ function HrPageInner() {
       >
         <CustomForm
           id="payroll-modal-form"
+          className={formStackClass}
           initialValues={payrollInitial}
           validationSchema={payrollDraftFormSchema}
           enableReinitialize

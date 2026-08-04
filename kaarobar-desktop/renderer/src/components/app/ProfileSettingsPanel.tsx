@@ -2,12 +2,19 @@ import { useCallback, useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, getSession, setSession } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
+import CustomForm from "@/components/ui/CustomForm";
+import { FormikTextField } from "@/components/ui/FormFields";
 import ProfilePicEditor from "@/components/app/ProfilePicEditor";
 import LanguageSwitcher from "@/components/app/LanguageSwitcher";
-import { Field, SurfaceCard, fieldClass } from "@/components/app/ui";
+import { Field, SurfaceCard, fieldClass, formStackClass } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useI18n } from "@/lib/i18n";
 import { settingsKeys } from "@/lib/queryClient";
+import {
+  emptyProfileForm,
+  profileFormSchema,
+  type ProfileFormValues,
+} from "@/lib/validations/profile";
 
 type ProfileUser = {
   id: string;
@@ -21,12 +28,10 @@ export default function ProfileSettingsPanel() {
   const { t } = useI18n();
   const toast = useToast();
   const queryClient = useQueryClient();
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    password: "",
-  });
+  const [initialValues, setInitialValues] = useState<ProfileFormValues>(
+    emptyProfileForm()
+  );
+  const [email, setEmail] = useState("");
   const [picUrl, setPicUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -55,12 +60,12 @@ export default function ProfileSettingsPanel() {
 
   useEffect(() => {
     if (!profile) return;
-    setForm({
+    setInitialValues({
       name: profile.name || "",
-      email: profile.email || "",
       phone: profile.phone || "",
       password: "",
     });
+    setEmail(profile.email || "");
     setPicUrl(profile.profile_pic_url || null);
     syncSessionUser(profile);
   }, [profile, syncSessionUser]);
@@ -71,15 +76,14 @@ export default function ProfileSettingsPanel() {
     }
   }, [isError, error, t, toast]);
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function onSubmit(values: ProfileFormValues) {
     setBusy(true);
     try {
       const body: Record<string, string> = {
-        name: form.name.trim(),
-        phone: form.phone.trim(),
+        name: values.name.trim(),
+        phone: values.phone.trim(),
       };
-      if (form.password.trim()) body.password = form.password;
+      if (values.password.trim()) body.password = values.password;
 
       const res = await api<{ user: ProfileUser }>("/auth/me", {
         method: "PATCH",
@@ -91,7 +95,11 @@ export default function ProfileSettingsPanel() {
         ...res.user,
         profile_pic_url: picUrl,
       });
-      setForm((f) => ({ ...f, password: "" }));
+      setInitialValues({
+        name: res.user.name || "",
+        phone: res.user.phone || "",
+        password: "",
+      });
       toast.success(t("profile.saved"));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.error"));
@@ -105,7 +113,7 @@ export default function ProfileSettingsPanel() {
       <SurfaceCard className="p-5">
         <ProfilePicEditor
           url={picUrl}
-          name={form.name}
+          name={initialValues.name}
           uploadPath="/auth/me/profile-pic"
           urlFromResponse={(body) =>
             (body as { user?: ProfileUser })?.user?.profile_pic_url
@@ -129,52 +137,47 @@ export default function ProfileSettingsPanel() {
       </SurfaceCard>
 
       <SurfaceCard className="p-5">
-        <form onSubmit={onSubmit} className="space-y-4">
-          <Field label={t("profile.name")}>
-            <input
-              className={fieldClass}
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              required
-            />
-          </Field>
+        <CustomForm
+          initialValues={initialValues}
+          validationSchema={profileFormSchema}
+          onSubmit={onSubmit}
+          className={formStackClass}
+        >
+          {() => (
+            <>
+              <FormikTextField name="name" label={t("profile.name")} required />
 
-          <Field label={t("profile.email")}>
-            <input className={fieldClass} value={form.email} disabled />
-            <p className="mt-1 text-xs text-muted">{t("profile.emailHint")}</p>
-          </Field>
+              <Field label={t("profile.email")}>
+                <input className={fieldClass} value={email} disabled />
+                <p className="mt-1 text-xs text-muted">{t("profile.emailHint")}</p>
+              </Field>
 
-          <Field label={t("profile.phone")}>
-            <input
-              className={fieldClass}
-              value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              placeholder="+92…"
-            />
-          </Field>
+              <FormikTextField
+                name="phone"
+                label={t("profile.phone")}
+                placeholder="+92…"
+              />
 
-          <Field label={t("common.language")}>
-            <LanguageSwitcher compact />
-          </Field>
+              <Field label={t("common.language")}>
+                <LanguageSwitcher compact />
+              </Field>
 
-          <Field label={t("profile.newPassword")}>
-            <input
-              type="password"
-              className={fieldClass}
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              autoComplete="new-password"
-              minLength={8}
-            />
-            <p className="mt-1 text-xs text-muted">{t("profile.newPasswordHint")}</p>
-          </Field>
+              <FormikTextField
+                name="password"
+                label={t("profile.newPassword")}
+                type="password"
+                autoComplete="new-password"
+                hint={t("profile.newPasswordHint")}
+              />
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="submit" loading={busy}>
-              {t("profile.save")}
-            </Button>
-          </div>
-        </form>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button type="submit" loading={busy}>
+                  {t("profile.save")}
+                </Button>
+              </div>
+            </>
+          )}
+        </CustomForm>
       </SurfaceCard>
     </div>
   );

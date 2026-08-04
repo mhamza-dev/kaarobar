@@ -3,13 +3,13 @@ import { useBrandPalette } from "../lib/BrandThemeContext";
 import {
   View,
   Text,
-  TextInput,
   ScrollView,
   Pressable,
   StyleSheet,
   Alert,
   Linking,
 } from "react-native";
+import { useField } from "formik";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, colors, getSession } from "../lib/api";
 import { canAccessRoute, isPlanFeatureLocked } from "../lib/rbac";
@@ -21,8 +21,18 @@ import { replacePath, pushPath } from "../lib/nav";
 import ScreenTabs from "../components/screen/ScreenTabs";
 import EntityFormModal from "../components/screen/EntityFormModal";
 import ScreenCard from "../components/screen/ScreenCard";
+import CustomForm from "../components/ui/CustomForm";
+import { FormikTextField } from "../components/ui/FormFields";
 import { useTabParam } from "../hooks/useTabParam";
 import { crmKeys } from "../lib/queryClient";
+import {
+  campaignFormSchema,
+  emptyCampaignForm,
+  emptyTemplateForm,
+  templateFormSchema,
+  type CampaignFormValues,
+  type TemplateFormValues,
+} from "../lib/validations/marketing";
 
 type Campaign = {
   id: string;
@@ -57,12 +67,32 @@ type TemplateVariable = {
 type Tab = "campaigns" | "templates";
 const MARKETING_TABS: readonly Tab[] = ["campaigns", "templates"];
 
-const emptyTplForm = {
-  name: "",
-  channel: "email",
-  title_template: "",
-  body_template: "",
-};
+function InsertVarChips({
+  vars,
+  styles,
+}: {
+  vars: TemplateVariable[];
+  styles: ReturnType<typeof createStyles>;
+}) {
+  const [field, , helpers] = useField<string>("body_template");
+  return (
+    <View style={styles.varChips}>
+      {vars.map((v) => (
+        <Pressable
+          key={v.key}
+          style={styles.chip}
+          onPress={() =>
+            void helpers.setValue(
+              `${field.value || ""}${field.value ? " " : ""}${v.placeholder}`
+            )
+          }
+        >
+          <Text style={styles.varCode}>{v.placeholder}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
 
 export default function MarketingScreen() {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
@@ -73,14 +103,8 @@ export default function MarketingScreen() {
   const [tab, setTab] = useTabParam<Tab>("campaigns", MARKETING_TABS);
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [allowed, setAllowed] = useState(false);
-  const [form, setForm] = useState({
-    name: "",
-    title: "",
-    message: "",
-    audience: "all",
-    min_points: "",
-  });
-  const [tplForm, setTplForm] = useState(emptyTplForm);
+  const [campaignInitial, setCampaignInitial] = useState(emptyCampaignForm());
+  const [tplInitial, setTplInitial] = useState(emptyTemplateForm());
   const [tplModal, setTplModal] = useState(false);
   const [detail, setDetail] = useState<Campaign | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -162,23 +186,23 @@ export default function MarketingScreen() {
     queryClient.invalidateQueries({ queryKey: crmKeys.templates(businessId) });
 
   const createCampaignMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (values: CampaignFormValues) => {
       await api("/crm/campaigns", {
         method: "POST",
         body: JSON.stringify({
-          name: form.name,
-          title: form.title,
-          message: form.message,
-          audience: form.audience,
+          name: values.name,
+          title: values.title,
+          message: values.message,
+          audience: values.audience,
           min_points:
-            form.audience === "min_points" && form.min_points
-              ? Number(form.min_points)
+            values.audience === "min_points" && values.min_points
+              ? Number(values.min_points)
               : null,
         }),
       });
     },
     onSuccess: async () => {
-      setForm({ name: "", title: "", message: "", audience: "all", min_points: "" });
+      setCampaignInitial(emptyCampaignForm());
       toast.success(t("marketing.drafted"));
       await invalidateCampaigns();
     },
@@ -188,17 +212,17 @@ export default function MarketingScreen() {
   });
 
   const createTemplateMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (values: TemplateFormValues) => {
       await api("/crm/templates", {
         method: "POST",
         body: JSON.stringify({
-          ...tplForm,
+          ...values,
           variables: sampleValues,
         }),
       });
     },
     onSuccess: async () => {
-      setTplForm(emptyTplForm);
+      setTplInitial(emptyTemplateForm());
       setTplModal(false);
       toast.success(t("marketing.templateSaved"));
       await invalidateTemplates();
@@ -313,38 +337,53 @@ export default function MarketingScreen() {
 
       {tab === "campaigns" ? (
         <>
-          <ScreenCard title={t("marketing.newCampaign")} style={styles.card} titleStyle={styles.cardTitle}>
-            <TextInput
-              style={styles.input}
-              placeholder={t("marketing.internalName")}
-              placeholderTextColor={colors.muted}
-              value={form.name}
-              onChangeText={(v) => setForm({ ...form, name: v })}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder={t("marketing.notificationTitle")}
-              placeholderTextColor={colors.muted}
-              value={form.title}
-              onChangeText={(v) => setForm({ ...form, title: v })}
-            />
-            <TextInput
-              style={[styles.input, { minHeight: 80 }]}
-              placeholder={t("marketing.message")}
-              placeholderTextColor={colors.muted}
-              multiline
-              value={form.message}
-              onChangeText={(v) => setForm({ ...form, message: v })}
-            />
-            <Pressable
-              style={[styles.btn, { backgroundColor: palette.brand }, busy && { opacity: 0.6 }]}
-              onPress={() => createCampaignMutation.mutate()}
-              disabled={busy}
+          <ScreenCard
+            title={t("marketing.newCampaign")}
+            style={styles.card}
+            titleStyle={styles.cardTitle}
+          >
+            <CustomForm
+              initialValues={campaignInitial}
+              validationSchema={campaignFormSchema}
+              enableReinitialize
+              onSubmit={async (values) => {
+                await createCampaignMutation.mutateAsync(values);
+              }}
             >
-              <Text style={[styles.btnText, { color: palette.brandForeground }]}>
-                {t("marketing.saveDraft")}
-              </Text>
-            </Pressable>
+              {({ handleSubmit }) => (
+                <>
+                  <FormikTextField
+                    name="name"
+                    style={styles.input}
+                    placeholder={t("marketing.internalName")}
+                  />
+                  <FormikTextField
+                    name="title"
+                    style={styles.input}
+                    placeholder={t("marketing.notificationTitle")}
+                  />
+                  <FormikTextField
+                    name="message"
+                    style={[styles.input, { minHeight: 80 }]}
+                    placeholder={t("marketing.message")}
+                    multiline
+                  />
+                  <Pressable
+                    style={[
+                      styles.btn,
+                      { backgroundColor: palette.brand },
+                      busy && { opacity: 0.6 },
+                    ]}
+                    onPress={() => handleSubmit()}
+                    disabled={busy}
+                  >
+                    <Text style={[styles.btnText, { color: palette.brandForeground }]}>
+                      {t("marketing.saveDraft")}
+                    </Text>
+                  </Pressable>
+                </>
+              )}
+            </CustomForm>
           </ScreenCard>
 
           {campaigns.map((c) => (
@@ -402,7 +441,7 @@ export default function MarketingScreen() {
           <Pressable
             style={[styles.btn, { backgroundColor: palette.brand }]}
             onPress={() => {
-              setTplForm(emptyTplForm);
+              setTplInitial(emptyTemplateForm());
               setTplModal(true);
             }}
           >
@@ -436,61 +475,47 @@ export default function MarketingScreen() {
         title={t("marketing.newTemplate")}
         subtitle={t("marketing.variablesHint")}
         onClose={() => setTplModal(false)}
-        onSubmit={() => createTemplateMutation.mutate()}
         submitLabel={t("marketing.saveTemplate")}
         busy={busy}
+        initialValues={tplInitial}
+        validationSchema={templateFormSchema}
+        enableReinitialize
+        onSubmit={async (values) => {
+          await createTemplateMutation.mutateAsync(values);
+        }}
       >
-        <TextInput
-          style={styles.input}
-          placeholder={t("common.name")}
-          placeholderTextColor={colors.muted}
-          value={tplForm.name}
-          onChangeText={(v) => setTplForm({ ...tplForm, name: v })}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder={t("marketing.channel")}
-          placeholderTextColor={colors.muted}
-          value={tplForm.channel}
-          onChangeText={(v) => setTplForm({ ...tplForm, channel: v })}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder={t("marketing.titleTemplate")}
-          placeholderTextColor={colors.muted}
-          value={tplForm.title_template}
-          onChangeText={(v) => setTplForm({ ...tplForm, title_template: v })}
-        />
-        <TextInput
-          style={[styles.input, { minHeight: 90 }]}
-          placeholder={t("marketing.bodyTemplate")}
-          placeholderTextColor={colors.muted}
-          multiline
-          value={tplForm.body_template}
-          onChangeText={(v) => setTplForm({ ...tplForm, body_template: v })}
-        />
-        <View style={styles.varChips}>
-          {templateVars.map((v) => (
-            <Pressable
-              key={v.key}
-              style={styles.chip}
-              onPress={() =>
-                setTplForm((f) => ({
-                  ...f,
-                  body_template: `${f.body_template}${f.body_template ? " " : ""}${v.placeholder}`,
-                }))
-              }
-            >
-              <Text style={styles.varCode}>{v.placeholder}</Text>
-            </Pressable>
-          ))}
-        </View>
+        {() => (
+          <>
+            <FormikTextField
+              name="name"
+              style={styles.input}
+              placeholder={t("common.name")}
+            />
+            <FormikTextField
+              name="channel"
+              style={styles.input}
+              placeholder={t("marketing.channel")}
+            />
+            <FormikTextField
+              name="title_template"
+              style={styles.input}
+              placeholder={t("marketing.titleTemplate")}
+            />
+            <FormikTextField
+              name="body_template"
+              style={[styles.input, { minHeight: 90 }]}
+              placeholder={t("marketing.bodyTemplate")}
+              multiline
+            />
+            <InsertVarChips vars={templateVars} styles={styles} />
+          </>
+        )}
       </EntityFormModal>
     </ScrollView>
   );
 }
 
-function createStyles(palette: { brand: string }) {
+function createStyles(palette: { brand: string; brandForeground: string }) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.bgPrimary, padding: 16 },
     title: { fontSize: 22, fontWeight: "800", color: colors.heading, marginBottom: 12 },

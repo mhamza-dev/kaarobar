@@ -82,3 +82,16 @@ export const signupSchema = yup.object({
     .boolean()
     .oneOf([true], "You must accept the Terms & Conditions"),
 });
+
+export type ForgotPasswordFormValues = {
+  email: string;
+};
+
+export const emptyForgotPasswordForm = (): ForgotPasswordFormValues => ({
+  email: "",
+});
+
+export const forgotPasswordSchema: yup.ObjectSchema<ForgotPasswordFormValues> =
+  yup.object({
+    email: email.required("Email address is required"),
+  });

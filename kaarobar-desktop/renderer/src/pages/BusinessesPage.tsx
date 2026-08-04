@@ -3,12 +3,13 @@ import { Link, useNavigate } from "react-router-dom";
 import { Building2 } from "lucide-react";
 import { api } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
-import Button from "@/components/ui/Button";
+import FormModalFooter from "@/components/app/FormModalFooter";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
 import {
   PageHeader,
   SurfaceCard,
+  formStackClass,
 } from "@/components/app/ui";
 import CustomForm from "@/components/ui/CustomForm";
 import {
@@ -191,15 +192,25 @@ export default function BusinessesPage() {
         isOpen={modal}
         onClose={() => setModal(false)}
         title={t("businesses.add")}
+        footer={
+          <FormModalFooter
+            cancelLabel={t("common.cancel")}
+            submitLabel={t("common.create")}
+            onCancel={() => setModal(false)}
+            submitFormId="create-business-form"
+            loading={busy}
+          />
+        }
       >
         <CustomForm
-          className="space-y-4"
+          id="create-business-form"
+          className={formStackClass}
           initialValues={formInitial}
           validationSchema={businessCreateFormSchema}
           onSubmit={createBusiness}
         >
           {() => (
-            <>
+            <div className={formStackClass}>
               <FormikTextField name="name" label={t("common.name")} required />
               <FormikSelectField
                 name="industry"
@@ -211,15 +222,7 @@ export default function BusinessesPage() {
                 label={t("businesses.taxJurisdiction")}
               />
               <FormikTextField name="tagline" label={t("businesses.tagline")} />
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="secondary" onClick={() => setModal(false)}>
-                  {t("common.cancel")}
-                </Button>
-                <Button type="submit" loading={busy}>
-                  {t("common.create")}
-                </Button>
-              </div>
-            </>
+            </div>
           )}
         </CustomForm>
       </Modal>

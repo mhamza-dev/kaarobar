@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { api, apiAllPages, getSession } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
+import FormModalFooter from "@/components/app/FormModalFooter";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
@@ -18,6 +19,7 @@ import {
   PageHeader,
   SurfaceCard,
   TabBar,
+  formStackClass,
 } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
@@ -1133,7 +1135,7 @@ function InventoryPageInner() {
       {tab === "adjust" ? (
         <SurfaceCard className="max-w-xl p-5">
           <CustomForm
-            className="space-y-3"
+            className={formStackClass}
             initialValues={adjustInitial}
             validationSchema={adjustStockFormSchema}
             onSubmit={adjustStock}
@@ -1177,19 +1179,18 @@ function InventoryPageInner() {
         description={t("inventory.poModalDesc")}
         size="lg"
         footer={
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setModal(null)}>
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" form="po-modal-form" loading={busy}>
-              {t("inventory.createPo")}
-            </Button>
-          </div>
+          <FormModalFooter
+            cancelLabel={t("common.cancel")}
+            submitLabel={t("inventory.createPo")}
+            onCancel={() => setModal(null)}
+            submitFormId="po-modal-form"
+            loading={busy}
+          />
         }
       >
         <CustomForm
           id="po-modal-form"
-          className="space-y-5"
+          className={formStackClass}
           initialValues={poInitial}
           validationSchema={purchaseOrderFormSchema}
           onSubmit={createPO}
@@ -1217,30 +1218,21 @@ function InventoryPageInner() {
         description={t("inventory.receiveGrnDesc")}
         size="lg"
         footer={
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setModal(null);
-                setGrnInitial(emptyGrnForm());
-              }}
-            >
-              {t("common.cancel")}
-            </Button>
-            <Button
-              type="submit"
-              form="grn-modal-form"
-              loading={busy}
-              startIcon={<Check className="h-4 w-4" />}
-            >
-              {t("inventory.receiveGrn")}
-            </Button>
-          </div>
+          <FormModalFooter
+            cancelLabel={t("common.cancel")}
+            submitLabel={t("inventory.receiveGrn")}
+            onCancel={() => {
+              setModal(null);
+              setGrnInitial(emptyGrnForm());
+            }}
+            submitFormId="grn-modal-form"
+            loading={busy}
+          />
         }
       >
         <CustomForm
           id="grn-modal-form"
-          className="space-y-5"
+          className={formStackClass}
           initialValues={grnInitial}
           validationSchema={grnFormSchema}
           onSubmit={receiveGRN}
@@ -1260,26 +1252,21 @@ function InventoryPageInner() {
         title={t("table.attachSupplier")}
         description={t("table.suppliersAttached")}
         footer={
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              type="button"
-              onClick={() => {
-                setAttachSupplierProductId(null);
-                setAttachSupplierInitial(emptyAttachSupplierForm());
-              }}
-            >
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" form="attach-supplier-form" loading={busy}>
-              {t("table.attachSupplier")}
-            </Button>
-          </div>
+          <FormModalFooter
+            cancelLabel={t("common.cancel")}
+            submitLabel={t("table.attachSupplier")}
+            onCancel={() => {
+              setAttachSupplierProductId(null);
+              setAttachSupplierInitial(emptyAttachSupplierForm());
+            }}
+            submitFormId="attach-supplier-form"
+            loading={busy}
+          />
         }
       >
         <CustomForm
           id="attach-supplier-form"
-          className="space-y-4"
+          className={formStackClass}
           initialValues={attachSupplierInitial}
           validationSchema={attachSupplierFormSchema}
           onSubmit={attachSupplier}
@@ -1297,19 +1284,18 @@ function InventoryPageInner() {
         description={t("inventory.transferModalDesc")}
         size="lg"
         footer={
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setModal(null)}>
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" form="transfer-modal-form" loading={busy}>
-              {t("inventory.createTransfer")}
-            </Button>
-          </div>
+          <FormModalFooter
+            cancelLabel={t("common.cancel")}
+            submitLabel={t("inventory.createTransfer")}
+            onCancel={() => setModal(null)}
+            submitFormId="transfer-modal-form"
+            loading={busy}
+          />
         }
       >
         <CustomForm
           id="transfer-modal-form"
-          className="space-y-5"
+          className={formStackClass}
           initialValues={transferInitial}
           validationSchema={transferFormSchema}
           onSubmit={createTransfer}

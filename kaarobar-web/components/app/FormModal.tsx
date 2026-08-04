@@ -41,8 +41,12 @@ export default function FormModal({
       description={description}
       size={size}
       footer={
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose}>
+        <div className="flex flex-wrap items-center justify-end gap-2.5">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            className="min-w-[5.5rem] rounded-full border-[color-mix(in_srgb,var(--glass-border)_90%,transparent)] bg-[color-mix(in_srgb,var(--glass)_55%,transparent)] backdrop-blur-md hover:bg-[color-mix(in_srgb,var(--glass-strong)_70%,transparent)]"
+          >
             {cancelLabel}
           </Button>
           <Button
@@ -51,6 +55,7 @@ export default function FormModal({
             loading={submitLoading}
             disabled={submitDisabled}
             startIcon={submitIcon}
+            className="min-w-[5.5rem] rounded-full shadow-[0_8px_24px_-8px_color-mix(in_srgb,var(--brand)_45%,transparent)]"
           >
             {submitLabel}
           </Button>

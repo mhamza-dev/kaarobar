@@ -1,6 +1,11 @@
+"use client";
+
 import React, { useState } from "react";
 import { useField } from "formik";
 import { ChevronDown, Eye, EyeOff } from "lucide-react";
+import Switch from "@/components/ui/Switch";
+import { fieldClass, fieldTextareaClass } from "@/components/app/ui";
+import { inferFieldStartIcon } from "@/components/ui/fieldIcons";
 
 interface InputProps {
   type:
@@ -17,27 +22,16 @@ interface InputProps {
     | "password";
 
   name: string;
-
   id?: string;
-
   label?: string | React.ReactNode;
-
   placeholder?: string;
-
   required?: boolean;
-
   disabled?: boolean;
-
   rows?: number;
-
   leftIcon?: React.ReactNode;
-
   rightIcon?: React.ReactNode;
-
-  options?: {
-    label: string;
-    value: string;
-  }[];
+  options?: { label: string; value: string }[];
+  className?: string;
 }
 
 const Input = ({
@@ -47,168 +41,120 @@ const Input = ({
   rows = 5,
   leftIcon,
   rightIcon,
+  className = "",
   ...props
 }: InputProps): React.ReactElement => {
   const [field, meta, helpers] = useField(props.name);
-
   const [showPassword, setShowPassword] = useState(false);
-
   const inputId = props.id ?? props.name;
-
   const hasError = meta.touched && Boolean(meta.error);
-
   const inputType =
     type === "password" ? (showPassword ? "text" : "password") : type;
-
-  const baseClass = `
-    w-full
-    rounded-md
-    border
-    bg-bg-secondary/80
-
-    py-2.5
-
-    ${leftIcon ? "pl-10" : "pl-3"}
-
-    ${rightIcon || type === "password" ? "pr-10" : "pr-3"}
-
-    text-sm
-    text-heading
-    placeholder:text-muted
-
-    shadow-sm
-    outline-none
-
-    transition-all
-
-    ${
-      hasError
-        ? "border-danger"
-        : "border-border focus:border-brand/20"
-    }
-
-    disabled:bg-bg-tertiary
-    disabled:text-muted
-    disabled:cursor-not-allowed
-  `;
+  const resolvedLeft =
+    leftIcon === null
+      ? null
+      : leftIcon ??
+        (["checkbox", "switch", "file"].includes(type)
+          ? null
+          : inferFieldStartIcon(type, props.name));
+  const hasLeft = Boolean(resolvedLeft);
+  const hasRight = Boolean(rightIcon) || type === "password" || type === "select";
+  const controlClass = `${type === "textarea" ? fieldTextareaClass : fieldClass}${
+    hasLeft ? " has-start-icon" : ""
+  }${hasRight ? " has-end-icon" : ""}${hasError ? " !border-danger" : ""}`;
 
   return (
-    <div className="mb-5">
-      {/* Label */}
-
+    <div className={className}>
       {label && !["checkbox", "switch"].includes(type) && (
         <label
           htmlFor={inputId}
-          className="mb-2 block text-sm font-medium text-heading"
+          className="mb-2 block text-sm font-semibold text-heading"
         >
           {label}
-
-          {props.required && <span className="ml-1 text-danger">*</span>}
+          {props.required && <span className="ms-1 text-danger">*</span>}
         </label>
       )}
 
-      {/* Textarea */}
-
       {type === "textarea" && (
-        <textarea
-          id={inputId}
-          rows={rows}
-          placeholder={props.placeholder}
-          disabled={props.disabled}
-          className={`${baseClass} resize-y`}
-          {...field}
-        />
+        <div className="relative">
+          {resolvedLeft ? (
+            <span className="glass-field-icon glass-field-icon-start !top-3.5 !translate-y-0">
+              {resolvedLeft}
+            </span>
+          ) : null}
+          <textarea
+            id={inputId}
+            rows={rows}
+            placeholder={props.placeholder}
+            disabled={props.disabled}
+            className={controlClass}
+            {...field}
+          />
+        </div>
       )}
-
-      {/* Select */}
 
       {type === "select" && (
         <div className="relative">
-          {leftIcon && (
-            <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted">
-              {leftIcon}
-            </div>
-          )}
-
+          {resolvedLeft ? (
+            <span className="glass-field-icon glass-field-icon-start">
+              {resolvedLeft}
+            </span>
+          ) : null}
           <select
             id={inputId}
             disabled={props.disabled}
-            className={`${baseClass} appearance-none bg-card pr-10`}
+            className={`${controlClass} appearance-none`}
             {...field}
           >
             <option value="">Select...</option>
-
             {options.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
             ))}
           </select>
-
-          <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted">
+          <span className="glass-field-icon glass-field-icon-end">
             <ChevronDown className="h-4 w-4" aria-hidden />
-          </div>
+          </span>
         </div>
       )}
 
-      {/* Normal Inputs */}
-
-      {["text", "email", "password", "number", "tel", "url", "file"].includes(
-        type,
-      ) && (
+      {["text", "email", "password", "number", "tel", "url", "file"].includes(type) && (
         <div className="relative">
-          {leftIcon && (
-            <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted">
-              {leftIcon}
-            </div>
-          )}
-
+          {resolvedLeft ? (
+            <span className="glass-field-icon glass-field-icon-start">
+              {resolvedLeft}
+            </span>
+          ) : null}
           <input
             id={inputId}
             type={inputType}
             placeholder={props.placeholder}
             disabled={props.disabled}
-            className={baseClass}
+            className={controlClass}
             {...field}
+            value={type === "file" ? undefined : field.value ?? ""}
             onChange={
               type === "file"
                 ? (e) => helpers.setValue(e.currentTarget.files?.[0] ?? null)
                 : field.onChange
             }
           />
-
-          {/* Password Eye */}
-
           {type === "password" && (
             <button
               type="button"
               aria-label={showPassword ? "Hide password" : "Show password"}
               onClick={() => setShowPassword(!showPassword)}
-              className="
-                absolute
-                right-3
-                top-1/2
-                -translate-y-1/2
-                text-muted
-                hover:text-heading
-                transition-colors
-              "
+              className="absolute end-3 top-1/2 -translate-y-1/2 text-muted transition-colors hover:text-heading"
             >
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           )}
-
-          {/* Custom Right Icon */}
-
           {type !== "password" && rightIcon && (
-            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted">
-              {rightIcon}
-            </div>
+            <span className="glass-field-icon glass-field-icon-end">{rightIcon}</span>
           )}
         </div>
       )}
-
-      {/* Checkbox */}
 
       {type === "checkbox" && (
         <label className="flex cursor-pointer items-center gap-3">
@@ -220,46 +166,24 @@ const Input = ({
             onChange={(e) => helpers.setValue(e.target.checked)}
             className="h-4 w-4 rounded border-border text-brand"
           />
-
           <span className="text-sm text-body">
             {label}
-
-            {props.required && <span className="ml-1 text-danger">*</span>}
+            {props.required && <span className="ms-1 text-danger">*</span>}
           </span>
         </label>
       )}
 
-      {/* Switch */}
-
       {type === "switch" && (
-        <label className="flex cursor-pointer items-center gap-3">
-          <input
-            type="checkbox"
-            className="sr-only"
-            checked={Boolean(field.value)}
-            disabled={props.disabled}
-            onChange={(e) => helpers.setValue(e.target.checked)}
-          />
-
-          <div
-            className={`relative h-6 w-11 rounded-full transition-colors ${
-              field.value ? "bg-brand" : "bg-border"
-            }`}
-          >
-            <div
-              className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                field.value ? "translate-x-5" : ""
-              }`}
-            />
-          </div>
-
-          <span className="text-sm text-body">{label}</span>
-        </label>
+        <Switch
+          id={inputId}
+          checked={Boolean(field.value)}
+          disabled={props.disabled}
+          label={typeof label === "string" ? label : undefined}
+          onChange={(next) => helpers.setValue(next)}
+        />
       )}
 
-      {/* Error */}
-
-      {hasError && <p className="mt-1 text-sm text-danger">{meta.error}</p>}
+      {hasError && <p className="mt-1 text-xs text-danger">{meta.error}</p>}
     </div>
   );
 };

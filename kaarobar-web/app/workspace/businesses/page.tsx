@@ -6,12 +6,12 @@ import { useRouter } from "next/navigation";
 import { Building2, Settings } from "lucide-react";
 import { api, getSession } from "@/lib/api/client";
 import { canAccessBundle } from "@/lib/rbac";
-import Modal from "@/components/modals/Modal";
-import Button from "@/components/ui/Button";
+import FormModal from "@/components/app/FormModal";
 import DataTable from "@/components/ui/DataTable";
 import {
   PageHeader,
   SurfaceCard,
+  formStackClass,
 } from "@/components/app/ui";
 import CustomForm from "@/components/ui/CustomForm";
 import {
@@ -210,25 +210,24 @@ export default function BusinessesPage() {
         emptyBody={t("businesses.emptyBody")}
       />
 
-      <Modal
+      <FormModal
         isOpen={modal}
         onClose={() => setModal(false)}
         title={t("businesses.new")}
-        footer={
-          <Button type="submit" form="create-business-form" loading={busy}>
-            {t("common.create")}
-          </Button>
-        }
+        formId="create-business-form"
+        submitLabel={t("common.create")}
+        cancelLabel={t("common.cancel")}
+        submitLoading={busy}
       >
         <CustomForm
           id="create-business-form"
-          className="grid gap-3"
+          className={formStackClass}
           initialValues={formInitial}
           validationSchema={businessFormSchema}
           onSubmit={createBusiness}
         >
           {() => (
-            <>
+            <div className={formStackClass}>
               <FormikTextField name="name" label={t("businesses.name")} required />
               <FormikSelectField
                 name="industry"
@@ -238,10 +237,10 @@ export default function BusinessesPage() {
                   label: t(`businesses.industries.${ind}`),
                 }))}
               />
-            </>
+            </div>
           )}
         </CustomForm>
-      </Modal>
+      </FormModal>
     </div>
   );
 }

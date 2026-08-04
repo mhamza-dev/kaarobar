@@ -10,7 +10,7 @@ import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
-import { SurfaceCard } from "@/components/app/ui";
+import { SurfaceCard, formStackClass } from "@/components/app/ui";
 import CustomForm from "@/components/ui/CustomForm";
 import CampaignFormFields, {
   emptyCampaignForm,
@@ -968,7 +968,10 @@ function MarketingPageInner() {
         onClose={() => setModal(false)}
         title={t("marketing.newCampaign")}
         footer={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setModal(false)}>
+              {t("common.cancel")}
+            </Button>
             <Button type="button" variant="secondary" onClick={() => void previewAudience()}>
               Preview audience
               {previewCount != null ? ` (${previewCount})` : ""}
@@ -981,7 +984,7 @@ function MarketingPageInner() {
       >
         <CustomForm
           id="campaign-form"
-          className="grid gap-3"
+          className={formStackClass}
           initialValues={campaignInitial}
           validationSchema={campaignFormSchema}
           enableReinitialize
@@ -1031,6 +1034,9 @@ function MarketingPageInner() {
         size="lg"
         footer={
           <div className="flex flex-wrap justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setTplModal(false)}>
+              {t("common.cancel")}
+            </Button>
             <Button type="button" variant="secondary" onClick={() => void previewTemplate()}>
               {t("marketing.preview")}
             </Button>
@@ -1042,7 +1048,7 @@ function MarketingPageInner() {
       >
         <CustomForm
           id="template-form"
-          className="grid gap-3"
+          className={formStackClass}
           initialValues={tplInitial}
           validationSchema={templateFormSchema}
           onSubmit={createTemplate}
@@ -1072,7 +1078,7 @@ function MarketingPageInner() {
       >
         <CustomForm
           id="segment-form"
-          className="grid gap-3"
+          className={formStackClass}
           initialValues={segInitial}
           validationSchema={segmentFormSchema}
           onSubmit={createSegment}
@@ -1093,7 +1099,7 @@ function MarketingPageInner() {
       >
         <CustomForm
           id="coupon-form"
-          className="grid gap-3"
+          className={formStackClass}
           initialValues={couponInitial}
           validationSchema={couponFormSchema}
           onSubmit={createCoupon}
@@ -1114,7 +1120,7 @@ function MarketingPageInner() {
       >
         <CustomForm
           id="tier-form"
-          className="grid gap-3"
+          className={formStackClass}
           initialValues={tierInitial}
           validationSchema={loyaltyTierFormSchema}
           onSubmit={createTier}

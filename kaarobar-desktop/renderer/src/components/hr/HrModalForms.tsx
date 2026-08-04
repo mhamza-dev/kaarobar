@@ -7,6 +7,7 @@ import {
   FormikSelectField,
   FormikTextField,
 } from "@/components/ui/FormFields";
+import { formGridClass, formStackClass } from "@/components/app/ui";
 import type { EmployeeFormValues } from "@/lib/validations/hr";
 
 export type { EmployeeFormValues, InviteFormValues, PayrollDraftFormValues } from "@/lib/validations/hr";
@@ -34,8 +35,8 @@ export function EmployeeFormFields({
   const { values } = useFormikContext<EmployeeFormValues>();
 
   return (
-    <>
-      <div className="grid gap-4 sm:grid-cols-2">
+    <div className={formStackClass}>
+      <div className={formGridClass}>
         <FormikTextField name="employee_code" label="Employee code" required />
         <FormikTextField name="name" label="Full name" required />
         <FormikTextField name="position" label="Position" />
@@ -57,7 +58,7 @@ export function EmployeeFormFields({
         ) : null}
       </div>
 
-      <div className="space-y-3">
+      <div className={formStackClass}>
         <FieldArray name="allowances">
           {({ push, remove }) => (
             <>
@@ -109,13 +110,13 @@ export function EmployeeFormFields({
           )}
         </FieldArray>
       </div>
-    </>
+    </div>
   );
 }
 
 export function InviteFormFields() {
   return (
-    <div className="space-y-4">
+    <div className={formStackClass}>
       <FormikTextField
         name="email"
         label="Email"
@@ -130,7 +131,7 @@ export function InviteFormFields() {
 
 export function PayrollDraftFormFields() {
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className={formGridClass}>
       <FormikDateTimeField
         name="period_start"
         label="Period start"

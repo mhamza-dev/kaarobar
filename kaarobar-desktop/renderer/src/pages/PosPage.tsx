@@ -18,11 +18,24 @@ import { api, apiAllPages, getSession } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/modals/Modal";
 import InfoButton from "@/components/ui/InfoButton";
-import { StatusBadge, fieldClass } from "@/components/app/ui";
+import CustomForm from "@/components/ui/CustomForm";
+import { FormikTextField } from "@/components/ui/FormFields";
+import { StatusBadge, fieldClass, formStackClass } from "@/components/app/ui";
 import SaleReceiptModal, { type ReceiptSale } from "@/components/app/SaleReceiptModal";
 import { useToast } from "@/components/ui/Toast";
 import { formatDecimal } from "@/lib/decimal";
 import { useT } from "@/lib/i18n";
+import {
+  closeTillFormSchema,
+  emptyCloseTillForm,
+  emptyOpenTillForm,
+  emptyPosNewCustomerForm,
+  openTillFormSchema,
+  posNewCustomerFormSchema,
+  type CloseTillFormValues,
+  type OpenTillFormValues,
+  type PosNewCustomerFormValues,
+} from "@/lib/validations/pos";
 
 type Product = {
   id: string;
@@ -198,8 +211,6 @@ export default function PosPage() {
   const [cart, setCart] = useState<CartLine[]>([]);
   const [busy, setBusy] = useState(false);
   const [till, setTill] = useState<Till | null>(null);
-  const [openingCash, setOpeningCash] = useState("0");
-  const [closingCash, setClosingCash] = useState("");
   const [payCash, setPayCash] = useState("");
   const [payCard, setPayCard] = useState("");
   const [payWallet, setPayWallet] = useState("");
@@ -214,8 +225,6 @@ export default function PosPage() {
   const [couponCode, setCouponCode] = useState("");
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [couponError, setCouponError] = useState<string | null>(null);
-  const [newCustomerName, setNewCustomerName] = useState("");
-  const [newCustomerPhone, setNewCustomerPhone] = useState("");
   const [showNewCustomer, setShowNewCustomer] = useState(false);
   const [customerModalOpen, setCustomerModalOpen] = useState(false);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
@@ -485,18 +494,14 @@ export default function PosPage() {
     return parts;
   }
 
-  async function createCustomerQuick() {
-    if (!newCustomerName.trim()) {
-      toast.warning("Customer name required");
-      return;
-    }
+  async function createCustomerQuick(values: PosNewCustomerFormValues) {
     setBusy(true);
     try {
       const res = await api<{ data: Customer }>("/customers", {
         method: "POST",
         body: JSON.stringify({
-          name: newCustomerName.trim(),
-          phone: newCustomerPhone.trim() || undefined,
+          name: values.name.trim(),
+          phone: values.phone.trim() || undefined,
           credit_enabled: true,
         }),
       });
@@ -505,8 +510,6 @@ export default function PosPage() {
       setShowNewCustomer(false);
       setCustomerModalOpen(false);
       setCustomerQuery("");
-      setNewCustomerName("");
-      setNewCustomerPhone("");
       toast.success(t("pos.customerCreatedKhata"));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.error"));
@@ -528,7 +531,7 @@ export default function PosPage() {
       toast.error(err instanceof Error ? err.message : t("common.error"));
     }
   }
-  async function openTill() {
+  async function openTill(values: OpenTillFormValues) {
     const session = getSession();
     if (!session?.branch_id) {
       toast.warning(t("tenant.noBranches"));
@@ -540,7 +543,7 @@ export default function PosPage() {
         method: "POST",
         body: JSON.stringify({
           branch_id: session.branch_id,
-          opening_cash: openingCash || "0",
+          opening_cash: values.opening_cash || "0",
         }),
       });
       setTill(res.data);
@@ -552,16 +555,15 @@ export default function PosPage() {
     }
   }
 
-  async function closeTill() {
+  async function closeTill(values: CloseTillFormValues) {
     if (!till?.id) return;
     setBusy(true);
     try {
       const res = await api<{ data: Till }>(`/tills/${till.id}/close`, {
         method: "POST",
-        body: JSON.stringify({ closing_cash: closingCash || "0" }),
+        body: JSON.stringify({ closing_cash: values.closing_cash || "0" }),
       });
       setTill(null);
-      setClosingCash("");
       const over = res.data.over_short;
       toast.success(
         over && Number(over) !== 0
@@ -695,107 +697,137 @@ export default function PosPage() {
 
           <div className="flex flex-wrap items-center gap-2">
             {till ? (
-              <div className="flex flex-wrap items-center gap-3 rounded-md border border-success/20 bg-success-soft/60 px-3 py-2.5 shadow-sm">
-                <div className="flex items-center gap-2.5">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-md bg-success/15 text-success">
-                    <Banknote className="h-4 w-4" aria-hidden />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-success">
-                      {t("pos.tillOpenLabel")}
-                    </p>
-                    <p className="text-sm font-semibold tabular-nums text-heading">
-                      {t("pos.floatAmount", {
-                        amount: formatDecimal(till.opening_cash),
-                      })}
-                    </p>
-                  </div>
-                </div>
-                <div className="h-8 w-px bg-success/20 max-sm:hidden" aria-hidden />
-                <label className="flex flex-col gap-1">
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">
-                    {t("pos.closingCash")}
-                  </span>
-                  <div className="relative">
-                    <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted">
-                      Rs
-                    </span>
-                    <input
-                      value={closingCash}
-                      onChange={(e) => setClosingCash(e.target.value)}
-                      onBlur={() => {
-                        if (!closingCash.trim()) return;
-                        setClosingCash(formatDecimal(closingCash));
-                      }}
-                      type="number"
-                      step="0.01"
-                      min={0}
-                      inputMode="decimal"
-                      placeholder="0.00"
-                      aria-label={t("pos.closingCash")}
-                      className={`${fieldClass} h-9 w-[7.5rem] pl-8 text-sm font-semibold tabular-nums`}
-                    />
-                  </div>
-                </label>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={busy}
-                  onClick={closeTill}
-                  className="self-end"
-                >
-                  {t("pos.closeTill")}
-                </Button>
-              </div>
+              <CustomForm
+                initialValues={emptyCloseTillForm()}
+                validationSchema={closeTillFormSchema}
+                onSubmit={closeTill}
+                className="flex flex-wrap items-center gap-3 rounded-md border border-success/20 bg-success-soft/60 px-3 py-2.5 shadow-sm"
+              >
+                {({ values, setFieldValue }) => (
+                  <>
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-md bg-success/15 text-success">
+                        <Banknote className="h-4 w-4" aria-hidden />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-success">
+                          {t("pos.tillOpenLabel")}
+                        </p>
+                        <p className="text-sm font-semibold tabular-nums text-heading">
+                          {t("pos.floatAmount", {
+                            amount: formatDecimal(till.opening_cash),
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="h-8 w-px bg-success/20 max-sm:hidden" aria-hidden />
+                    <label className="flex flex-col gap-1">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">
+                        {t("pos.closingCash")}
+                      </span>
+                      <div className="relative">
+                        <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted">
+                          Rs
+                        </span>
+                        <input
+                          name="closing_cash"
+                          value={values.closing_cash}
+                          onChange={(e) =>
+                            void setFieldValue("closing_cash", e.target.value)
+                          }
+                          onBlur={(e) => {
+                            if (!e.target.value.trim()) return;
+                            void setFieldValue(
+                              "closing_cash",
+                              formatDecimal(e.target.value)
+                            );
+                          }}
+                          type="number"
+                          step="0.01"
+                          min={0}
+                          inputMode="decimal"
+                          placeholder="0.00"
+                          aria-label={t("pos.closingCash")}
+                          className={`${fieldClass} h-9 w-[7.5rem] pl-8 text-sm font-semibold tabular-nums`}
+                        />
+                      </div>
+                    </label>
+                    <Button
+                      type="submit"
+                      variant="outline"
+                      size="sm"
+                      disabled={busy}
+                      className="self-end"
+                    >
+                      {t("pos.closeTill")}
+                    </Button>
+                  </>
+                )}
+              </CustomForm>
             ) : (
-              <div className="flex flex-wrap items-center gap-3 rounded-md border border-warning/25 bg-warning-soft/70 px-3 py-2.5 shadow-sm">
-                <div className="flex items-center gap-2.5">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-md bg-warning/15 text-warning">
-                    <Banknote className="h-4 w-4" aria-hidden />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-warning">
-                      {t("pos.tillClosedLabel")}
-                    </p>
-                    <p className="text-xs text-muted">{t("pos.enterOpeningFloat")}</p>
-                  </div>
-                </div>
-                <div className="h-8 w-px bg-warning/25 max-sm:hidden" aria-hidden />
-                <label className="flex flex-col gap-1">
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">
-                    {t("pos.openingCash")}
-                  </span>
-                  <div className="relative">
-                    <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted">
-                      Rs
-                    </span>
-                    <input
-                      value={openingCash}
-                      onChange={(e) => setOpeningCash(e.target.value)}
-                      onBlur={() => {
-                        if (!openingCash.trim()) return;
-                        setOpeningCash(formatDecimal(openingCash));
-                      }}
-                      type="number"
-                      step="0.01"
-                      min={0}
-                      inputMode="decimal"
-                      placeholder="0.00"
-                      aria-label={t("pos.openingCash")}
-                      className={`${fieldClass} h-9 w-[7.5rem] border-warning/30 bg-bg-elevated pl-8 text-sm font-semibold tabular-nums`}
-                    />
-                  </div>
-                </label>
-                <Button
-                  size="sm"
-                  disabled={busy}
-                  onClick={openTill}
-                  startIcon={<Banknote className="h-3.5 w-3.5" />}
-                  className="self-end"
-                >
-                  {t("pos.openTill")}
-                </Button>
-              </div>
+              <CustomForm
+                initialValues={emptyOpenTillForm()}
+                validationSchema={openTillFormSchema}
+                onSubmit={openTill}
+                className="flex flex-wrap items-center gap-3 rounded-md border border-warning/25 bg-warning-soft/70 px-3 py-2.5 shadow-sm"
+              >
+                {({ values, setFieldValue }) => (
+                  <>
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-md bg-warning/15 text-warning">
+                        <Banknote className="h-4 w-4" aria-hidden />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-warning">
+                          {t("pos.tillClosedLabel")}
+                        </p>
+                        <p className="text-xs text-muted">{t("pos.enterOpeningFloat")}</p>
+                      </div>
+                    </div>
+                    <div className="h-8 w-px bg-warning/25 max-sm:hidden" aria-hidden />
+                    <label className="flex flex-col gap-1">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">
+                        {t("pos.openingCash")}
+                      </span>
+                      <div className="relative">
+                        <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted">
+                          Rs
+                        </span>
+                        <input
+                          name="opening_cash"
+                          value={values.opening_cash}
+                          onChange={(e) =>
+                            void setFieldValue("opening_cash", e.target.value)
+                          }
+                          onBlur={(e) => {
+                            if (!e.target.value.trim()) return;
+                            void setFieldValue(
+                              "opening_cash",
+                              formatDecimal(e.target.value)
+                            );
+                          }}
+                          type="number"
+                          step="0.01"
+                          min={0}
+                          inputMode="decimal"
+                          placeholder="0.00"
+                          aria-label={t("pos.openingCash")}
+                          className={`${fieldClass} h-9 w-[7.5rem] border-warning/30 bg-bg-elevated pl-8 text-sm font-semibold tabular-nums`}
+                        />
+                      </div>
+                    </label>
+                    <Button
+                      type="submit"
+                      size="sm"
+                      disabled={busy}
+                      startIcon={<Banknote className="h-3.5 w-3.5" />}
+                      className="self-end"
+                    >
+                      {t("pos.openTill")}
+                    </Button>
+                  </>
+                )}
+              </CustomForm>
             )}
             {lastInvoice ? (
               <StatusBadge tone="success">
@@ -1295,23 +1327,22 @@ export default function PosPage() {
           </div>
 
           {showNewCustomer ? (
-            <div className="space-y-2 rounded-md border border-border bg-bg-tertiary/50 p-3">
-              <input
-                className={fieldClass}
-                placeholder="Name"
-                value={newCustomerName}
-                onChange={(e) => setNewCustomerName(e.target.value)}
-              />
-              <input
-                className={fieldClass}
-                placeholder="Phone"
-                value={newCustomerPhone}
-                onChange={(e) => setNewCustomerPhone(e.target.value)}
-              />
-              <Button size="sm" onClick={() => void createCustomerQuick()} loading={busy}>
-                {t("pos.createStartKhata")}
-              </Button>
-            </div>
+            <CustomForm
+              initialValues={emptyPosNewCustomerForm()}
+              validationSchema={posNewCustomerFormSchema}
+              onSubmit={createCustomerQuick}
+              className={`${formStackClass} rounded-md border border-border bg-bg-tertiary/50 p-3`}
+            >
+              {() => (
+                <>
+                  <FormikTextField name="name" placeholder="Name" required />
+                  <FormikTextField name="phone" placeholder="Phone" />
+                  <Button type="submit" size="sm" loading={busy}>
+                    {t("pos.createStartKhata")}
+                  </Button>
+                </>
+              )}
+            </CustomForm>
           ) : null}
 
           <div className="max-h-72 space-y-2 overflow-y-auto pr-0.5">

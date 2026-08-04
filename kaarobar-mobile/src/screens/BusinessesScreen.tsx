@@ -1,20 +1,25 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useBrandPalette } from "../lib/BrandThemeContext";
 import {
-  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
+import { useField } from "formik";
 import { api, colors, getSession } from "../lib/api";
 import { canAccessRoute } from "../lib/rbac";
 import { loadLocale, t } from "../lib/i18n";
 import { useToast } from "../components/Toast";
-import { FormModal } from "../components/FormModal";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import EntityFormModal from "../components/screen/EntityFormModal";
+import { FormikTextField } from "../components/ui/FormFields";
+import {
+  businessCreateFormSchema,
+  emptyBusinessCreateForm,
+  type BusinessCreateFormValues,
+} from "../lib/validations/businesses";
+import { useNavigation } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
 import { replacePath, pushPath } from "../lib/nav";
 
@@ -36,6 +41,25 @@ const INDUSTRIES = [
   "general",
 ];
 
+function IndustryChips({ styles }: { styles: ReturnType<typeof createStyles> }) {
+  const [field, , helpers] = useField<string>("industry");
+  return (
+    <View style={styles.chips}>
+      {INDUSTRIES.map((ind) => (
+        <Pressable
+          key={ind}
+          style={[styles.chip, field.value === ind && styles.chipOn]}
+          onPress={() => void helpers.setValue(ind)}
+        >
+          <Text style={[styles.chipText, field.value === ind && styles.chipTextOn]}>
+            {ind}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
 export default function BusinessesScreen() {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const palette = useBrandPalette();
@@ -44,7 +68,6 @@ export default function BusinessesScreen() {
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [busy, setBusy] = useState(false);
   const [modal, setModal] = useState(false);
-  const [form, setForm] = useState({ name: "", industry: "retail", tagline: "" });
 
   const load = useCallback(async () => {
     try {
@@ -71,19 +94,19 @@ export default function BusinessesScreen() {
     })();
   }, [load]);
 
-  async function create() {
+  async function create(values: BusinessCreateFormValues) {
     setBusy(true);
     try {
       const res = await api<{ data: Business }>("/businesses", {
         method: "POST",
         body: JSON.stringify({
-          name: form.name.trim(),
-          industry: form.industry,
-          tagline: form.tagline.trim() || null,
+          name: values.name.trim(),
+          industry: values.industry,
+          tagline: values.tagline.trim() || null,
+          tax_jurisdiction: values.tax_jurisdiction || "PK",
         }),
       });
       setModal(false);
-      setForm({ name: "", industry: "retail", tagline: "" });
       toast.success(t("businesses.created"));
       await load();
       if (res.data?.id) pushPath(navigation, `/app/businesses/${res.data.id}`);
@@ -125,41 +148,31 @@ export default function BusinessesScreen() {
         )}
       </ScrollView>
 
-      <FormModal
+      <EntityFormModal
         visible={modal}
         title={t("businesses.add")}
         onClose={() => setModal(false)}
-        onSubmit={() => void create()}
         busy={busy}
         submitLabel={t("common.create")}
+        initialValues={emptyBusinessCreateForm()}
+        validationSchema={businessCreateFormSchema}
+        onSubmit={async (values) => {
+          await create(values);
+        }}
       >
-        <Text style={styles.label}>{t("common.name")}</Text>
-        <TextInput
-          style={styles.input}
-          value={form.name}
-          onChangeText={(name) => setForm({ ...form, name })}
-        />
-        <Text style={styles.label}>{t("businesses.industry")}</Text>
-        <View style={styles.chips}>
-          {INDUSTRIES.map((ind) => (
-            <Pressable
-              key={ind}
-              style={[styles.chip, form.industry === ind && styles.chipOn]}
-              onPress={() => setForm({ ...form, industry: ind })}
-            >
-              <Text style={[styles.chipText, form.industry === ind && styles.chipTextOn]}>
-                {ind}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-        <Text style={styles.label}>{t("businesses.tagline")}</Text>
-        <TextInput
-          style={styles.input}
-          value={form.tagline}
-          onChangeText={(tagline) => setForm({ ...form, tagline })}
-        />
-      </FormModal>
+        {() => (
+          <>
+            <FormikTextField name="name" label={t("common.name")} style={styles.input} />
+            <Text style={styles.label}>{t("businesses.industry")}</Text>
+            <IndustryChips styles={styles} />
+            <FormikTextField
+              name="tagline"
+              label={t("businesses.tagline")}
+              style={styles.input}
+            />
+          </>
+        )}
+      </EntityFormModal>
     </>
   );
 }
@@ -198,8 +211,9 @@ function createStyles(palette: import("../lib/brandTheme").BrandPalette) {
       paddingHorizontal: 12,
       paddingVertical: 10,
       color: colors.heading,
+      marginBottom: 8,
     },
-    chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+    chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 8 },
     chip: {
       borderWidth: 1,
       borderColor: colors.border,

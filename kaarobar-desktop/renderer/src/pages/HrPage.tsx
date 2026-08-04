@@ -13,6 +13,7 @@ import {
   StatusBadge,
   SurfaceCard,
   TabBar,
+  formStackClass,
 } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
@@ -958,7 +959,7 @@ function HrPageInner() {
       >
         <CustomForm
           id="employee-modal-form"
-          className="space-y-4"
+          className={formStackClass}
           initialValues={empInitial}
           validationSchema={employeeFormSchema}
           enableReinitialize
@@ -978,19 +979,18 @@ function HrPageInner() {
         title="Invite staff"
         description="Grant access to someone who already has a Kaarobar login (e.g. cashier@…)."
         footer={
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setModal(null)}>
-              Cancel
-            </Button>
-            <Button type="submit" form="invite-modal-form" loading={busy}>
-              Send invite
-            </Button>
-          </div>
+          <FormModalFooter
+            cancelLabel="Cancel"
+            submitLabel="Send invite"
+            onCancel={() => setModal(null)}
+            submitFormId="invite-modal-form"
+            loading={busy}
+          />
         }
       >
         <CustomForm
           id="invite-modal-form"
-          className="space-y-4"
+          className={formStackClass}
           initialValues={inviteInitial}
           validationSchema={inviteFormSchema}
           enableReinitialize
@@ -1019,6 +1019,7 @@ function HrPageInner() {
       >
         <CustomForm
           id="payroll-modal-form"
+          className={formStackClass}
           initialValues={payrollInitial}
           validationSchema={payrollDraftFormSchema}
           enableReinitialize

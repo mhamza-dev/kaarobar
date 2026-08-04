@@ -52,7 +52,8 @@
     "sku": "SKU",
     "markRead": "وضع علامة كمقروء",
     "read": "اقرأ",
-    "dismiss": "استبعاد"
+    "dismiss": "استبعاد",
+    "enterField": "أدخل {field}"
   },
   "table": {
     "export": "تصدير",
@@ -923,7 +924,20 @@
       "bank": "بنك",
       "card": "بطاقة",
       "wallet": "محفظة"
-    }
+    },
+    "phName": "الاسم الكامل",
+    "phCompany": "الشركة أو الاسم التجاري",
+    "phPhone": "03XX XXXXXXX",
+    "phEmail": "name@example.com",
+    "phCnic": "XXXXX-XXXXXXX-X",
+    "phNtn": "XXXXXXX-X",
+    "phAddress": "الشارع، المدينة",
+    "phCreditLimit": "0.00",
+    "phUserId": "معرّف المستخدم (اختياري)",
+    "phNotes": "ملاحظات داخلية…",
+    "phPortalPassword": "تعيين كلمة مرور البوابة",
+    "phDelta": "مثال: 10 أو -5",
+    "phReason": "سبب تعديل النقاط…"
   },
   "marketing": {
     "eyebrow": "التسويق",

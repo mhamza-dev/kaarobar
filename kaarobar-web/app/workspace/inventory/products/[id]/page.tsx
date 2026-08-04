@@ -9,11 +9,18 @@ import { DetailFieldGrid, DetailSection, DetailShell } from "@/components/app/De
 import ActionMenu from "@/components/ui/ActionMenu";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
-import Modal from "@/components/modals/Modal";
-import SearchSelect from "@/components/ui/SearchSelect";
+import FormModal from "@/components/app/FormModal";
+import CustomForm from "@/components/ui/CustomForm";
+import { FormikSearchSelectField } from "@/components/ui/FormFields";
+import { formStackClass } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { formatDecimal } from "@/lib/decimal";
+import {
+  attachSupplierFormSchema,
+  emptyAttachSupplierForm,
+  type AttachSupplierFormValues,
+} from "@/lib/validations/inventory";
 
 type Product = {
   id: string;
@@ -59,7 +66,6 @@ export default function ProductDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [attachOpen, setAttachOpen] = useState(false);
-  const [attachSupplierId, setAttachSupplierId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -89,7 +95,6 @@ export default function ProductDetailPage() {
   }, [load]);
 
   async function openAttach() {
-    setAttachSupplierId(null);
     setAttachOpen(true);
     try {
       const res = await api<{ data: SupplierOption[] }>("/suppliers");
@@ -106,18 +111,16 @@ export default function ProductDetailPage() {
       .map((s) => ({ value: s.id, label: s.name }));
   }, [allSuppliers, suppliers]);
 
-  async function attachSupplier(e: React.FormEvent) {
-    e.preventDefault();
-    if (!id || !attachSupplierId) return;
+  async function attachSupplier(values: AttachSupplierFormValues) {
+    if (!id || !values.supplier_id) return;
     setBusy(true);
     try {
       await api(`/products/${id}/suppliers`, {
         method: "POST",
-        body: JSON.stringify({ supplier_id: attachSupplierId }),
+        body: JSON.stringify({ supplier_id: values.supplier_id }),
       });
       toast.success(t("inventory.supplierAttached"));
       setAttachOpen(false);
-      setAttachSupplierId(null);
       await load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.error"));
@@ -273,46 +276,40 @@ export default function ProductDetailPage() {
         ) : null}
       </DetailShell>
 
-      <Modal
+      <FormModal
         isOpen={attachOpen}
         onClose={() => setAttachOpen(false)}
         title={t("table.attachSupplier")}
         description={t("inventory.attachSupplierDesc")}
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setAttachOpen(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button
-              type="submit"
-              form="attach-supplier-to-product-form"
-              loading={busy}
-              disabled={!attachSupplierId}
-              startIcon={<PackagePlus className="h-4 w-4" />}
-            >
-              {t("table.attachSupplier")}
-            </Button>
-          </div>
-        }
+        formId="attach-supplier-to-product-form"
+        submitLabel={t("table.attachSupplier")}
+        cancelLabel={t("common.cancel")}
+        submitLoading={busy}
+        submitDisabled={attachOptions.length === 0}
+        submitIcon={<PackagePlus className="h-4 w-4" />}
       >
-        <form
+        <CustomForm
           id="attach-supplier-to-product-form"
+          initialValues={emptyAttachSupplierForm()}
+          validationSchema={attachSupplierFormSchema}
           onSubmit={attachSupplier}
-          className="space-y-3"
+          className={formStackClass}
         >
-          <SearchSelect
-            label={t("inventory.supplier")}
-            options={attachOptions}
-            value={attachSupplierId}
-            onChange={setAttachSupplierId}
-            placeholder={t("inventory.selectSupplier")}
-            searchPlaceholder={t("searchSelect.search")}
-          />
-          {attachOptions.length === 0 ? (
-            <p className="text-sm text-body">{t("inventory.allSuppliersLinked")}</p>
-          ) : null}
-        </form>
-      </Modal>
+          {() => (
+            <>
+              <FormikSearchSelectField
+                name="supplier_id"
+                label={t("inventory.supplier")}
+                options={attachOptions}
+                placeholder={t("inventory.selectSupplier")}
+              />
+              {attachOptions.length === 0 ? (
+                <p className="text-sm text-body">{t("inventory.allSuppliersLinked")}</p>
+              ) : null}
+            </>
+          )}
+        </CustomForm>
+      </FormModal>
     </>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import FormModal from "@/components/app/FormModal";
-import { Field } from "@/components/app/ui";
+import { Field, formGridClass, formStackClass } from "@/components/app/ui";
 import CustomForm from "@/components/ui/CustomForm";
 import {
   FormikSelectField,
@@ -77,6 +77,7 @@ export default function ReceiveArPaymentFormModal({
       description={t("customers.receivePaymentDesc")}
       formId="receive-ar-payment-form"
       submitLabel={t("customers.receivePayment")}
+      cancelLabel={t("common.cancel")}
       submitLoading={busy}
       submitDisabled={openInvoices.length === 0}
     >
@@ -85,7 +86,7 @@ export default function ReceiveArPaymentFormModal({
       ) : (
         <CustomForm
           id="receive-ar-payment-form"
-          className="space-y-4"
+          className={formStackClass}
           initialValues={initialValues}
           validationSchema={receiveArPaymentSchema}
           onSubmit={async (values) => {
@@ -101,7 +102,7 @@ export default function ReceiveArPaymentFormModal({
           }}
         >
           {({ values, setFieldValue, errors, touched }) => (
-            <>
+            <div className={formStackClass}>
               <div>
                 <Field label={t("customers.invoice")}>
                   <Select
@@ -123,26 +124,28 @@ export default function ReceiveArPaymentFormModal({
                   <p className="mt-1 text-xs text-danger">{errors.invoiceId}</p>
                 ) : null}
               </div>
-              <FormikTextField
-                name="amount"
-                label={t("common.amount")}
-                type="number"
-                required
-              />
-              <FormikSelectField
-                name="method"
-                label={t("customers.paymentMethod")}
-                options={METHODS.map((m) => ({
-                  value: m,
-                  label: t(`customers.method.${m}`),
-                }))}
-              />
+              <div className={formGridClass}>
+                <FormikTextField
+                  name="amount"
+                  label={t("common.amount")}
+                  type="number"
+                  required
+                />
+                <FormikSelectField
+                  name="method"
+                  label={t("customers.paymentMethod")}
+                  options={METHODS.map((m) => ({
+                    value: m,
+                    label: t(`customers.method.${m}`),
+                  }))}
+                />
+              </div>
               <FormikTextField
                 name="reference"
                 label={t("customers.paymentReference")}
                 placeholder={t("customers.paymentReferenceHint")}
               />
-            </>
+            </div>
           )}
         </CustomForm>
       )}

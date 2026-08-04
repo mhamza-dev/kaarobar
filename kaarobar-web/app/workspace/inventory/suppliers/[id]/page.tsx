@@ -6,16 +6,22 @@ import { PackagePlus, Plus } from "lucide-react";
 import { api, apiAllPages } from "@/lib/api/client";
 import { routes } from "@/lib/navigation";
 import { DetailFieldGrid, DetailSection, DetailShell } from "@/components/app/DetailShell";
-import { StatusBadge } from "@/components/app/ui";
+import { StatusBadge, formStackClass } from "@/components/app/ui";
 import ActionMenu from "@/components/ui/ActionMenu";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
-import Modal from "@/components/modals/Modal";
-import SearchSelect from "@/components/ui/SearchSelect";
+import FormModal from "@/components/app/FormModal";
+import CustomForm from "@/components/ui/CustomForm";
+import { FormikSearchSelectField } from "@/components/ui/FormFields";
 import ProductFormModal from "@/components/inventory/ProductFormModal";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { formatDecimal } from "@/lib/decimal";
+import {
+  attachProductFormSchema,
+  emptyAttachProductForm,
+  type AttachProductFormValues,
+} from "@/lib/validations/inventory";
 
 type Supplier = {
   id: string;
@@ -57,7 +63,6 @@ export default function SupplierDetailPage() {
   const [loading, setLoading] = useState(true);
   const [attachOpen, setAttachOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
-  const [attachProductId, setAttachProductId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -82,7 +87,6 @@ export default function SupplierDetailPage() {
   }, [load]);
 
   async function openAttach() {
-    setAttachProductId(null);
     setAttachOpen(true);
     try {
       const data = await apiAllPages<Product>("/products");
@@ -102,18 +106,16 @@ export default function SupplierDetailPage() {
       }));
   }, [allProducts, products]);
 
-  async function attachProduct(e: React.FormEvent) {
-    e.preventDefault();
-    if (!attachProductId) return;
+  async function attachProduct(values: AttachProductFormValues) {
+    if (!values.product_id) return;
     setBusy(true);
     try {
       await api(`/suppliers/${id}/products`, {
         method: "POST",
-        body: JSON.stringify({ product_id: attachProductId }),
+        body: JSON.stringify({ product_id: values.product_id }),
       });
       toast.success(t("inventory.productAttached"));
       setAttachOpen(false);
-      setAttachProductId(null);
       await load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.error"));
@@ -329,42 +331,40 @@ export default function SupplierDetailPage() {
         onSuccess={onProductCreated}
       />
 
-      <Modal
+      <FormModal
         isOpen={attachOpen}
         onClose={() => setAttachOpen(false)}
         title={t("inventory.attachProduct")}
         description={t("inventory.attachProductDesc")}
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setAttachOpen(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button
-              type="submit"
-              form="attach-product-form"
-              loading={busy}
-              disabled={!attachProductId}
-              startIcon={<PackagePlus className="h-4 w-4" />}
-            >
-              {t("inventory.attachProduct")}
-            </Button>
-          </div>
-        }
+        formId="attach-product-form"
+        submitLabel={t("inventory.attachProduct")}
+        cancelLabel={t("common.cancel")}
+        submitLoading={busy}
+        submitDisabled={attachOptions.length === 0}
+        submitIcon={<PackagePlus className="h-4 w-4" />}
       >
-        <form id="attach-product-form" onSubmit={attachProduct} className="space-y-3">
-          <SearchSelect
-            label={t("inventory.product")}
-            options={attachOptions}
-            value={attachProductId}
-            onChange={setAttachProductId}
-            placeholder={t("inventory.selectProduct")}
-            searchPlaceholder={t("searchSelect.search")}
-          />
-          {attachOptions.length === 0 ? (
-            <p className="text-sm text-body">{t("inventory.allProductsLinked")}</p>
-          ) : null}
-        </form>
-      </Modal>
+        <CustomForm
+          id="attach-product-form"
+          initialValues={emptyAttachProductForm()}
+          validationSchema={attachProductFormSchema}
+          onSubmit={attachProduct}
+          className={formStackClass}
+        >
+          {() => (
+            <>
+              <FormikSearchSelectField
+                name="product_id"
+                label={t("inventory.product")}
+                options={attachOptions}
+                placeholder={t("inventory.selectProduct")}
+              />
+              {attachOptions.length === 0 ? (
+                <p className="text-sm text-body">{t("inventory.allProductsLinked")}</p>
+              ) : null}
+            </>
+          )}
+        </CustomForm>
+      </FormModal>
     </>
   );
 }

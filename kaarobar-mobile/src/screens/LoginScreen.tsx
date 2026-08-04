@@ -8,7 +8,6 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import {
@@ -20,15 +19,23 @@ import {
 } from "../lib/api";
 import { t } from "../lib/i18n";
 import KaarobarLogo from "../components/KaarobarLogo";
+import CustomForm from "../components/ui/CustomForm";
+import { FormikTextField, FormikSwitchField } from "../components/ui/FormFields";
+import { loginSchema, type LoginFormValues } from "../lib/validations/auth";
+
+const loginInitial: LoginFormValues = {
+  loginMethod: "email",
+  email: "owner@kaarobar.local",
+  phoneNumber: "",
+  password: "Password@123",
+  remember: false,
+};
 
 /** Business / staff sign-in only (CUS portal lives in kaarobar-customer). */
 export default function LoginScreen() {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const palette = useBrandPalette();
   const styles = useMemo(() => createStyles(palette), [palette]);
-  const [email, setEmail] = useState("owner@kaarobar.local");
-  const [password, setPassword] = useState("Password@123");
-  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -38,7 +45,7 @@ export default function LoginScreen() {
     }
   }, []);
 
-  async function onSubmit() {
+  async function onSubmit(values: LoginFormValues) {
     setBusy(true);
     setError(null);
     try {
@@ -57,9 +64,9 @@ export default function LoginScreen() {
           method: "POST",
           body: JSON.stringify({
             actor: "business",
-            email: email.trim(),
-            password,
-            remember_me: rememberMe,
+            email: values.email?.trim(),
+            password: values.password,
+            remember_me: values.remember,
           }),
         },
         null
@@ -94,48 +101,45 @@ export default function LoginScreen() {
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <Text style={styles.label}>{t("auth.email")}</Text>
-        <TextInput
-          autoCapitalize="none"
-          keyboardType="email-address"
-          value={email}
-          onChangeText={setEmail}
-          style={styles.input}
-          placeholder="you@company.com"
-          placeholderTextColor={colors.muted}
-        />
-
-        <Text style={styles.label}>{t("auth.password")}</Text>
-        <TextInput
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-          style={styles.input}
-          placeholder="••••••••"
-          placeholderTextColor={colors.muted}
-        />
-
-        <Pressable
-          style={styles.rememberRow}
-          onPress={() => setRememberMe((v) => !v)}
+        <CustomForm
+          initialValues={loginInitial}
+          validationSchema={loginSchema}
+          onSubmit={onSubmit}
         >
-          <View style={[styles.checkbox, rememberMe && styles.checkboxOn]}>
-            {rememberMe ? <Text style={styles.checkboxMark}>✓</Text> : null}
-          </View>
-          <Text style={styles.rememberLabel}>Remember me</Text>
-        </Pressable>
+          {({ handleSubmit }) => (
+            <>
+              <FormikTextField
+                name="email"
+                label={t("auth.email")}
+                style={styles.input}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                placeholder="you@company.com"
+              />
+              <FormikTextField
+                name="password"
+                label={t("auth.password")}
+                style={styles.input}
+                secureTextEntry
+                autoCapitalize="none"
+                placeholder="••••••••"
+              />
+              <FormikSwitchField name="remember" label="Remember me" />
 
-        <Pressable
-          style={({ pressed }) => [styles.primary, pressed && styles.primaryPressed]}
-          onPress={onSubmit}
-          disabled={busy}
-        >
-          {busy ? (
-            <ActivityIndicator color={colors.white} />
-          ) : (
-            <Text style={styles.primaryText}>{t("common.signIn")}</Text>
+              <Pressable
+                style={({ pressed }) => [styles.primary, pressed && styles.primaryPressed]}
+                onPress={() => handleSubmit()}
+                disabled={busy}
+              >
+                {busy ? (
+                  <ActivityIndicator color={colors.white} />
+                ) : (
+                  <Text style={styles.primaryText}>{t("common.signIn")}</Text>
+                )}
+              </Pressable>
+            </>
           )}
-        </Pressable>
+        </CustomForm>
 
         <Pressable onPress={() => pushPath(navigation, "/signup")}>
           <Text style={styles.link}>{t("auth.needAccount")}</Text>
@@ -180,12 +184,6 @@ function createStyles(palette: import("../lib/brandTheme").BrandPalette) {
       borderRadius: colors.radiusLg,
       marginBottom: 12,
     },
-    label: {
-      fontSize: 13,
-      fontWeight: "600",
-      color: colors.heading,
-      marginBottom: 6,
-    },
     input: {
       borderWidth: 1,
       borderColor: colors.glassBorder,
@@ -205,29 +203,6 @@ function createStyles(palette: import("../lib/brandTheme").BrandPalette) {
     },
     primaryPressed: { transform: [{ scale: 0.98 }], opacity: 0.92 },
     primaryText: { color: colors.white, fontWeight: "700", fontSize: 16 },
-    rememberRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 10,
-      marginBottom: 8,
-      marginTop: 2,
-    },
-    checkbox: {
-      width: 22,
-      height: 22,
-      borderRadius: 6,
-      borderWidth: 1.5,
-      borderColor: colors.border,
-      backgroundColor: colors.card,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    checkboxOn: {
-      backgroundColor: palette.brand,
-      borderColor: palette.brand,
-    },
-    checkboxMark: { color: colors.white, fontSize: 14, fontWeight: "700" },
-    rememberLabel: { color: colors.heading, fontWeight: "600" },
     link: {
       marginTop: 18,
       textAlign: "center",

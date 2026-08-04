@@ -178,20 +178,51 @@ export function StatusBadge({
 export function Field({
   label,
   children,
+  hint,
+  error,
+  required,
+  className = "",
 }: {
   label: string;
   children: ReactNode;
+  hint?: string;
+  error?: string;
+  required?: boolean;
+  className?: string;
 }) {
   return (
-    <label className="block space-y-1.5">
-      <span className="text-sm font-medium text-heading">{label}</span>
+    <label className={`block space-y-2 ${className}`}>
+      {label ? (
+        <span className="block text-sm font-semibold text-heading">
+          {label}
+          {required ? <span className="ms-1 text-danger">*</span> : null}
+        </span>
+      ) : null}
       {children}
+      {hint && !error ? <span className="block text-xs text-muted">{hint}</span> : null}
+      {error ? <span className="block text-xs text-danger">{error}</span> : null}
     </label>
   );
 }
 
-export const fieldClass =
-  "w-full rounded-md border border-border bg-bg-secondary/80 px-3 py-2.5 text-sm text-heading outline-none transition placeholder:text-muted focus:border-brand/20";
+/** Shared control chrome — height matches Select `h-[2.625rem]`. */
+export const fieldClass = "glass-field";
+
+export const fieldTextareaClass = "glass-field glass-field-textarea";
+
+export const formSectionTitleClass =
+  "text-xs font-bold uppercase tracking-wide text-muted";
+
+export const formGridClass = "grid gap-4 sm:grid-cols-2";
+
+export const formStackClass = "space-y-5";
+
+/** Trigger chrome for Select / SearchSelect — matches glass-field. */
+export const fieldTriggerClass =
+  "glass-field flex items-center gap-2 text-start hover:border-brand/40 focus:border-brand/45";
+
+export const fieldTriggerSmClass =
+  "glass-field !h-9 !min-h-9 rounded-md px-2 text-xs";
 
 export function Alert({
   tone = "info",

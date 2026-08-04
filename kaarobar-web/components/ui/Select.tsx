@@ -3,6 +3,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown } from "lucide-react";
+import { fieldTriggerClass, fieldTriggerSmClass } from "@/components/app/ui";
 import { useT } from "@/lib/i18n";
 
 export type SelectOption = {
@@ -130,10 +131,7 @@ export default function Select({
     };
   }, [open]);
 
-  const sizeClass =
-    size === "sm"
-      ? "h-9 rounded-md border border-border bg-bg-secondary/80 px-2 text-xs leading-none"
-      : "h-[2.625rem] min-h-[2.625rem] w-full rounded-md border border-border bg-bg-secondary/80 px-3 text-sm leading-none";
+  const sizeClass = size === "sm" ? fieldTriggerSmClass : fieldTriggerClass;
 
   const panel =
     open && coords && mounted
@@ -206,7 +204,7 @@ export default function Select({
         aria-expanded={open}
         aria-controls={listId}
         onClick={() => !disabled && setOpen((o) => !o)}
-        className={`box-border flex w-full items-center gap-2 text-start text-heading outline-none transition hover:border-brand/40 focus:border-brand/20 disabled:cursor-not-allowed disabled:opacity-60 ${sizeClass} ${triggerClassName}`}
+        className={`disabled:cursor-not-allowed disabled:opacity-60 ${sizeClass} ${triggerClassName}`}
       >
         <span className={`min-w-0 flex-1 truncate ${displayLabel ? "" : "text-muted"}`}>
           {displayLabel || resolvedPlaceholder}

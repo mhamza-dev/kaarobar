@@ -3,6 +3,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown, Search, X } from "lucide-react";
+import { fieldTriggerClass } from "@/components/app/ui";
 import { useT } from "@/lib/i18n";
 
 export type SearchSelectOption = {
@@ -155,7 +156,7 @@ export default function SearchSelect({
         aria-expanded={open}
         aria-controls={listId}
         onClick={() => !disabled && setOpen((o) => !o)}
-        className="box-border flex h-[2.625rem] min-h-[2.625rem] w-full items-center gap-2 rounded-md border border-border bg-bg-secondary/80 px-3 text-start text-sm leading-none text-heading outline-none transition hover:border-brand/40 focus:border-brand/20 disabled:cursor-not-allowed disabled:opacity-60"
+        className={`${fieldTriggerClass} disabled:cursor-not-allowed disabled:opacity-60`}
       >
         <span className={`min-w-0 flex-1 truncate ${display ? "" : "text-muted"}`}>
           {display ? display.label : resolvedPlaceholder}

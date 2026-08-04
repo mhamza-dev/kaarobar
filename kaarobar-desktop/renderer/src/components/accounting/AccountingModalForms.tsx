@@ -3,11 +3,11 @@
 import { useField, useFormikContext } from "formik";
 import Select from "@/components/ui/Select";
 import {
-  FormikCheckboxField,
   FormikSelectField,
+  FormikSwitchField,
   FormikTextField,
 } from "@/components/ui/FormFields";
-import { Field, fieldClass } from "@/components/app/ui";
+import { Field, fieldClass, formGridClass, formStackClass } from "@/components/app/ui";
 import { formatDecimal } from "@/lib/decimal";
 import { useT } from "@/lib/i18n";
 import type {
@@ -84,41 +84,43 @@ export function AccountFormFields({
   const t = useT();
 
   return (
-    <div className="space-y-4">
-      <FormikTextField name="code" label="Code" required />
-      <FormikTextField name="name" label="Name" required />
-      <AccountTypeSelect />
-      <FormikSelectField
-        name="classification"
-        label={t("accounting.classification")}
-        options={CLASSIFICATIONS.map((c) => ({
-          value: c,
-          label: c.replace(/_/g, " "),
-        }))}
-      />
-      <FormikSelectField
-        name="normal_balance"
-        label={t("accounting.normalBalance")}
-        options={[
-          { value: "debit", label: "Debit" },
-          { value: "credit", label: "Credit" },
-        ]}
-      />
-      <FormikSelectField
-        name="parent_account_id"
-        label={t("accounting.parentAccount")}
-        placeholder="—"
-        options={[
-          { value: "", label: "—" },
-          ...accounts
-            .filter((a) => a.id !== editingAccountId)
-            .map((a) => ({
-              value: a.id,
-              label: `${a.code} ${a.name}`,
-            })),
-        ]}
-      />
-      <FormikCheckboxField name="is_header" label={t("accounting.headerAccount")} />
+    <div className={formStackClass}>
+      <div className={formGridClass}>
+        <FormikTextField name="code" label="Code" required />
+        <FormikTextField name="name" label="Name" required />
+        <AccountTypeSelect />
+        <FormikSelectField
+          name="classification"
+          label={t("accounting.classification")}
+          options={CLASSIFICATIONS.map((c) => ({
+            value: c,
+            label: c.replace(/_/g, " "),
+          }))}
+        />
+        <FormikSelectField
+          name="normal_balance"
+          label={t("accounting.normalBalance")}
+          options={[
+            { value: "debit", label: "Debit" },
+            { value: "credit", label: "Credit" },
+          ]}
+        />
+        <FormikSelectField
+          name="parent_account_id"
+          label={t("accounting.parentAccount")}
+          placeholder="—"
+          options={[
+            { value: "", label: "—" },
+            ...accounts
+              .filter((a) => a.id !== editingAccountId)
+              .map((a) => ({
+                value: a.id,
+                label: `${a.code} ${a.name}`,
+              })),
+          ]}
+        />
+      </div>
+      <FormikSwitchField name="is_header" label={t("accounting.headerAccount")} />
     </div>
   );
 }
@@ -186,7 +188,7 @@ export function JournalEntryFormFields({
   accounts: AccountOption[];
 }) {
   return (
-    <div className="space-y-4">
+    <div className={formStackClass}>
       <FormikTextField name="description" label="Description" required placeholder="Description" />
       <JournalLineFields name="lineA" accounts={accounts} />
       <JournalLineFields name="lineB" accounts={accounts} />

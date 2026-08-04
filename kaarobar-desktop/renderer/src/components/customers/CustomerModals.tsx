@@ -1,11 +1,11 @@
 import Modal from "@/components/modals/Modal";
-import Button from "@/components/ui/Button";
 import FormModalFooter from "@/components/app/FormModalFooter";
 import CustomForm from "@/components/ui/CustomForm";
 import {
-  FormikCheckboxField,
+  FormikSwitchField,
   FormikTextField,
 } from "@/components/ui/FormFields";
+import { formGridClass, formStackClass } from "@/components/app/ui";
 import { formatDecimal } from "@/lib/decimal";
 import type { Customer, CustomerForm } from "@/lib/customers";
 import {
@@ -48,6 +48,7 @@ export function CustomerFormModal({
       isOpen={isOpen}
       onClose={onClose}
       title={editing ? t("customers.edit") : t("customers.add")}
+      size="lg"
       footer={
         <FormModalFooter
           cancelLabel={t("common.cancel")}
@@ -55,13 +56,12 @@ export function CustomerFormModal({
           onCancel={onClose}
           submitFormId="customer-form"
           loading={busy}
-          cancelVariant="secondary"
         />
       }
     >
       <CustomForm
         id="customer-form"
-        className="grid gap-3 sm:grid-cols-2"
+        className={formStackClass}
         initialValues={values}
         validationSchema={customerFormSchema}
         onSubmit={async (formValues) => {
@@ -73,11 +73,11 @@ export function CustomerFormModal({
         }}
       >
         {({ values: formValues }) => (
-          <>
+          <div className={formGridClass}>
             {CUSTOMER_FORM_FIELDS.map((f) => {
               if (f.type === "checkbox") {
                 return (
-                  <FormikCheckboxField
+                  <FormikSwitchField
                     key={f.key}
                     name={f.key}
                     label={t(f.labelKey)}
@@ -93,34 +93,35 @@ export function CustomerFormModal({
                     label={t(f.labelKey)}
                     type="textarea"
                     rows={3}
+                    className="sm:col-span-2"
+                    placeholder={f.placeholderKey ? t(f.placeholderKey) : undefined}
                   />
                 );
               }
               return (
-                <div key={f.key}>
-                  <FormikTextField
-                    name={f.key}
-                    label={t(f.labelKey)}
-                    type={f.key === "credit_limit" ? "number" : f.type || "text"}
-                    required={
-                      f.required ||
-                      (f.key === "portal_password" &&
-                        formValues.portal_enabled &&
-                        !editing?.portal_enabled)
-                    }
-                    placeholder={
-                      f.key === "portal_password" && editing?.portal_enabled
-                        ? t("customers.portalPasswordHint")
+                <FormikTextField
+                  key={f.key}
+                  name={f.key}
+                  label={t(f.labelKey)}
+                  type={f.key === "credit_limit" ? "number" : f.type || "text"}
+                  required={
+                    f.required ||
+                    (f.key === "portal_password" &&
+                      formValues.portal_enabled &&
+                      !editing?.portal_enabled)
+                  }
+                  placeholder={
+                    f.key === "portal_password" && editing?.portal_enabled
+                      ? t("customers.portalPasswordHint")
+                      : f.placeholderKey
+                        ? t(f.placeholderKey)
                         : undefined
-                    }
-                  />
-                  {f.hintKey ? (
-                    <p className="mt-1 text-xs text-muted">{t(f.hintKey)}</p>
-                  ) : null}
-                </div>
+                  }
+                  hint={f.hintKey ? t(f.hintKey) : undefined}
+                />
               );
             })}
-          </>
+          </div>
         )}
       </CustomForm>
     </Modal>
@@ -157,14 +158,18 @@ export function LoyaltyAdjustmentModal({
       onClose={onClose}
       title={t("customers.adjustPointsTitle", { name: customerName })}
       footer={
-        <Button type="submit" form="loyalty-form" loading={busy}>
-          {t("customers.apply")}
-        </Button>
+        <FormModalFooter
+          cancelLabel={t("common.cancel")}
+          submitLabel={t("customers.apply")}
+          onCancel={onClose}
+          submitFormId="loyalty-form"
+          loading={busy}
+        />
       }
     >
       <CustomForm
         id="loyalty-form"
-        className="grid gap-3"
+        className={formStackClass}
         initialValues={{ delta: 10, reason: "" } satisfies LoyaltyFormValues}
         validationSchema={loyaltyAdjustSchema}
         onSubmit={async (values) => {
@@ -175,13 +180,24 @@ export function LoyaltyAdjustmentModal({
         }}
       >
         {() => (
-          <>
+          <div className={formStackClass}>
             <p className="text-sm text-body">
               {t("customers.currentPoints", { count: currentPoints })}
             </p>
-            <FormikTextField name="delta" label={t("customers.delta")} type="number" required />
-            <FormikTextField name="reason" label={t("customers.reason")} />
-          </>
+            <div className={formGridClass}>
+              <FormikTextField
+                name="delta"
+                label={t("customers.delta")}
+                type="number"
+                placeholder={t("customers.phDelta")}
+              />
+              <FormikTextField
+                name="reason"
+                label={t("customers.reason")}
+                placeholder={t("customers.phReason")}
+              />
+            </div>
+          </div>
         )}
       </CustomForm>
     </Modal>

@@ -124,3 +124,16 @@ export const buyerSignupSchema = yup.object({
 export const inviteAcceptSchema = yup.object({
   password,
 });
+
+export type ForgotPasswordFormValues = {
+  email: string;
+};
+
+export const emptyForgotPasswordForm = (): ForgotPasswordFormValues => ({
+  email: "",
+});
+
+export const forgotPasswordSchema: yup.ObjectSchema<ForgotPasswordFormValues> =
+  yup.object({
+    email: email.required("Email address is required"),
+  });

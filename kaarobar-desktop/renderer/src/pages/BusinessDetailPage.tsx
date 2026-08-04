@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useEffect, useState, type CSSProperties } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "@/lib/api/client";
 import { routes } from "@/lib/navigation";
@@ -13,12 +13,28 @@ import {
   clearStaffBrandPreview,
   previewStaffBrand,
 } from "@/components/app/BrandTheme";
-import { Field, TabBar, fieldClass } from "@/components/app/ui";
+import FormModalFooter from "@/components/app/FormModalFooter";
+import { TabBar, formGridClass, formStackClass } from "@/components/app/ui";
 import Button from "@/components/ui/Button";
-import Select from "@/components/ui/Select";
+import CustomForm from "@/components/ui/CustomForm";
+import {
+  FormikSelectField,
+  FormikTextField,
+} from "@/components/ui/FormFields";
 import Modal from "@/components/modals/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
+import {
+  branchFormSchema,
+  businessBrandingFormSchema,
+  businessDetailsFormSchema,
+  emptyBranchForm,
+  emptyBusinessBrandingForm,
+  emptyBusinessDetailsForm,
+  type BranchFormValues,
+  type BusinessBrandingFormValues,
+  type BusinessDetailsFormValues,
+} from "@/lib/validations/businesses";
 
 type Business = {
   id: string;
@@ -74,15 +90,12 @@ function BusinessDetailPageInner() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [branchModal, setBranchModal] = useState(false);
-  const [branchName, setBranchName] = useState("");
-  const [form, setForm] = useState({
-    name: "",
-    industry: "retail",
-    tax_jurisdiction: "PK",
-    tagline: "",
-    primary_color: "",
-    marketplace_description: "",
-  });
+  const [detailsInitial, setDetailsInitial] = useState(
+    emptyBusinessDetailsForm()
+  );
+  const [brandingInitial, setBrandingInitial] = useState(
+    emptyBusinessBrandingForm()
+  );
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -95,10 +108,13 @@ function BusinessDetailPageInner() {
       ]);
       setBusiness(b.data);
       setBranches(br.data || []);
-      setForm({
+      setDetailsInitial({
         name: b.data.name || "",
         industry: b.data.industry || "retail",
         tax_jurisdiction: b.data.tax_jurisdiction || "PK",
+        tagline: b.data.tagline || "",
+      });
+      setBrandingInitial({
         tagline: b.data.tagline || "",
         primary_color: b.data.primary_color || "",
         marketplace_description: b.data.marketplace_description || "",
@@ -118,18 +134,22 @@ function BusinessDetailPageInner() {
     return () => clearStaffBrandPreview();
   }, []);
 
-  async function saveDetails(e: React.FormEvent) {
-    e.preventDefault();
+  const industryOptions = useMemo(
+    () => INDUSTRIES.map((ind) => ({ value: ind, label: ind })),
+    []
+  );
+
+  async function saveDetails(values: BusinessDetailsFormValues) {
     if (!id) return;
     setBusy(true);
     try {
       await api(`/businesses/${id}`, {
         method: "PATCH",
         body: JSON.stringify({
-          name: form.name.trim(),
-          industry: form.industry,
-          tax_jurisdiction: form.tax_jurisdiction || "PK",
-          tagline: form.tagline.trim() || null,
+          name: values.name.trim(),
+          industry: values.industry,
+          tax_jurisdiction: values.tax_jurisdiction || "PK",
+          tagline: values.tagline.trim() || null,
         }),
       });
       toast.success(t("common.success"));
@@ -141,18 +161,17 @@ function BusinessDetailPageInner() {
     }
   }
 
-  async function saveBranding(e: React.FormEvent) {
-    e.preventDefault();
-    if (!id) return;
+  async function saveBranding(values: BusinessBrandingFormValues) {
+    if (!id || !business) return;
     setBusy(true);
     try {
       await api(`/businesses/${id}`, {
         method: "PATCH",
         body: JSON.stringify({
-          name: form.name.trim(),
-          tagline: form.tagline.trim() || null,
-          primary_color: form.primary_color || null,
-          marketplace_description: form.marketplace_description.trim() || null,
+          name: business.name.trim(),
+          tagline: values.tagline.trim() || null,
+          primary_color: values.primary_color || null,
+          marketplace_description: values.marketplace_description.trim() || null,
         }),
       });
       toast.success(t("businesses.brandingSaved"));
@@ -190,18 +209,16 @@ function BusinessDetailPageInner() {
     }
   }
 
-  async function createBranch(e: React.FormEvent) {
-    e.preventDefault();
+  async function createBranch(values: BranchFormValues) {
     if (!id) return;
     setBusy(true);
     try {
       await api(`/businesses/${id}/branches`, {
         method: "POST",
-        body: JSON.stringify({ name: branchName.trim(), timezone: "Asia/Karachi" }),
+        body: JSON.stringify({ name: values.name.trim(), timezone: "Asia/Karachi" }),
       });
       toast.success(t("businesses.branchCreated"));
       setBranchModal(false);
-      setBranchName("");
       await load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.error"));
@@ -279,55 +296,43 @@ function BusinessDetailPageInner() {
 
           {tab === "details" ? (
             <DetailSection title={t("businesses.tabDetails")}>
-              <form onSubmit={saveDetails} className="space-y-4">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Field label={t("common.name")}>
-                    <input
-                      className={fieldClass}
-                      required
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+              <CustomForm
+                initialValues={detailsInitial}
+                validationSchema={businessDetailsFormSchema}
+                onSubmit={saveDetails}
+                className={formStackClass}
+              >
+                {() => (
+                  <>
+                    <div className={formGridClass}>
+                      <FormikTextField name="name" label={t("common.name")} required />
+                      <FormikSelectField
+                        name="industry"
+                        label={t("businesses.industry")}
+                        options={industryOptions}
+                      />
+                      <FormikTextField
+                        name="tax_jurisdiction"
+                        label={t("businesses.taxJurisdiction")}
+                      />
+                      <FormikTextField name="tagline" label={t("businesses.tagline")} />
+                    </div>
+                    <DetailFieldGrid
+                      fields={[
+                        {
+                          label: t("settings.fbrTitle"),
+                          value: business.fbr_tier1
+                            ? t("common.enabled")
+                            : t("common.disabled"),
+                        },
+                      ]}
                     />
-                  </Field>
-                  <Field label={t("businesses.industry")}>
-                    <Select
-                      value={form.industry}
-                      onChange={(v) => setForm({ ...form, industry: v })}
-                      options={INDUSTRIES.map((ind) => ({ value: ind, label: ind }))}
-                      triggerClassName="border-border bg-bg-secondary/80"
-                    />
-                  </Field>
-                  <Field label={t("businesses.taxJurisdiction")}>
-                    <input
-                      className={fieldClass}
-                      value={form.tax_jurisdiction}
-                      onChange={(e) =>
-                        setForm({ ...form, tax_jurisdiction: e.target.value })
-                      }
-                    />
-                  </Field>
-                  <Field label={t("businesses.tagline")}>
-                    <input
-                      className={fieldClass}
-                      value={form.tagline}
-                      onChange={(e) => setForm({ ...form, tagline: e.target.value })}
-                    />
-                  </Field>
-                </div>
-                <DetailFieldGrid
-                  fields={[
-                    {
-                      label: t("settings.fbrTitle"),
-                      value: business.fbr_tier1
-                        ? t("common.enabled")
-                        : t("common.disabled"),
-                    },
-                  ]}
-                />
-                <Button type="submit" loading={busy}>
-                  {t("common.save")}
-                </Button>
-              </form>
+                    <Button type="submit" loading={busy}>
+                      {t("common.save")}
+                    </Button>
+                  </>
+                )}
+              </CustomForm>
             </DetailSection>
           ) : null}
 
@@ -340,7 +345,6 @@ function BusinessDetailPageInner() {
                 <Button
                   size="sm"
                   onClick={() => {
-                    setBranchName("");
                     setBranchModal(true);
                   }}
                 >
@@ -383,100 +387,99 @@ function BusinessDetailPageInner() {
 
           {tab === "branding" ? (
             <DetailSection title={t("businesses.tabBranding")}>
-              <form onSubmit={saveBranding} className="space-y-4">
-                <div className="flex flex-wrap items-start gap-4">
-                  <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-card-muted">
-                    {business.logo_url ? (
-                      <img
-                        src={business.logo_url}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-2xl font-bold text-heading">
-                        {(business.name || "?").slice(0, 1).toUpperCase()}
+              <CustomForm
+                initialValues={brandingInitial}
+                validationSchema={businessBrandingFormSchema}
+                onSubmit={saveBranding}
+                className={formStackClass}
+              >
+                {({ values, setFieldValue }) => (
+                  <>
+                    <div className="flex flex-wrap items-start gap-4">
+                      <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-card-muted">
+                        {business.logo_url ? (
+                          <img
+                            src={business.logo_url}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-2xl font-bold text-heading">
+                            {(business.name || "?").slice(0, 1).toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <div className="flex flex-wrap gap-2">
+                          <label className="cursor-pointer rounded-md border border-border px-3 py-1.5 text-sm font-medium text-heading hover:bg-bg-hover">
+                            {t("businesses.uploadLogo")}
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp,image/gif"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) void uploadLogo(file);
+                                e.target.value = "";
+                              }}
+                            />
+                          </label>
+                          {business.logo_url ? (
+                            <button
+                              type="button"
+                              onClick={() => void clearLogo()}
+                              className="rounded-md border border-border px-3 py-1.5 text-sm text-body"
+                            >
+                              {t("businesses.removeLogo")}
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                    <FormikTextField name="tagline" label={t("businesses.tagline")} />
+                    <div className="text-xs text-body">
+                      <span className="mb-1.5 block font-medium text-heading">
+                        {t("businesses.brandColor")}
                       </span>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1 space-y-2">
-                    <div className="flex flex-wrap gap-2">
-                      <label className="cursor-pointer rounded-md border border-border px-3 py-1.5 text-sm font-medium text-heading hover:bg-bg-hover">
-                        {t("businesses.uploadLogo")}
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp,image/gif"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) void uploadLogo(file);
-                            e.target.value = "";
-                          }}
-                        />
-                      </label>
-                      {business.logo_url ? (
+                      <BrandColorPicker
+                        value={values.primary_color || null}
+                        onChange={(hex) => {
+                          void setFieldValue("primary_color", hex);
+                          previewStaffBrand(business.id, hex);
+                        }}
+                      />
+                      <div
+                        className="mt-3 flex flex-wrap items-center gap-3 rounded-md border border-dashed border-border bg-bg-secondary/60 p-4"
+                        style={
+                          values.primary_color
+                            ? ({
+                                ["--brand" as string]: values.primary_color,
+                                ["--color-brand" as string]: values.primary_color,
+                              } as CSSProperties)
+                            : undefined
+                        }
+                      >
                         <button
                           type="button"
-                          onClick={() => void clearLogo()}
-                          className="rounded-md border border-border px-3 py-1.5 text-sm text-body"
+                          className="rounded-md px-4 py-2 text-sm font-semibold text-white shadow-sm"
+                          style={{ backgroundColor: values.primary_color || "#1D4ED8" }}
                         >
-                          {t("businesses.removeLogo")}
+                          {t("businesses.previewButton")}
                         </button>
-                      ) : null}
+                      </div>
                     </div>
-                  </div>
-                </div>
-                <Field label={t("businesses.tagline")}>
-                  <input
-                    className={fieldClass}
-                    value={form.tagline}
-                    onChange={(e) => setForm({ ...form, tagline: e.target.value })}
-                  />
-                </Field>
-                <div className="text-xs text-body">
-                  <span className="mb-1.5 block font-medium text-heading">
-                    {t("businesses.brandColor")}
-                  </span>
-                  <BrandColorPicker
-                    value={form.primary_color || null}
-                    onChange={(hex) => {
-                      setForm((f) => ({ ...f, primary_color: hex }));
-                      previewStaffBrand(business.id, hex);
-                    }}
-                  />
-                  <div
-                    className="mt-3 flex flex-wrap items-center gap-3 rounded-md border border-dashed border-border bg-bg-secondary/60 p-4"
-                    style={
-                      form.primary_color
-                        ? ({
-                            ["--brand" as string]: form.primary_color,
-                            ["--color-brand" as string]: form.primary_color,
-                          } as CSSProperties)
-                        : undefined
-                    }
-                  >
-                    <button
-                      type="button"
-                      className="rounded-md px-4 py-2 text-sm font-semibold text-white shadow-sm"
-                      style={{ backgroundColor: form.primary_color || "#1D4ED8" }}
-                    >
-                      {t("businesses.previewButton")}
-                    </button>
-                  </div>
-                </div>
-                <Field label={t("businesses.marketplaceDesc")}>
-                  <textarea
-                    className={fieldClass}
-                    rows={3}
-                    value={form.marketplace_description}
-                    onChange={(e) =>
-                      setForm({ ...form, marketplace_description: e.target.value })
-                    }
-                  />
-                </Field>
-                <Button type="submit" loading={busy}>
-                  {t("businesses.saveBranding")}
-                </Button>
-              </form>
+                    <FormikTextField
+                      name="marketplace_description"
+                      label={t("businesses.marketplaceDesc")}
+                      type="textarea"
+                      rows={3}
+                    />
+                    <Button type="submit" loading={busy}>
+                      {t("businesses.saveBranding")}
+                    </Button>
+                  </>
+                )}
+              </CustomForm>
             </DetailSection>
           ) : null}
         </div>
@@ -486,25 +489,26 @@ function BusinessDetailPageInner() {
         isOpen={branchModal}
         onClose={() => setBranchModal(false)}
         title={t("businesses.addBranch")}
+        footer={
+          <FormModalFooter
+            cancelLabel={t("common.cancel")}
+            submitLabel={t("common.create")}
+            onCancel={() => setBranchModal(false)}
+            submitFormId="create-branch-form"
+            loading={busy}
+            cancelVariant="secondary"
+          />
+        }
       >
-        <form onSubmit={createBranch} className="space-y-4">
-          <Field label={t("common.name")}>
-            <input
-              className={fieldClass}
-              required
-              value={branchName}
-              onChange={(e) => setBranchName(e.target.value)}
-            />
-          </Field>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="secondary" onClick={() => setBranchModal(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" loading={busy}>
-              {t("common.create")}
-            </Button>
-          </div>
-        </form>
+        <CustomForm
+          id="create-branch-form"
+          initialValues={emptyBranchForm()}
+          validationSchema={branchFormSchema}
+          onSubmit={createBranch}
+          className={formStackClass}
+        >
+          {() => <FormikTextField name="name" label={t("common.name")} required />}
+        </CustomForm>
       </Modal>
     </DetailShell>
   );

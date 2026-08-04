@@ -8,7 +8,7 @@ import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
-import { PageHeader, TabBar } from "@/components/app/ui";
+import { PageHeader, TabBar, formStackClass } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { useTabQueryParam } from "@/lib/hooks/useTabQueryParam";
@@ -1098,7 +1098,7 @@ function AccountingPageInner() {
       >
         <CustomForm
           id="account-modal-form"
-          className="space-y-4"
+          className={formStackClass}
           initialValues={accountInitial}
           validationSchema={accountFormSchema}
           enableReinitialize
@@ -1132,7 +1132,7 @@ function AccountingPageInner() {
       >
         <CustomForm
           id="je-modal-form"
-          className="space-y-4"
+          className={formStackClass}
           initialValues={jeInitial}
           validationSchema={journalEntryFormSchema}
           enableReinitialize

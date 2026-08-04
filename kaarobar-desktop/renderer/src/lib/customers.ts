@@ -18,6 +18,7 @@ export type Customer = {
   marketing_opt_in_sms?: boolean;
   marketing_opt_in_whatsapp?: boolean;
   portal_enabled?: boolean;
+  /** True when linked to a platform customer_account (signed up on portal). */
   portal_linked?: boolean;
   customer_account_id?: string | null;
   profile_pic_url?: string | null;
@@ -116,19 +117,20 @@ export const CUSTOMER_FORM_FIELDS: {
   key: keyof CustomerForm;
   labelKey: string;
   required?: boolean;
-  type?: "text" | "email" | "password" | "textarea" | "checkbox";
+  type?: "text" | "email" | "password" | "tel" | "textarea" | "checkbox";
   hintKey?: string;
+  placeholderKey?: string;
 }[] = [
-  { key: "name", labelKey: "common.name", required: true },
-  { key: "company_name", labelKey: "customers.company" },
-  { key: "phone", labelKey: "customers.phone" },
-  { key: "email", labelKey: "customers.email", type: "email" },
-  { key: "cnic", labelKey: "customers.cnic" },
-  { key: "ntn", labelKey: "customers.ntn" },
-  { key: "address", labelKey: "customers.address" },
-  { key: "credit_limit", labelKey: "customers.creditLimit" },
-  { key: "user_id", labelKey: "customers.userId" },
-  { key: "notes", labelKey: "customers.notes", type: "textarea" },
+  { key: "name", labelKey: "common.name", required: true, placeholderKey: "customers.phName" },
+  { key: "company_name", labelKey: "customers.company", placeholderKey: "customers.phCompany" },
+  { key: "phone", labelKey: "customers.phone", type: "tel", placeholderKey: "customers.phPhone" },
+  { key: "email", labelKey: "customers.email", type: "email", placeholderKey: "customers.phEmail" },
+  { key: "cnic", labelKey: "customers.cnic", placeholderKey: "customers.phCnic" },
+  { key: "ntn", labelKey: "customers.ntn", placeholderKey: "customers.phNtn" },
+  { key: "address", labelKey: "customers.address", placeholderKey: "customers.phAddress" },
+  { key: "credit_limit", labelKey: "customers.creditLimit", placeholderKey: "customers.phCreditLimit" },
+  { key: "user_id", labelKey: "customers.userId", placeholderKey: "customers.phUserId" },
+  { key: "notes", labelKey: "customers.notes", type: "textarea", placeholderKey: "customers.phNotes" },
   { key: "credit_enabled", labelKey: "customers.khataEnabled", type: "checkbox" },
   { key: "portal_enabled", labelKey: "customers.portalEnabled", type: "checkbox" },
   {
@@ -136,6 +138,7 @@ export const CUSTOMER_FORM_FIELDS: {
     labelKey: "customers.portalPassword",
     type: "password",
     hintKey: "customers.portalPasswordHint",
+    placeholderKey: "customers.phPortalPassword",
   },
   { key: "marketing_opt_in_email", labelKey: "customers.optInEmail", type: "checkbox" },
   { key: "marketing_opt_in_sms", labelKey: "customers.optInSms", type: "checkbox" },

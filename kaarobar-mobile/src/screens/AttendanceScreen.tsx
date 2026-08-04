@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { useBrandPalette } from "../lib/BrandThemeContext";
 import {
   ActivityIndicator,
@@ -7,7 +7,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { pickImageFromLibrary } from "../lib/imagePicker";
@@ -15,16 +14,29 @@ import { api, colors, getSession, type Session } from "../lib/api";
 import { canAccessRoute } from "../lib/rbac";
 import { formatDecimal } from "../lib/decimal";
 import SegmentedTabs from "../components/SegmentedTabs";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
-import { replacePath, pushPath } from "../lib/nav";
+import { replacePath } from "../lib/nav";
 import { useTabParam } from "../hooks/useTabParam";
+import CustomForm from "../components/ui/CustomForm";
+import { FormikTextField, FormikDateTimeField } from "../components/ui/FormFields";
+import {
+  emptyLeaveRequestForm,
+  leaveRequestFormSchema,
+  type LeaveRequestFormValues,
+} from "../lib/validations/hr";
 
 type Tab = "clock" | "leave" | "payslips";
 const ATTENDANCE_TABS: readonly Tab[] = ["clock", "leave", "payslips"];
 
 type EssData = {
-  employee: { id: string; name: string; employee_code: string; position?: string; profile_pic_url?: string | null };
+  employee: {
+    id: string;
+    name: string;
+    employee_code: string;
+    position?: string;
+    profile_pic_url?: string | null;
+  };
   open_attendance?: { id: string; date: string; clock_in: string } | null;
   attendance: { id: string; date: string; clock_in?: string; clock_out?: string }[];
   leave: {
@@ -57,10 +69,7 @@ export default function EssScreen() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [leaveType, setLeaveType] = useState("annual");
-  const [leaveStart, setLeaveStart] = useState(new Date().toISOString().slice(0, 10));
-  const [leaveEnd, setLeaveEnd] = useState(new Date().toISOString().slice(0, 10));
-  const [leaveReason, setLeaveReason] = useState("");
+  const [leaveInitial, setLeaveInitial] = useState(emptyLeaveRequestForm());
 
   const load = useCallback(async () => {
     try {
@@ -88,7 +97,6 @@ export default function EssScreen() {
       await load();
     })();
   }, [load]);
-
 
   async function pickEmployeePhoto() {
     const asset = await pickImageFromLibrary();
@@ -153,20 +161,20 @@ export default function EssScreen() {
     }
   }
 
-  async function requestLeave() {
+  async function requestLeave(values: LeaveRequestFormValues) {
     setBusy(true);
     try {
       await api("/app/leave", {
         method: "POST",
         body: JSON.stringify({
-          type: leaveType,
-          start_date: leaveStart,
-          end_date: leaveEnd,
-          reason: leaveReason,
+          type: values.type,
+          start_date: values.start_date,
+          end_date: values.end_date,
+          reason: values.reason,
         }),
       });
       setMessage("Leave requested");
-      setLeaveReason("");
+      setLeaveInitial(emptyLeaveRequestForm());
       setTab("leave");
       await load();
     } catch (err) {
@@ -187,22 +195,48 @@ export default function EssScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
       <Text style={styles.title}>Staff tools</Text>
-      <Text style={styles.hint}>
 
       {data?.employee ? (
-        <View style={[styles.card, { marginBottom: 12, flexDirection: "row", alignItems: "center", gap: 12 }]}>
+        <View
+          style={[
+            styles.card,
+            { marginBottom: 12, flexDirection: "row", alignItems: "center", gap: 12 },
+          ]}
+        >
           {data.employee.profile_pic_url ? (
-            <Image source={{ uri: data.employee.profile_pic_url }} style={{ width: 56, height: 56, borderRadius: 12 }} />
+            <Image
+              source={{ uri: data.employee.profile_pic_url }}
+              style={{ width: 56, height: 56, borderRadius: 12 }}
+            />
           ) : (
-            <View style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: palette.brand, alignItems: "center", justifyContent: "center" }}>
-              <Text style={{ color: colors.white, fontWeight: "800" }}>{(data.employee.name || "?").slice(0, 1)}</Text>
+            <View
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: 12,
+                backgroundColor: palette.brand,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Text style={{ color: colors.white, fontWeight: "800" }}>
+                {(data.employee.name || "?").slice(0, 1)}
+              </Text>
             </View>
           )}
-          <Pressable style={[styles.btn, { flex: 1, marginTop: 0 }]} onPress={pickEmployeePhoto} disabled={busy}>
-            <Text style={styles.btnText}>{data.employee.profile_pic_url ? "Change photo" : "Upload photo"}</Text>
+          <Pressable
+            style={[styles.btn, { flex: 1, marginTop: 0 }]}
+            onPress={pickEmployeePhoto}
+            disabled={busy}
+          >
+            <Text style={styles.btnText}>
+              {data.employee.profile_pic_url ? "Change photo" : "Upload photo"}
+            </Text>
           </Pressable>
         </View>
       ) : null}
+
+      <Text style={styles.hint}>
         {data?.employee
           ? `${data.employee.name} · ${data.employee.employee_code}`
           : "Link your login to an employee profile to use ESS."}
@@ -256,37 +290,42 @@ export default function EssScreen() {
       {tab === "leave" ? (
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Request leave</Text>
-          <TextInput
-            style={styles.input}
-            value={leaveType}
-            onChangeText={setLeaveType}
-            placeholder="Type (annual / sick)"
-            placeholderTextColor={colors.muted}
-          />
-          <TextInput
-            style={styles.input}
-            value={leaveStart}
-            onChangeText={setLeaveStart}
-            placeholder="Start YYYY-MM-DD"
-            placeholderTextColor={colors.muted}
-          />
-          <TextInput
-            style={styles.input}
-            value={leaveEnd}
-            onChangeText={setLeaveEnd}
-            placeholder="End YYYY-MM-DD"
-            placeholderTextColor={colors.muted}
-          />
-          <TextInput
-            style={styles.input}
-            value={leaveReason}
-            onChangeText={setLeaveReason}
-            placeholder="Reason"
-            placeholderTextColor={colors.muted}
-          />
-          <Pressable style={styles.btn} onPress={requestLeave} disabled={busy || !data}>
-            <Text style={styles.btnText}>Submit request</Text>
-          </Pressable>
+          <CustomForm
+            initialValues={leaveInitial}
+            validationSchema={leaveRequestFormSchema}
+            enableReinitialize
+            onSubmit={requestLeave}
+          >
+            {({ handleSubmit }) => (
+              <>
+                <FormikTextField
+                  name="type"
+                  style={styles.input}
+                  placeholder="Type (annual / sick)"
+                />
+                <FormikDateTimeField
+                  name="start_date"
+                  label="Start date"
+                  mode="date"
+                  placeholder="YYYY-MM-DD"
+                />
+                <FormikDateTimeField
+                  name="end_date"
+                  label="End date"
+                  mode="date"
+                  placeholder="YYYY-MM-DD"
+                />
+                <FormikTextField name="reason" style={styles.input} placeholder="Reason" />
+                <Pressable
+                  style={styles.btn}
+                  onPress={() => handleSubmit()}
+                  disabled={busy || !data}
+                >
+                  <Text style={styles.btnText}>Submit request</Text>
+                </Pressable>
+              </>
+            )}
+          </CustomForm>
 
           <Text style={[styles.cardTitle, { marginTop: 16 }]}>My requests</Text>
           {(data?.leave || []).map((l) => (
@@ -335,39 +374,44 @@ export default function EssScreen() {
 
 function createStyles(palette: import("../lib/brandTheme").BrandPalette) {
   return StyleSheet.create({
-  container: { flex: 1, padding: 24, backgroundColor: colors.bgPrimary },
-  title: { fontSize: 24, fontWeight: "800", color: colors.heading, marginBottom: 4 },
-  hint: { color: colors.body, marginBottom: 16 },
-  error: { color: colors.danger, marginBottom: 8 },
-  message: { color: colors.body, marginBottom: 8 },
-  card: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  cardTitle: { fontSize: 16, fontWeight: "700", color: colors.heading },
-  cardBody: { marginTop: 4, color: colors.body, marginBottom: 12 },
-  btn: {
-    backgroundColor: palette.brand,
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  btnText: { color: colors.white, fontWeight: "700" },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginTop: 8,
-    color: colors.heading,
-    backgroundColor: colors.bgSecondary,
-  },
-  row: { color: colors.body, marginTop: 6, fontSize: 13 },
-  slip: { marginBottom: 14, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
-});
+    container: { flex: 1, padding: 24, backgroundColor: colors.bgPrimary },
+    title: { fontSize: 24, fontWeight: "800", color: colors.heading, marginBottom: 4 },
+    hint: { color: colors.body, marginBottom: 16 },
+    error: { color: colors.danger, marginBottom: 8 },
+    message: { color: colors.body, marginBottom: 8 },
+    card: {
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    cardTitle: { fontSize: 16, fontWeight: "700", color: colors.heading },
+    cardBody: { marginTop: 4, color: colors.body, marginBottom: 12 },
+    btn: {
+      backgroundColor: palette.brand,
+      borderRadius: 10,
+      paddingVertical: 12,
+      alignItems: "center",
+      marginTop: 8,
+    },
+    btnText: { color: colors.white, fontWeight: "700" },
+    input: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      marginTop: 8,
+      color: colors.heading,
+      backgroundColor: colors.bgSecondary,
+    },
+    row: { color: colors.body, marginTop: 6, fontSize: 13 },
+    slip: {
+      marginBottom: 14,
+      paddingBottom: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+  });
 }

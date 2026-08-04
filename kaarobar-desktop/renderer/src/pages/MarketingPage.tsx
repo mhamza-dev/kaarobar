@@ -6,10 +6,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Award, FilePlus, Filter, Megaphone, TicketPercent, Users } from "lucide-react";
 import { api, getSession } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
+import FormModalFooter from "@/components/app/FormModalFooter";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
-import { PageHeader, SurfaceCard, TabBar } from "@/components/app/ui";
+import { PageHeader, SurfaceCard, TabBar, formStackClass } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { useTabQueryParam } from "@/lib/hooks/useTabQueryParam";
@@ -975,7 +976,10 @@ function MarketingPageInner() {
         onClose={() => setModal(false)}
         title={t("marketing.newCampaign")}
         footer={
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setModal(false)}>
+              {t("common.cancel")}
+            </Button>
             <Button type="button" variant="secondary" onClick={() => void previewAudience()}>
               Preview audience
               {previewCount != null ? ` (${previewCount})` : ""}
@@ -986,7 +990,7 @@ function MarketingPageInner() {
       >
         <CustomForm
           id="campaign-form"
-          className="grid gap-3"
+          className={formStackClass}
           initialValues={campaignInitial}
           validationSchema={campaignFormSchema}
           enableReinitialize
@@ -1031,6 +1035,9 @@ function MarketingPageInner() {
         size="lg"
         footer={
           <div className="flex flex-wrap justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setTplModal(false)}>
+              {t("common.cancel")}
+            </Button>
             <Button type="button" variant="secondary" onClick={() => void previewTemplate()}>
               {t("marketing.preview")}
             </Button>
@@ -1042,7 +1049,7 @@ function MarketingPageInner() {
       >
         <CustomForm
           id="template-form"
-          className="grid gap-3"
+          className={formStackClass}
           initialValues={tplInitial}
           validationSchema={templateFormSchema}
           onSubmit={createTemplate}
@@ -1066,19 +1073,18 @@ function MarketingPageInner() {
         title={t("marketing.newSegment")}
         description={t("marketing.segmentModalDesc")}
         footer={
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setSegModal(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" form="segment-form" loading={busy}>
-              {t("marketing.saveSegment")}
-            </Button>
-          </div>
+          <FormModalFooter
+            cancelLabel={t("common.cancel")}
+            submitLabel={t("marketing.saveSegment")}
+            onCancel={() => setSegModal(false)}
+            submitFormId="segment-form"
+            loading={busy}
+          />
         }
       >
         <CustomForm
           id="segment-form"
-          className="grid gap-3"
+          className={formStackClass}
           initialValues={segInitial}
           validationSchema={segmentFormSchema}
           onSubmit={createSegment}
@@ -1093,19 +1099,18 @@ function MarketingPageInner() {
         title={t("marketing.newCoupon")}
         description={t("marketing.couponModalDesc")}
         footer={
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setCouponModal(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" form="coupon-form" loading={busy}>
-              {t("marketing.saveCoupon")}
-            </Button>
-          </div>
+          <FormModalFooter
+            cancelLabel={t("common.cancel")}
+            submitLabel={t("marketing.saveCoupon")}
+            onCancel={() => setCouponModal(false)}
+            submitFormId="coupon-form"
+            loading={busy}
+          />
         }
       >
         <CustomForm
           id="coupon-form"
-          className="grid gap-3"
+          className={formStackClass}
           initialValues={couponInitial}
           validationSchema={couponFormSchema}
           onSubmit={createCoupon}
@@ -1120,19 +1125,18 @@ function MarketingPageInner() {
         title={t("marketing.newTier")}
         description={t("marketing.tierModalDesc")}
         footer={
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setTierModal(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" form="tier-form" loading={busy}>
-              {t("marketing.saveTier")}
-            </Button>
-          </div>
+          <FormModalFooter
+            cancelLabel={t("common.cancel")}
+            submitLabel={t("marketing.saveTier")}
+            onCancel={() => setTierModal(false)}
+            submitFormId="tier-form"
+            loading={busy}
+          />
         }
       >
         <CustomForm
           id="tier-form"
-          className="grid gap-3"
+          className={formStackClass}
           initialValues={tierInitial}
           validationSchema={loyaltyTierFormSchema}
           onSubmit={createTier}

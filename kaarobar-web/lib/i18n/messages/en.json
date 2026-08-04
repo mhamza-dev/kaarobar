@@ -52,7 +52,8 @@
     "sku": "SKU",
     "markRead": "Mark read",
     "read": "read",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "enterField": "Enter {field}"
   },
   "table": {
     "export": "Export",
@@ -923,7 +924,20 @@
       "bank": "Bank",
       "card": "Card",
       "wallet": "Wallet"
-    }
+    },
+    "phName": "Full name",
+    "phCompany": "Company or trade name",
+    "phPhone": "03XX XXXXXXX",
+    "phEmail": "name@example.com",
+    "phCnic": "XXXXX-XXXXXXX-X",
+    "phNtn": "XXXXXXX-X",
+    "phAddress": "Street, city",
+    "phCreditLimit": "0.00",
+    "phUserId": "Staff user UUID (optional)",
+    "phNotes": "Internal notes…",
+    "phPortalPassword": "Set a portal password",
+    "phDelta": "e.g. 10 or -5",
+    "phReason": "Why adjust points…"
   },
   "marketing": {
     "eyebrow": "Marketing",
