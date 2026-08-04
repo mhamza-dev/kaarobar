@@ -34,10 +34,10 @@ const toneStyles: Record<
   ToastType,
   { bg: string; border: string; text: string }
 > = {
-  info: { bg: "#e8f0ff", border: "#3b82f6", text: "#1e3a8a" },
-  success: { bg: "#e8f8ef", border: "#16a34a", text: "#14532d" },
-  error: { bg: "#fdecec", border: "#dc2626", text: "#7f1d1d" },
-  warning: { bg: "#fff7e6", border: "#d97706", text: "#78350f" },
+  info: { bg: colors.brandLight, border: colors.brand, text: "#1e3a8a" },
+  success: { bg: colors.successSoft, border: colors.success, text: "#14532d" },
+  error: { bg: colors.dangerSoft, border: colors.danger, text: "#7f1d1d" },
+  warning: { bg: colors.warningSoft, border: colors.warning, text: "#78350f" },
 };
 
 export function ToastProvider({ children }: { children: ReactNode }) {

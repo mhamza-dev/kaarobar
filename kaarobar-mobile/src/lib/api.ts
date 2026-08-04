@@ -21,7 +21,11 @@ export const colors = {
   sidebar: "#0b1220",
   sidebarMuted: "#94a3b8",
   danger: "#dc2626",
+  dangerSoft: "#fee2e2",
   success: "#15803d",
+  successSoft: "#dcfce7",
+  warning: "#d97706",
+  warningSoft: "#fef3c7",
   white: "#ffffff",
   radiusLg: 12,
 } as const;

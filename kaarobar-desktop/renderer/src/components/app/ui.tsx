@@ -193,13 +193,14 @@ export function Alert({
   tone = "info",
   children,
 }: {
-  tone?: "info" | "error" | "success";
+  tone?: "info" | "error" | "success" | "warning";
   children: ReactNode;
 }) {
   const styles = {
     info: "border-brand/20 bg-brand-light text-heading",
     error: "border-danger/30 bg-danger-soft text-danger",
     success: "border-success/30 bg-success-soft text-success",
+    warning: "border-warning/40 bg-warning-soft text-warning",
   }[tone];
 
   return (
