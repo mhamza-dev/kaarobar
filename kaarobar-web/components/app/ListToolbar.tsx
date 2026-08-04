@@ -142,7 +142,7 @@ export default function ListToolbar({
             <span className="sr-only">{t("common.search")}</span>
             <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
             <input
-              type="search"
+              type="text"
               value={value.search}
               onChange={(e) => onChange({ ...value, search: e.target.value })}
               placeholder={searchPlaceholder ?? t("common.search")}

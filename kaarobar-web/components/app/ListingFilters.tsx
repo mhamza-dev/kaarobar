@@ -99,7 +99,7 @@ export default function ListingFilters({
             Search
           </span>
           <input
-            type="search"
+            type="text"
             className={fieldClass}
             placeholder={searchPlaceholder}
             value={value.search}

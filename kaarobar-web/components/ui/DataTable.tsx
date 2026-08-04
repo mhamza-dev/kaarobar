@@ -335,7 +335,7 @@ export default function DataTable<T>({
                   <span className="sr-only">{t("common.search")}</span>
                   <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
                   <input
-                    type="search"
+                    type="text"
                     value={filterState!.search}
                     onChange={(e) =>
                       onFilterChange!({ ...filterState!, search: e.target.value })
@@ -361,7 +361,7 @@ export default function DataTable<T>({
                   <span className="sr-only">Search</span>
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
                   <input
-                    type="search"
+                    type="text"
                     value={legacyQuery}
                     onChange={(e) => setLegacyQuery(e.target.value)}
                     placeholder={searchPlaceholder || t("common.search")}

@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+
+/* Hide native search clear when we render a custom X */
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
 /* ======================================================
    KAAROBAR DESIGN SYSTEM
    Premium Business Operating System
