@@ -56,7 +56,7 @@ export default function CustomerDetailPage() {
       status={
         customer?.portal_linked
           ? { label: "Portal account", tone: "success" }
-          : customer?.khata_enabled
+          : customer?.credit_enabled
             ? { label: "Khata on", tone: "success" }
             : { label: "Khata off", tone: "info" }
       }

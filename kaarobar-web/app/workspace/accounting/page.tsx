@@ -124,7 +124,7 @@ function StaffAccountingPage() {
   const [arFilters, setArFilters] = useState(emptyStaffListFilters);
   const [apFilters, setApFilters] = useState(emptyStaffListFilters);
   const [journalPage, setJournalPage] = useState(1);
-  const [journalPageSize, setJournalPageSize] = useState(25);
+  const [journalPageSize, setJournalPageSize] = useState(20);
   const [reportFilters, setReportFilters] = useState(() => {
     const d = new Date();
     return {
@@ -387,7 +387,7 @@ function StaffAccountingPage() {
           filterConfig={{}}
           searchPlaceholder={t("accounting.searchAccounts")}
           getSearchText={(a) => `${a.code} ${a.name} ${a.type}`}
-          pagination={{ mode: "client", pageSize: 25 }}
+          pagination={{ mode: "client", pageSize: 20 }}
           exportable
           exportFilename="chart-of-accounts"
           exportTitle="Chart of accounts"
@@ -669,7 +669,7 @@ function StaffAccountingPage() {
             filterConfig={{ showAmountRange: true }}
             clientFilter
             searchPlaceholder={t("accounting.searchInvoices")}
-            pagination={{ mode: "client", pageSize: 25 }}
+            pagination={{ mode: "client", pageSize: 20 }}
             exportable
             exportFilename="ar-aging"
             exportTitle="AR aging"
@@ -732,7 +732,7 @@ function StaffAccountingPage() {
           filterConfig={{ showAmountRange: true }}
           clientFilter
           searchPlaceholder={t("accounting.searchBills")}
-          pagination={{ mode: "client", pageSize: 25 }}
+          pagination={{ mode: "client", pageSize: 20 }}
           exportable
           exportFilename="ap-aging"
           exportTitle="AP aging"
@@ -1024,7 +1024,7 @@ function StatementTable({
       }}
       clientFilter
       searchPlaceholder={t("accounting.searchRows")}
-      pagination={{ mode: "client", pageSize: 25 }}
+      pagination={{ mode: "client", pageSize: 20 }}
       exportable
       exportFilename={filename}
       exportTitle={title}

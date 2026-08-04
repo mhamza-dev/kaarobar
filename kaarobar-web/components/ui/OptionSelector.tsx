@@ -60,8 +60,7 @@ const OptionSelector = <T extends string>({
               className={`
                 group relative overflow-hidden rounded-md border p-4 text-left
                 transition-all duration-200 ease-out
-                focus-visible:outline-none focus-visible:ring-2
-                focus-visible:ring-brand focus-visible:ring-offset-2
+                focus-visible:outline-none focus-visible:ring-0
                 disabled:cursor-not-allowed disabled:opacity-50
 
                 ${

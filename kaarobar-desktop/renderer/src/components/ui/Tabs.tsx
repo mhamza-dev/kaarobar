@@ -121,7 +121,7 @@ export default function Tabs<T extends string>({
                 className={`
                 inline-flex items-center gap-2 rounded-md ${pad} font-semibold
                 transition duration-150 ease-out
-                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:ring-offset-1
+                focus-visible:outline-none focus-visible:ring-0
                 disabled:cursor-not-allowed disabled:opacity-40
                 ${
                   selected
@@ -179,7 +179,7 @@ export default function Tabs<T extends string>({
               className={`
               relative shrink-0 inline-flex items-center gap-2 ${pad} font-semibold
               transition-colors duration-150
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35 focus-visible:ring-inset
+              focus-visible:outline-none focus-visible:ring-0
               disabled:cursor-not-allowed disabled:opacity-40
               ${selected ? "text-heading" : "text-muted hover:text-heading"}
             `}

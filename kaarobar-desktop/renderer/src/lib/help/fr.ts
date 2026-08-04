@@ -21,17 +21,17 @@ const catalog: HelpCatalog = {
   "page.pos": {
     title: "Point de vente",
     summary: "Paiement rapide avec panier, client et paiement.",
-    what: "Les caissiers peuvent vendre des produits, fidéliser les clients ou khata (crédit), appliquer des remises ou des coupons et accepter les paiements en espèces, par carte, par portefeuille ou par khata.",
+    what: "Les caissiers peuvent vendre des produits, fidéliser les clients ou crédit (crédit), appliquer des remises ou des coupons et accepter les paiements en espèces, par carte, par portefeuille ou par crédit.",
     how: [
       "Ouvrez une caisse avant d'effectuer des ventes au comptant.",
       "Ajoutez des produits au panier par recherche ou numérisation de codes-barres.",
-      "Attachez un client en cas de besoin pour la fidélité ou khata.",
+      "Attachez un client en cas de besoin pour la fidélité ou crédit.",
       "Vérifiez le total, appuyez sur Passer à la caisse et choisissez un mode de paiement.",
       "Complétez la commande avec Passer la commande, puis imprimez ou partagez le reçu.",
     ],
     when: "Pour chaque paiement client au comptoir.",
     tips: [
-      "Le paiement Khata nécessite un khata actif sur le client.",
+      "Le paiement Crédit nécessite un crédit actif sur le client.",
       "Gardez la caisse ouverte pendant le quart de travail et comptez les espèces avant de fermer en fin de journée.",
     ],
   },
@@ -52,19 +52,19 @@ const catalog: HelpCatalog = {
     ],
   },
   "page.customers": {
-    title: "Clients et Khata",
-    summary: "Profils clients, crédit/solde khata, grand livre et points de fidélité.",
-    what: "Stocke les détails du client et vous permet d'activer khata, d'afficher le grand livre, de gérer les limites de crédit et d'ajuster les points de fidélité.",
+    title: "Clients et Crédit",
+    summary: "Profils clients, crédit/solde crédit, grand livre et points de fidélité.",
+    what: "Stocke les détails du client et vous permet d'activer crédit, d'afficher le grand livre, de gérer les limites de crédit et d'ajuster les points de fidélité.",
     how: [
       "Ajoutez un client avec son nom et son téléphone.",
-      "Activez khata pour les ventes à crédit.",
+      "Activez crédit pour les ventes à crédit.",
       "Ouvrez Ledger pour voir les débits, les crédits et le solde impayé.",
       "Ajustez les points de fidélité pour les promotions ou les corrections.",
     ],
     when: "Pour les programmes CRM, de vente à crédit et de fidélité.",
     tips: [
-      "Attachez le client à POS avant le paiement khata.",
-      "Vérifiez la limite de crédit avant les ventes khata importantes.",
+      "Attachez le client à POS avant le paiement crédit.",
+      "Vérifiez la limite de crédit avant les ventes crédit importantes.",
     ],
   },
   "page.sales": {
@@ -347,7 +347,7 @@ const catalog: HelpCatalog = {
     what: "Soldes de factures ouvertes regroupés par âge (actuel, 30, 60 jours, etc.).",
     how: ["Examinez les compartiments.", "Ouvrez une facture pour plus de détails.", "Effectuer le suivi auprès du client."],
     when: "Pour les recouvrements et le contrôle du crédit.",
-    tips: ["Les ventes Khata/à crédit peuvent apparaître dans AR."],
+    tips: ["Les ventes Crédit/à crédit peuvent apparaître dans AR."],
   },
   "tab.accounting.ap": {
     title: "Vieillissement AP",

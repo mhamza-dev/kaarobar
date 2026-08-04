@@ -42,7 +42,7 @@ export default function NumberRangeFields({
             onMinChange(formatDecimal(e.target.value));
           }}
           placeholder={minPlaceholder || t("listFilters.min")}
-          className="w-full rounded-md border border-border bg-bg-primary px-3 py-2 text-sm text-heading outline-none focus:border-brand/40"
+          className="w-full rounded-md border border-border bg-bg-primary px-3 py-2 text-sm text-heading outline-none focus:border-brand/20"
           aria-label={minPlaceholder || t("listFilters.min")}
         />
         <input
@@ -56,7 +56,7 @@ export default function NumberRangeFields({
             onMaxChange(formatDecimal(e.target.value));
           }}
           placeholder={maxPlaceholder || t("listFilters.max")}
-          className="w-full rounded-md border border-border bg-bg-primary px-3 py-2 text-sm text-heading outline-none focus:border-brand/40"
+          className="w-full rounded-md border border-border bg-bg-primary px-3 py-2 text-sm text-heading outline-none focus:border-brand/20"
           aria-label={maxPlaceholder || t("listFilters.max")}
         />
       </div>

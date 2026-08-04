@@ -26,7 +26,7 @@ defmodule Kaarobar.Pos do
   alias Kaarobar.Catalog
   alias Ecto.Multi
 
-  @payment_methods ~w(cash card wallet khata)
+  @payment_methods ~w(cash card wallet credit khata)
   @default_return_window_days 14
 
   ## —— Sales (POS-FR-001–006, 009, 011) ————————————————————————————
@@ -199,12 +199,12 @@ defmodule Kaarobar.Pos do
                  business_id: business_id,
                  owner_id: owner_id
                ),
-             true <- c.khata_enabled || {:error, :khata_not_enabled} do
+             true <- c.credit_enabled || {:error, :credit_not_enabled} do
           {:ok, c.id}
         else
-          nil -> {:error, :customer_required_for_khata}
+          nil -> {:error, :customer_required_for_credit}
           {:error, _} = err -> err
-          false -> {:error, :khata_not_enabled}
+          false -> {:error, :credit_not_enabled}
         end
 
       is_binary(customer_id) and customer_id != "" ->
@@ -379,37 +379,74 @@ defmodule Kaarobar.Pos do
     if Decimal.compare(khata_amount, 0) != :gt do
       {:ok, nil}
     else
-      # Tracking invoice only — GL is posted via sale journal (AR debit for khata).
-      subtotal = sale.subtotal || Decimal.new(0)
-      tax = sale.tax_amount || Decimal.new(0)
+      # Sale invoice numbers are unique per branch; AR numbers are unique per business.
+      # Include a sale-id suffix so two branches issuing INV-000013 do not collide.
+      case Repo.get_by(Kaarobar.Schemas.ArInvoice,
+             sale_id: sale.id,
+             business_id: sale.business_id
+           ) do
+        %Kaarobar.Schemas.ArInvoice{} = existing ->
+          {:ok, existing}
 
-      {:ok, inv} =
-        %Kaarobar.Schemas.ArInvoice{}
-        |> Kaarobar.Schemas.ArInvoice.changeset(%{
-          owner_id: sale.owner_id,
-          business_id: sale.business_id,
-          branch_id: sale.branch_id,
-          customer_id: sale.customer_id,
-          sale_id: sale.id,
-          invoice_number: "KH-#{sale.invoice_number}",
-          invoice_date: Date.utc_today(),
-          due_date: Date.add(Date.utc_today(), 30),
-          subtotal: subtotal,
-          tax_amount: tax,
-          total_amount: khata_amount,
-          balance_due: khata_amount,
-          status: "open",
-          notes: "POS khata · #{sale.invoice_number}"
-        })
-        |> Repo.insert()
+        nil ->
+          subtotal = sale.subtotal || Decimal.new(0)
+          tax = sale.tax_amount || Decimal.new(0)
+          invoice_number = khata_ar_invoice_number(sale)
 
-      sale
-      |> Sale.changeset(%{ar_invoice_id: inv.id})
-      |> Repo.update()
+          case %Kaarobar.Schemas.ArInvoice{}
+               |> Kaarobar.Schemas.ArInvoice.changeset(%{
+                 owner_id: sale.owner_id,
+                 business_id: sale.business_id,
+                 branch_id: sale.branch_id,
+                 customer_id: sale.customer_id,
+                 sale_id: sale.id,
+                 invoice_number: invoice_number,
+                 invoice_date: Date.utc_today(),
+                 due_date: Date.add(Date.utc_today(), 30),
+                 subtotal: subtotal,
+                 tax_amount: tax,
+                 total_amount: khata_amount,
+                 balance_due: khata_amount,
+                 status: "open",
+                 notes: "POS khata · #{sale.invoice_number}"
+               })
+               |> Repo.insert() do
+            {:ok, inv} ->
+              case sale
+                   |> Sale.changeset(%{ar_invoice_id: inv.id})
+                   |> Repo.update() do
+                {:ok, _} ->
+                  _ = posted_by_id
+                  {:ok, inv}
 
-      _ = posted_by_id
-      {:ok, inv}
+                {:error, reason} ->
+                  {:error, reason}
+              end
+
+            {:error, %Ecto.Changeset{} = changeset} ->
+              # Concurrent insert for same sale — reuse existing row if present.
+              case Repo.get_by(Kaarobar.Schemas.ArInvoice,
+                     sale_id: sale.id,
+                     business_id: sale.business_id
+                   ) do
+                %Kaarobar.Schemas.ArInvoice{} = existing ->
+                  {:ok, existing}
+
+                nil ->
+                  {:error, changeset}
+              end
+          end
+      end
     end
+  end
+
+  # business-scoped unique AR number for a POS khata sale
+  defp khata_ar_invoice_number(%Sale{invoice_number: inv, id: id}) when is_binary(inv) do
+    "KH-#{inv}-#{String.slice(to_string(id), 0, 8)}"
+  end
+
+  defp khata_ar_invoice_number(%Sale{id: id}) do
+    "KH-#{String.slice(to_string(id), 0, 12)}"
   end
 
   defp maybe_notify_low_stock_after_sale(branch_id, business_id, owner_id, priced_items) do
@@ -685,7 +722,7 @@ defmodule Kaarobar.Pos do
       Enum.map(raw_payments, fn p ->
         method =
           case p[:method] || p["method"] || "cash" do
-            "credit" -> "khata"
+            "khata" -> "credit"
             other -> other
           end
 

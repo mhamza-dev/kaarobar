@@ -115,8 +115,8 @@ export default function Select({
 
   const sizeClass =
     size === "sm"
-      ? "rounded-md border px-2 py-1 text-xs"
-      : "rounded-md border px-3 py-2.5 text-sm";
+      ? "h-9 rounded-md border border-border bg-bg-secondary/80 px-2 text-xs leading-none"
+      : "h-[2.625rem] min-h-[2.625rem] w-full rounded-md border border-border bg-bg-secondary/80 px-3 text-sm leading-none";
 
   const panel =
     open && coords && mounted
@@ -125,7 +125,7 @@ export default function Select({
             ref={panelRef}
             id={listId}
             role="listbox"
-            className="fixed z-[120] max-h-56 overflow-y-auto rounded-md border border-border bg-card py-1 shadow-lg shadow-black/10"
+            className="fixed z-[220] max-h-56 overflow-y-auto rounded-md border border-border bg-card py-1 shadow-lg shadow-black/10"
             style={{
               top: coords.top,
               left: coords.left,
@@ -189,7 +189,7 @@ export default function Select({
         aria-expanded={open}
         aria-controls={listId}
         onClick={() => !disabled && setOpen((o) => !o)}
-        className={`flex w-full items-center gap-2 border-border bg-bg-primary text-start text-heading outline-none transition hover:border-brand/40 disabled:cursor-not-allowed disabled:opacity-60 ${sizeClass} ${triggerClassName}`}
+        className={`box-border flex w-full items-center gap-2 text-start text-heading outline-none transition hover:border-brand/40 focus:border-brand/20 disabled:cursor-not-allowed disabled:opacity-60 ${sizeClass} ${triggerClassName}`}
       >
         <span className={`min-w-0 flex-1 truncate ${selected ? "" : "text-muted"}`}>
           {selected ? selected.label : resolvedPlaceholder}

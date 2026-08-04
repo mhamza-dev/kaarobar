@@ -149,7 +149,7 @@ function StaffCustomersPage() {
     try {
       await api(`/customers/${c.id}`, {
         method: "PATCH",
-        body: JSON.stringify({ khata_enabled: !c.khata_enabled }),
+        body: JSON.stringify({ credit_enabled: !c.credit_enabled }),
       });
       await load();
     } catch (err) {
@@ -269,13 +269,13 @@ function StaffCustomersPage() {
         filterConfig={filterConfig}
         filterAccessors={{
           searchText: customerSearchText,
-          status: (c) => (c.khata_enabled ? "khata_on" : "khata_off"),
+          status: (c) => (c.credit_enabled ? "khata_on" : "khata_off"),
           balance: (c) => c.balance,
           creditLimit: (c) => c.credit_limit,
         }}
         clientFilter
         searchPlaceholder={t("customers.search")}
-        pagination={{ mode: "client", pageSize: 25 }}
+        pagination={{ mode: "client", pageSize: 20 }}
         exportable
         exportFilename="customers"
         exportTitle={t("pages.customersTitle")}
@@ -284,7 +284,7 @@ function StaffCustomersPage() {
           company: c.company_name || "",
           phone: c.phone || "",
           cnic: c.cnic || "",
-          khata: c.khata_enabled ? "on" : "off",
+          khata: c.credit_enabled ? "on" : "off",
           balance: c.balance || "0",
           credit: c.credit_limit || "",
           points: String(c.loyalty_points ?? 0),
@@ -315,7 +315,7 @@ function StaffCustomersPage() {
           {
             id: "khata",
             header: t("customers.khata"),
-            cell: (c) => (c.khata_enabled ? t("customers.khataOn") : t("customers.khataOff")),
+            cell: (c) => (c.credit_enabled ? t("customers.khataOn") : t("customers.khataOff")),
           },
           { id: "balance", header: t("customers.balance"), cell: (c) => formatDecimal(c.balance || "0") },
           {
@@ -347,7 +347,7 @@ function StaffCustomersPage() {
                     },
                     {
                       id: "khata",
-                      label: c.khata_enabled
+                      label: c.credit_enabled
                         ? t("customers.disableKhata")
                         : t("customers.enableKhata"),
                       onClick: () => void toggleKhata(c),

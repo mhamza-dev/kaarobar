@@ -113,7 +113,7 @@ export default function CustomersScreen() {
     try {
       await api(`/customers/${c.id}`, {
         method: "PATCH",
-        body: JSON.stringify({ khata_enabled: !c.khata_enabled }),
+        body: JSON.stringify({ credit_enabled: !c.credit_enabled }),
       });
       await load();
     } catch (err) {
@@ -178,8 +178,8 @@ export default function CustomersScreen() {
           <View style={styles.row}>
             <Text style={styles.cardBody}>{t("customers.khata")}</Text>
             <Switch
-              value={form.khata_enabled}
-              onValueChange={(v) => setForm({ ...form, khata_enabled: v })}
+              value={form.credit_enabled}
+              onValueChange={(v) => setForm({ ...form, credit_enabled: v })}
             />
           </View>
           <Pressable style={styles.primaryBtn} disabled={busy} onPress={() => void save()}>
@@ -206,7 +206,7 @@ export default function CustomersScreen() {
               {c.phone || "—"} · {c.company_name || "no company"} · pts {c.loyalty_points ?? 0}
             </Text>
             <Text style={styles.cardBody}>
-              Khata {c.khata_enabled ? "On" : "Off"} · Balance {c.balance || "0"}
+              {t("customers.khata")} {c.credit_enabled ? t("customers.khataOn") : t("customers.khataOff")} · Balance {c.balance || "0"}
             </Text>
             <View style={styles.rowWrap}>
               {c.portal_linked ? (
@@ -224,7 +224,7 @@ export default function CustomersScreen() {
                 </Pressable>
               )}
               <Pressable style={styles.chip} onPress={() => void toggleKhata(c)}>
-                <Text style={styles.chipText}>{c.khata_enabled ? t("customers.disableKhata") : t("customers.enableKhata")}</Text>
+                <Text style={styles.chipText}>{c.credit_enabled ? t("customers.disableKhata") : t("customers.enableKhata")}</Text>
               </Pressable>
               <Pressable style={styles.chip} onPress={() => void openLedger(c)}>
                 <Text style={styles.chipText}>{t("customers.ledger")}</Text>

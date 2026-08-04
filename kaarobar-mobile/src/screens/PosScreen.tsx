@@ -31,7 +31,7 @@ type Product = {
 
 type CartLine = { product: Product; quantity: number; unit_price: number };
 
-type Customer = { id: string; name: string; khata_enabled?: boolean };
+type Customer = { id: string; name: string; credit_enabled?: boolean };
 
 type Receipt = {
   invoice_number: string;
@@ -232,14 +232,14 @@ export default function PosScreen() {
     if (cash > 0) payments.push({ method: "cash", amount: round2(cash) });
     if (card > 0) payments.push({ method: "card", amount: round2(card) });
     if (wallet > 0) payments.push({ method: "wallet", amount: round2(wallet) });
-    if (khata > 0) payments.push({ method: "khata", amount: round2(khata) });
+    if (khata > 0) payments.push({ method: "credit", amount: round2(khata) });
     const paySum = round2(payments.reduce((s, p) => s + p.amount, 0));
     if (payments.length === 0 || Math.abs(paySum - total) > 0.001) {
       setMessage(`Payments must total ${formatDecimal(total)} (got ${formatDecimal(paySum)})`);
       return;
     }
     if (khata > 0 && !customerId) {
-      setMessage("Select a customer for khata");
+      setMessage("Select a customer for credit");
       return;
     }
     setBusy(true);
@@ -451,7 +451,7 @@ export default function PosScreen() {
               >
                 <Text style={[styles.chipText, customerId === c.id && styles.chipTextOn]}>
                   {c.name}
-                  {c.khata_enabled ? " ·K" : ""}
+                  {c.credit_enabled ? " ·" + t("pos.khata").slice(0,1) : ""}
                 </Text>
               </Pressable>
             ))}
@@ -464,7 +464,7 @@ export default function PosScreen() {
             ["Cash", payCash, setPayCash],
             ["Card", payCard, setPayCard],
             ["Wallet", payWallet, setPayWallet],
-            ["Khata", payKhata, setPayKhata],
+            [t("pos.khata"), payKhata, setPayKhata],
           ] as const
         ).map(([label, value, setter]) => (
           <View key={label} style={styles.row}>

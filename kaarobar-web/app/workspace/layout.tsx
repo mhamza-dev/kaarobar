@@ -143,7 +143,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [tenantKey, setTenantKey] = useState("boot");
   const [planLockHandled, setPlanLockHandled] = useState(false);
-  const [animatedNavHref, setAnimatedNavHref] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -232,19 +231,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     )?.titleKey ?? "common.appName";
   const isPos = pathname.startsWith("/app/pos");
 
-  useEffect(() => {
-    if (buyer) {
-      setAnimatedNavHref(null);
-      return;
-    }
-    const activeItem = visibleNav.find(
-      (item) =>
-        pathname === item.href ||
-        (item.href !== "/app" && pathname.startsWith(item.href))
-    );
-    setAnimatedNavHref(activeItem?.href ?? null);
-  }, [buyer, pathname, visibleNav]);
-
   if (!session || booting) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-bg-primary text-body">
@@ -285,7 +271,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     .slice(0, 2)
     .toUpperCase();
 
-  function StaffNavBody({ compact = false }: { compact?: boolean }) {
+  // Return elements (not a nested component) so React keeps link DOM across layout rerenders.
+  function renderStaffNav(compact = false) {
     return (
       <nav className={`flex flex-1 flex-col gap-5 ${compact ? "px-3 py-4" : "px-3 py-5"}`}>
         {grouped.map(({ groupKey, items }) => (
@@ -305,9 +292,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     href={item.href}
                     className={`nav-pill flex items-center gap-3 px-3 py-2.5 text-sm font-medium ${
                       active
-                        ? `nav-pill-active ${
-                            item.href === animatedNavHref ? "animate-nav-in" : ""
-                          }`
+                        ? "nav-pill-active"
                         : "text-rail-foreground hover:bg-rail-hover/80"
                     }`}
                   >
@@ -489,7 +474,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <div className="relative z-10 min-h-0 flex-1 overflow-y-auto">
-          <StaffNavBody />
+          {renderStaffNav()}
         </div>
         <div className="relative z-10 mt-auto shrink-0 space-y-3 border-t border-glass-border/80 p-4">
           <LanguageSwitcher />
@@ -513,7 +498,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <Button
               variant="ghost"
               size="sm"
-              className="lg:hidden text-rail-muted hover:bg-rail-hover hover:text-heading focus:ring-brand/20"
+              className="lg:hidden text-rail-muted hover:bg-rail-hover hover:text-heading focus:outline-none focus:ring-0"
               onClick={() => setMenuOpen((v) => !v)}
             >
               {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -573,7 +558,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         {menuOpen ? (
           <div className="glass-nav max-h-[min(24rem,50vh)] shrink-0 overflow-y-auto border-b lg:hidden">
-            <StaffNavBody compact />
+            {renderStaffNav(true)}
             <div className="border-t border-glass-border/80 px-4 py-3">
               <LanguageSwitcher />
             </div>

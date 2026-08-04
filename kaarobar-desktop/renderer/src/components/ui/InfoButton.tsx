@@ -112,7 +112,7 @@ export default function InfoButton({
         }}
         onMouseDown={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.stopPropagation()}
-        className={`inline-flex shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted transition hover:border-brand/40 hover:bg-brand-light hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${dim} ${className}`}
+        className={`inline-flex shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted transition hover:border-brand/40 hover:bg-brand-light hover:text-brand focus-visible:outline-none focus-visible:ring-0 ${dim} ${className}`}
       >
         <Info className={icon} strokeWidth={2.25} aria-hidden />
       </button>

@@ -153,7 +153,7 @@ export default function ListToolbar({
               value={value.search}
               onChange={(e) => onChange({ ...value, search: e.target.value })}
               placeholder={searchPlaceholder ?? t("common.search")}
-              className="w-full rounded-md border border-border bg-card py-2.5 pe-9 ps-9 text-sm text-heading outline-none transition placeholder:text-muted focus:border-brand/40"
+              className="w-full rounded-md border border-border bg-card py-2.5 pe-9 ps-9 text-sm text-heading outline-none transition placeholder:text-muted focus:border-brand/20"
             />
             {value.search ? (
               <button

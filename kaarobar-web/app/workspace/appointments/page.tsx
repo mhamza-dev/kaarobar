@@ -224,7 +224,7 @@ export default function AppointmentsPage() {
         }}
         clientFilter
         searchPlaceholder={t("appointments.searchPlaceholder")}
-        pagination={{ mode: "client", pageSize: 25 }}
+        pagination={{ mode: "client", pageSize: 20 }}
         exportable
         exportFilename="appointments"
         exportTitle={t("pages.appointmentsTitle")}

@@ -16,7 +16,7 @@ defmodule Kaarobar.Schemas.Customer do
     field :ntn, :string
     field :company_name, :string
     field :loyalty_points, :integer, default: 0
-    field :khata_enabled, :boolean, default: false
+    field :credit_enabled, :boolean, default: false
     field :marketing_opt_in_email, :boolean, default: false
     field :marketing_opt_in_sms, :boolean, default: false
     field :marketing_opt_in_whatsapp, :boolean, default: false
@@ -45,7 +45,7 @@ defmodule Kaarobar.Schemas.Customer do
       :ntn,
       :company_name,
       :loyalty_points,
-      :khata_enabled,
+      :credit_enabled,
       :marketing_opt_in_email,
       :marketing_opt_in_sms,
       :marketing_opt_in_whatsapp,

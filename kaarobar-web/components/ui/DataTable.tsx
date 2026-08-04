@@ -105,7 +105,7 @@ const alignClass = {
   right: "text-right",
 } as const;
 
-const DEFAULT_PAGE_SIZES = [10, 25, 50];
+const DEFAULT_PAGE_SIZES = [10, 20, 50, 100, 1000];
 
 function SkeletonRows({ cols, rows = 6 }: { cols: number; rows?: number }) {
   return (
@@ -192,7 +192,7 @@ export default function DataTable<T>({
   const [exportOpen, setExportOpen] = useState(false);
   const [clientPage, setClientPage] = useState(1);
   const [clientPageSize, setClientPageSize] = useState(
-    pagination?.mode === "client" ? pagination.pageSize ?? 25 : 25
+    pagination?.mode === "client" ? pagination.pageSize ?? 20 : 20
   );
 
   const usingListFilters = Boolean(filterState && onFilterChange);
@@ -341,7 +341,7 @@ export default function DataTable<T>({
                       onFilterChange!({ ...filterState!, search: e.target.value })
                     }
                     placeholder={searchPlaceholder || t("common.search")}
-                    className="w-full rounded-md border border-border bg-card py-2 pe-9 ps-9 text-sm text-heading outline-none transition placeholder:text-muted focus:border-brand"
+                    className="w-full rounded-md border border-border bg-card py-2 pe-9 ps-9 text-sm text-heading outline-none transition placeholder:text-muted focus:border-brand/20"
                   />
                   {filterState!.search ? (
                     <button
@@ -365,7 +365,7 @@ export default function DataTable<T>({
                     value={legacyQuery}
                     onChange={(e) => setLegacyQuery(e.target.value)}
                     placeholder={searchPlaceholder || t("common.search")}
-                    className="w-full rounded-md border border-border bg-card py-2 pl-9 pr-9 text-sm text-heading outline-none transition placeholder:text-muted focus:border-brand"
+                    className="w-full rounded-md border border-border bg-card py-2 pl-9 pr-9 text-sm text-heading outline-none transition placeholder:text-muted focus:border-brand/20"
                   />
                   {legacyQuery ? (
                     <button

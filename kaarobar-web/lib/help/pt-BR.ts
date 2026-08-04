@@ -21,17 +21,17 @@ const catalog: HelpCatalog = {
   "page.pos": {
     title: "Ponto de Venda",
     summary: "Check-out rápido com carrinho, cliente e pagamento.",
-    what: "Os caixas podem vender produtos, fidelizar clientes ou khata (crédito), aplicar descontos ou cupons e receber pagamentos em dinheiro, cartão, carteira ou khata.",
+    what: "Os caixas podem vender produtos, fidelizar clientes ou crédito (crédito), aplicar descontos ou cupons e receber pagamentos em dinheiro, cartão, carteira ou crédito.",
     how: [
       "Abra uma caixa registradora antes de realizar vendas à vista.",
       "Adicione produtos ao carrinho por pesquisa ou leitura de código de barras.",
-      "Anexe um cliente quando necessário para fidelização ou khata.",
+      "Anexe um cliente quando necessário para fidelização ou crédito.",
       "Revise o total, toque em Prosseguir para finalização da compra e escolha uma forma de pagamento.",
       "Conclua o pedido com Fazer pedido e imprima ou compartilhe o recibo.",
     ],
     when: "Para cada checkout do cliente no balcão.",
     tips: [
-      "O pagamento Khata requer um khata ativo no cliente.",
+      "O pagamento Crédito requer um crédito ativo no cliente.",
       "Mantenha a caixa aberta durante o turno e conte o dinheiro antes de fechar no final do dia.",
     ],
   },
@@ -52,19 +52,19 @@ const catalog: HelpCatalog = {
     ],
   },
   "page.customers": {
-    title: "Clientes e Khata",
-    summary: "Perfis de clientes, saldo de crédito/khata, razão e pontos de fidelidade.",
-    what: "Armazena detalhes do cliente e permite ativar khata, visualizar o razão, gerenciar limites de crédito e ajustar pontos de fidelidade.",
+    title: "Clientes e Crédito",
+    summary: "Perfis de clientes, saldo de crédito/crédito, razão e pontos de fidelidade.",
+    what: "Armazena detalhes do cliente e permite ativar crédito, visualizar o razão, gerenciar limites de crédito e ajustar pontos de fidelidade.",
     how: [
       "Adicione um cliente com nome e telefone.",
-      "Habilite khata para vendas a crédito.",
+      "Habilite crédito para vendas a crédito.",
       "Abra o Ledger para ver débitos, créditos e saldo pendente.",
       "Ajuste pontos de fidelidade para promoções ou correções.",
     ],
     when: "Para CRM, vendas a crédito e programas de fidelidade.",
     tips: [
-      "Anexe o cliente em POS antes do pagamento khata.",
-      "Verifique o limite de crédito antes de grandes vendas khata.",
+      "Anexe o cliente em POS antes do pagamento crédito.",
+      "Verifique o limite de crédito antes de grandes vendas crédito.",
     ],
   },
   "page.sales": {
@@ -347,7 +347,7 @@ const catalog: HelpCatalog = {
     what: "Saldos de faturas em aberto agrupados por idade (atual, 30, 60 dias, etc.).",
     how: ["Revise os baldes.", "Abra uma fatura para obter detalhes.", "Acompanhe o cliente."],
     when: "Para cobranças e controle de crédito.",
-    tips: ["Khata/vendas a crédito podem aparecer em AR."],
+    tips: ["Crédito/vendas a crédito podem aparecer em AR."],
   },
   "tab.accounting.ap": {
     title: "Envelhecimento AP",
@@ -678,9 +678,9 @@ const catalog: HelpCatalog = {
     tips: ["As taxas vêm das configurações de fidelidade de cada empresa."],
   },
   "page.buyer.ar": {
-    title: "Saldo (khata)",
+    title: "Saldo (crédito)",
     summary: "Saldos pendentes com lojas.",
-    what: "Visão do consumidor dos saldos AR/khata e faturas em aberto. Toque em uma fatura para revisar e pagar.",
+    what: "Visão do consumidor dos saldos AR/crédito e faturas em aberto. Toque em uma fatura para revisar e pagar.",
     how: ["Saldo aberto na navegação do mercado.", "Toque em uma fatura para ver a data de vencimento e pague."],
     when: "Ao liquidar crédito da loja ou verificar dívidas.",
     tips: ["Perfis de clientes vinculados sincronizam a identidade de sua conta de consumidor."],
@@ -688,7 +688,7 @@ const catalog: HelpCatalog = {
   "page.buyer.account": {
     title: "Account",
     summary: "Your marketplace profile hub.",
-    what: "Shortcuts to Balance/khata, Loyalty, and Alerts, plus sign-out.",
+    what: "Shortcuts to Balance/crédito, Loyalty, and Alerts, plus sign-out.",
     how: [
       "Open Account from the marketplace nav.",
       "Jump to Balance, Loyalty, or Alerts.",

@@ -1343,7 +1343,7 @@ defmodule Kaarobar.Accounting do
     from_at = opts[:from]
     to_at = opts[:to]
     portal = opts[:portal_enabled]
-    khata = opts[:khata_enabled]
+    khata = opts[:credit_enabled]
     credit_min = opts[:credit_limit_min]
     credit_max = opts[:credit_limit_max]
     balance_min = opts[:balance_min]
@@ -1377,8 +1377,8 @@ defmodule Kaarobar.Accounting do
 
     query =
       case khata do
-        true -> where(query, [c, _bal], c.khata_enabled == true)
-        false -> where(query, [c, _bal], c.khata_enabled == false)
+        true -> where(query, [c, _bal], c.credit_enabled == true)
+        false -> where(query, [c, _bal], c.credit_enabled == false)
         _ -> query
       end
 

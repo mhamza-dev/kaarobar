@@ -227,7 +227,7 @@
     "editProduct": "مصنوعات ترمیم",
     "newProduct": "نئی مصنوعات",
     "barcode": "بارکوڈ",
-    "barcodePlaceholder": "اسکین، ٹائپ، یا جنریٹ کریں",
+    "barcodePlaceholder": "مثلاً KBGSS92152458393",
     "generateBarcode": "جنریٹ",
     "addSupplier": "سپلائر شامل کریں",
     "editSupplier": "سپلائر ترمیم",
@@ -685,7 +685,16 @@
     "minCart": "کم از کم کارٹ",
     "stackable": "دیگر رعایتوں کے ساتھ استعمال ہو سکتا ہے",
     "earnRate": "کمانے کی شرح ضرب",
-    "redeemRate": "ریڈیم شرح ضرب"
+    "redeemRate": "ریڈیم شرح ضرب",
+    "audienceSegment": "نامزد سیگمنٹ",
+    "channel": "چینل",
+    "backToMarketing": "مارکیٹنگ پر واپس",
+    "campaignFallback": "مہم",
+    "delivery": "ترسیل",
+    "estCost": "تخمینی لاگت روپے {cost} (روپے {unit}/پیغام)",
+    "noRecipients": "ابھی کوئی وصول کنندہ نہیں۔",
+    "overview": "جائزہ",
+    "sentAt": "بھیجنے کا وقت"
   },
   "notifications": {
     "eyebrow": "ان باکس",

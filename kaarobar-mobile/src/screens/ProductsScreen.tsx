@@ -939,9 +939,18 @@ export default function InventoryScreen() {
           />
           <Pressable
             style={styles.btn}
-            onPress={() =>
-              setProductForm((prev) => ({ ...prev, barcode: generateBarcode() }))
-            }
+            onPress={() => {
+              void (async () => {
+                const s = await getSession();
+                const shopName =
+                  s?.memberships?.find((m) => m.business_id === s.business_id)
+                    ?.business_name || null;
+                setProductForm((prev) => ({
+                  ...prev,
+                  barcode: generateBarcode(shopName),
+                }));
+              })();
+            }}
           >
             <Text style={styles.btnText}>Generate</Text>
           </Pressable>

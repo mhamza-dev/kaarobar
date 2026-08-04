@@ -22,6 +22,7 @@ defmodule KaarobarWeb.Controllers.Helpers.ListFilters do
     :product_kind,
     :source,
     :portal_enabled,
+    :credit_enabled,
     :khata_enabled,
     :amount_min,
     :amount_max,
@@ -73,6 +74,9 @@ defmodule KaarobarWeb.Controllers.Helpers.ListFilters do
 
         {:portal_enabled, v} ->
           put_bool(acc, :portal_enabled, v)
+
+        {:credit_enabled, v} ->
+          put_bool(acc, :credit_enabled, v)
 
         {:khata_enabled, v} ->
           put_bool(acc, :khata_enabled, v)

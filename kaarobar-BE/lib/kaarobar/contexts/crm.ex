@@ -518,8 +518,8 @@ defmodule Kaarobar.Crm do
 
     q =
       case campaign.audience do
-        "khata" ->
-          from(c in q, where: c.khata_enabled == true)
+        audience when audience in ["credit", "khata"] ->
+          from(c in q, where: c.credit_enabled == true)
 
         "min_points" ->
           min = campaign.min_points || 0
@@ -552,8 +552,9 @@ defmodule Kaarobar.Crm do
     filters = (segment && segment.filters) || %{}
 
     q =
-      if Map.get(filters, "khata_enabled") == true or Map.get(filters, :khata_enabled) == true do
-        from(c in q, where: c.khata_enabled == true)
+      if Map.get(filters, "credit_enabled") == true or Map.get(filters, :credit_enabled) == true or
+           Map.get(filters, "khata_enabled") == true or Map.get(filters, :khata_enabled) == true do
+        from(c in q, where: c.credit_enabled == true)
       else
         q
       end

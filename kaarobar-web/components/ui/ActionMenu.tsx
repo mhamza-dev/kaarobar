@@ -107,7 +107,7 @@ export default function ActionMenu({ items, className = "" }: Props) {
             disabled={item.disabled}
             aria-label={item.label}
             title={item.label}
-            className={`inline-flex h-8 w-8 items-center justify-center rounded-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-40 ${colorClass(item)}`}
+            className={`inline-flex h-8 w-8 items-center justify-center rounded-md transition focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-40 ${colorClass(item)}`}
             onClick={() => {
               if (item.disabled) return;
               item.onClick();

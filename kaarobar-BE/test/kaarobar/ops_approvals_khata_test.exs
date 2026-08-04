@@ -77,7 +77,7 @@ defmodule Kaarobar.OpsApprovalsKhataTest do
       |> Customer.changeset(%{
         name: "Ali",
         phone: "03001234567",
-        khata_enabled: true,
+        credit_enabled: true,
         business_id: business.id,
         owner_id: owner.id
       })
@@ -89,13 +89,13 @@ defmodule Kaarobar.OpsApprovalsKhataTest do
       items: [%{product_id: product.id, quantity: "1"}],
       tax_amount: "0",
       discount_amount: "0",
-      payments: [%{method: "khata", amount: "100"}]
+      payments: [%{method: "credit", amount: "100"}]
     }
 
     assert {:ok, sale} = Pos.create_sale(branch.id, owner.id, business.id, owner.id, attrs)
     sale = Repo.preload(sale, [:payments])
     assert sale.customer_id == customer.id
-    assert Enum.any?(sale.payments, &(&1.method == "khata"))
+    assert Enum.any?(sale.payments, &(&1.method == "credit"))
     assert sale.ar_invoice_id
 
     balance = Accounting.customer_balance(customer.id, business.id, owner.id)
@@ -103,6 +103,67 @@ defmodule Kaarobar.OpsApprovalsKhataTest do
 
     entries = Accounting.customer_ledger(customer.id, business.id, owner.id)
     assert entries != []
+  end
+
+  test "khata AR invoice numbers stay unique across branches", %{
+    owner: owner,
+    business: business,
+    branch: branch,
+    product: product
+  } do
+    {:ok, branch_b} = Tenancy.create_branch(business.id, owner, %{name: "Second"})
+
+    {:ok, _} = Inventory.set_branch_price(product.id, branch_b.id, owner.id, business.id, "100")
+
+    {:ok, _} =
+      %InventoryRecord{}
+      |> InventoryRecord.changeset(%{
+        branch_id: branch_b.id,
+        product_id: product.id,
+        owner_id: owner.id,
+        business_id: business.id,
+        quantity_on_hand: Decimal.new("10"),
+        avg_cost: Decimal.new("50")
+      })
+      |> Repo.insert()
+
+    {:ok, customer} =
+      %Customer{}
+      |> Customer.changeset(%{
+        name: "Khata Cross Branch",
+        phone: "03009998877",
+        credit_enabled: true,
+        business_id: business.id,
+        owner_id: owner.id
+      })
+      |> Repo.insert()
+
+    sale_attrs = fn ->
+      %{
+        client_txn_id: Ecto.UUID.generate(),
+        customer_id: customer.id,
+        items: [%{product_id: product.id, quantity: "1"}],
+        tax_amount: "0",
+        discount_amount: "0",
+        payments: [%{method: "khata", amount: "100"}]
+      }
+    end
+
+    assert {:ok, sale_a} =
+             Pos.create_sale(branch.id, owner.id, business.id, owner.id, sale_attrs.())
+
+    assert {:ok, sale_b} =
+             Pos.create_sale(branch_b.id, owner.id, business.id, owner.id, sale_attrs.())
+
+    assert sale_a.ar_invoice_id
+    assert sale_b.ar_invoice_id
+    assert sale_a.ar_invoice_id != sale_b.ar_invoice_id
+
+    inv_a = Repo.get!(Kaarobar.Schemas.ArInvoice, sale_a.ar_invoice_id)
+    inv_b = Repo.get!(Kaarobar.Schemas.ArInvoice, sale_b.ar_invoice_id)
+    assert inv_a.invoice_number != inv_b.invoice_number
+    assert String.starts_with?(inv_a.invoice_number, "KH-")
+    assert String.starts_with?(inv_b.invoice_number, "KH-")
   end
 
   test "low stock notify debounced per day", %{

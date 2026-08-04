@@ -286,7 +286,7 @@ export default function MarketplaceStorePage() {
                     setFilters((f) => ({ ...f, search: e.target.value }))
                   }
                   placeholder={t("marketplace.searchProducts")}
-                  className="w-full rounded-md border border-border bg-card py-3 pe-4 ps-10 text-sm text-heading shadow-sm outline-none transition placeholder:text-muted focus:border-brand/40"
+                  className="w-full rounded-md border border-border bg-card py-3 pe-4 ps-10 text-sm text-heading shadow-sm outline-none transition placeholder:text-muted focus:border-brand/20"
                 />
               </div>
               {categoryOptions.length > 0 ? (

@@ -21,17 +21,17 @@ const en: HelpCatalog = {
   "page.pos": {
     title: "Point of Sale",
     summary: "Fast checkout with cart, customer, and payment.",
-    what: "Cashiers can sell products, attach customers for loyalty or khata (credit), apply discounts or coupons, and take payment by cash, card, wallet, or khata.",
+    what: "Cashiers can sell products, attach customers for loyalty or credit (credit), apply discounts or coupons, and take payment by cash, card, wallet, or credit.",
     how: [
       "Open a till before taking cash sales.",
       "Add products to the cart by search or barcode scan.",
-      "Attach a customer when needed for loyalty or khata.",
+      "Attach a customer when needed for loyalty or credit.",
       "Review the total, tap Proceed to checkout, and choose a payment method.",
       "Complete the order with Place order, then print or share the receipt.",
     ],
     when: "For every customer checkout at the counter.",
     tips: [
-      "Khata payment requires an active khata on the customer.",
+      "Credit payment requires an active credit on the customer.",
       "Keep the till open during the shift and count cash before closing at end of day.",
     ],
   },
@@ -69,19 +69,19 @@ const en: HelpCatalog = {
     ],
   },
   "page.customers": {
-    title: "Customers & Khata",
-    summary: "Customer profiles, credit/khata balance, ledger, and loyalty points.",
-    what: "Stores customer details and lets you enable khata, view the ledger, manage credit limits, and adjust loyalty points.",
+    title: "Customers & Credit",
+    summary: "Customer profiles, credit/credit balance, ledger, and loyalty points.",
+    what: "Stores customer details and lets you enable credit, view the ledger, manage credit limits, and adjust loyalty points.",
     how: [
       "Add a customer with name and phone.",
-      "Enable khata for credit sales.",
+      "Enable credit for credit sales.",
       "Open Ledger to see debits, credits, and outstanding balance.",
       "Adjust loyalty points for promotions or corrections.",
     ],
     when: "For CRM, credit sales, and loyalty programs.",
     tips: [
-      "Attach the customer at POS before khata payment.",
-      "Check credit limit before large khata sales.",
+      "Attach the customer at POS before credit payment.",
+      "Check credit limit before large credit sales.",
     ],
   },
   "page.sales": {
@@ -365,7 +365,7 @@ const en: HelpCatalog = {
     what: "Open invoice balances grouped by age (current, 30, 60 days, etc.).",
     how: ["Review buckets.", "Open an invoice for details.", "Follow up with the customer."],
     when: "For collections and credit control.",
-    tips: ["Khata/credit sales may appear in AR."],
+    tips: ["Credit/credit sales may appear in AR."],
   },
   "tab.accounting.ap": {
     title: "AP Aging",
@@ -697,17 +697,17 @@ const en: HelpCatalog = {
     how: [
       "Open Loyalty from the marketplace nav.",
       "Tap a card for earn/redeem details.",
-      "Open Balance from Loyalty or Account for khata invoices.",
+      "Open Balance from Loyalty or Account for credit invoices.",
     ],
     when: "Before redeeming or checking rewards.",
     tips: ["Rates come from each business’s loyalty settings."],
   },
   "page.buyer.ar": {
-    title: "Balance (khata)",
+    title: "Balance (credit)",
     summary: "Outstanding balances with stores.",
-    what: "Consumer view of AR / khata balances and open invoices. Tap an invoice to review and pay.",
+    what: "Consumer view of AR / credit balances and open invoices. Tap an invoice to review and pay.",
     how: [
-      "Open Account → Balance & khata, or the Balance link on Loyalty.",
+      "Open Account → Balance & credit, or the Balance link on Loyalty.",
       "Tap an invoice for due date and pay.",
     ],
     when: "When settling store credit or checking dues.",
@@ -716,7 +716,7 @@ const en: HelpCatalog = {
   "page.buyer.account": {
     title: "Accounts",
     summary: "Your marketplace profile hub.",
-    what: "Shortcuts to Balance/khata, Loyalty, and Alerts, plus sign-out.",
+    what: "Shortcuts to Balance/credit, Loyalty, and Alerts, plus sign-out.",
     how: [
       "Open Accounts from the marketplace nav.",
       "Jump to Balance, Loyalty, or Alerts.",

@@ -636,7 +636,7 @@ function HrPageInner() {
           }}
           clientFilter
           searchPlaceholder={t("hr.searchAttendance")}
-          pagination={{ mode: "client", pageSize: 25 }}
+          pagination={{ mode: "client", pageSize: 20 }}
           exportable
           exportFilename="attendance"
           exportTitle="Attendance"
@@ -683,7 +683,7 @@ function HrPageInner() {
           }}
           clientFilter
           searchPlaceholder={t("hr.searchLeave")}
-          pagination={{ mode: "client", pageSize: 25 }}
+          pagination={{ mode: "client", pageSize: 20 }}
           exportable
           exportFilename="leave"
           exportTitle="Leave"

@@ -161,7 +161,7 @@ export default function SearchMultiSelect({
         aria-expanded={open}
         aria-controls={listId}
         onClick={() => !disabled && setOpen((o) => !o)}
-        className="flex w-full items-center gap-2 rounded-md border border-border bg-bg-primary px-3 py-2.5 text-start text-sm text-heading outline-none transition hover:border-brand/40 disabled:cursor-not-allowed disabled:opacity-60"
+        className="box-border flex h-[2.625rem] min-h-[2.625rem] w-full items-center gap-2 rounded-md border border-border bg-bg-secondary/80 px-3 text-start text-sm leading-none text-heading outline-none transition hover:border-brand/40 focus:border-brand/20 disabled:cursor-not-allowed disabled:opacity-60"
       >
         <span className={`min-w-0 flex-1 truncate ${value.length ? "" : "text-muted"}`}>
           {value.length

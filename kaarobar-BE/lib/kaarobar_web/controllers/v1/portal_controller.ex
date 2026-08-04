@@ -28,7 +28,7 @@ defmodule KaarobarWeb.V1.PortalController do
               business_id: c.business_id,
               business_name: c.business && c.business.name,
               loyalty_points: c.loyalty_points || 0,
-              khata_enabled: c.khata_enabled == true,
+              credit_enabled: c.credit_enabled == true,
               portal_enabled: c.portal_enabled == true
             }
           end),
@@ -398,7 +398,7 @@ defmodule KaarobarWeb.V1.PortalController do
       marketing_opt_in_email: c.marketing_opt_in_email == true,
       marketing_opt_in_sms: c.marketing_opt_in_sms == true,
       marketing_opt_in_whatsapp: c.marketing_opt_in_whatsapp == true,
-      khata_enabled: c.khata_enabled == true,
+      credit_enabled: c.credit_enabled == true,
       profile_pic_url: Profiles.profile_pic_url(c)
     }
   end

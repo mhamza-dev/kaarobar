@@ -81,7 +81,7 @@ export default function MarketplaceFilters({
                 value={value.search}
                 onChange={(e) => onChange({ ...value, search: e.target.value })}
                 placeholder={searchPlaceholder || t("marketplace.searchAllProducts")}
-                className="w-full rounded-md border border-border bg-bg-primary py-3 pe-10 ps-10 text-sm text-heading outline-none transition placeholder:text-muted focus:border-brand/40"
+                className="w-full rounded-md border border-border bg-bg-primary py-3 pe-10 ps-10 text-sm text-heading outline-none transition placeholder:text-muted focus:border-brand/20"
                 aria-label={searchPlaceholder || t("marketplace.searchAllProducts")}
               />
               {value.search ? (

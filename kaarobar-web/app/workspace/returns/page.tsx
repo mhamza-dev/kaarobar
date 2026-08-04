@@ -339,7 +339,7 @@ export default function ReturnsPage() {
           }}
           clientFilter
           searchPlaceholder={t("returns.searchReturns")}
-          pagination={{ mode: "client", pageSize: 25 }}
+          pagination={{ mode: "client", pageSize: 20 }}
           exportable
           exportFilename="returns"
           exportTitle="Recent returns"
@@ -420,7 +420,7 @@ export default function ReturnsPage() {
           }}
           clientFilter
           searchPlaceholder={t("returns.searchTills")}
-          pagination={{ mode: "client", pageSize: 25 }}
+          pagination={{ mode: "client", pageSize: 20 }}
           exportable
           exportFilename="tills"
           exportTitle="Till history"

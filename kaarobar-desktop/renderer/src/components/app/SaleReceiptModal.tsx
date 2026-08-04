@@ -1,3 +1,4 @@
+import KaarobarLogo from "@/components/brand/KaarobarLogo";
 import Button from "@/components/ui/Button";
 import { formatDecimal } from "@/lib/decimal";
 
@@ -44,6 +45,9 @@ export default function SaleReceiptModal({
       <div className="max-h-[90vh] w-full max-w-md overflow-auto rounded-md bg-white p-6 shadow-xl print:max-h-none print:shadow-none">
         <div id="kaarobar-receipt" className="space-y-3 text-sm text-slate-900">
           <div className="text-center">
+            <div className="mb-2 flex justify-center">
+              <KaarobarLogo size={40} className="rounded-md" />
+            </div>
             <p className="text-lg font-bold">{businessName}</p>
             {branchName ? <p className="text-slate-600">{branchName}</p> : null}
             <p className="mt-2 font-semibold">Invoice {sale.invoice_number}</p>
@@ -113,7 +117,11 @@ export default function SaleReceiptModal({
             </p>
           ) : null}
 
-          <p className="pt-2 text-center text-xs text-slate-500">Thank you</p>
+          <div className="border-t border-slate-200 pt-3 text-center">
+            <p className="text-xs text-slate-500">Thank you</p>
+            <p className="mt-2 text-[11px] font-semibold text-slate-700">Powered by Kaarobar</p>
+            <p className="text-[10px] text-slate-500">A product of 2ndHub Solutions</p>
+          </div>
         </div>
 
         <div className="mt-5 flex gap-2 print:hidden">

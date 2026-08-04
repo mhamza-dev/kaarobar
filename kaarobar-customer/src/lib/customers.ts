@@ -12,7 +12,7 @@ export type Customer = {
   company_name?: string | null;
   credit_limit?: string | null;
   loyalty_points?: number;
-  khata_enabled?: boolean;
+  credit_enabled?: boolean;
   portal_enabled?: boolean;
   portal_linked?: boolean;
   customer_account_id?: string | null;
@@ -31,7 +31,7 @@ export type CustomerForm = {
   company_name: string;
   credit_limit: string;
   user_id: string;
-  khata_enabled: boolean;
+  credit_enabled: boolean;
 };
 
 export const emptyCustomerForm = (): CustomerForm => ({
@@ -45,7 +45,7 @@ export const emptyCustomerForm = (): CustomerForm => ({
   company_name: "",
   credit_limit: "",
   user_id: "",
-  khata_enabled: true,
+  credit_enabled: true,
 });
 
 export function customerToForm(c: Customer): CustomerForm {
@@ -60,7 +60,7 @@ export function customerToForm(c: Customer): CustomerForm {
     company_name: c.company_name || "",
     credit_limit: c.credit_limit || "",
     user_id: c.user_id || "",
-    khata_enabled: c.khata_enabled === true,
+    credit_enabled: c.credit_enabled === true,
   };
 }
 
@@ -76,7 +76,7 @@ export function customerPayload(form: CustomerForm) {
     company_name: form.company_name.trim() || null,
     credit_limit: form.credit_limit.trim() || null,
     user_id: form.user_id.trim() || null,
-    khata_enabled: form.khata_enabled,
+    credit_enabled: form.credit_enabled,
   };
 }
 
@@ -100,5 +100,5 @@ export const CUSTOMER_FORM_FIELDS: {
   { key: "credit_limit", labelKey: "customers.creditLimit" },
   { key: "user_id", labelKey: "customers.userId" },
   { key: "notes", labelKey: "customers.notes", type: "textarea" },
-  { key: "khata_enabled", labelKey: "customers.khataEnabled", type: "checkbox" },
+  { key: "credit_enabled", labelKey: "customers.khataEnabled", type: "checkbox" },
 ];

@@ -406,7 +406,7 @@ function MarketingPageInner() {
   const createSegmentMutation = useMutation({
     mutationFn: async () => {
       const filters: Record<string, unknown> = {};
-      if (segForm.khata) filters.khata_enabled = true;
+      if (segForm.khata) filters.credit_enabled = true;
       if (segForm.min_points) filters.min_points = Number(segForm.min_points);
       await api("/crm/segments", {
         method: "POST",
@@ -737,7 +737,7 @@ function MarketingPageInner() {
             }}
             clientFilter
             searchPlaceholder={t("marketing.search")}
-            pagination={{ mode: "client", pageSize: 25 }}
+            pagination={{ mode: "client", pageSize: 20 }}
             exportable
             exportFilename="campaigns"
             exportTitle="Campaigns"
@@ -1077,9 +1077,9 @@ function MarketingPageInner() {
               onChange={(v) => setForm({ ...form, audience: v })}
               options={[
                 { value: "all", label: t("marketing.audienceAll") },
-                { value: "khata", label: t("marketing.audienceKhata") },
+                { value: "credit", label: t("marketing.audienceKhata") },
                 { value: "min_points", label: t("marketing.audienceMinPoints") },
-                { value: "segment", label: "Named segment" },
+                { value: "segment", label: t("marketing.audienceSegment") },
               ]}
             />
           </Field>

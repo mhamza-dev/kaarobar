@@ -438,7 +438,7 @@ export default function BuyerBookFlow({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}
-                className="w-full rounded-md border border-border bg-bg-primary px-3 py-2 text-sm text-heading outline-none focus:border-brand/40"
+                className="w-full rounded-md border border-border bg-bg-primary px-3 py-2 text-sm text-heading outline-none focus:border-brand/20"
                 placeholder={t("appointments.notesPlaceholder")}
               />
             </label>

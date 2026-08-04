@@ -67,13 +67,13 @@ type Till = {
   over_short?: string | null;
 };
 
-type PayMethod = "cash" | "card" | "wallet" | "khata";
+type PayMethod = "cash" | "card" | "wallet" | "credit";
 
 type Customer = {
   id: string;
   name: string;
   phone?: string | null;
-  khata_enabled?: boolean;
+  credit_enabled?: boolean;
   loyalty_points?: number;
 };
 
@@ -125,7 +125,7 @@ function CartQtyInput({
           e.currentTarget.blur();
         }
       }}
-      className="h-8 w-14 rounded-md border border-border bg-card text-center text-sm font-bold tabular-nums text-heading outline-none focus:border-brand"
+      className="h-8 w-14 rounded-md border border-border bg-card text-center text-sm font-bold tabular-nums text-heading outline-none focus:border-brand/20"
     />
   );
 }
@@ -335,7 +335,7 @@ export default function PosPage() {
     setPayCash(method === "cash" ? formatDecimal(total) : "");
     setPayCard(method === "card" ? formatDecimal(total) : "");
     setPayWallet(method === "wallet" ? formatDecimal(total) : "");
-    setPayKhata(method === "khata" ? formatDecimal(total) : "");
+    setPayKhata(method === "credit" ? formatDecimal(total) : "");
   }
 
   function buildPayments() {
@@ -347,7 +347,7 @@ export default function PosPage() {
     if (cash > 0) parts.push({ method: "cash", amount: round2(cash) });
     if (card > 0) parts.push({ method: "card", amount: round2(card) });
     if (wallet > 0) parts.push({ method: "wallet", amount: round2(wallet) });
-    if (khata > 0) parts.push({ method: "khata", amount: round2(khata) });
+    if (khata > 0) parts.push({ method: "credit", amount: round2(khata) });
     return parts;
   }
 
@@ -363,7 +363,7 @@ export default function PosPage() {
         body: JSON.stringify({
           name: newCustomerName.trim(),
           phone: newCustomerPhone.trim() || undefined,
-          khata_enabled: true,
+          credit_enabled: true,
         }),
       });
       setCustomers((prev) => [...prev, res.data].sort((a, b) => a.name.localeCompare(b.name)));
@@ -386,10 +386,10 @@ export default function PosPage() {
     try {
       const res = await api<{ data: Customer }>(`/customers/${customerId}`, {
         method: "PATCH",
-        body: JSON.stringify({ khata_enabled: true }),
+        body: JSON.stringify({ credit_enabled: true }),
       });
       setCustomers((prev) => prev.map((c) => (c.id === res.data.id ? res.data : c)));
-      toast.success("Khata enabled for customer");
+      toast.success(t("customers.enableKhata"));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.error"));
     }
@@ -453,13 +453,13 @@ export default function PosPage() {
       toast.warning(`${t("common.total")}: ${formatDecimal(total)} / ${formatDecimal(paySum)}`);
       return;
     }
-    const khataAmt = payments.find((p) => p.method === "khata")?.amount || 0;
+    const khataAmt = payments.find((p) => p.method === "credit")?.amount || 0;
     if (khataAmt > 0) {
       if (!customerId) {
         toast.warning(t("pos.selectCustomerKhata"));
         return;
       }
-      if (!selectedCustomer?.khata_enabled) {
+      if (!selectedCustomer?.credit_enabled) {
         toast.warning(t("pos.enableKhataFirst"));
         return;
       }
@@ -503,7 +503,7 @@ export default function PosPage() {
 
   function openCheckout() {
     if (cart.length === 0) return;
-    setPayMethod(payFocus === "khata" && !selectedCustomer ? "cash" : payFocus);
+    setPayMethod(payFocus === "credit" && !selectedCustomer ? "cash" : payFocus);
     setCheckoutModalOpen(true);
   }
 
@@ -857,7 +857,7 @@ export default function PosPage() {
                           {selectedCustomer.phone || "No phone"}
                           {" · "}
                           {selectedCustomer.loyalty_points ?? 0} {t("customers.points")}
-                          {selectedCustomer.khata_enabled ? " · Khata" : ""}
+                          {selectedCustomer.credit_enabled ? ` · ${t("pos.khata")}` : ""}
                         </p>
                       </div>
                     </div>
@@ -868,7 +868,7 @@ export default function PosPage() {
                       onClick={() => {
                         setCustomerId("");
                         setLoyaltyRedeem("");
-                        if (payFocus === "khata") setPayMethod("cash");
+                        if (payFocus === "credit") setPayMethod("cash");
                       }}
                     >
                       <X className="h-4 w-4" />
@@ -886,7 +886,7 @@ export default function PosPage() {
                     >
                       {t("pos.changeCustomer")}
                     </Button>
-                    {!selectedCustomer.khata_enabled ? (
+                    {!selectedCustomer.credit_enabled ? (
                       <Button size="sm" variant="secondary" onClick={() => void enableKhata()}>
                         {t("pos.startKhata")}
                       </Button>
@@ -970,11 +970,11 @@ export default function PosPage() {
                   ["cash", t("pos.cash"), Banknote],
                   ["card", t("pos.card"), CreditCard],
                   ["wallet", t("pos.wallet"), Wallet],
-                  ["khata", t("pos.khata"), BookUser],
+                  ["credit", t("pos.khata"), BookUser],
                 ] as const
               ).map(([method, label, Icon]) => {
                 const active = payFocus === method;
-                const khataLocked = method === "khata" && !selectedCustomer;
+                const khataLocked = method === "credit" && !selectedCustomer;
                 return (
                   <button
                     key={method}
@@ -1061,8 +1061,8 @@ export default function PosPage() {
             <Button
               variant="outline"
               onClick={() => setShowNewCustomer((v) => !v)}
+              startIcon={<BookUser className="h-4 w-4" />}
             >
-              <BookUser className="mr-1.5 h-4 w-4" />
               {t("pos.newCustomer")}
             </Button>
             <Button
@@ -1127,18 +1127,16 @@ export default function PosPage() {
                       setCustomerQuery("");
                       setShowNewCustomer(false);
                     }}
-                    className={`flex w-full items-center gap-3 rounded-md border p-3.5 text-left transition ${
-                      selected
+                    className={`flex w-full items-center gap-3 rounded-md border p-3.5 text-left transition ${selected
                         ? "border-brand bg-brand-soft shadow-sm"
                         : "border-border bg-card hover:border-brand/30"
-                    }`}
+                      }`}
                   >
                     <span
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-sm font-bold ${
-                        selected
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-sm font-bold ${selected
                           ? "bg-brand/15 text-brand"
                           : "bg-bg-secondary text-heading"
-                      }`}
+                        }`}
                     >
                       {c.name.slice(0, 1).toUpperCase()}
                     </span>
@@ -1148,17 +1146,16 @@ export default function PosPage() {
                       </span>
                       <span className="mt-0.5 block text-xs text-muted">
                         {c.phone || "—"}
-                        {c.khata_enabled ? " · Khata" : ""}
+                        {c.credit_enabled ? ` · ${t("pos.khata")}` : ""}
                         {" · "}
                         {c.loyalty_points ?? 0} pts
                       </span>
                     </span>
                     <span
-                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border transition ${
-                        selected
+                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border transition ${selected
                           ? "border-brand bg-brand text-white"
                           : "border-border bg-card text-transparent"
-                      }`}
+                        }`}
                       aria-hidden
                     >
                       <Check className="h-3.5 w-3.5" strokeWidth={2.5} />

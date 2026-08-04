@@ -831,7 +831,7 @@ function InventoryPageInner() {
             searchText: (row) => `${row.sku ?? ""} ${row.name ?? ""}`,
           }}
           searchPlaceholder={t("inventory.searchSku")}
-          pagination={{ mode: "client", pageSize: 25 }}
+          pagination={{ mode: "client", pageSize: 20 }}
           exportable
           exportFilename="stock"
           exportTitle="Stock"
@@ -901,7 +901,7 @@ function InventoryPageInner() {
           }}
           clientFilter
           searchPlaceholder={t("inventory.searchProductsList")}
-          pagination={{ mode: "client", pageSize: 25 }}
+          pagination={{ mode: "client", pageSize: 20 }}
           exportable
           exportFilename="products"
           exportTitle="Products"
@@ -1233,7 +1233,7 @@ function InventoryPageInner() {
             date: (tr) => tr.inserted_at,
           }}
           searchPlaceholder={t("inventory.searchTransfers")}
-          pagination={{ mode: "client", pageSize: 25 }}
+          pagination={{ mode: "client", pageSize: 20 }}
           exportable
           exportFilename="transfers"
           exportTitle={t("inventory.tabs.transfers")}

@@ -101,7 +101,7 @@ export default function SalesPage() {
           }}
           clientFilter
           searchPlaceholder={t("sales.searchInvoice")}
-          pagination={{ mode: "client", pageSize: 25 }}
+          pagination={{ mode: "client", pageSize: 20 }}
           exportable
           exportFilename="sales"
           exportTitle="Sales"

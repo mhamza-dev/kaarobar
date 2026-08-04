@@ -18,6 +18,7 @@ defmodule KaarobarWeb.V1.ArApController do
         :from,
         :to,
         :portal_enabled,
+        :credit_enabled,
         :khata_enabled,
         :status,
         :balance_min,
@@ -28,6 +29,7 @@ defmodule KaarobarWeb.V1.ArApController do
         :cursor
       ])
       |> maybe_customer_status()
+      |> normalize_credit_filter()
 
     %{data: rows, meta: meta} = Accounting.list_customers(business_id, owner_id, opts)
 
@@ -51,9 +53,25 @@ defmodule KaarobarWeb.V1.ArApController do
   defp maybe_customer_status(opts) do
     case Keyword.get(opts, :status) do
       "portal" -> Keyword.put(Keyword.delete(opts, :status), :portal_enabled, true)
-      "khata" -> Keyword.put(Keyword.delete(opts, :status), :khata_enabled, true)
+      status when status in ["credit", "khata"] ->
+        Keyword.put(Keyword.delete(opts, :status), :credit_enabled, true)
       "active" -> Keyword.delete(opts, :status)
       _ -> Keyword.delete(opts, :status)
+    end
+  end
+
+  defp normalize_credit_filter(opts) do
+    cond do
+      Keyword.has_key?(opts, :credit_enabled) ->
+        Keyword.delete(opts, :khata_enabled)
+
+      Keyword.has_key?(opts, :khata_enabled) ->
+        opts
+        |> Keyword.put(:credit_enabled, Keyword.fetch!(opts, :khata_enabled))
+        |> Keyword.delete(:khata_enabled)
+
+      true ->
+        opts
     end
   end
 
@@ -220,7 +238,7 @@ defmodule KaarobarWeb.V1.ArApController do
   # store-scoped membership fields (khata, credit, notes, marketing, etc.).
   @portal_editable_keys ~w(
     address notes cnic ntn company_name credit_limit user_id
-    khata_enabled marketing_opt_in_email marketing_opt_in_sms
+    credit_enabled khata_enabled marketing_opt_in_email marketing_opt_in_sms
     marketing_opt_in_whatsapp portal_enabled
   )
 
@@ -362,22 +380,35 @@ defmodule KaarobarWeb.V1.ArApController do
   defp portal_error(other), do: inspect(other)
 
   defp customer_attrs(params) do
-    %{}
-    |> maybe_put(params, "name")
-    |> maybe_put(params, "phone")
-    |> maybe_put(params, "email")
-    |> maybe_put(params, "address")
-    |> maybe_put(params, "notes")
-    |> maybe_put(params, "cnic")
-    |> maybe_put(params, "ntn")
-    |> maybe_put(params, "company_name")
-    |> maybe_put(params, "credit_limit")
-    |> maybe_put(params, "user_id")
-    |> maybe_put_bool(params, "khata_enabled")
-    |> maybe_put_bool(params, "marketing_opt_in_email")
-    |> maybe_put_bool(params, "marketing_opt_in_sms")
-    |> maybe_put_bool(params, "marketing_opt_in_whatsapp")
-    |> maybe_put_bool(params, "portal_enabled")
+    attrs =
+      %{}
+      |> maybe_put(params, "name")
+      |> maybe_put(params, "phone")
+      |> maybe_put(params, "email")
+      |> maybe_put(params, "address")
+      |> maybe_put(params, "notes")
+      |> maybe_put(params, "cnic")
+      |> maybe_put(params, "ntn")
+      |> maybe_put(params, "company_name")
+      |> maybe_put(params, "credit_limit")
+      |> maybe_put(params, "user_id")
+      |> maybe_put_bool(params, "credit_enabled")
+      |> maybe_put_bool(params, "marketing_opt_in_email")
+      |> maybe_put_bool(params, "marketing_opt_in_sms")
+      |> maybe_put_bool(params, "marketing_opt_in_whatsapp")
+      |> maybe_put_bool(params, "portal_enabled")
+
+    # Legacy clients may still send khata_enabled
+    if Map.has_key?(attrs, "credit_enabled") do
+      attrs
+    else
+      legacy = maybe_put_bool(%{}, params, "khata_enabled")
+
+      case Map.fetch(legacy, "khata_enabled") do
+        {:ok, v} -> Map.put(attrs, "credit_enabled", v)
+        :error -> attrs
+      end
+    end
   end
 
   defp serialize_customer(c) do
@@ -398,7 +429,7 @@ defmodule KaarobarWeb.V1.ArApController do
       credit_limit: c.credit_limit && to_string(c.credit_limit),
       loyalty_points: c.loyalty_points || 0,
       loyalty_tier_id: Map.get(c, :loyalty_tier_id),
-      khata_enabled: c.khata_enabled == true,
+      credit_enabled: c.credit_enabled == true,
       marketing_opt_in_email: Map.get(c, :marketing_opt_in_email) == true,
       marketing_opt_in_sms: Map.get(c, :marketing_opt_in_sms) == true,
       marketing_opt_in_whatsapp: Map.get(c, :marketing_opt_in_whatsapp) == true,

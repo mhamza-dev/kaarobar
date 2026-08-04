@@ -869,7 +869,7 @@ customer_defs = [
     name: "Walk-in Retail",
     phone: "+923001110001",
     email: "walkin@example.pk",
-    khata_enabled: false,
+    credit_enabled: false,
     loyalty_points: 0,
     marketing_opt_in_email: false,
     marketing_opt_in_sms: false,
@@ -881,7 +881,7 @@ customer_defs = [
     name: "Corner Shop Credit",
     phone: "+923001110002",
     email: "cornershop@kaarobar-demo.pk",
-    khata_enabled: true,
+    credit_enabled: true,
     loyalty_points: 120,
     marketing_opt_in_email: true,
     marketing_opt_in_sms: true,
@@ -895,7 +895,7 @@ customer_defs = [
     name: "Hotel Supplies Co",
     phone: "+923001110003",
     email: "procurement@hotelsupplies.pk",
-    khata_enabled: true,
+    credit_enabled: true,
     loyalty_points: 850,
     marketing_opt_in_email: true,
     marketing_opt_in_sms: false,
@@ -911,7 +911,7 @@ customer_defs = [
     name: "Neighborhood Clinic",
     phone: "+923001110004",
     email: "admin@neighborhoodclinic.pk",
-    khata_enabled: true,
+    credit_enabled: true,
     loyalty_points: 420,
     marketing_opt_in_email: true,
     marketing_opt_in_sms: true,
@@ -926,7 +926,7 @@ customer_defs = [
     name: "Ayesha Siddiqui",
     phone: "+923001110005",
     email: "ayesha.customer@kaarobar-demo.pk",
-    khata_enabled: false,
+    credit_enabled: false,
     loyalty_points: 45,
     marketing_opt_in_email: true,
     marketing_opt_in_sms: true,
@@ -940,7 +940,7 @@ customer_defs = [
     name: "Raza Traders",
     phone: "+923001110006",
     email: "raza.traders@kaarobar-demo.pk",
-    khata_enabled: true,
+    credit_enabled: true,
     loyalty_points: 2100,
     marketing_opt_in_email: true,
     marketing_opt_in_sms: false,
@@ -1015,7 +1015,7 @@ generated_customers =
       name: name,
       phone: "+92300#{1_110_000 + i}",
       email: "customer#{i}@kaarobar-demo.pk",
-      khata_enabled: khata?,
+      credit_enabled: khata?,
       loyalty_points: rem(i * 37, 2500),
       marketing_opt_in_email: rem(i, 2) == 0,
       marketing_opt_in_sms: rem(i, 3) == 0,
@@ -1593,7 +1593,7 @@ seed_customers = fn owner, business ->
         credit_limit: defn[:credit_limit],
         cnic: defn[:cnic],
         ntn: defn[:ntn],
-        khata_enabled: defn[:khata_enabled] == true,
+        credit_enabled: defn[:credit_enabled] == true,
         loyalty_points: defn[:loyalty_points] || 0,
         marketing_opt_in_email: defn[:marketing_opt_in_email] == true,
         marketing_opt_in_sms: defn[:marketing_opt_in_sms] == true,
@@ -1982,7 +1982,7 @@ seed_scenario_pack = fn owner, business, branches, products, employees, cashier 
     from(c in Customer, where: c.business_id == ^business.id, order_by: [asc: c.name])
     |> Repo.all()
 
-  khata_customer = Enum.find(customers, & &1.khata_enabled)
+  khata_customer = Enum.find(customers, & &1.credit_enabled)
   suppliers =
     from(s in Supplier, where: s.business_id == ^business.id, order_by: [asc: s.name])
     |> Repo.all()
@@ -2173,7 +2173,7 @@ seed_scenario_pack = fn owner, business, branches, products, employees, cashier 
             till_id: till && till.id,
             customer_id: khata_customer.id,
             items: [%{product_id: product.id, quantity: qty}],
-            payments: [%{method: "khata", amount: total}],
+            payments: [%{method: "credit", amount: total}],
             notes: "Khata credit sale demo"
           })
       end
@@ -2873,7 +2873,7 @@ seed_crm_and_finance = fn owner, business, branches, products ->
             [
               %{
                 name: "Khata regulars",
-                filters: %{"khata_enabled" => true, "min_points" => 50},
+                filters: %{"credit_enabled" => true, "min_points" => 50},
                 business_id: business.id,
                 owner_id: owner.id
               }
@@ -2976,7 +2976,7 @@ seed_crm_and_finance = fn owner, business, branches, products ->
         name: "SMS flash sale",
         title: "Tonight only",
         message: "Use code FLAT100 at checkout for Rs 100 off carts over Rs 1,000.",
-        audience: "khata",
+        audience: "credit",
         channel: "sms",
         status: "Draft",
         business_id: business.id,
@@ -3057,7 +3057,7 @@ seed_crm_and_finance = fn owner, business, branches, products ->
   _ = bulk_insert!.(CampaignPayment, campaign_payment_attrs, [])
 
   # AR / AP / PO keep context helpers (journals + stock side-effects)
-  khata_customers = Enum.filter(customers, & &1.khata_enabled)
+  khata_customers = Enum.filter(customers, & &1.credit_enabled)
 
   Enum.each(Enum.with_index(Enum.take(khata_customers, 8)), fn {cust, i} ->
     inv_no = "AR-DEMO-#{String.slice(business.id, 0, 4)}-#{i + 1}"

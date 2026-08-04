@@ -156,7 +156,7 @@ export default function ProfileSettingsPanel() {
           </Field>
 
           <Field label={t("common.language")}>
-            <LanguageSwitcher className="mt-1" />
+            <LanguageSwitcher compact />
           </Field>
 
           <Field label={t("profile.newPassword")}>

@@ -472,8 +472,22 @@ canvas {
 }
 
 :focus-visible {
-  outline: 2px solid var(--brand);
-  outline-offset: 3px;
+  outline: 1px solid color-mix(in srgb, var(--brand) 45%, transparent);
+  outline-offset: 0;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[role="button"]:focus-visible,
+[role="combobox"]:focus-visible,
+[role="listbox"]:focus-visible,
+[role="option"]:focus-visible,
+[role="menuitem"]:focus-visible,
+[role="tab"]:focus-visible {
+  outline: none;
+  outline-offset: 0;
 }
 
 :focus:not(:focus-visible) {

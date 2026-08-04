@@ -186,7 +186,7 @@
     "editProduct": "مصنوعات ترمیم",
     "newProduct": "نئی مصنوعات",
     "barcode": "بارکوڈ",
-    "barcodePlaceholder": "اسکین، ٹائپ، یا جنریٹ کریں",
+    "barcodePlaceholder": "مثلاً KBGSS92152458393",
     "generateBarcode": "جنریٹ",
     "addSupplier": "سپلائر شامل کریں",
     "editSupplier": "سپلائر ترمیم",
@@ -576,7 +576,9 @@
       "description": "مارکیٹ پلیس تفصیل",
       "name": "گاہک کا نام (نمونہ)",
       "points": "لوائلٹی پوائنٹس (نمونہ)"
-    }
+    },
+    "audienceSegment": "نامزد سیگمنٹ",
+    "channel": "چینل"
   },
   "notifications": {
     "eyebrow": "ان باکس",

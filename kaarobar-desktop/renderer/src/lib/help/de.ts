@@ -21,17 +21,17 @@ const catalog: HelpCatalog = {
   "page.pos": {
     title: "Verkaufsstelle",
     summary: "Schneller Checkout mit Warenkorb, Kunde und Zahlung.",
-    what: "Kassierer können Produkte verkaufen, Kunden für Treue oder khata (Guthaben) gewinnen, Rabatte oder Coupons anwenden und Zahlungen in bar, mit Karte, Geldbörse oder khata entgegennehmen.",
+    what: "Kassierer können Produkte verkaufen, Kunden für Treue oder Kredit (Guthaben) gewinnen, Rabatte oder Coupons anwenden und Zahlungen in bar, mit Karte, Geldbörse oder Kredit entgegennehmen.",
     how: [
       "Öffnen Sie eine Kasse, bevor Sie Barverkäufe entgegennehmen.",
       "Fügen Sie Produkte per Suche oder Barcode-Scan zum Warenkorb hinzu.",
-      "Fügen Sie bei Bedarf einen Kunden für die Treue oder khata hinzu.",
+      "Fügen Sie bei Bedarf einen Kunden für die Treue oder Kredit hinzu.",
       "Überprüfen Sie den Gesamtbetrag, tippen Sie auf „Zur Kasse gehen“ und wählen Sie eine Zahlungsmethode aus.",
       "Schließen Sie die Bestellung mit „Bestellung aufgeben“ ab und drucken Sie dann den Beleg aus oder teilen Sie ihn.",
     ],
     when: "Für jede Kundenkasse an der Theke.",
     tips: [
-      "Für die Khata-Zahlung ist ein aktives khata beim Kunden erforderlich.",
+      "Für die Kredit-Zahlung ist ein aktives Kredit beim Kunden erforderlich.",
       "Halten Sie die Kasse während der Schicht geöffnet und zählen Sie das Bargeld, bevor Sie am Ende des Tages schließen.",
     ],
   },
@@ -52,19 +52,19 @@ const catalog: HelpCatalog = {
     ],
   },
   "page.customers": {
-    title: "Kunden & Khata",
-    summary: "Kundenprofile, Guthaben/khata-Guthaben, Hauptbuch und Treuepunkte.",
-    what: "Speichert Kundendaten und ermöglicht Ihnen die Aktivierung von khata, die Anzeige des Hauptbuchs, die Verwaltung von Kreditlimits und die Anpassung von Treuepunkten.",
+    title: "Kunden & Kredit",
+    summary: "Kundenprofile, Guthaben/Kredit-Guthaben, Hauptbuch und Treuepunkte.",
+    what: "Speichert Kundendaten und ermöglicht Ihnen die Aktivierung von Kredit, die Anzeige des Hauptbuchs, die Verwaltung von Kreditlimits und die Anpassung von Treuepunkten.",
     how: [
       "Fügen Sie einen Kunden mit Namen und Telefonnummer hinzu.",
-      "Aktivieren Sie khata für Kreditverkäufe.",
+      "Aktivieren Sie Kredit für Kreditverkäufe.",
       "Öffnen Sie das Hauptbuch, um Belastungen, Gutschriften und ausstehende Beträge anzuzeigen.",
       "Passen Sie Treuepunkte für Werbeaktionen oder Korrekturen an.",
     ],
     when: "Für CRM, Kreditverkäufe und Treueprogramme.",
     tips: [
-      "Hängen Sie den Kunden unter POS vor der Zahlung khata an.",
-      "Überprüfen Sie das Kreditlimit vor großen khata-Verkäufen.",
+      "Hängen Sie den Kunden unter POS vor der Zahlung Kredit an.",
+      "Überprüfen Sie das Kreditlimit vor großen Kredit-Verkäufen.",
     ],
   },
   "page.sales": {
@@ -347,7 +347,7 @@ const catalog: HelpCatalog = {
     what: "Offene Rechnungssalden gruppiert nach Alter (aktuell, 30, 60 Tage usw.).",
     how: ["Überprüfen Sie die Buckets.", "Für Einzelheiten öffnen Sie eine Rechnung.", "Setzen Sie sich mit dem Kunden in Verbindung."],
     when: "Für Inkasso und Kreditkontrolle.",
-    tips: ["Khata/Kreditverkäufe können in AR erscheinen."],
+    tips: ["Kredit/Kreditverkäufe können in AR erscheinen."],
   },
   "tab.accounting.ap": {
     title: "AP-Alterung",

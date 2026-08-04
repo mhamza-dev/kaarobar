@@ -90,7 +90,7 @@ defmodule Kaarobar.ListFiltersTest do
         email: "ali-filter@test.local",
         business_id: biz_a.id,
         owner_id: owner_a.id,
-        khata_enabled: true,
+        credit_enabled: true,
         portal_enabled: true
       })
       |> Repo.insert()
@@ -188,7 +188,7 @@ defmodule Kaarobar.ListFiltersTest do
     found = Accounting.list_customers(biz_a.id, owner_a.id, q: "Ali").data
     assert Enum.map(found, fn {c, _} -> c.id end) == [cust_a.id]
 
-    khata = Accounting.list_customers(biz_a.id, owner_a.id, khata_enabled: true).data
+    khata = Accounting.list_customers(biz_a.id, owner_a.id, credit_enabled: true).data
     assert Enum.map(khata, fn {c, _} -> c.id end) == [cust_a.id]
 
     portal = Accounting.list_customers(biz_a.id, owner_a.id, portal_enabled: true).data

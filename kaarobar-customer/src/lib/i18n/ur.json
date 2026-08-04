@@ -508,7 +508,9 @@
     "payAndSendConfirm": "“{name}” کو ادائیگی کر کے بھیجیں؟",
     "payAndSendDone": "ادائیگی کی تصدیق — مہم بھیج دی گئی",
     "checkoutOpened": "چیک آؤٹ نئے ٹیب میں کھلا",
-    "payHint": "رضامندی درکار ہے۔ SMS اور WhatsApp کے لیے Pay & send چیک آؤٹ استعمال کریں۔"
+    "payHint": "رضامندی درکار ہے۔ SMS اور WhatsApp کے لیے Pay & send چیک آؤٹ استعمال کریں۔",
+    "audienceSegment": "نامزد سیگمنٹ",
+    "channel": "چینل"
   },
   "notifications": {
     "eyebrow": "ان باکس",

@@ -1,16 +1,19 @@
 "use client";
 
-import { Building2, ChevronDown, MapPin } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { Building2, MapPin } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, getSession, setSession } from "@/lib/api/client";
+import { useT } from "@/lib/i18n";
+import Select from "@/components/ui/Select";
 
 type Business = { id: string; name: string; industry?: string };
 type Branch = { id: string; name: string; business_id: string };
 
-const selectClass =
-  "h-9 max-w-[min(42vw,220px)] appearance-none truncate rounded-md border border-rail-border bg-card py-1.5 pl-8 pr-7 text-xs font-semibold text-heading outline-none transition hover:bg-rail-hover focus:border-brand";
+const triggerClass =
+  "max-w-[min(42vw,220px)] border-rail-border bg-card !ps-8 font-semibold hover:bg-rail-hover focus:border-brand/20";
 
 export default function TenantSwitcher() {
+  const t = useT();
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [businessId, setBusinessId] = useState("");
@@ -78,7 +81,7 @@ export default function TenantSwitcher() {
 
   async function switchBusiness(id: string) {
     const session = getSession();
-    if (!session || id === businessId) return;
+    if (!session || !id || id === businessId) return;
     setBusinessId(id);
     setBranchId("");
     const next = { ...session, business_id: id, branch_id: undefined };
@@ -94,10 +97,26 @@ export default function TenantSwitcher() {
 
   function switchBranch(id: string) {
     const session = getSession();
-    if (!session || id === branchId) return;
+    if (!session || !id || id === branchId) return;
     setBranchId(id);
     setSession({ ...session, branch_id: id });
   }
+
+  const businessOptions = useMemo(
+    () =>
+      businesses.length === 0
+        ? [{ value: "", label: t("tenant.noBusinesses") }]
+        : businesses.map((b) => ({ value: b.id, label: b.name })),
+    [businesses, t]
+  );
+
+  const branchOptions = useMemo(
+    () =>
+      branches.length === 0
+        ? [{ value: "", label: t("tenant.noBranches") }]
+        : branches.map((b) => ({ value: b.id, label: b.name })),
+    [branches, t]
+  );
 
   if (loading && !businessId) {
     return (
@@ -107,51 +126,35 @@ export default function TenantSwitcher() {
 
   return (
     <div className="flex min-w-0 items-center gap-2">
-      <label className="relative min-w-0">
-        <span className="sr-only">Business</span>
-        <Building2 className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-rail-muted" />
-        <select
-          className={selectClass}
+      <div className="relative min-w-0">
+        <Building2 className="pointer-events-none absolute start-2.5 top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 text-rail-muted" />
+        <Select
+          size="sm"
+          className="w-auto max-w-[min(42vw,220px)]"
           value={businessId}
-          onChange={(e) => switchBusiness(e.target.value)}
+          onChange={(id) => void switchBusiness(id)}
           disabled={businesses.length === 0}
-          title="Switch business"
-        >
-          {businesses.length === 0 ? (
-            <option value="">No businesses</option>
-          ) : (
-            businesses.map((b) => (
-              <option key={b.id} value={b.id} className="bg-sidebar text-heading">
-                {b.name}
-              </option>
-            ))
-          )}
-        </select>
-        <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-rail-muted" />
-      </label>
+          options={businessOptions}
+          aria-label={t("tenant.business")}
+          title={t("tenant.business")}
+          triggerClassName={triggerClass}
+        />
+      </div>
 
-      <label className="relative min-w-0">
-        <span className="sr-only">Branch</span>
-        <MapPin className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-rail-muted" />
-        <select
-          className={selectClass}
+      <div className="relative min-w-0">
+        <MapPin className="pointer-events-none absolute start-2.5 top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 text-rail-muted" />
+        <Select
+          size="sm"
+          className="w-auto max-w-[min(42vw,220px)]"
           value={branchId}
-          onChange={(e) => switchBranch(e.target.value)}
+          onChange={switchBranch}
           disabled={branches.length === 0}
-          title="Switch branch"
-        >
-          {branches.length === 0 ? (
-            <option value="">No branches</option>
-          ) : (
-            branches.map((b) => (
-              <option key={b.id} value={b.id} className="bg-sidebar text-heading">
-                {b.name}
-              </option>
-            ))
-          )}
-        </select>
-        <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-rail-muted" />
-      </label>
+          options={branchOptions}
+          aria-label={t("tenant.branch")}
+          title={t("tenant.branch")}
+          triggerClassName={triggerClass}
+        />
+      </div>
     </div>
   );
 }

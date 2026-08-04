@@ -13,18 +13,19 @@ export default function LanguageSwitcher({
   compact = false,
 }: {
   className?: string;
+  /** Hide the language label (use when a parent Field already provides one). */
   compact?: boolean;
 }) {
   const { locale, setLocale, t } = useI18n();
 
   return (
-    <label className={`inline-flex items-center gap-2 ${className}`}>
+    <div className={`w-full space-y-1.5 ${className}`}>
       {!compact ? (
-        <span className="text-xs font-medium text-rail-muted">{t("common.language")}</span>
+        <span className="block text-sm font-medium text-heading">{t("common.language")}</span>
       ) : null}
       <Select
-        size="sm"
-        className="w-auto"
+        size="md"
+        className="w-full"
         value={locale}
         onChange={(v) => setLocale(v as Locale)}
         aria-label={t("common.language")}
@@ -32,8 +33,8 @@ export default function LanguageSwitcher({
           value: code,
           label: LOCALE_NATIVE_LABELS[code],
         }))}
-        triggerClassName="border-rail-border bg-card font-semibold hover:bg-rail-hover focus:border-brand"
+        triggerClassName="w-full border-border bg-bg-secondary/80 text-sm font-medium hover:border-brand/40 focus:border-brand/20"
       />
-    </label>
+    </div>
   );
 }

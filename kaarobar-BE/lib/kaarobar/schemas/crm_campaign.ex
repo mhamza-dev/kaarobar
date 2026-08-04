@@ -5,7 +5,7 @@ defmodule Kaarobar.Schemas.CrmCampaign do
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
 
-  @audiences ~w(all khata min_points segment)
+  @audiences ~w(all credit khata min_points segment)
   @channels ~w(email in_app sms whatsapp)
   @statuses ~w(Draft Sent)
 
@@ -71,6 +71,10 @@ defmodule Kaarobar.Schemas.CrmCampaign do
       :created_by_id
     ])
     |> validate_inclusion(:audience, @audiences)
+    |> update_change(:audience, fn
+      "khata" -> "credit"
+      other -> other
+    end)
     |> validate_inclusion(:channel, @channels)
     |> validate_inclusion(:status, @statuses)
     |> validate_segment_audience()

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api } from "@/lib/api/client";
+import { api, getSession } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import Select from "@/components/ui/Select";
@@ -8,6 +8,15 @@ import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { formatDecimal } from "@/lib/decimal";
 import { generateBarcode } from "@/lib/barcode";
+
+function activeShopName(): string | null {
+  const session = getSession();
+  if (!session?.business_id) return null;
+  return (
+    session.memberships?.find((m) => m.business_id === session.business_id)
+      ?.business_name || null
+  );
+}
 
 export type ProductFormProduct = {
   id: string;
@@ -173,7 +182,9 @@ export default function ProductFormModal({
                 type="button"
                 variant="outline"
                 className="shrink-0"
-                onClick={() => setForm({ ...form, barcode: generateBarcode() })}
+                onClick={() =>
+                  setForm({ ...form, barcode: generateBarcode(activeShopName()) })
+                }
               >
                 {t("inventory.generateBarcode")}
               </Button>

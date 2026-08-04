@@ -413,7 +413,7 @@ function MarketingPageInner() {
   const createSegmentMutation = useMutation({
     mutationFn: async () => {
       const filters: Record<string, unknown> = {};
-      if (segForm.khata) filters.khata_enabled = true;
+      if (segForm.khata) filters.credit_enabled = true;
       if (segForm.min_points) filters.min_points = Number(segForm.min_points);
       await api("/crm/segments", {
         method: "POST",
@@ -745,7 +745,7 @@ function MarketingPageInner() {
             }}
             clientFilter
             searchPlaceholder={t("marketing.search")}
-            pagination={{ mode: "client", pageSize: 25 }}
+            pagination={{ mode: "client", pageSize: 20 }}
             exportable
             exportFilename="campaigns"
             exportTitle="Campaigns"

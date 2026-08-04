@@ -21,17 +21,17 @@ const catalog: HelpCatalog = {
   "page.pos": {
     title: "Punto de Venta",
     summary: "Pago rápido con carrito, cliente y pago.",
-    what: "Los cajeros pueden vender productos, vincular clientes por fidelidad o khata (crédito), aplicar descuentos o cupones y aceptar pagos en efectivo, tarjeta, billetera o khata.",
+    what: "Los cajeros pueden vender productos, vincular clientes por fidelidad o crédito (crédito), aplicar descuentos o cupones y aceptar pagos en efectivo, tarjeta, billetera o crédito.",
     how: [
       "Abra una caja antes de realizar ventas en efectivo.",
       "Agregue productos al carrito mediante búsqueda o escaneo de código de barras.",
-      "Adjunte un cliente cuando sea necesario para fidelizarlo o khata.",
+      "Adjunte un cliente cuando sea necesario para fidelizarlo o crédito.",
       "Revise el total, toque Continuar con el pago y elija un método de pago.",
       "Complete el pedido con Realizar pedido y luego imprima o comparta el recibo.",
     ],
     when: "Por cada pago del cliente en el mostrador.",
     tips: [
-      "El pago Khata requiere un khata activo en el cliente.",
+      "El pago Crédito requiere un crédito activo en el cliente.",
       "Mantenga la caja abierta durante el turno y cuente el efectivo antes de cerrar al final del día.",
     ],
   },
@@ -52,19 +52,19 @@ const catalog: HelpCatalog = {
     ],
   },
   "page.customers": {
-    title: "Clientes y Khata",
-    summary: "Perfiles de clientes, saldo de crédito/khata, libro mayor y puntos de fidelidad.",
-    what: "Almacena los detalles del cliente y le permite habilitar khata, ver el libro mayor, administrar los límites de crédito y ajustar los puntos de fidelidad.",
+    title: "Clientes y Crédito",
+    summary: "Perfiles de clientes, saldo de crédito/crédito, libro mayor y puntos de fidelidad.",
+    what: "Almacena los detalles del cliente y le permite habilitar crédito, ver el libro mayor, administrar los límites de crédito y ajustar los puntos de fidelidad.",
     how: [
       "Agregue un cliente con nombre y teléfono.",
-      "Habilite khata para ventas a crédito.",
+      "Habilite crédito para ventas a crédito.",
       "Abra Ledger para ver débitos, créditos y saldo pendiente.",
       "Ajustar puntos de fidelidad por promociones o correcciones.",
     ],
     when: "Para CRM, ventas a crédito y programas de fidelización.",
     tips: [
-      "Adjunte al cliente en POS antes del pago khata.",
-      "Verifique el límite de crédito antes de grandes ventas de khata.",
+      "Adjunte al cliente en POS antes del pago crédito.",
+      "Verifique el límite de crédito antes de grandes ventas de crédito.",
     ],
   },
   "page.sales": {
@@ -347,7 +347,7 @@ const catalog: HelpCatalog = {
     what: "Saldos de facturas abiertas agrupados por antigüedad (vigente, 30, 60 días, etc.).",
     how: ["Revisar los cubos.", "Abra una factura para obtener más detalles.", "Seguimiento con el cliente."],
     when: "Para cobranzas y control de crédito.",
-    tips: ["Khata/ventas a crédito pueden aparecer en AR."],
+    tips: ["Crédito/ventas a crédito pueden aparecer en AR."],
   },
   "tab.accounting.ap": {
     title: "Envejecimiento AP",

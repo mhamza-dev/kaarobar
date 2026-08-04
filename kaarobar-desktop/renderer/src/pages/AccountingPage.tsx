@@ -105,7 +105,7 @@ function AccountingPageInner() {
   const [journalDetailId, setJournalDetailId] = useState<string | null>(null);
   const [journalFilters, setJournalFilters] = useState(emptyStaffListFilters);
   const [journalPage, setJournalPage] = useState(1);
-  const [journalPageSize, setJournalPageSize] = useState(25);
+  const [journalPageSize, setJournalPageSize] = useState(20);
 
   const [jeDesc, setJeDesc] = useState("");
   const [lineA, setLineA] = useState({ account_id: "", debit: "", credit: "" });
@@ -893,7 +893,7 @@ function StatementTable({
       }}
       clientFilter
       searchPlaceholder={t("accounting.searchRows")}
-      pagination={{ mode: "client", pageSize: 25 }}
+      pagination={{ mode: "client", pageSize: 20 }}
       exportable
       exportFilename={filename}
       exportTitle={title}

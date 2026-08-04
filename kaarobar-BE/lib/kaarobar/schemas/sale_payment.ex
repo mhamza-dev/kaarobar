@@ -19,7 +19,7 @@ defmodule Kaarobar.Schemas.SalePayment do
     payment
     |> cast(attrs, [:method, :amount, :reference, :sale_id])
     |> validate_required([:method, :amount, :sale_id])
-    |> validate_inclusion(:method, ["cash", "card", "wallet", "khata"])
+    |> validate_inclusion(:method, ["cash", "card", "wallet", "credit", "khata"])
     |> foreign_key_constraint(:sale_id)
   end
 end

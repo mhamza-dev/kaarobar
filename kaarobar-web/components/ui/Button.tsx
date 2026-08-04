@@ -57,7 +57,7 @@ const Button = ({
     duration-200
 
     focus:outline-none
-    focus:ring-2
+    focus:ring-0
 
     disabled:opacity-60
     disabled:pointer-events-none
@@ -80,7 +80,6 @@ const Button = ({
       text-brand-foreground
       shadow-brand
       hover:bg-brand-hover
-      focus:ring-brand-soft
     `,
 
     secondary: `
@@ -89,7 +88,6 @@ const Button = ({
       border
       border-border
       hover:bg-bg-tertiary
-      focus:ring-brand-soft
     `,
 
     outline: `
@@ -98,42 +96,36 @@ const Button = ({
       bg-transparent
       text-heading
       hover:bg-bg-tertiary
-      focus:ring-brand-soft
     `,
 
     ghost: `
       bg-transparent
       text-heading
       hover:bg-bg-tertiary
-      focus:ring-brand-soft
     `,
 
     danger: `
       bg-danger
       text-white
       hover:brightness-95
-      focus:ring-danger-soft
     `,
 
     success: `
       bg-success
       text-white
       hover:brightness-95
-      focus:ring-success-soft
     `,
 
     warning: `
       bg-warning
       text-white
       hover:brightness-95
-      focus:ring-warning-soft
     `,
 
     info: `
       bg-info
       text-white
       hover:brightness-95
-      focus:ring-info-soft
     `,
 
     link: `
@@ -146,13 +138,11 @@ const Button = ({
       rounded-none
       hover:underline
       hover:text-brand-hover
-      focus:ring-0
     `,
     inverted: `
       bg-white
       text-brand
       hover:bg-slate-100
-      focus:ring-brand-soft
     `,
   };
 
