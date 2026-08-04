@@ -5,14 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Megaphone, UserPlus } from "lucide-react";
 import { api, isConsumerSession } from "@/lib/api/client";
-import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
 import {
   EmptyState,
   Field,
-  PageHeader,
   SurfaceCard,
   fieldClass,
 } from "@/components/app/ui";
@@ -23,7 +21,6 @@ import { detailRoutes } from "@/lib/navigation";
 import {
   type Customer,
   type CustomerForm,
-  CUSTOMER_FORM_FIELDS,
   customerPayload,
   customerSearchText,
   customerToForm,
@@ -35,6 +32,11 @@ import {
   type StaffListFilterState,
 } from "@/lib/listFilters";
 import BuyerLoyalty from "@/components/buyer/BuyerLoyalty";
+import WorkspacePageScaffold from "@/components/app/WorkspacePageScaffold";
+import {
+  CustomerFormModal,
+  LoyaltyAdjustmentModal,
+} from "@/components/customers/CustomerModals";
 
 type LedgerEntry = {
   kind: string;
@@ -58,6 +60,7 @@ function StaffCustomersPage() {
   const toast = useToast();
   const router = useRouter();
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<StaffListFilterState>(emptyStaffListFilters());
   const [busy, setBusy] = useState(false);
   const [modal, setModal] = useState<"create" | "edit" | "loyalty" | null>(null);
@@ -73,10 +76,13 @@ function StaffCustomersPage() {
 
   const load = useCallback(async () => {
     try {
+      setLoading(true);
       const res = await api<{ data: Customer[] }>("/customers");
       setCustomers(res.data || []);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.loadFailed"));
+    } finally {
+      setLoading(false);
     }
   }, [t, toast]);
 
@@ -226,25 +232,26 @@ function StaffCustomersPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow={t("customers.eyebrow")}
-        title={t("pages.customersTitle")}
-        description={t("pages.customersDesc")}
-        infoKey="page.customers"
-        action={{
+    <WorkspacePageScaffold
+      header={{
+        eyebrow: t("customers.eyebrow"),
+        title: t("pages.customersTitle"),
+        description: t("pages.customersDesc"),
+        infoKey: "page.customers",
+        action: {
           label: t("customers.add"),
           onClick: openCreate,
           icon: <UserPlus className="h-4 w-4" />,
-        }}
-        secondaryAction={{
+        },
+        secondaryAction: {
           label: t("nav.marketing"),
           onClick: () => {
             window.location.href = "/app/marketing";
           },
           icon: <Megaphone className="h-4 w-4" />,
-        }}
-      />
+        },
+      }}
+    >
 
       <p className="text-sm text-body">
         {t("customers.hint")}{" "}
@@ -441,113 +448,30 @@ function StaffCustomersPage() {
         </SurfaceCard>
       ) : null}
 
-      <Modal
+      <CustomerFormModal
         isOpen={modal === "create" || modal === "edit"}
+        busy={busy}
+        editing={editing}
+        form={form}
+        setForm={setForm}
+        t={t}
         onClose={() => setModal(null)}
-        title={editing ? t("customers.edit") : t("customers.add")}
-        footer={
-          <Button type="submit" form="customer-form" loading={busy}>
-            {editing ? t("common.save") : t("common.create")}
-          </Button>
-        }
-      >
-        <form id="customer-form" onSubmit={saveCustomer} className="grid gap-3 sm:grid-cols-2">
-          {CUSTOMER_FORM_FIELDS.map((f) =>
-            f.type === "checkbox" ? (
-              <label key={f.key} className="flex items-center gap-2 text-sm text-heading sm:col-span-2">
-                <input
-                  type="checkbox"
-                  checked={Boolean(form[f.key])}
-                  onChange={(e) => setForm({ ...form, [f.key]: e.target.checked })}
-                />
-                {t(f.labelKey)}
-              </label>
-            ) : f.type === "textarea" ? (
-              <Field key={f.key} label={t(f.labelKey)}>
-                <textarea
-                  className={fieldClass}
-                  rows={3}
-                  value={String(form[f.key] ?? "")}
-                  onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
-                />
-              </Field>
-            ) : (
-              <Field key={f.key} label={t(f.labelKey)}>
-                <input
-                  className={fieldClass}
-                  type={
-                    f.key === "credit_limit"
-                      ? "number"
-                      : f.type || "text"
-                  }
-                  step={f.key === "credit_limit" ? "0.01" : undefined}
-                  required={
-                    f.required ||
-                    (f.key === "portal_password" &&
-                      form.portal_enabled &&
-                      !editing?.portal_enabled)
-                  }
-                  minLength={f.type === "password" ? 8 : undefined}
-                  autoComplete={f.type === "password" ? "new-password" : undefined}
-                  placeholder={
-                    f.key === "portal_password" && editing?.portal_enabled
-                      ? t("customers.portalPasswordHint")
-                      : undefined
-                  }
-                  value={String(form[f.key] ?? "")}
-                  onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
-                  onBlur={
-                    f.key === "credit_limit"
-                      ? (e) => {
-                          if (e.target.value.trim() === "") return;
-                          setForm({
-                            ...form,
-                            credit_limit: formatDecimal(e.target.value),
-                          });
-                        }
-                      : undefined
-                  }
-                />
-                {f.hintKey ? (
-                  <p className="mt-1 text-xs text-muted">{t(f.hintKey)}</p>
-                ) : null}
-              </Field>
-            )
-          )}
-        </form>
-      </Modal>
+        onSubmit={saveCustomer}
+      />
 
-      <Modal
+      <LoyaltyAdjustmentModal
         isOpen={modal === "loyalty"}
+        busy={busy}
+        customerName={editing?.name || ""}
+        currentPoints={editing?.loyalty_points ?? 0}
+        loyaltyDelta={loyaltyDelta}
+        loyaltyReason={loyaltyReason}
+        setLoyaltyDelta={setLoyaltyDelta}
+        setLoyaltyReason={setLoyaltyReason}
+        t={t}
         onClose={() => setModal(null)}
-        title={t("customers.adjustPointsTitle", { name: editing?.name || "" })}
-        footer={
-          <Button type="submit" form="loyalty-form" loading={busy}>
-            {t("customers.apply")}
-          </Button>
-        }
-      >
-        <form id="loyalty-form" onSubmit={adjustLoyalty} className="grid gap-3">
-          <p className="text-sm text-body">
-            {t("customers.currentPoints", { count: editing?.loyalty_points ?? 0 })}
-          </p>
-          <Field label={t("customers.delta")}>
-            <input
-              className={fieldClass}
-              value={loyaltyDelta}
-              onChange={(e) => setLoyaltyDelta(e.target.value)}
-              required
-            />
-          </Field>
-          <Field label={t("customers.reason")}>
-            <input
-              className={fieldClass}
-              value={loyaltyReason}
-              onChange={(e) => setLoyaltyReason(e.target.value)}
-            />
-          </Field>
-        </form>
-      </Modal>
-    </div>
+        onSubmit={adjustLoyalty}
+      />
+    </WorkspacePageScaffold>
   );
 }

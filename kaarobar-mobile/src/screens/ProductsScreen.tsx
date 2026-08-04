@@ -12,10 +12,11 @@ import {
   View,
 } from "react-native";
 import { api, colors, getSession, type Session } from "../lib/api";
-import { FormModal } from "../components/FormModal";
+import EntityFormModal from "../components/screen/EntityFormModal";
 import { BarcodeScannerModal } from "../components/BarcodeScannerModal";
-import SegmentedTabs from "../components/SegmentedTabs";
+import ScreenTabs from "../components/screen/ScreenTabs";
 import ListToolbar, { emptyStaffFilters } from "../components/ListToolbar";
+import ScreenCard from "../components/screen/ScreenCard";
 import { applyListingFilters } from "../lib/listingFilters";
 import { pickImageFromLibrary } from "../lib/imagePicker";
 import { canAccessRoute } from "../lib/rbac";
@@ -663,7 +664,7 @@ export default function InventoryScreen() {
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {message ? <Text style={styles.message}>{message}</Text> : null}
 
-      <SegmentedTabs tabs={tabs} value={tab} onChange={setTab} />
+      <ScreenTabs tabs={tabs} value={tab} onChange={setTab} />
 
       {(tab === "products" || tab === "suppliers") && (
         <Pressable
@@ -690,7 +691,7 @@ export default function InventoryScreen() {
         : null}
 
       {tab === "products" ? (
-        <View style={styles.card}>
+        <ScreenCard style={styles.card}>
           <ListToolbar
             value={productFilters}
             onChange={setProductFilters}
@@ -726,11 +727,11 @@ export default function InventoryScreen() {
               </Pressable>
             </View>
           ))}
-        </View>
+        </ScreenCard>
       ) : null}
 
       {tab === "suppliers" ? (
-        <View style={styles.card}>
+        <ScreenCard style={styles.card}>
           {suppliers.map((s) => {
             const linked = supplierProductsById[s.id] || [];
             const expanded = expandedSupplierId === s.id;
@@ -800,7 +801,7 @@ export default function InventoryScreen() {
               </View>
             );
           })}
-        </View>
+        </ScreenCard>
       ) : null}
 
       {tab === "pos" ? (
@@ -828,7 +829,7 @@ export default function InventoryScreen() {
               <Text style={styles.btnText}>{t("inventory.receiveGrn")}</Text>
             </Pressable>
           </View>
-          <View style={styles.card}>
+          <ScreenCard style={styles.card}>
             {pos.map((p) => (
               <View key={p.id} style={styles.row}>
                 <Text style={[styles.body, { flex: 1 }]}>
@@ -842,12 +843,12 @@ export default function InventoryScreen() {
                 ) : null}
               </View>
             ))}
-          </View>
+          </ScreenCard>
         </>
       ) : null}
 
       {tab === "transfers" ? (
-        <View style={styles.card}>
+        <ScreenCard style={styles.card}>
           <Pressable
             style={styles.btn}
             onPress={() => {
@@ -870,11 +871,11 @@ export default function InventoryScreen() {
               ) : null}
             </View>
           ))}
-        </View>
+        </ScreenCard>
       ) : null}
 
       {tab === "adjust" ? (
-        <View style={styles.card}>
+        <ScreenCard style={styles.card}>
           <SearchSelect
             label="Product"
             options={products.map((p) => ({
@@ -909,11 +910,11 @@ export default function InventoryScreen() {
           <Pressable style={styles.btn} onPress={adjustStock}>
             <Text style={styles.btnText}>Apply adjustment</Text>
           </Pressable>
-        </View>
+        </ScreenCard>
       ) : null}
     </ScrollView>
 
-      <FormModal
+      <EntityFormModal
         visible={modal === "product"}
         title="New product"
         subtitle="Scan a barcode, add a photo, then save."
@@ -968,9 +969,9 @@ export default function InventoryScreen() {
             {productImage ? "Photo selected ✓" : "Add product photo"}
           </Text>
         </Pressable>
-      </FormModal>
+      </EntityFormModal>
 
-      <FormModal
+      <EntityFormModal
         visible={modal === "supplier"}
         title="Add supplier"
         subtitle={t("inventory.contactSection")}
@@ -1030,9 +1031,9 @@ export default function InventoryScreen() {
           onChangeText={(v) => setSupplierForm({ ...supplierForm, payment_terms: v })}
           placeholderTextColor={colors.muted}
         />
-      </FormModal>
+      </EntityFormModal>
 
-      <FormModal
+      <EntityFormModal
         visible={modal === "po"}
         title={t("inventory.newPoTitle")}
         subtitle={t("inventory.poModalDesc")}
@@ -1113,9 +1114,9 @@ export default function InventoryScreen() {
             </View>
           );
         })}
-      </FormModal>
+      </EntityFormModal>
 
-      <FormModal
+      <EntityFormModal
         visible={modal === "grn"}
         title={t("inventory.receiveGrnTitle")}
         subtitle={t("inventory.receiveGrnDesc")}
@@ -1165,9 +1166,9 @@ export default function InventoryScreen() {
               </View>
             ))
           : null}
-      </FormModal>
+      </EntityFormModal>
 
-      <FormModal
+      <EntityFormModal
         visible={modal === "attachToSupplier"}
         title={t("inventory.attachProduct")}
         subtitle={t("inventory.attachProductDesc")}
@@ -1194,9 +1195,9 @@ export default function InventoryScreen() {
           onChange={setAttachProductForSupplierId}
           placeholder={t("inventory.selectProduct")}
         />
-      </FormModal>
+      </EntityFormModal>
 
-      <FormModal
+      <EntityFormModal
         visible={modal === "transfer"}
         title="Create transfer"
         onClose={() => setModal(null)}
@@ -1254,9 +1255,9 @@ export default function InventoryScreen() {
             </View>
           );
         })}
-      </FormModal>
+      </EntityFormModal>
 
-      <FormModal
+      <EntityFormModal
         visible={!!attachProductId}
         title="Attach supplier"
         onClose={() => {
@@ -1272,7 +1273,7 @@ export default function InventoryScreen() {
           onChange={setAttachSupplierId}
           placeholder="Select supplier…"
         />
-      </FormModal>
+      </EntityFormModal>
 
       <BarcodeScannerModal
         visible={scanOpen}

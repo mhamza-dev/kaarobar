@@ -25,6 +25,8 @@ import { replacePath, pushPath } from "../lib/nav";
 import ListToolbar, { emptyStaffFilters } from "../components/ListToolbar";
 import { applyListingFilters } from "../lib/listingFilters";
 import { formatDecimal } from "../lib/decimal";
+import ScreenCard from "../components/screen/ScreenCard";
+import CustomerFormFields from "../features/customers/components/CustomerFormFields";
 
 type LedgerEntry = {
   kind: string;
@@ -167,31 +169,12 @@ export default function CustomersScreen() {
       </Pressable>
 
       {showForm ? (
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>{editingId ? t("customers.edit") : t("customers.add")}</Text>
-          {(
-            [
-              ["name", "Name"],
-              ["company_name", "Company"],
-              ["phone", "Phone"],
-              ["email", "Email"],
-              ["cnic", "CNIC"],
-              ["ntn", "NTN"],
-              ["address", "Address"],
-              ["credit_limit", "Credit limit"],
-              ["user_id", "Linked user ID"],
-              ["notes", "Notes"],
-            ] as const
-          ).map(([key, label]) => (
-            <TextInput
-              key={key}
-              style={styles.input}
-              placeholder={label}
-              placeholderTextColor={colors.muted}
-              value={String(form[key] ?? "")}
-              onChangeText={(v) => setForm({ ...form, [key]: v })}
-            />
-          ))}
+        <ScreenCard
+          style={styles.card}
+          title={editingId ? t("customers.edit") : t("customers.add")}
+          titleStyle={styles.cardTitle}
+        >
+          <CustomerFormFields form={form} inputStyle={styles.input} onChange={setForm} />
           <View style={styles.row}>
             <Text style={styles.cardBody}>{t("customers.khata")}</Text>
             <Switch
@@ -205,7 +188,7 @@ export default function CustomersScreen() {
           <Pressable onPress={() => setShowForm(false)}>
             <Text style={styles.link}>{t("common.cancel")}</Text>
           </Pressable>
-        </View>
+        </ScreenCard>
       ) : null}
 
       <View style={styles.listShell}>
@@ -263,8 +246,11 @@ export default function CustomersScreen() {
       </View>
 
       {ledger ? (
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>{ledger.customer.name} ledger</Text>
+        <ScreenCard
+          style={styles.card}
+          title={`${ledger.customer.name} ledger`}
+          titleStyle={styles.cardTitle}
+        >
           <Text style={styles.cardBody}>
             Balance Rs {formatDecimal(ledger.balance)}
           </Text>
@@ -277,7 +263,7 @@ export default function CustomersScreen() {
           <Pressable onPress={() => setLedger(null)}>
             <Text style={styles.link}>{t("common.close")}</Text>
           </Pressable>
-        </View>
+        </ScreenCard>
       ) : null}
 
       {canAccess(session, "marketing") ? (

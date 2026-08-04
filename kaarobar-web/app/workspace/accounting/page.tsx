@@ -11,7 +11,7 @@ import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
 import Select from "@/components/ui/Select";
-import { Field, PageHeader, TabBar, fieldClass } from "@/components/app/ui";
+import { Field, fieldClass } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { formatDecimal } from "@/lib/decimal";
@@ -24,6 +24,8 @@ import {
   staffListFilterQuery,
   type ListFilterConfig,
 } from "@/lib/listFilters";
+import WorkspacePageScaffold from "@/components/app/WorkspacePageScaffold";
+import FormModal from "@/components/app/FormModal";
 
 type Tab = "coa" | "journals" | "tb" | "pl" | "bs" | "gl" | "ar" | "ap";
 const ACCOUNTING_TABS: readonly Tab[] = [
@@ -354,24 +356,23 @@ function StaffAccountingPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow={t("accounting.eyebrow")}
-        title={t("pages.accountingTitle")}
-        description={t("pages.accountingDesc")}
-        infoKey="page.accounting"
-        action={
+    <WorkspacePageScaffold
+      header={{
+        eyebrow: t("accounting.eyebrow"),
+        title: t("pages.accountingTitle"),
+        description: t("pages.accountingDesc"),
+        infoKey: "page.accounting",
+        action:
           tab === "journals"
             ? {
                 label: t("accounting.postJournal"),
                 onClick: () => setJeModal(true),
                 icon: <BookPlus className="h-4 w-4" />,
               }
-            : undefined
-        }
-      />
-
-      <TabBar tabs={tabs} value={tab} onChange={setTab} />
+            : undefined,
+      }}
+      tabs={{ tabs, value: tab, onChange: setTab }}
+    >
 
       {tab === "coa" ? (
         <DataTable
@@ -846,7 +847,7 @@ function StaffAccountingPage() {
         )}
       </Modal>
 
-      <Modal
+      <FormModal
         isOpen={accountModal}
         onClose={() => {
           setAccountModal(false);
@@ -854,22 +855,9 @@ function StaffAccountingPage() {
         }}
         title="Edit account"
         description="Update chart of accounts name, code, or type."
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setAccountModal(false);
-                setEditingAccountId(null);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" form="account-modal-form" loading={busy}>
-              Save changes
-            </Button>
-          </div>
-        }
+        formId="account-modal-form"
+        submitLabel="Save changes"
+        submitLoading={busy}
       >
         <form id="account-modal-form" onSubmit={saveAccount} className="space-y-4">
           <Field label="Code">
@@ -898,23 +886,16 @@ function StaffAccountingPage() {
             />
           </Field>
         </form>
-      </Modal>
+      </FormModal>
 
-      <Modal
+      <FormModal
         isOpen={jeModal}
         onClose={() => setJeModal(false)}
         title="Post journal"
         description="Enter a balanced two-line manual journal entry."
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setJeModal(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" form="je-modal-form" loading={busy}>
-              Post journal
-            </Button>
-          </div>
-        }
+        formId="je-modal-form"
+        submitLabel="Post journal"
+        submitLoading={busy}
       >
         <form id="je-modal-form" onSubmit={createJournal} className="space-y-4">
           <Field label="Description">
@@ -984,8 +965,8 @@ function StaffAccountingPage() {
             </div>
           ))}
         </form>
-      </Modal>
-    </div>
+      </FormModal>
+    </WorkspacePageScaffold>
   );
 }
 

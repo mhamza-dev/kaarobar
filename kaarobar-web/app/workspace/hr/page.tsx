@@ -14,10 +14,8 @@ import Select from "@/components/ui/Select";
 import {
   EmptyState,
   Field,
-  PageHeader,
   StatusBadge,
   SurfaceCard,
-  TabBar,
   fieldClass,
 } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
@@ -38,6 +36,8 @@ import {
   type StaffListFilterState,
 } from "@/lib/listFilters";
 import { hrKeys } from "@/lib/queryClient";
+import WorkspacePageScaffold from "@/components/app/WorkspacePageScaffold";
+import FormModal from "@/components/app/FormModal";
 
 type Tab = "employees" | "attendance" | "leave" | "payroll";
 const HR_TABS: readonly Tab[] = ["employees", "attendance", "leave", "payroll"];
@@ -514,13 +514,13 @@ function HrPageInner() {
   ];
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow={t("hr.eyebrow")}
-        title={t("pages.hrTitle")}
-        description={t("pages.hrDesc")}
-        infoKey="page.hr"
-        action={
+    <WorkspacePageScaffold
+      header={{
+        eyebrow: t("hr.eyebrow"),
+        title: t("pages.hrTitle"),
+        description: t("pages.hrDesc"),
+        infoKey: "page.hr",
+        action:
           tab === "employees"
             ? {
                 label: t("hr.addEmployee"),
@@ -533,20 +533,18 @@ function HrPageInner() {
                   onClick: () => setModal("payroll"),
                   icon: <Play className="h-4 w-4" />,
                 }
-              : undefined
-        }
-        secondaryAction={
+              : undefined,
+        secondaryAction:
           tab === "employees"
             ? {
                 label: t("hr.inviteUser"),
                 onClick: () => setModal("invite"),
                 icon: <UserRoundPlus className="h-4 w-4" />,
               }
-            : undefined
-        }
-      />
-
-      <TabBar tabs={tabs} value={tab} onChange={setTab} />
+            : undefined,
+      }}
+      tabs={{ tabs, value: tab, onChange: setTab }}
+    >
 
       {tab === "employees" ? (
         <DataTable
@@ -1094,21 +1092,14 @@ function HrPageInner() {
         </form>
       </Modal>
 
-      <Modal
+      <FormModal
         isOpen={modal === "invite"}
         onClose={() => setModal(null)}
         title="Invite staff"
         description="Grant access to someone who already has a Kaarobar login (e.g. cashier@…)."
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setModal(null)}>
-              Cancel
-            </Button>
-            <Button type="submit" form="invite-modal-form" loading={busy}>
-              Send invite
-            </Button>
-          </div>
-        }
+        formId="invite-modal-form"
+        submitLabel="Send invite"
+        submitLoading={busy}
       >
         <form id="invite-modal-form" onSubmit={inviteStaff} className="space-y-4">
           <Field label="Email">
@@ -1136,23 +1127,16 @@ function HrPageInner() {
             />
           </Field>
         </form>
-      </Modal>
+      </FormModal>
 
-      <Modal
+      <FormModal
         isOpen={modal === "payroll"}
         onClose={() => setModal(null)}
         title="Draft payroll"
         description="Payslips are calculated from salary, attendance, and statutory deductions."
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setModal(null)}>
-              Cancel
-            </Button>
-            <Button type="submit" form="payroll-modal-form" loading={busy}>
-              Create draft
-            </Button>
-          </div>
-        }
+        formId="payroll-modal-form"
+        submitLabel="Create draft"
+        submitLoading={busy}
       >
         <form id="payroll-modal-form" onSubmit={createPayroll} className="grid gap-4 sm:grid-cols-2">
           <Field label="Period start">
@@ -1172,7 +1156,7 @@ function HrPageInner() {
             />
           </Field>
         </form>
-      </Modal>
-    </div>
+      </FormModal>
+    </WorkspacePageScaffold>
   );
 }

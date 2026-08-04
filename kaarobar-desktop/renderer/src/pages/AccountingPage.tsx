@@ -8,14 +8,18 @@ import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
-import Select from "@/components/ui/Select";
-import { Field, PageHeader, TabBar, fieldClass } from "@/components/app/ui";
+import { PageHeader, TabBar } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { useTabQueryParam } from "@/lib/hooks/useTabQueryParam";
 import { detailRoutes, routes } from "@/lib/navigation";
 import { accountingKeys } from "@/lib/queryClient";
 import { formatDecimal } from "@/lib/decimal";
+import FormModalFooter from "@/components/app/FormModalFooter";
+import {
+  AccountFormFields,
+  JournalEntryFormFields,
+} from "@/components/accounting/AccountingModalForms";
 import {
   emptyStaffListFilters,
   staffListFilterQuery,
@@ -807,50 +811,10 @@ function AccountingPageInner() {
         }}
         title="Edit account"
         description="Update chart of accounts name, code, or type."
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setAccountModal(false);
-                setEditingAccountId(null);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" form="account-modal-form" loading={busy}>
-              Save changes
-            </Button>
-          </div>
-        }
+        footer={<FormModalFooter cancelLabel="Cancel" submitLabel="Save changes" onCancel={() => { setAccountModal(false); setEditingAccountId(null); }} submitFormId="account-modal-form" loading={busy} />}
       >
         <form id="account-modal-form" onSubmit={saveAccount} className="space-y-4">
-          <Field label="Code">
-            <input
-              className={fieldClass}
-              value={accountForm.code}
-              onChange={(e) => setAccountForm({ ...accountForm, code: e.target.value })}
-              required
-            />
-          </Field>
-          <Field label="Name">
-            <input
-              className={fieldClass}
-              value={accountForm.name}
-              onChange={(e) => setAccountForm({ ...accountForm, name: e.target.value })}
-              required
-            />
-          </Field>
-          <Field label="Type">
-            <Select
-              value={accountForm.type}
-              onChange={(v) => setAccountForm({ ...accountForm, type: v })}
-              options={["asset", "liability", "equity", "revenue", "expense"].map(
-                (t) => ({ value: t, label: t })
-              )}
-              triggerClassName="border-border bg-bg-secondary/80"
-            />
-          </Field>
+          <AccountFormFields form={accountForm} onChange={setAccountForm} />
         </form>
       </Modal>
 
@@ -859,89 +823,16 @@ function AccountingPageInner() {
         onClose={() => setJeModal(false)}
         title="Post journal"
         description="Enter a balanced two-line manual journal entry."
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setJeModal(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" form="je-modal-form" loading={busy}>
-              Post journal
-            </Button>
-          </div>
-        }
+        footer={<FormModalFooter cancelLabel="Cancel" submitLabel="Post journal" onCancel={() => setJeModal(false)} submitFormId="je-modal-form" loading={busy} />}
       >
         <form id="je-modal-form" onSubmit={createJournal} className="space-y-4">
-          <Field label="Description">
-            <input
-              className={fieldClass}
-              placeholder="Description"
-              value={jeDesc}
-              onChange={(e) => setJeDesc(e.target.value)}
-              required
-            />
-          </Field>
-          {([lineA, lineB] as const).map((line, idx) => (
-            <div key={idx} className="grid gap-2 md:grid-cols-3">
-              <Select
-                name={`je-account-${idx}`}
-                required
-                value={line.account_id}
-                onChange={(v) =>
-                  idx === 0
-                    ? setLineA({ ...lineA, account_id: v })
-                    : setLineB({ ...lineB, account_id: v })
-                }
-                placeholder="Account"
-                options={accounts.map((a) => ({
-                  value: a.id,
-                  label: `${a.code} ${a.name}`,
-                }))}
-                triggerClassName="border-border bg-bg-secondary/80"
-              />
-              <input
-                className={fieldClass}
-                type="number"
-                step="0.01"
-                min={0}
-                placeholder="Debit"
-                value={line.debit}
-                onChange={(e) =>
-                  idx === 0
-                    ? setLineA({ ...lineA, debit: e.target.value })
-                    : setLineB({ ...lineB, debit: e.target.value })
-                }
-                onBlur={(e) => {
-                  const v = e.target.value.trim();
-                  if (!v) return;
-                  const next = formatDecimal(v);
-                  idx === 0
-                    ? setLineA({ ...lineA, debit: next })
-                    : setLineB({ ...lineB, debit: next });
-                }}
-              />
-              <input
-                className={fieldClass}
-                type="number"
-                step="0.01"
-                min={0}
-                placeholder="Credit"
-                value={line.credit}
-                onChange={(e) =>
-                  idx === 0
-                    ? setLineA({ ...lineA, credit: e.target.value })
-                    : setLineB({ ...lineB, credit: e.target.value })
-                }
-                onBlur={(e) => {
-                  const v = e.target.value.trim();
-                  if (!v) return;
-                  const next = formatDecimal(v);
-                  idx === 0
-                    ? setLineA({ ...lineA, credit: next })
-                    : setLineB({ ...lineB, credit: next });
-                }}
-              />
-            </div>
-          ))}
+          <JournalEntryFormFields
+            description={jeDesc}
+            onDescriptionChange={setJeDesc}
+            lines={[lineA, lineB]}
+            onLineChange={(idx, next) => (idx === 0 ? setLineA(next) : setLineB(next))}
+            accounts={accounts}
+          />
         </form>
       </Modal>
     </div>

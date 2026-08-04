@@ -1,0 +1,20 @@
+---
+description: Prefer existing reusable components; avoid duplicate inline UI
+alwaysApply: true
+---
+
+# Reusable Components First
+
+Before adding new UI in any client app (`kaarobar-web`, `kaarobar-desktop`, `kaarobar-mobile`, `kaarobar-customer`):
+
+1. **Search first** for an existing component/pattern in app-local `components/` and nearby feature folders.
+2. If a matching component exists, **reuse it** rather than rebuilding similar markup/logic.
+3. If no good match exists and the UI may repeat, **extract a reusable component** instead of adding large inline form/tab/modal blocks in page/screen files.
+4. Keep page/screen files **orchestration-focused** (state, queries, handlers), and move presentational/form structure into reusable components.
+5. For create/edit flows, prefer shared `*FormModal` components with stable props and callback contracts.
+6. Do not create cross-app shared packages; keep reuse **within each app** while mirroring architecture patterns across apps.
+
+Quick check before finalizing changes:
+- Did I look for an existing component first?
+- Did I avoid duplicating form/tab/modal markup?
+- Could this repeated block be a reusable component now?

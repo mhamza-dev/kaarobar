@@ -1,13 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
 import { api, colors } from "../lib/api";
 import { useBrandPalette } from "../lib/BrandThemeContext";
 import { t } from "../lib/i18n";
 import { pushPath } from "../lib/nav";
-import { BuyerCard, BuyerEmptyPanel } from "../components/BuyerLayout";
-import { BuyerOrderDetailSkeleton } from "../components/BuyerSkeletons";
+import { BuyerCard } from "../components/BuyerLayout";
+import {
+  BuyerDetailErrorState,
+  BuyerDetailLoadingState,
+  BuyerDetailScrollLayout,
+} from "../components/BuyerScreenScaffold";
 import { formatDecimal } from "../lib/decimal";
 
 type Order = {
@@ -62,39 +66,29 @@ export default function OrderDetailScreen() {
   }, [id]);
 
   if (loading) {
-    return (
-      <View style={styles.container}>
-        <BuyerOrderDetailSkeleton />
-      </View>
-    );
+    return <BuyerDetailLoadingState />;
   }
 
   if (error || !order) {
     return (
-      <View style={styles.container}>
-        <Pressable onPress={() => navigation.goBack()}>
-          <Text style={[styles.back, { color: palette.brand }]}>
-            {t("marketplace.backToOrders")}
-          </Text>
-        </Pressable>
-        <BuyerEmptyPanel
-          title={t("marketplace.orderDetail")}
-          body={error || t("common.loadFailed")}
-          actionLabel={t("marketplace.backToOrders")}
-          onAction={() => pushPath(navigation, "/app/sales")}
-        />
-      </View>
+      <BuyerDetailErrorState
+        backLabel={t("marketplace.backToOrders")}
+        onBack={() => navigation.goBack()}
+        backColor={palette.brand}
+        title={t("marketplace.orderDetail")}
+        body={error || t("common.loadFailed")}
+        actionLabel={t("marketplace.backToOrders")}
+        onAction={() => pushPath(navigation, "/app/sales")}
+      />
     );
   }
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={styles.container}>
-      <Pressable onPress={() => navigation.goBack()}>
-        <Text style={[styles.back, { color: palette.brand }]}>
-          ← {t("marketplace.backToOrders")}
-        </Text>
-      </Pressable>
-
+    <BuyerDetailScrollLayout
+      backLabel={t("marketplace.backToOrders")}
+      onBack={() => navigation.goBack()}
+      backColor={palette.brand}
+    >
       <BuyerCard>
         <View style={[styles.header, { backgroundColor: palette.brandSoft }]}>
           <Text style={styles.eyebrow}>{t("marketplace.orderDetailTitle")}</Text>
@@ -186,15 +180,12 @@ export default function OrderDetailScreen() {
           ) : null}
         </View>
       </BuyerCard>
-    </ScrollView>
+    </BuyerDetailScrollLayout>
   );
 }
 
-function createStyles(palette: import("../lib/brandTheme").BrandPalette) {
+function createStyles(_palette: import("../lib/brandTheme").BrandPalette) {
   return StyleSheet.create({
-    root: { flex: 1, backgroundColor: colors.bgPrimary },
-    container: { padding: 16, paddingBottom: 40 },
-    back: { fontWeight: "700", marginBottom: 12 },
     header: { padding: 16, gap: 6 },
     eyebrow: {
       fontSize: 11,

@@ -18,8 +18,9 @@ import { useToast } from "../components/Toast";
 import { useNavigation } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
 import { replacePath, pushPath } from "../lib/nav";
-import SegmentedTabs from "../components/SegmentedTabs";
-import { FormModal } from "../components/FormModal";
+import ScreenTabs from "../components/screen/ScreenTabs";
+import EntityFormModal from "../components/screen/EntityFormModal";
+import ScreenCard from "../components/screen/ScreenCard";
 import { useTabParam } from "../hooks/useTabParam";
 import { crmKeys } from "../lib/queryClient";
 
@@ -308,12 +309,11 @@ export default function MarketingScreen() {
       <Text style={styles.title}>{t("pages.marketingTitle")}</Text>
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <SegmentedTabs tabs={tabs} value={tab} onChange={(id) => setTab(id as Tab)} />
+      <ScreenTabs tabs={tabs} value={tab} onChange={setTab} />
 
       {tab === "campaigns" ? (
         <>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>{t("marketing.newCampaign")}</Text>
+          <ScreenCard title={t("marketing.newCampaign")} style={styles.card} titleStyle={styles.cardTitle}>
             <TextInput
               style={styles.input}
               placeholder={t("marketing.internalName")}
@@ -345,7 +345,7 @@ export default function MarketingScreen() {
                 {t("marketing.saveDraft")}
               </Text>
             </Pressable>
-          </View>
+          </ScreenCard>
 
           {campaigns.map((c) => (
             <Pressable key={c.id} style={styles.card} onPress={() => setDetail(c)}>
@@ -367,8 +367,7 @@ export default function MarketingScreen() {
           ))}
 
           {detail ? (
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>{detail.name}</Text>
+            <ScreenCard title={detail.name} style={styles.card} titleStyle={styles.cardTitle}>
               <Text style={styles.meta}>{detail.title}</Text>
               <Text style={styles.body}>{detail.message}</Text>
               <Pressable onPress={() => setDetail(null)}>
@@ -376,15 +375,18 @@ export default function MarketingScreen() {
                   {t("common.close")}
                 </Text>
               </Pressable>
-            </View>
+            </ScreenCard>
           ) : null}
         </>
       ) : null}
 
       {tab === "templates" ? (
         <>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>{t("marketing.variablesTitle")}</Text>
+          <ScreenCard
+            title={t("marketing.variablesTitle")}
+            style={styles.card}
+            titleStyle={styles.cardTitle}
+          >
             <Text style={styles.body}>{t("marketing.variablesHint")}</Text>
             {templateVars.map((v) => (
               <View key={v.key} style={styles.varRow}>
@@ -395,7 +397,7 @@ export default function MarketingScreen() {
                 </Text>
               </View>
             ))}
-          </View>
+          </ScreenCard>
 
           <Pressable
             style={[styles.btn, { backgroundColor: palette.brand }]}
@@ -429,7 +431,7 @@ export default function MarketingScreen() {
         </>
       ) : null}
 
-      <FormModal
+      <EntityFormModal
         visible={tplModal}
         title={t("marketing.newTemplate")}
         subtitle={t("marketing.variablesHint")}
@@ -483,7 +485,7 @@ export default function MarketingScreen() {
             </Pressable>
           ))}
         </View>
-      </FormModal>
+      </EntityFormModal>
     </ScrollView>
   );
 }

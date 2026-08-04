@@ -22,6 +22,7 @@ import {
   type StaffListFilterState,
 } from "@/lib/listFilters";
 import { formatDecimal } from "@/lib/decimal";
+import CampaignFormFields from "@/components/marketing/CampaignFormFields";
 type Campaign = {
   id: string;
   name: string;
@@ -995,142 +996,28 @@ function MarketingPageInner() {
         onClose={() => setModal(false)}
         title={t("marketing.newCampaign")}
         footer={
-          <div className="flex gap-2">
+          <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={() => void previewAudience()}>
               Preview audience
               {previewCount != null ? ` (${previewCount})` : ""}
             </Button>
-            <Button type="submit" form="campaign-form" loading={busy}>
-              {t("marketing.saveDraft")}
-            </Button>
+            <Button type="submit" form="campaign-form" loading={busy}>{t("marketing.saveDraft")}</Button>
           </div>
         }
       >
         <form id="campaign-form" onSubmit={createCampaign} className="grid gap-3">
-          <Field label={t("marketing.internalName")}>
-            <input
-              className={fieldClass}
-              required
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-            />
-          </Field>
-          <Field label="Template (optional)">
-            <Select
-              value={form.template_id}
-              onChange={(v) => applyTemplate(v)}
-              options={[
-                { value: "", label: "None — write freely" },
-                ...templates.map((tpl) => ({
-                  value: tpl.id,
-                  label: `${tpl.name} (${tpl.channel})`,
-                })),
-              ]}
-              triggerClassName="border-border bg-bg-secondary/80"
-            />
-          </Field>
-          <Field label={t("marketing.notificationTitle")}>
-            <input
-              className={fieldClass}
-              required
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-            />
-          </Field>
-          <Field label={t("marketing.message")}>
-            <textarea
-              className={fieldClass}
-              required
-              rows={4}
-              value={form.message}
-              onChange={(e) => setForm({ ...form, message: e.target.value })}
-            />
-          </Field>
-          <div className="rounded-md border border-border bg-bg-primary p-3 text-sm">
-            <p className="mb-1 text-xs font-semibold uppercase text-muted">Message preview</p>
-            <p className="font-semibold text-heading">{form.title || "Title"}</p>
-            <p className="mt-1 whitespace-pre-wrap text-body">{form.message || "Message body…"}</p>
-          </div>
-          <Field label="Channel">
-            <Select
-              value={form.channel}
-              onChange={(v) => setForm({ ...form, channel: v })}
-              options={[
-                { value: "email", label: "Email" },
-                { value: "in_app", label: "In-app" },
-                { value: "sms", label: "SMS" },
-                { value: "whatsapp", label: "WhatsApp" },
-              ]}
-              triggerClassName="border-border bg-bg-secondary/80"
-            />
-          </Field>
-          <Field label="Budget (PKR)">
-            <input
-              className={fieldClass}
-              type="number"
-              min={0}
-              step="0.01"
-              placeholder={
-                form.channel === "sms" || form.channel === "whatsapp"
-                  ? "Required for paid channels"
-                  : "Optional soft cap"
-              }
-              value={form.budget_amount}
-              onChange={(e) => setForm({ ...form, budget_amount: e.target.value })}
-              onBlur={() => {
-                if (!form.budget_amount.trim()) return;
-                setForm({ ...form, budget_amount: formatDecimal(form.budget_amount) });
-              }}
-            />
-          </Field>
-          <Field label={t("marketing.audience")}>
-            <Select
-              value={form.audience}
-              onChange={(v) => setForm({ ...form, audience: v })}
-              options={[
-                { value: "all", label: t("marketing.audienceAll") },
-                { value: "khata", label: t("marketing.audienceKhata") },
-                { value: "min_points", label: t("marketing.audienceMinPoints") },
-                { value: "segment", label: "Named segment" },
-              ]}
-              triggerClassName="border-border bg-bg-secondary/80"
-            />
-          </Field>
-          {form.audience === "min_points" ? (
-            <Field label={t("marketing.minPoints")}>
-              <input
-                className={fieldClass}
-                type="number"
-                min={0}
-                value={form.min_points}
-                onChange={(e) => setForm({ ...form, min_points: e.target.value })}
-              />
-            </Field>
-          ) : null}
-          {form.audience === "segment" ? (
-            <Field label="Segment">
-              <Select
-                name="segment_id"
-                required
-                value={form.segment_id}
-                onChange={(v) => setForm({ ...form, segment_id: v })}
-                placeholder="Select…"
-                options={segments.map((s) => ({ value: s.id, label: s.name }))}
-                triggerClassName="border-border bg-bg-secondary/80"
-              />
-            </Field>
-          ) : null}
-          <Field label="Link coupon (optional)">
-            <Select
-              value={form.coupon_id}
-              onChange={(v) => setForm({ ...form, coupon_id: v })}
-              options={[
-                { value: "", label: "None" },
-                ...coupons.map((c) => ({ value: c.id, label: c.code })),
-              ]}
-              triggerClassName="border-border bg-bg-secondary/80"
-            />
-          </Field>
+          <CampaignFormFields
+            form={form}
+            onChange={setForm}
+            templateOptions={templates.map((tpl) => ({
+              value: tpl.id,
+              label: `${tpl.name} (${tpl.channel})`,
+            }))}
+            segmentOptions={segments.map((s) => ({ value: s.id, label: s.name }))}
+            couponOptions={coupons.map((c) => ({ value: c.id, label: c.code }))}
+            onTemplateApply={applyTemplate}
+            t={t}
+          />
           {costPreview ? (
             <p className="text-sm text-body">
               Est. cost Rs {formatDecimal(costPreview.estimated_cost)} (Rs{" "}

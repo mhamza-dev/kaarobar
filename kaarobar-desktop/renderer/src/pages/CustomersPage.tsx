@@ -21,7 +21,6 @@ import { detailRoutes } from "@/lib/navigation";
 import {
   type Customer,
   type CustomerForm,
-  CUSTOMER_FORM_FIELDS,
   customerPayload,
   customerSearchText,
   customerToForm,
@@ -32,6 +31,8 @@ import {
   type ListFilterConfig,
   type StaffListFilterState,
 } from "@/lib/listFilters";
+import FormModalFooter from "@/components/app/FormModalFooter";
+import CustomerFormFields from "@/components/customers/CustomerFormFields";
 
 type LedgerEntry = {
   kind: string;
@@ -432,82 +433,10 @@ export default function CustomersPage() {
         isOpen={modal === "create" || modal === "edit"}
         onClose={() => setModal(null)}
         title={editing ? t("customers.edit") : t("customers.add")}
-        footer={
-          <Button type="submit" form="customer-form" loading={busy}>
-            {editing ? t("common.save") : t("common.create")}
-          </Button>
-        }
+        footer={<FormModalFooter cancelLabel={t("common.cancel")} submitLabel={editing ? t("common.save") : t("common.create")} onCancel={() => setModal(null)} submitFormId="customer-form" loading={busy} cancelVariant="secondary" />}
       >
         <form id="customer-form" onSubmit={saveCustomer} className="grid gap-3 sm:grid-cols-2">
-          {CUSTOMER_FORM_FIELDS.map((f) =>
-            f.type === "checkbox" ? (
-              <label key={f.key} className="flex items-center gap-2 text-sm text-heading sm:col-span-2">
-                <input
-                  type="checkbox"
-                  checked={Boolean(form[f.key])}
-                  onChange={(e) => setForm({ ...form, [f.key]: e.target.checked })}
-                />
-                {t(f.labelKey)}
-              </label>
-            ) : f.type === "textarea" ? (
-              <Field key={f.key} label={t(f.labelKey)}>
-                <textarea
-                  className={fieldClass}
-                  rows={3}
-                  value={String(form[f.key] ?? "")}
-                  onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
-                />
-              </Field>
-            ) : (
-              <Field key={f.key} label={t(f.labelKey)}>
-                <input
-                  className={fieldClass}
-                  type={
-                    f.key === "credit_limit"
-                      ? "number"
-                      : f.type || "text"
-                  }
-                  step={f.key === "credit_limit" ? "0.01" : undefined}
-                  min={f.key === "credit_limit" ? 0 : undefined}
-                  required={
-                    f.required ||
-                    (f.key === "portal_password" &&
-                      form.portal_enabled &&
-                      !editing?.portal_enabled)
-                  }
-                  minLength={f.type === "password" ? 8 : undefined}
-                  autoComplete={f.type === "password" ? "new-password" : undefined}
-                  placeholder={
-                    f.key === "portal_password" && editing?.portal_enabled
-                      ? t("customers.portalPasswordHint")
-                      : undefined
-                  }
-                  value={String(form[f.key] ?? "")}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      [f.key]: e.target.value,
-                    })
-                  }
-                  onBlur={
-                    f.key === "credit_limit"
-                      ? (e) => {
-                          const v = e.target.value.trim();
-                          if (!v) return;
-                          setForm({
-                            ...form,
-                            credit_limit: formatDecimal(v),
-                          });
-                        }
-                      : undefined
-                  }
-                />
-                {f.hintKey ? (
-                  <p className="mt-1 text-xs text-muted">{t(f.hintKey)}</p>
-                ) : null}
-              </Field>
-            )
-          )}
+          <CustomerFormFields form={form} editing={editing} onChange={setForm} t={t} />
         </form>
       </Modal>
 

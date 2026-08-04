@@ -1,0 +1,29 @@
+---
+description: Modern, theme-aware UI with tasteful glass effects
+alwaysApply: true
+---
+
+# Modern Theme-First UI Standard
+
+When designing or updating UI in any client app (`kaarobar-web`, `kaarobar-desktop`, `kaarobar-mobile`, `kaarobar-customer`):
+
+1. Design with a **senior UI/UX quality bar**:
+   - clean hierarchy, strong spacing rhythm, and clear visual structure
+   - polished interactions, readable typography, and balanced density
+2. Keep visuals **modern and distinctive**, but prioritize usability and consistency over novelty.
+3. Always respect the **existing theme/tokens**:
+   - use existing color, spacing, radius, and shadow tokens
+   - do not hardcode ad-hoc colors that break dark/light or brand consistency
+4. Prefer reusable styling patterns and shared primitives over one-off visual hacks.
+5. Use **glassy surfaces** where appropriate:
+   - subtle blur/translucency for cards, modals, and elevated panels
+   - maintain strong contrast and accessibility
+   - avoid overusing glass effects on every surface
+6. UI changes must remain accessible:
+   - sufficient contrast, clear focus states, and readable text sizes
+   - avoid effects that reduce legibility
+
+Quick self-check before finalizing:
+- Is this UI theme-consistent and token-based?
+- Does it feel modern without hurting clarity?
+- Is glass effect applied subtly and only where it improves polish?

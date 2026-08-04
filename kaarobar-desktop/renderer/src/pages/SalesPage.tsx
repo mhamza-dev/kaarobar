@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { api } from "@/lib/api/client";
 import { detailRoutes, routes } from "@/lib/navigation";
 import { PageHeader, SurfaceCard } from "@/components/app/ui";
+import DateAndTime from "@/components/app/DateAndTime";
 import DataTable from "@/components/ui/DataTable";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
@@ -150,7 +151,7 @@ export default function SalesPage() {
             {
               id: "when",
               header: "When",
-              cell: (s) => formatLocalDateTime(s.inserted_at),
+              cell: (s) => <DateAndTime value={s.inserted_at} />,
             },
           ]}
           data={sales}

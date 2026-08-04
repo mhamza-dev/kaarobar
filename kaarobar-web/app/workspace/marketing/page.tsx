@@ -11,7 +11,7 @@ import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
 import Select from "@/components/ui/Select";
-import { Field, PageHeader, SurfaceCard, TabBar, fieldClass } from "@/components/app/ui";
+import { Field, SurfaceCard, fieldClass } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { useTabQueryParam } from "@/lib/hooks/useTabQueryParam";
@@ -22,6 +22,8 @@ import {
   type ListFilterConfig,
   type StaffListFilterState,
 } from "@/lib/listFilters";
+import WorkspacePageScaffold from "@/components/app/WorkspacePageScaffold";
+import FormModal from "@/components/app/FormModal";
 
 type Campaign = {
   id: string;
@@ -657,13 +659,13 @@ function MarketingPageInner() {
   );
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow={t("marketing.eyebrow")}
-        title={t("pages.marketingTitle")}
-        description={t("pages.marketingDesc")}
-        infoKey="page.marketing"
-        action={
+    <WorkspacePageScaffold
+      header={{
+        eyebrow: t("marketing.eyebrow"),
+        title: t("pages.marketingTitle"),
+        description: t("pages.marketingDesc"),
+        infoKey: "page.marketing",
+        action:
           tab === "campaigns"
             ? {
                 label: t("marketing.newCampaign"),
@@ -694,23 +696,22 @@ function MarketingPageInner() {
                         onClick: openTierModal,
                         icon: <Award className="h-4 w-4" />,
                       }
-                    : undefined
-        }
-        secondaryAction={{
+                    : undefined,
+        secondaryAction: {
           label: t("nav.customers"),
           onClick: () => {
             window.location.href = "/app/customers";
           },
           icon: <Users className="h-4 w-4" />,
-        }}
-      />
-
-      <TabBar
-        tabs={tabs}
-        value={tab}
-        onChange={setTab}
-        aria-label="Marketing sections"
-      />
+        },
+      }}
+      tabs={{
+        tabs,
+        value: tab,
+        onChange: setTab,
+        ariaLabel: "Marketing sections",
+      }}
+    >
 
       {tab === "campaigns" ? (
         <>
@@ -1222,21 +1223,15 @@ function MarketingPageInner() {
         </form>
       </Modal>
 
-      <Modal
+      <FormModal
         isOpen={segModal}
         onClose={() => setSegModal(false)}
         title={t("marketing.newSegment")}
         description={t("marketing.segmentModalDesc")}
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setSegModal(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" form="segment-form" loading={busy}>
-              {t("marketing.saveSegment")}
-            </Button>
-          </div>
-        }
+        formId="segment-form"
+        submitLabel={t("marketing.saveSegment")}
+        cancelLabel={t("common.cancel")}
+        submitLoading={busy}
       >
         <form id="segment-form" onSubmit={createSegment} className="grid gap-3">
           <Field label={t("common.name")}>
@@ -1265,23 +1260,17 @@ function MarketingPageInner() {
             {t("marketing.khataOnly")}
           </label>
         </form>
-      </Modal>
+      </FormModal>
 
-      <Modal
+      <FormModal
         isOpen={couponModal}
         onClose={() => setCouponModal(false)}
         title={t("marketing.newCoupon")}
         description={t("marketing.couponModalDesc")}
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setCouponModal(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" form="coupon-form" loading={busy}>
-              {t("marketing.saveCoupon")}
-            </Button>
-          </div>
-        }
+        formId="coupon-form"
+        submitLabel={t("marketing.saveCoupon")}
+        cancelLabel={t("common.cancel")}
+        submitLoading={busy}
       >
         <form id="coupon-form" onSubmit={createCoupon} className="grid gap-3">
           <Field label={t("marketing.couponCode")}>
@@ -1341,23 +1330,17 @@ function MarketingPageInner() {
             {t("marketing.stackable")}
           </label>
         </form>
-      </Modal>
+      </FormModal>
 
-      <Modal
+      <FormModal
         isOpen={tierModal}
         onClose={() => setTierModal(false)}
         title={t("marketing.newTier")}
         description={t("marketing.tierModalDesc")}
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setTierModal(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" form="tier-form" loading={busy}>
-              {t("marketing.saveTier")}
-            </Button>
-          </div>
-        }
+        formId="tier-form"
+        submitLabel={t("marketing.saveTier")}
+        cancelLabel={t("common.cancel")}
+        submitLoading={busy}
       >
         <form id="tier-form" onSubmit={createTier} className="grid gap-3">
           <Field label={t("common.name")}>
@@ -1393,8 +1376,8 @@ function MarketingPageInner() {
             />
           </Field>
         </form>
-      </Modal>
-    </div>
+      </FormModal>
+    </WorkspacePageScaffold>
   );
 }
 

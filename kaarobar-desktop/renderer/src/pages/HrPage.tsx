@@ -29,12 +29,14 @@ import {
 } from "@/lib/listFilters";
 import { hrKeys } from "@/lib/queryClient";
 import { formatDecimal } from "@/lib/decimal";
+import FormModalFooter from "@/components/app/FormModalFooter";
 import {
   allowancesToRows,
   defaultAllowanceRows,
   rowsToAllowances,
   type AllowanceRow,
 } from "@/lib/hrAllowances";
+import { EmployeeFormFields } from "@/components/hr/HrModalForms";
 
 type Tab = "employees" | "attendance" | "leave" | "payroll";
 const HR_TABS: readonly Tab[] = ["employees", "attendance", "leave", "payroll"];
@@ -972,135 +974,18 @@ function HrPageInner() {
             ? "Update payroll details and employment status."
             : "Create a payroll record for someone at the active branch."
         }
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={closeEmployeeModal}>
-              Cancel
-            </Button>
-            <Button type="submit" form="employee-modal-form" loading={busy}>
-              {editingEmployeeId ? "Save changes" : "Save employee"}
-            </Button>
-          </div>
-        }
+        footer={<FormModalFooter cancelLabel="Cancel" submitLabel={editingEmployeeId ? "Save changes" : "Save employee"} onCancel={closeEmployeeModal} submitFormId="employee-modal-form" loading={busy} />}
       >
         <form id="employee-modal-form" onSubmit={saveEmployee} className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Employee code">
-              <input
-                className={fieldClass}
-                value={empForm.employee_code}
-                onChange={(e) =>
-                  setEmpForm({ ...empForm, employee_code: e.target.value })
-                }
-                required
-              />
-            </Field>
-            <Field label="Full name">
-              <input
-                className={fieldClass}
-                value={empForm.name}
-                onChange={(e) => setEmpForm({ ...empForm, name: e.target.value })}
-                required
-              />
-            </Field>
-            <Field label="Position">
-              <input
-                className={fieldClass}
-                value={empForm.position}
-                onChange={(e) => setEmpForm({ ...empForm, position: e.target.value })}
-              />
-            </Field>
-            <Field label={t("hr.basicSalary")}>
-              <input
-                className={fieldClass}
-                type="number"
-                step="0.01"
-                min={0}
-                value={empForm.basic_salary}
-                onChange={(e) =>
-                  setEmpForm({
-                    ...empForm,
-                    basic_salary: e.target.value,
-                  })
-                }
-                onBlur={() => {
-                  if (!empForm.basic_salary.trim()) return;
-                  setEmpForm({
-                    ...empForm,
-                    basic_salary: formatDecimal(empForm.basic_salary),
-                  });
-                }}
-              />
-            </Field>
-            {editingEmployeeId ? (
-              <Field label="Status">
-                <Select
-                  value={empForm.status}
-                  onChange={(v) => setEmpForm({ ...empForm, status: v })}
-                  options={[
-                    { value: "active", label: "Active" },
-                    { value: "inactive", label: "Inactive" },
-                    { value: "terminated", label: "Terminated" },
-                  ]}
-                  triggerClassName="border-border bg-bg-secondary/80"
-                />
-              </Field>
-            ) : null}
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-semibold text-heading">{t("hr.allowances")}</p>
-              <Button type="button" variant="outline" size="sm" onClick={addAllowance}>
-                {t("hr.addAllowance")}
-              </Button>
-            </div>
-            <p className="text-xs text-muted">{t("hr.allowancesHint")}</p>
-            <div className="space-y-2">
-              {empForm.allowances.map((row, index) => (
-                <div
-                  key={`allowance-${index}`}
-                  className="grid grid-cols-[1fr_1fr_auto] items-end gap-2"
-                >
-                  <Field label={t("hr.allowanceName")}>
-                    <input
-                      className={fieldClass}
-                      value={row.name}
-                      placeholder="transport"
-                      onChange={(e) => updateAllowance(index, { name: e.target.value })}
-                      required={empForm.allowances.length === 1}
-                    />
-                  </Field>
-                  <Field label={t("hr.allowanceAmount")}>
-                    <input
-                      className={fieldClass}
-                      type="number"
-                      step="0.01"
-                      min={0}
-                      value={row.amount}
-                      onChange={(e) => updateAllowance(index, { amount: e.target.value })}
-                      onBlur={() => {
-                        if (!row.amount.trim()) return;
-                        updateAllowance(index, {
-                          amount: formatDecimal(row.amount),
-                        });
-                      }}
-                    />
-                  </Field>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="mb-0.5"
-                    disabled={empForm.allowances.length <= 1}
-                    onClick={() => removeAllowance(index)}
-                  >
-                    {t("hr.removeAllowance")}
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
+          <EmployeeFormFields
+            form={empForm}
+            editing={Boolean(editingEmployeeId)}
+            onChange={setEmpForm}
+            onAllowanceChange={updateAllowance}
+            onAddAllowance={addAllowance}
+            onRemoveAllowance={removeAllowance}
+            t={t}
+          />
         </form>
       </Modal>
 

@@ -1,14 +1,14 @@
-import { View, StyleSheet } from "react-native";
-import { colors } from "../lib/api";
+import { View } from "react-native";
 import { t } from "../lib/i18n";
 import BuyerNav from "../components/BuyerNav";
 import { BuyerHero } from "../components/BuyerLayout";
 import BuyerProductFeed from "../components/BuyerProductFeed";
+import { BuyerScreenRoot } from "../components/BuyerScreenScaffold";
 
 /** `/app/products` equivalent — same feed as Discover products mode. */
 export default function ProductsScreen() {
   return (
-    <View style={styles.root}>
+    <BuyerScreenRoot>
       <BuyerProductFeed
         ListHeaderComponent={
           <View>
@@ -21,10 +21,6 @@ export default function ProductsScreen() {
           </View>
         }
       />
-    </View>
+    </BuyerScreenRoot>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.bgPrimary },
-});

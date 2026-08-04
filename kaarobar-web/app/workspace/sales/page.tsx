@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { api, isConsumerSession } from "@/lib/api/client";
 import { detailRoutes, routes } from "@/lib/navigation";
 import { PageHeader, SurfaceCard } from "@/components/app/ui";
+import DateAndTime from "@/components/app/DateAndTime";
 import DataTable from "@/components/ui/DataTable";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
@@ -225,7 +226,7 @@ function StaffSalesListPage() {
             {
               id: "when",
               header: "When",
-              cell: (s) => formatLocalDateTime(s.inserted_at),
+              cell: (s) => <DateAndTime value={s.inserted_at} />,
             },
           ]}
           data={sales}
