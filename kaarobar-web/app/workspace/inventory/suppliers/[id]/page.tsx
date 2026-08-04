@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { PackagePlus } from "lucide-react";
+import { PackagePlus, Plus } from "lucide-react";
 import { api } from "@/lib/api/client";
 import { routes } from "@/lib/navigation";
 import { DetailFieldGrid, DetailSection, DetailShell } from "@/components/app/DetailShell";
@@ -12,6 +12,7 @@ import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import Modal from "@/components/modals/Modal";
 import SearchSelect from "@/components/ui/SearchSelect";
+import ProductFormModal from "@/components/inventory/ProductFormModal";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { formatDecimal } from "@/lib/decimal";
@@ -55,6 +56,7 @@ export default function SupplierDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [attachOpen, setAttachOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const [attachProductId, setAttachProductId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -120,6 +122,22 @@ export default function SupplierDetailPage() {
     }
   }
 
+  async function onProductCreated(created: { id: string }) {
+    setBusy(true);
+    try {
+      await api(`/suppliers/${id}/products`, {
+        method: "POST",
+        body: JSON.stringify({ product_id: created.id }),
+      });
+      toast.success(t("inventory.productAttached"));
+      await load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function detachProduct(productId: string) {
     if (!confirm(t("inventory.detachProductConfirm"))) return;
     setBusy(true);
@@ -160,13 +178,23 @@ export default function SupplierDetailPage() {
             : undefined
         }
         actions={
-          <Button
-            size="sm"
-            onClick={() => void openAttach()}
-            startIcon={<PackagePlus className="h-4 w-4" />}
-          >
-            {t("inventory.attachProduct")}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setCreateOpen(true)}
+              startIcon={<Plus className="h-4 w-4" />}
+            >
+              {t("inventory.newProduct")}
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => void openAttach()}
+              startIcon={<PackagePlus className="h-4 w-4" />}
+            >
+              {t("inventory.attachProduct")}
+            </Button>
+          </div>
         }
         loading={loading}
         error={error}
@@ -294,6 +322,12 @@ export default function SupplierDetailPage() {
           </>
         ) : null}
       </DetailShell>
+
+      <ProductFormModal
+        isOpen={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onSuccess={onProductCreated}
+      />
 
       <Modal
         isOpen={attachOpen}

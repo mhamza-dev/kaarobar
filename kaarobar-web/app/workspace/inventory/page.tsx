@@ -27,7 +27,6 @@ import {
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { formatDecimal } from "@/lib/decimal";
-import { generateBarcode } from "@/lib/barcode";
 import { useTabQueryParam } from "@/lib/hooks/useTabQueryParam";
 import { detailRoutes, routes } from "@/lib/navigation";
 import {
@@ -40,6 +39,7 @@ import SearchSelect from "@/components/ui/SearchSelect";
 import SearchMultiSelect from "@/components/ui/SearchMultiSelect";
 import Select from "@/components/ui/Select";
 import { inventoryKeys } from "@/lib/queryClient";
+import ProductFormModal from "@/components/inventory/ProductFormModal";
 
 type Tab = "stock" | "products" | "suppliers" | "pos" | "transfers" | "adjust";
 const INVENTORY_TABS: readonly Tab[] = [
@@ -51,19 +51,6 @@ const INVENTORY_TABS: readonly Tab[] = [
   "adjust",
 ];
 type ModalKind = "product" | "supplier" | "po" | "transfer" | "grn" | null;
-
-const emptyProductForm = {
-  sku: "",
-  name: "",
-  price: "",
-  barcode: "",
-  brand: "",
-  unit: "pcs",
-  product_kind: "goods",
-  duration_minutes: "",
-  category: "",
-  category_id: "",
-};
 
 type Product = {
   id: string;
@@ -204,12 +191,10 @@ function InventoryPageInner() {
     basePath: routes.inventory,
   });
   const [modal, setModal] = useState<ModalKind>(null);
-  const [editingProductId, setEditingProductId] = useState<string | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingSupplierId, setEditingSupplierId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const [productForm, setProductForm] = useState(emptyProductForm);
-  const [productImage, setProductImage] = useState<File | null>(null);
   const [productFilters, setProductFilters] = useState<StaffListFilterState>(
     emptyStaffListFilters()
   );
@@ -352,62 +337,18 @@ function InventoryPageInner() {
   );
 
   function openNewProduct() {
-    setEditingProductId(null);
-    setProductForm(emptyProductForm);
-    setProductImage(null);
+    setEditingProduct(null);
     setModal("product");
   }
 
   function openEditProduct(p: Product) {
-    setEditingProductId(p.id);
-    setProductForm({
-      sku: p.sku || "",
-      name: p.name || "",
-      price: p.price || "",
-      barcode: p.barcode || "",
-      brand: p.brand || "",
-      unit: p.unit || "pcs",
-      product_kind: p.product_kind || "goods",
-      duration_minutes: p.duration_minutes != null ? String(p.duration_minutes) : "",
-      category: p.category || "",
-      category_id: p.category_id || "",
-    });
-    setProductImage(null);
+    setEditingProduct(p);
     setModal("product");
   }
 
   function closeProductModal() {
     setModal(null);
-    setEditingProductId(null);
-    setProductForm(emptyProductForm);
-    setProductImage(null);
-  }
-
-  async function saveProduct(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    try {
-      const fd = new FormData();
-      Object.entries(productForm).forEach(([k, v]) => {
-        if (v) fd.append(k, v);
-      });
-      if (productImage) fd.append("image", productImage);
-
-      if (editingProductId) {
-        await api(`/products/${editingProductId}`, { method: "PATCH", body: fd });
-        toast.success(t("inventory.productUpdated"));
-      } else {
-        await api("/products", { method: "POST", body: fd });
-        toast.success(t("inventory.productCreated"));
-      }
-      closeProductModal();
-      setTab("products");
-      await refreshInventory();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("common.saveFailed"));
-    } finally {
-      setBusy(false);
-    }
+    setEditingProduct(null);
   }
 
   function openNewSupplier() {
@@ -1419,155 +1360,15 @@ function InventoryPageInner() {
         </SurfaceCard>
       ) : null}
 
-      <Modal
+      <ProductFormModal
         isOpen={modal === "product"}
         onClose={closeProductModal}
-        title={editingProductId ? "Edit product" : "New product"}
-        description={
-          editingProductId
-            ? "Update catalog details and branch price for the active branch."
-            : "Works for retail, restaurant, salon, pharmacy, and general shops. Add barcode and photo for faster POS."
-        }
-        size="lg"
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={closeProductModal}>
-              Cancel
-            </Button>
-            <Button type="submit" form="product-modal-form" loading={busy}>
-              {editingProductId ? "Save changes" : "Create product"}
-            </Button>
-          </div>
-        }
-      >
-        <form id="product-modal-form" onSubmit={saveProduct} className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="SKU">
-              <input
-                className={fieldClass}
-                value={productForm.sku}
-                onChange={(e) => setProductForm({ ...productForm, sku: e.target.value })}
-                required
-              />
-            </Field>
-            <Field label={t("inventory.barcode")}>
-              <div className="flex gap-2">
-                <input
-                  className={`${fieldClass} min-w-0 flex-1`}
-                  value={productForm.barcode}
-                  onChange={(e) =>
-                    setProductForm({ ...productForm, barcode: e.target.value })
-                  }
-                  placeholder={t("inventory.barcodePlaceholder")}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="shrink-0"
-                  onClick={() =>
-                    setProductForm({ ...productForm, barcode: generateBarcode() })
-                  }
-                >
-                  {t("inventory.generateBarcode")}
-                </Button>
-              </div>
-            </Field>
-          </div>
-          <Field label="Name">
-            <input
-              className={fieldClass}
-              value={productForm.name}
-              onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
-              required
-            />
-          </Field>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Field label="Kind">
-              <Select
-                value={productForm.product_kind}
-                onChange={(v) =>
-                  setProductForm({ ...productForm, product_kind: v })
-                }
-                options={[
-                  { value: "goods", label: "Goods" },
-                  { value: "service", label: "Service" },
-                  { value: "combo", label: "Combo" },
-                ]}
-              />
-            </Field>
-            <Field label="Unit">
-              <Select
-                value={productForm.unit}
-                onChange={(v) => setProductForm({ ...productForm, unit: v })}
-                options={["pcs", "kg", "g", "ml", "l", "box", "pack", "hour", "session"].map(
-                  (u) => ({ value: u, label: u })
-                )}
-              />
-            </Field>
-            <Field label="Branch price">
-              <input
-                className={fieldClass}
-                type="number"
-                step="0.01"
-                value={productForm.price}
-                onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
-                onBlur={(e) => {
-                  if (e.target.value.trim() === "") return;
-                  setProductForm({ ...productForm, price: formatDecimal(e.target.value) });
-                }}
-                required
-              />
-            </Field>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Brand">
-              <input
-                className={fieldClass}
-                value={productForm.brand}
-                onChange={(e) => setProductForm({ ...productForm, brand: e.target.value })}
-              />
-            </Field>
-            <Field label="Category">
-              <Select
-                value={productForm.category_id}
-                onChange={(v) => {
-                  const cat = categories.find((c) => c.id === v);
-                  setProductForm({
-                    ...productForm,
-                    category_id: v,
-                    category: cat?.name || "",
-                  });
-                }}
-                placeholder="Select…"
-                options={[
-                  { value: "", label: "Select…" },
-                  ...categories.map((c) => ({ value: c.id, label: c.name })),
-                ]}
-              />
-            </Field>
-          </div>
-          {productForm.product_kind === "service" ? (
-            <Field label="Duration (minutes)">
-              <input
-                className={fieldClass}
-                value={productForm.duration_minutes}
-                onChange={(e) =>
-                  setProductForm({ ...productForm, duration_minutes: e.target.value })
-                }
-                placeholder="e.g. 45"
-              />
-            </Field>
-          ) : null}
-          <Field label="Product image">
-            <input
-              type="file"
-              accept="image/*"
-              className={fieldClass}
-              onChange={(e) => setProductImage(e.target.files?.[0] || null)}
-            />
-          </Field>
-        </form>
-      </Modal>
+        product={editingProduct}
+        onSuccess={async () => {
+          setTab("products");
+          await refreshInventory();
+        }}
+      />
 
       <Modal
         isOpen={modal === "supplier"}
