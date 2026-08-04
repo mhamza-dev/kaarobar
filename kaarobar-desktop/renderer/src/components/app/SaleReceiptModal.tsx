@@ -1,6 +1,8 @@
 import KaarobarLogo from "@/components/brand/KaarobarLogo";
 import Button from "@/components/ui/Button";
 import { formatDecimal } from "@/lib/decimal";
+import { useT } from "@/lib/i18n";
+import { paymentMethodLabel } from "@/lib/paymentLabels";
 
 export type ReceiptSale = {
   id: string;
@@ -34,6 +36,7 @@ export default function SaleReceiptModal({
   branchName,
   onClose,
 }: Props) {
+  const t = useT();
   if (!sale) return null;
 
   function print() {
@@ -104,8 +107,8 @@ export default function SaleReceiptModal({
           <div className="border-t border-slate-200 pt-2 text-xs">
             <p className="font-semibold">Payments</p>
             {sale.payments.map((p, i) => (
-              <div key={`${p.method}-${i}`} className="flex justify-between capitalize">
-                <span>{p.method}</span>
+              <div key={`${p.method}-${i}`} className="flex justify-between">
+                <span>{paymentMethodLabel(p.method, t)}</span>
                 <span>{formatDecimal(p.amount)}</span>
               </div>
             ))}

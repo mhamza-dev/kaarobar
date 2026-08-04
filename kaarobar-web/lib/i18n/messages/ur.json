@@ -518,7 +518,28 @@
     "qtyReceived": "وصول شدہ مقدار",
     "noOpenPos": "وصول کرنے کے لیے کوئی کھلا خریداری آرڈر نہیں۔",
     "poNoSupplierProducts": "اس سپلائر کی کوئی منسلک پروڈکٹ نہیں۔ پہلے سپلائر صفحے پر پروڈکٹس منسلک کریں۔",
-    "supplierProductsHint": "صرف اس سپلائر سے منسلک پروڈکٹس آرڈر کی جا سکتی ہیں۔"
+    "supplierProductsHint": "صرف اس سپلائر سے منسلک پروڈکٹس آرڈر کی جا سکتی ہیں۔",
+    "backToProducts": "مصنوعات پر واپس",
+    "productEyebrow": "مصنوع",
+    "catalogSection": "کیٹلاگ",
+    "brand": "برینڈ",
+    "category": "زمرہ",
+    "kind": "قسم",
+    "taxRate": "ٹیکس شرح",
+    "stock": "موجودہ اسٹاک",
+    "trackInventory": "اسٹاک ٹریک کریں",
+    "durationMinutes": "مدت (منٹ)",
+    "productSuppliers": "سپلائرز",
+    "primary": "بنیادی",
+    "code": "کوڈ",
+    "detachSupplier": "الگ کریں",
+    "detachSupplierConfirm": "اس سپلائر کو مصنوع سے الگ کریں؟",
+    "supplierAttached": "سپلائر منسلک ہو گیا",
+    "supplierDetached": "سپلائر الگ ہو گیا",
+    "noProductSuppliers": "کوئی سپلائر منسلک نہیں",
+    "noProductSuppliersBody": "خریداری کے آرڈر کے لیے سپلائر منسلک کریں۔",
+    "attachSupplierDesc": "موجودہ سپلائر کو اس مصنوع سے منسلک کریں۔",
+    "allSuppliersLinked": "تمام سپلائرز پہلے سے منسلک ہیں۔"
   },
   "pos": {
     "tillOpen": "ٹل کھل گیا",
@@ -852,7 +873,9 @@
     "ref": "حوالہ",
     "description": "تفصیل",
     "debit": "ڈیبٹ",
-    "credit": "کریڈٹ"
+    "credit": "کریڈٹ",
+    "portalAccount": "پورٹل اکاؤنٹ",
+    "portalManagedHint": "اس گاہک نے پورٹل پر سائن اپ کیا ہے — نام، ای میل، فون اور تصویر وہ خود سنبھالتے ہیں۔ آپ گاہکوں کی فہرست سے اب بھی کھاتہ اور لائلٹی ایڈجسٹ کر سکتے ہیں۔"
   },
   "marketing": {
     "eyebrow": "مارکیٹنگ",

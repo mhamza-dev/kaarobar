@@ -4,6 +4,8 @@ import { api, getSession } from "@/lib/api/client";
 import { routes } from "@/lib/navigation";
 import { DetailFieldGrid, DetailSection, DetailShell } from "@/components/app/DetailShell";
 import { crmKeys } from "@/lib/queryClient";
+import { useT } from "@/lib/i18n";
+import { campaignAudienceLabel } from "@/lib/paymentLabels";
 
 type Campaign = {
   id: string;
@@ -30,6 +32,7 @@ type Campaign = {
 
 export default function CampaignDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const t = useT();
   const businessId = getSession()?.business_id ?? null;
 
   const campaignQuery = useQuery({
@@ -73,7 +76,7 @@ export default function CampaignDetailPage() {
             <DetailFieldGrid
               fields={[
                 { label: "Channel", value: campaign.channel || "email" },
-                { label: "Audience", value: campaign.audience },
+                { label: "Audience", value: campaignAudienceLabel(campaign.audience, t) },
                 {
                   label: "Sent at",
                   value: campaign.sent_at ? String(campaign.sent_at).slice(0, 16) : "—",

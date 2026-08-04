@@ -311,7 +311,28 @@
     "qtyReceived": "الكمية المستلمة",
     "noOpenPos": "لا توجد أوامر شراء مفتوحة للاستلام.",
     "poNoSupplierProducts": "لا توجد منتجات مرتبطة بهذا المورد. اربط المنتجات أولاً من صفحة المورد.",
-    "supplierProductsHint": "يمكن طلب المنتجات المرتبطة بهذا المورد فقط."
+    "supplierProductsHint": "يمكن طلب المنتجات المرتبطة بهذا المورد فقط.",
+    "backToProducts": "العودة إلى المنتجات",
+    "productEyebrow": "منتج",
+    "catalogSection": "الكتالوج",
+    "brand": "العلامة",
+    "category": "الفئة",
+    "kind": "النوع",
+    "taxRate": "معدل الضريبة",
+    "stock": "المخزون",
+    "trackInventory": "تتبع المخزون",
+    "durationMinutes": "المدة (دقائق)",
+    "productSuppliers": "الموردون",
+    "primary": "أساسي",
+    "code": "الرمز",
+    "detachSupplier": "فصل",
+    "detachSupplierConfirm": "فصل هذا المورد عن المنتج؟",
+    "supplierAttached": "تم ربط المورد",
+    "supplierDetached": "تم فصل المورد",
+    "noProductSuppliers": "لا يوجد موردون مرتبطون",
+    "noProductSuppliersBody": "اربط مورداً لطلب هذا المنتج في أوامر الشراء.",
+    "attachSupplierDesc": "اربط مورداً موجوداً بهذا المنتج.",
+    "allSuppliersLinked": "جميع الموردين مرتبطون بالفعل."
   },
   "pos": {
     "tillOpen": "حتى الفتح",
@@ -589,7 +610,9 @@
     "ref": "المرجع",
     "description": "الوصف",
     "debit": "مدين",
-    "credit": "دائن"
+    "credit": "دائن",
+    "portalAccount": "حساب البوابة",
+    "portalManagedHint": "سجّل هذا المتسوق في البوابة — الاسم والبريد والهاتف والصورة يديرها بنفسه. يمكنك ما زال تعديل الائتمان والولاء من قائمة العملاء."
   },
   "marketing": {
     "eyebrow": "التسويق",

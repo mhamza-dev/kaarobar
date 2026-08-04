@@ -1,92 +1,318 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
+import { PackagePlus } from "lucide-react";
 import { api } from "@/lib/api/client";
 import { routes } from "@/lib/navigation";
 import { DetailFieldGrid, DetailSection, DetailShell } from "@/components/app/DetailShell";
+import ActionMenu from "@/components/ui/ActionMenu";
+import Button from "@/components/ui/Button";
+import DataTable from "@/components/ui/DataTable";
+import Modal from "@/components/modals/Modal";
+import SearchSelect from "@/components/ui/SearchSelect";
+import { useToast } from "@/components/ui/Toast";
+import { useT } from "@/lib/i18n";
 import { formatDecimal } from "@/lib/decimal";
 
 type Product = {
   id: string;
   sku: string;
   name: string;
-  price?: string;
-  cost?: string;
+  price?: string | null;
   barcode?: string | null;
-  track_stock?: boolean;
-  is_active?: boolean;
-  category_name?: string | null;
+  brand?: string | null;
+  unit?: string | null;
   description?: string | null;
-  stock_on_hand?: string | number | null;
+  product_kind?: string | null;
+  track_inventory?: boolean;
+  duration_minutes?: number | null;
+  tax_rate?: string | null;
+  is_active?: boolean;
+  category?: string | null;
+  category_ref?: { id: string; name: string; slug?: string } | null;
 };
+
+type ProductSupplier = {
+  id: string;
+  supplier_id: string;
+  is_primary?: boolean;
+  name?: string | null;
+  code?: string | null;
+};
+
+type StockRow = {
+  product_id: string;
+  quantity_on_hand: string;
+};
+
+type SupplierOption = { id: string; name: string };
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const t = useT();
+  const toast = useToast();
   const [product, setProduct] = useState<Product | null>(null);
+  const [stockQty, setStockQty] = useState<string | null>(null);
+  const [suppliers, setSuppliers] = useState<ProductSupplier[]>([]);
+  const [allSuppliers, setAllSuppliers] = useState<SupplierOption[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [attachOpen, setAttachOpen] = useState(false);
+  const [attachSupplierId, setAttachSupplierId] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await api<{ data: Product }>(`/products/${id}`);
-      setProduct(res.data);
+      const [prodRes, stockRes, supRes] = await Promise.all([
+        api<{ data: Product }>(`/products/${id}`),
+        api<{ data: StockRow[] }>("/inventory").catch(() => ({ data: [] as StockRow[] })),
+        api<{ data: ProductSupplier[] }>(`/products/${id}/suppliers`).catch(() => ({
+          data: [] as ProductSupplier[],
+        })),
+      ]);
+      setProduct(prodRes.data);
+      const row = (stockRes.data || []).find((r) => r.product_id === id);
+      setStockQty(row?.quantity_on_hand ?? null);
+      setSuppliers(supRes.data || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load product");
+      setError(err instanceof Error ? err.message : t("common.loadFailed"));
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, t]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
+  async function openAttach() {
+    setAttachSupplierId(null);
+    setAttachOpen(true);
+    try {
+      const res = await api<{ data: SupplierOption[] }>("/suppliers");
+      setAllSuppliers(res.data || []);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
+    }
+  }
+
+  const attachOptions = useMemo(() => {
+    const linked = new Set(suppliers.map((s) => s.supplier_id));
+    return allSuppliers
+      .filter((s) => !linked.has(s.id))
+      .map((s) => ({ value: s.id, label: s.name }));
+  }, [allSuppliers, suppliers]);
+
+  async function attachSupplier(e: React.FormEvent) {
+    e.preventDefault();
+    if (!id || !attachSupplierId) return;
+    setBusy(true);
+    try {
+      await api(`/products/${id}/suppliers`, {
+        method: "POST",
+        body: JSON.stringify({ supplier_id: attachSupplierId }),
+      });
+      toast.success(t("inventory.supplierAttached"));
+      setAttachOpen(false);
+      setAttachSupplierId(null);
+      await load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function detachSupplier(supplierId: string) {
+    if (!id) return;
+    if (!confirm(t("inventory.detachSupplierConfirm"))) return;
+    setBusy(true);
+    try {
+      await api(`/products/${id}/suppliers/${supplierId}`, { method: "DELETE" });
+      toast.success(t("inventory.supplierDetached"));
+      await load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const categoryLabel = product?.category_ref?.name || product?.category || "—";
+
   return (
-    <DetailShell
-      backHref={`${routes.inventory}?tab=products`}
-      backLabel="Back to inventory"
-      eyebrow="Product"
-      title={product?.name || "Product"}
-      subtitle={product?.sku}
-      status={
-        product
-          ? {
-              label: product.is_active === false ? "Inactive" : "Active",
-              tone: product.is_active === false ? "warning" : "success",
-            }
-          : undefined
-      }
-      loading={loading}
-      error={error}
-    >
-      {product ? (
-        <DetailSection title="Catalog">
-          <DetailFieldGrid
-            fields={[
-              { label: "SKU", value: product.sku },
-              { label: "Barcode", value: product.barcode || "—" },
-              { label: "Category", value: product.category_name || "—" },
-              { label: "Price", value: product.price ? `Rs ${formatDecimal(product.price)}` : "—" },
-              { label: "Cost", value: product.cost ? `Rs ${formatDecimal(product.cost)}` : "—" },
-              {
-                label: "Stock",
-                value:
-                  product.stock_on_hand != null ? String(product.stock_on_hand) : "—",
-              },
-              {
-                label: "Track stock",
-                value: product.track_stock === false ? "No" : "Yes",
-              },
-            ]}
+    <>
+      <DetailShell
+        backHref={`${routes.inventory}?tab=products`}
+        backLabel={t("inventory.backToProducts")}
+        eyebrow={t("inventory.productEyebrow")}
+        title={product?.name || t("inventory.product")}
+        subtitle={product?.sku}
+        status={
+          product
+            ? {
+                label:
+                  product.is_active === false
+                    ? t("businesses.inactive")
+                    : t("businesses.active"),
+                tone: product.is_active === false ? "warning" : "success",
+              }
+            : undefined
+        }
+        actions={
+          <Button
+            size="sm"
+            onClick={() => void openAttach()}
+            startIcon={<PackagePlus className="h-4 w-4" />}
+          >
+            {t("table.attachSupplier")}
+          </Button>
+        }
+        loading={loading}
+        error={error}
+      >
+        {product ? (
+          <>
+            <DetailSection title={t("inventory.catalogSection")}>
+              <DetailFieldGrid
+                fields={[
+                  { label: t("inventory.sku"), value: product.sku },
+                  { label: t("inventory.barcode"), value: product.barcode || "—" },
+                  { label: t("inventory.brand"), value: product.brand || "—" },
+                  { label: t("inventory.category"), value: categoryLabel },
+                  { label: t("inventory.kind"), value: product.product_kind || "—" },
+                  { label: t("inventory.unit"), value: product.unit || "—" },
+                  {
+                    label: t("inventory.price"),
+                    value: product.price ? `Rs ${formatDecimal(product.price)}` : "—",
+                  },
+                  {
+                    label: t("inventory.taxRate"),
+                    value: product.tax_rate != null ? product.tax_rate : "—",
+                  },
+                  {
+                    label: t("inventory.stock"),
+                    value: stockQty != null ? formatDecimal(stockQty) : "—",
+                  },
+                  {
+                    label: t("inventory.trackInventory"),
+                    value:
+                      product.track_inventory === false
+                        ? t("common.no")
+                        : t("common.yes"),
+                  },
+                  {
+                    label: t("inventory.durationMinutes"),
+                    value:
+                      product.duration_minutes != null
+                        ? String(product.duration_minutes)
+                        : "—",
+                  },
+                ]}
+              />
+              {product.description ? (
+                <p className="mt-4 text-sm text-body">{product.description}</p>
+              ) : null}
+            </DetailSection>
+
+            <DetailSection title={t("inventory.productSuppliers")}>
+              <DataTable
+                maxHeight="24rem"
+                columns={[
+                  {
+                    id: "name",
+                    header: t("common.name"),
+                    cell: (s) => (
+                      <span className="font-semibold text-heading">
+                        {s.name || s.supplier_id.slice(0, 8)}
+                        {s.is_primary ? (
+                          <span className="ms-2 text-xs font-medium text-brand">
+                            {t("inventory.primary")}
+                          </span>
+                        ) : null}
+                      </span>
+                    ),
+                  },
+                  {
+                    id: "code",
+                    header: t("inventory.code"),
+                    cell: (s) => s.code || "—",
+                  },
+                  {
+                    id: "actions",
+                    header: "",
+                    align: "right",
+                    width: 48,
+                    cell: (s) => (
+                      <div className="flex justify-end">
+                        <ActionMenu
+                          items={[
+                            {
+                              id: "remove",
+                              label: t("inventory.detachSupplier"),
+                              tone: "danger",
+                              onClick: () => void detachSupplier(s.supplier_id),
+                              disabled: busy,
+                            },
+                          ]}
+                        />
+                      </div>
+                    ),
+                  },
+                ]}
+                data={suppliers}
+                rowKey={(s) => s.id}
+                emptyTitle={t("inventory.noProductSuppliers")}
+                emptyBody={t("inventory.noProductSuppliersBody")}
+              />
+            </DetailSection>
+          </>
+        ) : null}
+      </DetailShell>
+
+      <Modal
+        isOpen={attachOpen}
+        onClose={() => setAttachOpen(false)}
+        title={t("table.attachSupplier")}
+        description={t("inventory.attachSupplierDesc")}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setAttachOpen(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              type="submit"
+              form="attach-supplier-to-product-form"
+              loading={busy}
+              disabled={!attachSupplierId}
+              startIcon={<PackagePlus className="h-4 w-4" />}
+            >
+              {t("table.attachSupplier")}
+            </Button>
+          </div>
+        }
+      >
+        <form
+          id="attach-supplier-to-product-form"
+          onSubmit={attachSupplier}
+          className="space-y-3"
+        >
+          <SearchSelect
+            label={t("inventory.supplier")}
+            options={attachOptions}
+            value={attachSupplierId}
+            onChange={setAttachSupplierId}
+            placeholder={t("inventory.selectSupplier")}
+            searchPlaceholder={t("searchSelect.search")}
           />
-          {product.description ? (
-            <p className="mt-4 text-sm text-body">{product.description}</p>
+          {attachOptions.length === 0 ? (
+            <p className="text-sm text-body">{t("inventory.allSuppliersLinked")}</p>
           ) : null}
-        </DetailSection>
-      ) : null}
-    </DetailShell>
+        </form>
+      </Modal>
+    </>
   );
 }

@@ -6,6 +6,7 @@ import { DetailFieldGrid, DetailSection, DetailShell } from "@/components/app/De
 import ProfilePicEditor from "@/components/app/ProfilePicEditor";
 import type { Customer } from "@/lib/customers";
 import { formatDecimal } from "@/lib/decimal";
+import { useT } from "@/lib/i18n";
 
 type LedgerEntry = {
   kind: string;
@@ -18,7 +19,7 @@ type LedgerEntry = {
 
 export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>();
-  // id from hash router
+  const t = useT();
   const [customer, setCustomer] = useState<(Customer & { balance?: string }) | null>(null);
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -36,11 +37,11 @@ export default function CustomerDetailPage() {
       setCustomer(c.data);
       setLedger(l.data.entries || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load customer");
+      setError(err instanceof Error ? err.message : t("common.loadFailed"));
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, t]);
 
   useEffect(() => {
     void load();
@@ -49,56 +50,75 @@ export default function CustomerDetailPage() {
   return (
     <DetailShell
       backHref={routes.customers}
-      backLabel="Back to customers"
-      eyebrow="Customer"
-      title={customer?.name || "Customer"}
+      backLabel={t("common.back")}
+      eyebrow={t("nav.customers")}
+      title={customer?.name || t("nav.customers")}
       subtitle={customer?.company_name || customer?.email || customer?.phone || undefined}
       status={
         customer?.portal_linked
-          ? { label: "Portal account", tone: "success" }
+          ? { label: t("customers.portalAccount"), tone: "success" }
           : customer?.credit_enabled
-            ? { label: "Khata on", tone: "success" }
-            : { label: "Khata off", tone: "info" }
+            ? { label: t("listFilters.khataOn"), tone: "success" }
+            : { label: t("listFilters.khataOff"), tone: "info" }
       }
       loading={loading}
       error={error}
     >
       {customer ? (
         <>
-          <DetailSection title="Photo">
-            <ProfilePicEditor
-              url={customer.profile_pic_url}
-              name={customer.name}
-              uploadPath={`/customers/${customer.id}/profile-pic`}
-              urlFromResponse={(body) =>
-                (body as { data?: Customer })?.data?.profile_pic_url
-              }
-              onChange={(next) =>
-                setCustomer((c) => (c ? { ...c, profile_pic_url: next } : c))
-              }
-              label="Customer photo"
-              readOnly={!!customer.portal_linked}
-            />
-            {customer.portal_linked ? (
-              <p className="mt-2 text-sm text-body">
-                Signed up on the portal — identity (name, email, phone, photo) is managed by the
-                customer. Khata and loyalty can still be adjusted from the list.
-              </p>
-            ) : null}
-          </DetailSection>
-          <DetailSection title="Profile">
+          <DetailSection title={t("common.profile")}>
+            <div className="mb-4">
+              <ProfilePicEditor
+                url={customer.profile_pic_url}
+                name={customer.name}
+                uploadPath={`/customers/${customer.id}/profile-pic`}
+                urlFromResponse={(body) =>
+                  (body as { data?: Customer })?.data?.profile_pic_url
+                }
+                onChange={(next) =>
+                  setCustomer((c) => (c ? { ...c, profile_pic_url: next } : c))
+                }
+                label={t("customers.portalAccount")}
+                readOnly={!!customer.portal_linked}
+              />
+              {customer.portal_linked ? (
+                <p className="mt-2 text-sm text-body">{t("customers.portalManagedHint")}</p>
+              ) : null}
+            </div>
             <DetailFieldGrid
               fields={[
-                { label: "Phone", value: customer.phone || "—" },
-                { label: "Email", value: customer.email || "—" },
-                { label: "CNIC", value: customer.cnic || "—" },
-                { label: "NTN", value: customer.ntn || "—" },
-                { label: "Address", value: customer.address || "—" },
-                { label: "Loyalty points", value: String(customer.loyalty_points ?? 0) },
-                { label: "Balance", value: customer.balance ? `Rs ${formatDecimal(customer.balance)}` : "—" },
+                { label: t("customers.phone"), value: customer.phone || "—" },
+                { label: t("customers.email"), value: customer.email || "—" },
+                { label: t("customers.cnic"), value: customer.cnic || "—" },
+                { label: t("customers.ntn"), value: customer.ntn || "—" },
+                { label: t("customers.address"), value: customer.address || "—" },
                 {
-                  label: "Email opt-in",
-                  value: customer.marketing_opt_in_email ? "Yes" : "No",
+                  label: t("customers.khataEnabled"),
+                  value: customer.credit_enabled
+                    ? t("customers.khataOn")
+                    : t("customers.khataOff"),
+                },
+                {
+                  label: t("customers.creditLimit"),
+                  value: customer.credit_limit
+                    ? `Rs ${formatDecimal(customer.credit_limit)}`
+                    : "—",
+                },
+                {
+                  label: t("customers.points"),
+                  value: String(customer.loyalty_points ?? 0),
+                },
+                {
+                  label: t("customers.balance"),
+                  value: customer.balance
+                    ? `Rs ${formatDecimal(customer.balance)}`
+                    : "—",
+                },
+                {
+                  label: t("customers.optInEmail"),
+                  value: customer.marketing_opt_in_email
+                    ? t("common.yes")
+                    : t("common.no"),
                 },
               ]}
             />
@@ -109,32 +129,36 @@ export default function CustomerDetailPage() {
             ) : null}
           </DetailSection>
 
-          <DetailSection title="Ledger" description="Sales, payments, and adjustments.">
+          <DetailSection title={t("customers.ledger")}>
             <div className="overflow-auto">
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-border text-muted">
-                    <th className="py-2 pr-2">Date</th>
-                    <th className="py-2 pr-2">Ref</th>
-                    <th className="py-2 pr-2">Description</th>
-                    <th className="py-2 pr-2 text-right">Debit</th>
-                    <th className="py-2 text-right">Credit</th>
+                    <th className="py-2 pr-2">{t("common.date")}</th>
+                    <th className="py-2 pr-2">{t("customers.ref")}</th>
+                    <th className="py-2 pr-2">{t("customers.description")}</th>
+                    <th className="py-2 pr-2 text-right">{t("customers.debit")}</th>
+                    <th className="py-2 text-right">{t("customers.credit")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {ledger.map((e, i) => (
                     <tr key={`${e.reference}-${i}`} className="border-b border-border/50">
-                      <td className="py-2 pr-2 whitespace-nowrap">{e.date}</td>
+                      <td className="whitespace-nowrap py-2 pr-2">{e.date}</td>
                       <td className="py-2 pr-2 font-mono text-xs">{e.reference}</td>
                       <td className="py-2 pr-2">{e.description}</td>
-                      <td className="py-2 pr-2 text-right tabular-nums">{formatDecimal(e.debit)}</td>
-                      <td className="py-2 text-right tabular-nums">{formatDecimal(e.credit)}</td>
+                      <td className="py-2 pr-2 text-right tabular-nums">
+                        {formatDecimal(e.debit)}
+                      </td>
+                      <td className="py-2 text-right tabular-nums">
+                        {formatDecimal(e.credit)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
               {ledger.length === 0 ? (
-                <p className="py-4 text-sm text-body">No ledger entries yet.</p>
+                <p className="py-4 text-sm text-body">{t("customers.noLedgerBody")}</p>
               ) : null}
             </div>
           </DetailSection>

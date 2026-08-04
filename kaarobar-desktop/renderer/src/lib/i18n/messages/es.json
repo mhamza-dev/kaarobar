@@ -311,7 +311,28 @@
     "qtyReceived": "Cant. recibida",
     "noOpenPos": "No hay órdenes de compra abiertas para recibir.",
     "poNoSupplierProducts": "Este proveedor no tiene productos vinculados. Vincúlelos primero en el detalle del proveedor.",
-    "supplierProductsHint": "Solo se pueden pedir productos vinculados a este proveedor."
+    "supplierProductsHint": "Solo se pueden pedir productos vinculados a este proveedor.",
+    "backToProducts": "Volver a productos",
+    "productEyebrow": "Producto",
+    "catalogSection": "Catálogo",
+    "brand": "Marca",
+    "category": "Categoría",
+    "kind": "Tipo",
+    "taxRate": "Tasa de impuesto",
+    "stock": "Stock disponible",
+    "trackInventory": "Controlar inventario",
+    "durationMinutes": "Duración (minutos)",
+    "productSuppliers": "Proveedores",
+    "primary": "Principal",
+    "code": "Código",
+    "detachSupplier": "Desvincular",
+    "detachSupplierConfirm": "¿Desvincular este proveedor del producto?",
+    "supplierAttached": "Proveedor vinculado",
+    "supplierDetached": "Proveedor desvinculado",
+    "noProductSuppliers": "Sin proveedores vinculados",
+    "noProductSuppliersBody": "Vincule un proveedor para poder pedir este producto en órdenes de compra.",
+    "attachSupplierDesc": "Vincular un proveedor existente a este producto.",
+    "allSuppliersLinked": "Todos los proveedores ya están vinculados."
   },
   "pos": {
     "tillOpen": "Hasta que se abra",
@@ -589,7 +610,9 @@
     "ref": "Ref.",
     "description": "Descripción",
     "debit": "Débito",
-    "credit": "Crédito"
+    "credit": "Crédito",
+    "portalAccount": "Cuenta del portal",
+    "portalManagedHint": "Este comprador se registró en el portal: nombre, correo, teléfono y foto los gestiona él. Aún puede ajustar crédito y lealtad desde la lista de clientes."
   },
   "marketing": {
     "eyebrow": "Marketing",

@@ -518,7 +518,28 @@
     "qtyReceived": "Qty received",
     "noOpenPos": "No open purchase orders to receive.",
     "poNoSupplierProducts": "This supplier has no linked products. Attach products on the supplier page first.",
-    "supplierProductsHint": "Only products linked to this supplier can be ordered."
+    "supplierProductsHint": "Only products linked to this supplier can be ordered.",
+    "backToProducts": "Zurück zu Produkten",
+    "productEyebrow": "Produkt",
+    "catalogSection": "Katalog",
+    "brand": "Marke",
+    "category": "Kategorie",
+    "kind": "Art",
+    "taxRate": "Steuersatz",
+    "stock": "Bestand",
+    "trackInventory": "Bestand verfolgen",
+    "durationMinutes": "Dauer (Minuten)",
+    "productSuppliers": "Lieferanten",
+    "primary": "Primär",
+    "code": "Code",
+    "detachSupplier": "Trennen",
+    "detachSupplierConfirm": "Diesen Lieferanten vom Produkt trennen?",
+    "supplierAttached": "Lieferant verknüpft",
+    "supplierDetached": "Lieferant getrennt",
+    "noProductSuppliers": "Keine Lieferanten verknüpft",
+    "noProductSuppliersBody": "Verknüpfen Sie einen Lieferanten, damit dieses Produkt bestellt werden kann.",
+    "attachSupplierDesc": "Einen vorhandenen Lieferanten mit diesem Produkt verknüpfen.",
+    "allSuppliersLinked": "Alle Lieferanten sind bereits verknüpft."
   },
   "pos": {
     "tillOpen": "Bis geöffnet",
@@ -852,7 +873,9 @@
     "ref": "Ref.",
     "description": "Beschreibung",
     "debit": "Soll",
-    "credit": "Haben"
+    "credit": "Haben",
+    "portalAccount": "Portal-Konto",
+    "portalManagedHint": "Dieser Kunde hat sich im Portal registriert — Name, E-Mail, Telefon und Foto verwaltet er selbst. Kredit und Treue können Sie weiterhin in der Kundenliste anpassen."
   },
   "marketing": {
     "eyebrow": "Marketing",

@@ -10,6 +10,8 @@ import Button from "@/components/ui/Button";
 import SaleReceiptModal, { type ReceiptSale } from "@/components/app/SaleReceiptModal";
 import BuyerOrderDetail from "@/components/buyer/BuyerOrderDetail";
 import { BuyerOrderDetailSkeleton } from "@/components/buyer/BuyerSkeletons";
+import { useT } from "@/lib/i18n";
+import { paymentMethodLabel } from "@/lib/paymentLabels";
 
 type Sale = ReceiptSale & {
   status: string;
@@ -36,6 +38,7 @@ export default function SaleDetailPage() {
 
 function StaffSaleDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const t = useT();
   const [sale, setSale] = useState<Sale | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -156,7 +159,9 @@ function StaffSaleDetailPage() {
                     key={`${p.method}-${idx}`}
                     className="flex justify-between rounded-md border border-border px-3 py-2"
                   >
-                    <span className="capitalize text-heading">{p.method}</span>
+                    <span className="text-heading">
+                      {paymentMethodLabel(p.method, t)}
+                    </span>
                     <span className="font-semibold">Rs {p.amount}</span>
                   </li>
                 ))}

@@ -311,7 +311,28 @@
     "qtyReceived": "Qty received",
     "noOpenPos": "No open purchase orders to receive.",
     "poNoSupplierProducts": "This supplier has no linked products. Attach products on the supplier detail page first.",
-    "supplierProductsHint": "Only products linked to this supplier can be ordered."
+    "supplierProductsHint": "Only products linked to this supplier can be ordered.",
+    "backToProducts": "Back to products",
+    "productEyebrow": "Product",
+    "catalogSection": "Catalog",
+    "brand": "Brand",
+    "category": "Category",
+    "kind": "Kind",
+    "taxRate": "Tax rate",
+    "stock": "Stock on hand",
+    "trackInventory": "Track inventory",
+    "durationMinutes": "Duration (minutes)",
+    "productSuppliers": "Suppliers",
+    "primary": "Primary",
+    "code": "Code",
+    "detachSupplier": "Detach",
+    "detachSupplierConfirm": "Detach this supplier from the product?",
+    "supplierAttached": "Supplier attached",
+    "supplierDetached": "Supplier detached",
+    "noProductSuppliers": "No suppliers linked",
+    "noProductSuppliersBody": "Attach a supplier so this product can be ordered on purchase orders.",
+    "attachSupplierDesc": "Link an existing supplier to this product.",
+    "allSuppliersLinked": "All suppliers are already linked."
   },
   "pos": {
     "tillOpen": "Till opened",
@@ -589,7 +610,9 @@
     "ref": "Ref",
     "description": "Description",
     "debit": "Debit",
-    "credit": "Credit"
+    "credit": "Credit",
+    "portalAccount": "Portal account",
+    "portalManagedHint": "This shopper signed up on the portal — name, email, phone, and photo are managed by them. You can still adjust credit and loyalty from the customers list."
   },
   "marketing": {
     "eyebrow": "Marketing",

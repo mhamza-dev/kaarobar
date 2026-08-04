@@ -518,7 +518,28 @@
     "qtyReceived": "Qty received",
     "noOpenPos": "No open purchase orders to receive.",
     "poNoSupplierProducts": "This supplier has no linked products. Attach products on the supplier page first.",
-    "supplierProductsHint": "Only products linked to this supplier can be ordered."
+    "supplierProductsHint": "Only products linked to this supplier can be ordered.",
+    "backToProducts": "Retour aux produits",
+    "productEyebrow": "Produit",
+    "catalogSection": "Catalogue",
+    "brand": "Marque",
+    "category": "Catégorie",
+    "kind": "Type",
+    "taxRate": "Taux de taxe",
+    "stock": "Stock disponible",
+    "trackInventory": "Suivre le stock",
+    "durationMinutes": "Durée (minutes)",
+    "productSuppliers": "Fournisseurs",
+    "primary": "Principal",
+    "code": "Code",
+    "detachSupplier": "Détacher",
+    "detachSupplierConfirm": "Détacher ce fournisseur du produit ?",
+    "supplierAttached": "Fournisseur lié",
+    "supplierDetached": "Fournisseur détaché",
+    "noProductSuppliers": "Aucun fournisseur lié",
+    "noProductSuppliersBody": "Liez un fournisseur pour commander ce produit.",
+    "attachSupplierDesc": "Lier un fournisseur existant à ce produit.",
+    "allSuppliersLinked": "Tous les fournisseurs sont déjà liés."
   },
   "pos": {
     "tillOpen": "Jusqu'à ouverture",
@@ -852,7 +873,9 @@
     "ref": "Réf",
     "description": "Description",
     "debit": "Débit",
-    "credit": "Crédit"
+    "credit": "Crédit",
+    "portalAccount": "Compte portail",
+    "portalManagedHint": "Ce client s’est inscrit sur le portail — nom, e-mail, téléphone et photo sont gérés par lui. Vous pouvez toujours ajuster le crédit et la fidélité depuis la liste clients."
   },
   "marketing": {
     "eyebrow": "Commercialisation",

@@ -9,6 +9,7 @@ import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { crmKeys } from "@/lib/queryClient";
+import { campaignAudienceLabel } from "@/lib/paymentLabels";
 
 type Campaign = {
   id: string;
@@ -177,7 +178,7 @@ export default function CampaignDetailPage() {
             <DetailFieldGrid
               fields={[
                 { label: t("marketing.channel"), value: campaign.channel || "email" },
-                { label: t("marketing.audience"), value: campaign.audience },
+                { label: t("marketing.audience"), value: campaignAudienceLabel(campaign.audience, t) },
                 {
                   label: t("marketing.sentAt"),
                   value: campaign.sent_at ? String(campaign.sent_at).slice(0, 16) : "—",
