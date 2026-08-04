@@ -10,6 +10,8 @@ export type SearchMultiSelectProps = {
   options: SearchSelectOption[];
   value: string[];
   onChange: (next: string[]) => void;
+  /** Seed labels for values not yet present in `options` (edit forms). */
+  selectedOptions?: SearchSelectOption[];
   label?: string;
   placeholder?: string;
   searchPlaceholder?: string;
@@ -22,6 +24,7 @@ export default function SearchMultiSelect({
   options,
   value,
   onChange,
+  selectedOptions,
   label,
   placeholder,
   searchPlaceholder,
@@ -42,15 +45,38 @@ export default function SearchMultiSelect({
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState<Coords | null>(null);
   const [query, setQuery] = useState("");
+  const [cache, setCache] = useState<Record<string, SearchSelectOption>>({});
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const selectedOpts = useMemo(
-    () => options.filter((o) => value.includes(o.value)),
-    [options, value]
-  );
+  useEffect(() => {
+    setCache((prev) => {
+      const next = { ...prev };
+      for (const o of options) {
+        if (value.includes(o.value)) next[o.value] = o;
+      }
+      for (const o of selectedOptions || []) {
+        if (value.includes(o.value) && !next[o.value]) next[o.value] = o;
+      }
+      for (const key of Object.keys(next)) {
+        if (!value.includes(key)) delete next[key];
+      }
+      return next;
+    });
+  }, [options, value, selectedOptions]);
+
+  const selectedOpts = useMemo(() => {
+    return value.map((v) => {
+      const fromOpts = options.find((o) => o.value === v);
+      if (fromOpts) return fromOpts;
+      if (cache[v]) return cache[v];
+      const seed = selectedOptions?.find((o) => o.value === v);
+      if (seed) return seed;
+      return { value: v, label: v };
+    });
+  }, [options, value, cache, selectedOptions]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

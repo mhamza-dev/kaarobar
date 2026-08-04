@@ -9,13 +9,20 @@ import { canAccessBundle } from "@/lib/rbac";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
-import Select from "@/components/ui/Select";
 import {
-  Field,
   PageHeader,
   SurfaceCard,
-  fieldClass,
 } from "@/components/app/ui";
+import CustomForm from "@/components/ui/CustomForm";
+import {
+  FormikSelectField,
+  FormikTextField,
+} from "@/components/ui/FormFields";
+import {
+  businessFormSchema,
+  emptyBusinessForm,
+  type BusinessFormValues,
+} from "@/lib/validations/businesses";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { detailRoutes, routes } from "@/lib/navigation";
@@ -59,7 +66,7 @@ export default function BusinessesPage() {
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [modal, setModal] = useState(false);
-  const [form, setForm] = useState({ name: "", industry: "general" });
+  const [formInitial, setFormInitial] = useState(() => emptyBusinessForm());
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -77,20 +84,19 @@ export default function BusinessesPage() {
     if (isOwner) void load();
   }, [isOwner, load]);
 
-  async function createBusiness(e: React.FormEvent) {
-    e.preventDefault();
+  async function createBusiness(values: BusinessFormValues) {
     setBusy(true);
     try {
       const res = await api<{ data: Business }>("/businesses", {
         method: "POST",
         body: JSON.stringify({
-          name: form.name.trim(),
-          industry: form.industry || "general",
+          name: values.name.trim(),
+          industry: values.industry || "general",
         }),
       });
       toast.success(t("businesses.created"));
       setModal(false);
-      setForm({ name: "", industry: "general" });
+      setFormInitial(emptyBusinessForm());
       await load();
       if (res.data?.id) router.push(detailRoutes.business(res.data.id));
     } catch (err) {
@@ -125,7 +131,10 @@ export default function BusinessesPage() {
         infoKey="page.businesses"
         action={{
           label: t("businesses.new"),
-          onClick: () => setModal(true),
+          onClick: () => {
+            setFormInitial(emptyBusinessForm());
+            setModal(true);
+          },
           icon: <Building2 className="h-4 w-4" />,
         }}
         secondaryAction={{
@@ -211,26 +220,27 @@ export default function BusinessesPage() {
           </Button>
         }
       >
-        <form id="create-business-form" onSubmit={createBusiness} className="grid gap-3">
-          <Field label={t("businesses.name")}>
-            <input
-              className={fieldClass}
-              required
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-            />
-          </Field>
-          <Field label={t("businesses.industry")}>
-            <Select
-              value={form.industry}
-              onChange={(v) => setForm({ ...form, industry: v })}
-              options={INDUSTRIES.map((ind) => ({
-                value: ind,
-                label: t(`businesses.industries.${ind}`),
-              }))}
-            />
-          </Field>
-        </form>
+        <CustomForm
+          id="create-business-form"
+          className="grid gap-3"
+          initialValues={formInitial}
+          validationSchema={businessFormSchema}
+          onSubmit={createBusiness}
+        >
+          {() => (
+            <>
+              <FormikTextField name="name" label={t("businesses.name")} required />
+              <FormikSelectField
+                name="industry"
+                label={t("businesses.industry")}
+                options={INDUSTRIES.map((ind) => ({
+                  value: ind,
+                  label: t(`businesses.industries.${ind}`),
+                }))}
+              />
+            </>
+          )}
+        </CustomForm>
       </Modal>
     </div>
   );

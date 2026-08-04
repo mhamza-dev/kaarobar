@@ -8,7 +8,6 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import {
@@ -21,16 +20,19 @@ import {
 } from "../lib/api";
 import { t } from "../lib/i18n";
 import KaarobarLogo from "../components/KaarobarLogo";
+import CustomForm from "../components/ui/CustomForm";
+import { FormikTextField } from "../components/ui/FormFields";
+import {
+  consumerLoginSchema,
+  type ConsumerLoginValues,
+} from "../lib/validations/auth";
 
 /** Consumer marketplace sign-in (`customer_accounts`). */
 export default function LoginScreen() {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const palette = useBrandPalette();
   const styles = useMemo(() => createStyles(palette), [palette]);
-  const [email, setEmail] = useState("ayesha.customer@kaarobar-demo.pk");
-  const [password, setPassword] = useState("Password@123");
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (consumeSessionTimedOut()) {
@@ -38,8 +40,7 @@ export default function LoginScreen() {
     }
   }, []);
 
-  async function onSubmit() {
-    setBusy(true);
+  async function onSubmit(values: ConsumerLoginValues) {
     setError(null);
     try {
       const result = await api<{
@@ -52,8 +53,8 @@ export default function LoginScreen() {
           method: "POST",
           body: JSON.stringify({
             actor: "consumer",
-            email: email.trim(),
-            password,
+            email: values.email.trim(),
+            password: values.password,
           }),
         },
         null
@@ -75,8 +76,6 @@ export default function LoginScreen() {
       replacePath(navigation, "/app/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : t("common.error"));
-    } finally {
-      setBusy(false);
     }
   }
 
@@ -97,38 +96,48 @@ export default function LoginScreen() {
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <Text style={styles.label}>{t("auth.email")}</Text>
-        <TextInput
-          autoCapitalize="none"
-          keyboardType="email-address"
-          value={email}
-          onChangeText={setEmail}
-          style={styles.input}
-          placeholder="you@email.com"
-          placeholderTextColor={colors.muted}
-        />
-
-        <Text style={styles.label}>{t("auth.password")}</Text>
-        <TextInput
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-          style={styles.input}
-          placeholder="••••••••"
-          placeholderTextColor={colors.muted}
-        />
-
-        <Pressable
-          style={({ pressed }) => [styles.primary, pressed && styles.primaryPressed]}
-          onPress={onSubmit}
-          disabled={busy}
+        <CustomForm
+          initialValues={{
+            email: "ayesha.customer@kaarobar-demo.pk",
+            password: "Password@123",
+          }}
+          validationSchema={consumerLoginSchema}
+          onSubmit={onSubmit}
         >
-          {busy ? (
-            <ActivityIndicator color={colors.white} />
-          ) : (
-            <Text style={styles.primaryText}>{t("common.signIn")}</Text>
+          {({ handleSubmit, isSubmitting }) => (
+            <View>
+              <FormikTextField
+                name="email"
+                label={t("auth.email")}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                placeholder="you@email.com"
+                style={{ marginBottom: 10 }}
+              />
+              <FormikTextField
+                name="password"
+                label={t("auth.password")}
+                secureTextEntry
+                placeholder="••••••••"
+                style={{ marginBottom: 10 }}
+              />
+              <Pressable
+                style={({ pressed }) => [
+                  styles.primary,
+                  pressed && styles.primaryPressed,
+                ]}
+                onPress={() => handleSubmit()}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator color={colors.white} />
+                ) : (
+                  <Text style={styles.primaryText}>{t("common.signIn")}</Text>
+                )}
+              </Pressable>
+            </View>
           )}
-        </Pressable>
+        </CustomForm>
 
         <Pressable onPress={() => pushPath(navigation, "/landing")}>
           <Text style={styles.linkMuted}>{t("common.back")}</Text>
@@ -169,22 +178,6 @@ function createStyles(palette: import("../lib/brandTheme").BrandPalette) {
       padding: 10,
       borderRadius: colors.radiusLg,
       marginBottom: 12,
-    },
-    label: {
-      fontSize: 13,
-      fontWeight: "600",
-      color: colors.heading,
-      marginBottom: 6,
-    },
-    input: {
-      borderWidth: 1,
-      borderColor: colors.glassBorder,
-      backgroundColor: "rgba(255,255,255,0.9)",
-      borderRadius: colors.radiusLg,
-      paddingHorizontal: 14,
-      paddingVertical: 12,
-      marginBottom: 14,
-      color: colors.heading,
     },
     primary: {
       backgroundColor: palette.brand,

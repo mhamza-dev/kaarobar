@@ -159,6 +159,15 @@ defmodule KaarobarWeb.V1.SaleController do
     }
   end
 
+  defp error_reason({:payment_mismatch, expected, paid}),
+    do: "payment_mismatch:#{expected}:#{paid}"
+
+  defp error_reason({:coupon_invalid, reason}) when is_atom(reason),
+    do: "coupon_invalid:#{reason}"
+
+  defp error_reason({:coupon_invalid, reason}),
+    do: "coupon_invalid:#{inspect(reason)}"
+
   defp error_reason(reason) when is_atom(reason), do: Atom.to_string(reason)
   defp error_reason(reason), do: inspect(reason)
 end

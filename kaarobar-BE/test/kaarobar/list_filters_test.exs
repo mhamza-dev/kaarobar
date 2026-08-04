@@ -159,23 +159,27 @@ defmodule Kaarobar.ListFiltersTest do
     coffee: coffee,
     other: other
   } do
-    by_q = Catalog.list_products(biz_a.id, owner_a.id, q: "Green")
+    by_q = Catalog.list_products(biz_a.id, owner_a.id, q: "Green").data
     assert Enum.map(by_q, & &1.id) == [tea.id]
 
-    active_only = Catalog.list_products(biz_a.id, owner_a.id, active: true)
+    active_only = Catalog.list_products(biz_a.id, owner_a.id, active: true).data
     assert Enum.any?(active_only, &(&1.id == tea.id))
     refute Enum.any?(active_only, &(&1.id == coffee.id))
 
-    inactive_only = Catalog.list_products(biz_a.id, owner_a.id, active: false)
+    inactive_only = Catalog.list_products(biz_a.id, owner_a.id, active: false).data
     assert Enum.map(inactive_only, & &1.id) == [coffee.id]
 
-    by_cat = Catalog.list_products(biz_a.id, owner_a.id, category_id: cat.id)
+    by_cat = Catalog.list_products(biz_a.id, owner_a.id, category_id: cat.id).data
     assert Enum.map(by_cat, & &1.id) == [tea.id]
 
     # SEC-NFR-001: other tenant's matching name must not leak
-    a_names = Catalog.list_products(biz_a.id, owner_a.id, q: "Green") |> Enum.map(& &1.name)
+    a_names = Catalog.list_products(biz_a.id, owner_a.id, q: "Green").data |> Enum.map(& &1.name)
     refute other.name in a_names
-    refute Enum.any?(Catalog.list_products(biz_b.id, owner_b.id), &(&1.id == tea.id))
+
+    refute Enum.any?(
+             Catalog.list_products(biz_b.id, owner_b.id).data,
+             &(&1.id == tea.id)
+           )
   end
 
   test "customers filter by q and khata — tenant scoped", %{
@@ -232,7 +236,7 @@ defmodule Kaarobar.ListFiltersTest do
     biz_a: biz_a,
     tea: tea
   } do
-    [only] = Inventory.list_products(biz_a.id, owner_a.id, q: tea.sku)
+    [only] = Inventory.list_products(biz_a.id, owner_a.id, q: tea.sku).data
     assert only.id == tea.id
   end
 end

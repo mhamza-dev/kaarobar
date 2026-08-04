@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { PackagePlus, Plus } from "lucide-react";
-import { api } from "@/lib/api/client";
+import { api, apiAllPages } from "@/lib/api/client";
 import { routes } from "@/lib/navigation";
 import { DetailFieldGrid, DetailSection, DetailShell } from "@/components/app/DetailShell";
 import { StatusBadge } from "@/components/app/ui";
@@ -84,8 +84,8 @@ export default function SupplierDetailPage() {
     setAttachProductId(null);
     setAttachOpen(true);
     try {
-      const res = await api<{ data: Product[] }>("/products");
-      setAllProducts(res.data || []);
+      const data = await apiAllPages<Product>("/products");
+      setAllProducts(data);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.error"));
     }

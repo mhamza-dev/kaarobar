@@ -477,7 +477,10 @@ const catalog: HelpCatalog = {
       "Ingrese el código en POS antes de realizar el pago.",
     ],
     when: "Para campañas de descuentos y ofertas de socios.",
-    tips: ["Establezca límites de uso para que los códigos no se canjeen en exceso."],
+    tips: [
+      "Establezca límites de uso para que los códigos no se canjeen en exceso.",
+      "Deje Válido desde/hasta vacío sin límite de fechas; ventanas vencidas fallan en POS.",
+    ],
   },
   "tab.marketing.tiers": {
     title: "Niveles de lealtad",

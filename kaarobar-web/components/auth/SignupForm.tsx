@@ -18,7 +18,7 @@ import OptionSelector from "@/components/ui/OptionSelector";
 import TermsModal from "@/components/modals/TermsModal";
 import PrivacyPolicyModal from "@/components/modals/PrivacyPolicyModal";
 import { authMethodOptions } from "@/components/auth/auth-method-options";
-import { signupSchema } from "@/lib/validations/auth";
+import { buyerSignupSchema, signupSchema } from "@/lib/validations/auth";
 import {
   api,
   hydrateSessionContext,
@@ -26,7 +26,6 @@ import {
   type AuthActor,
   type StoredSession,
 } from "@/lib/api/client";
-import * as Yup from "yup";
 
 interface SignupFormValues {
   signupMethod: "email" | "phone";
@@ -42,23 +41,6 @@ interface SignupFormValues {
 type SignupFormProps = {
   actor: AuthActor;
 };
-
-const buyerSignupSchema = Yup.object({
-  signupMethod: Yup.string().oneOf(["email", "phone"]).required(),
-  fullName: Yup.string().required("Full name is required"),
-  businessName: Yup.string().optional(),
-  email: Yup.string().when("signupMethod", {
-    is: "email",
-    then: (s) => s.email("Invalid email").required("Email is required"),
-    otherwise: (s) => s.optional(),
-  }),
-  phoneNumber: Yup.string().optional(),
-  password: Yup.string().min(8, "Min 8 characters").required("Password is required"),
-  confirmPassword: Yup.string()
-    .oneOf([Yup.ref("password")], "Passwords must match")
-    .required("Confirm password"),
-  acceptTerms: Yup.boolean().oneOf([true], "Accept terms to continue"),
-});
 
 const SignupForm = ({ actor }: SignupFormProps): React.ReactElement => {
   const router = useRouter();

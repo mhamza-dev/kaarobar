@@ -1,0 +1,19 @@
+---
+description: Always build forms with Formik + Yup schema validation (all Kaarobar clients)
+alwaysApply: true
+---
+
+# Formik + Yup forms (required)
+
+When adding or materially editing a **form** in any client (`kaarobar-web`, `kaarobar-desktop`, `kaarobar-mobile`, `kaarobar-customer`):
+
+1. Use the app-local **`CustomForm`** (Formik wrapper) — do not introduce new `useState` bags for submit payloads.
+2. Define a **Yup** `validationSchema` under that app’s `lib/validations/` (or equivalent). Prefer typed `ObjectSchema` when practical.
+3. Wire fields with Formik (`useField` / app `FormFields` / Formik-aware `Input`). For selects use Select / SearchSelect adapters so edit mode keeps labels (see `selectedLabel` / label cache).
+4. Date / datetime fields use the app-local **`DateTimePicker`** (not raw `type="date"` / `datetime-local"`) unless the surface is a filter range (`DateRangeFields`).
+5. Pass **`enableReinitialize`** (CustomForm defaults to `true`) for create/edit modals keyed by entity.
+6. **No shared npm form package** — mirror `CustomForm`, `FormFields`, `DateTimePicker`, and Yup schemas across apps when the same form exists.
+7. Buyer/consumer forms follow the same rules as staff forms.
+
+Do not ship new controlled-only forms that bypass Formik/Yup.
+---

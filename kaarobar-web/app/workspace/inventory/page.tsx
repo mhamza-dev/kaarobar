@@ -12,15 +12,13 @@ import {
   SlidersHorizontal,
   Truck,
 } from "lucide-react";
-import { api, getSession } from "@/lib/api/client";
+import { api, apiAllPages, getSession } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
 import {
-  Field,
   SurfaceCard,
-  fieldClass,
 } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
@@ -33,12 +31,34 @@ import {
   type StaffListFilterState,
 } from "@/lib/listFilters";
 import { formatLocalDateTime } from "@/lib/datetime";
-import SearchSelect from "@/components/ui/SearchSelect";
-import SearchMultiSelect from "@/components/ui/SearchMultiSelect";
-import Select from "@/components/ui/Select";
 import { inventoryKeys } from "@/lib/queryClient";
 import ProductFormModal from "@/components/inventory/ProductFormModal";
 import SupplierFormModal from "@/components/inventory/SupplierFormModal";
+import {
+  AdjustStockFormFields,
+  AttachSupplierFormFields,
+  GrnFormFields,
+  PurchaseOrderFormFields,
+  TransferFormFields,
+  emptyAdjustStockForm,
+  emptyAttachSupplierForm,
+  emptyGrnForm,
+  emptyPurchaseOrderForm,
+  emptyTransferForm,
+} from "@/components/inventory/InventoryModalForms";
+import CustomForm from "@/components/ui/CustomForm";
+import {
+  adjustStockFormSchema,
+  attachSupplierFormSchema,
+  grnFormSchema,
+  purchaseOrderFormSchema,
+  transferFormSchema,
+  type AdjustStockFormValues,
+  type AttachSupplierFormValues,
+  type GrnFormValues,
+  type PurchaseOrderFormValues,
+  type TransferFormValues,
+} from "@/lib/validations/inventory";
 import WorkspacePageScaffold from "@/components/app/WorkspacePageScaffold";
 import DateAndTime from "@/components/app/DateAndTime";
 
@@ -113,42 +133,6 @@ type Supplier = {
   tags?: string[];
 };
 
-const emptySupplierForm = {
-  name: "",
-  legal_name: "",
-  code: "",
-  tax_id: "",
-  strn: "",
-  website: "",
-  industry: "",
-  status: "active",
-  notes: "",
-  is_preferred: false,
-  rating: "",
-  contact_name: "",
-  contact_role: "",
-  contact_email: "",
-  contact_phone: "",
-  contact_mobile: "",
-  contact_whatsapp: "",
-  contact_cnic: "",
-  address_line1: "",
-  address_line2: "",
-  city: "",
-  province: "",
-  postal_code: "",
-  country: "PK",
-  payment_terms: "Net 30",
-  payment_method: "bank_transfer",
-  bank_name: "",
-  bank_iban: "",
-  bank_account_title: "",
-  credit_limit: "",
-  currency: "PKR",
-  lead_time_days: "",
-  minimum_order_amount: "",
-  tags: "",
-};
 type PO = {
   id: string;
   status: string;
@@ -193,7 +177,7 @@ function InventoryPageInner() {
   });
   const [modal, setModal] = useState<ModalKind>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [editingSupplierId, setEditingSupplierId] = useState<string | null>(null);
+  const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [busy, setBusy] = useState(false);
 
   const [productFilters, setProductFilters] = useState<StaffListFilterState>(
@@ -201,45 +185,18 @@ function InventoryPageInner() {
   );
   const [stockFilters, setStockFilters] = useState(emptyStaffListFilters);
   const [transferFilters, setTransferFilters] = useState(emptyStaffListFilters);
-  const [supplierForm, setSupplierForm] = useState(emptySupplierForm);
-  const [poForm, setPoForm] = useState<{
-    supplier_id: string;
-    product_ids: string[];
-    quantities: Record<string, string>;
-    unit_costs: Record<string, string>;
-  }>({
-    supplier_id: "",
-    product_ids: [],
-    quantities: {},
-    unit_costs: {},
-  });
+  const [poInitial, setPoInitial] = useState(() => emptyPurchaseOrderForm());
   const [attachSupplierProductId, setAttachSupplierProductId] = useState<
     string | null
   >(null);
-  const [attachSupplierId, setAttachSupplierId] = useState<string | null>(null);
-  const [grnForm, setGrnForm] = useState<{
-    purchase_order_id: string;
-    quantities: Record<string, string>;
-  }>({
-    purchase_order_id: "",
-    quantities: {},
-  });
+  const [attachSupplierInitial, setAttachSupplierInitial] = useState(() =>
+    emptyAttachSupplierForm()
+  );
+  const [grnInitial, setGrnInitial] = useState(() => emptyGrnForm());
   const [poSupplierProducts, setPoSupplierProducts] = useState<Product[]>([]);
   const [poSupplierProductsLoading, setPoSupplierProductsLoading] = useState(false);
-  const [transferForm, setTransferForm] = useState<{
-    to_branch_id: string;
-    product_ids: string[];
-    quantities: Record<string, string>;
-  }>({
-    to_branch_id: "",
-    product_ids: [],
-    quantities: {},
-  });
-  const [adjustForm, setAdjustForm] = useState({
-    product_id: "",
-    quantity_delta: "",
-    reason_code: "adjustment",
-  });
+  const [transferInitial, setTransferInitial] = useState(() => emptyTransferForm());
+  const [adjustInitial, setAdjustInitial] = useState(() => emptyAdjustStockForm());
 
   const needProducts =
     tab === "products" || tab === "pos" || tab === "transfers" || tab === "adjust";
@@ -248,20 +205,18 @@ function InventoryPageInner() {
 
   const { data: products = [], isLoading: productsLoading } = useQuery({
     queryKey: inventoryKeys.products(businessId),
-    queryFn: async () => {
-      const res = await api<{ data: Product[] }>("/products");
-      return res.data || [];
-    },
+    queryFn: async () => apiAllPages<Product>("/products"),
     enabled: needProducts,
   });
 
   const { data: stock = [], isLoading: stockLoading } = useQuery({
     queryKey: inventoryKeys.stock(businessId),
     queryFn: async () => {
-      const res = await api<{ data: StockRow[] }>("/inventory").catch(() => ({
-        data: [] as StockRow[],
-      }));
-      return res.data || [];
+      try {
+        return await apiAllPages<StockRow>("/inventory");
+      } catch {
+        return [] as StockRow[];
+      }
     },
     enabled: tab === "stock",
   });
@@ -269,10 +224,11 @@ function InventoryPageInner() {
   const { data: suppliers = [], isLoading: suppliersLoading } = useQuery({
     queryKey: inventoryKeys.suppliers(businessId),
     queryFn: async () => {
-      const res = await api<{ data: Supplier[] }>("/suppliers").catch(() => ({
-        data: [] as Supplier[],
-      }));
-      return res.data || [];
+      try {
+        return await apiAllPages<Supplier>("/suppliers");
+      } catch {
+        return [] as Supplier[];
+      }
     },
     enabled: needSuppliers,
   });
@@ -371,148 +327,30 @@ function InventoryPageInner() {
   }
 
   function openNewSupplier() {
-    setEditingSupplierId(null);
-    setSupplierForm(emptySupplierForm);
+    setEditingSupplier(null);
     setModal("supplier");
   }
 
   function openEditSupplier(s: Supplier) {
-    setEditingSupplierId(s.id);
-    setSupplierForm({
-      name: s.name || "",
-      legal_name: s.legal_name || "",
-      code: s.code || "",
-      tax_id: s.tax_id || "",
-      strn: s.strn || "",
-      website: s.website || "",
-      industry: s.industry || "",
-      status: s.status || "active",
-      notes: s.notes || "",
-      is_preferred: Boolean(s.is_preferred),
-      rating: s.rating != null ? String(s.rating) : "",
-      contact_name: s.contact_name || "",
-      contact_role: s.contact_role || "",
-      contact_email: s.contact_email || "",
-      contact_phone: s.contact_phone || "",
-      contact_mobile: s.contact_mobile || "",
-      contact_whatsapp: s.contact_whatsapp || "",
-      contact_cnic: s.contact_cnic || "",
-      address_line1: s.address_line1 || "",
-      address_line2: s.address_line2 || "",
-      city: s.city || "",
-      province: s.province || "",
-      postal_code: s.postal_code || "",
-      country: s.country || "PK",
-      payment_terms: s.payment_terms || "Net 30",
-      payment_method: s.payment_method || "bank_transfer",
-      bank_name: s.bank_name || "",
-      bank_iban: s.bank_iban || "",
-      bank_account_title: s.bank_account_title || "",
-      credit_limit: s.credit_limit || "",
-      currency: s.currency || "PKR",
-      lead_time_days: s.lead_time_days != null ? String(s.lead_time_days) : "",
-      minimum_order_amount: s.minimum_order_amount || "",
-      tags: (s.tags || []).join(", "),
-    });
+    setEditingSupplier(s);
     setModal("supplier");
   }
 
   function closeSupplierModal() {
     setModal(null);
-    setEditingSupplierId(null);
-    setSupplierForm(emptySupplierForm);
+    setEditingSupplier(null);
   }
 
-  function supplierPayload() {
-    const splitList = (v: string) =>
-      v
-        .split(/[,;\n]/)
-        .map((x) => x.trim())
-        .filter(Boolean);
-
-    return {
-      name: supplierForm.name.trim(),
-      legal_name: supplierForm.legal_name.trim() || null,
-      code: supplierForm.code.trim() || null,
-      tax_id: supplierForm.tax_id.trim() || null,
-      strn: supplierForm.strn.trim() || null,
-      website: supplierForm.website.trim() || null,
-      industry: supplierForm.industry.trim() || null,
-      status: supplierForm.status,
-      notes: supplierForm.notes.trim() || null,
-      is_preferred: supplierForm.is_preferred,
-      rating: supplierForm.rating ? Number(supplierForm.rating) : null,
-      contact_name: supplierForm.contact_name.trim() || null,
-      contact_role: supplierForm.contact_role.trim() || null,
-      contact_email: supplierForm.contact_email.trim() || null,
-      contact_phone: supplierForm.contact_phone.trim() || null,
-      contact_mobile: supplierForm.contact_mobile.trim() || null,
-      contact_whatsapp: supplierForm.contact_whatsapp.trim() || null,
-      contact_cnic: supplierForm.contact_cnic.trim() || null,
-      address_line1: supplierForm.address_line1.trim() || null,
-      address_line2: supplierForm.address_line2.trim() || null,
-      city: supplierForm.city.trim() || null,
-      province: supplierForm.province.trim() || null,
-      postal_code: supplierForm.postal_code.trim() || null,
-      country: supplierForm.country.trim() || "PK",
-      payment_terms: supplierForm.payment_terms.trim() || null,
-      payment_method: supplierForm.payment_method || null,
-      bank_name: supplierForm.bank_name.trim() || null,
-      bank_iban: supplierForm.bank_iban.trim() || null,
-      bank_account_title: supplierForm.bank_account_title.trim() || null,
-      credit_limit: supplierForm.credit_limit.trim() || null,
-      currency: supplierForm.currency.trim() || "PKR",
-      lead_time_days: supplierForm.lead_time_days
-        ? Number(supplierForm.lead_time_days)
-        : null,
-      minimum_order_amount: supplierForm.minimum_order_amount.trim() || null,
-      tags: splitList(supplierForm.tags),
-      contact: {
-        phone: supplierForm.contact_phone.trim() || null,
-        email: supplierForm.contact_email.trim() || null,
-      },
-    };
-  }
-
-  async function saveSupplier(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    try {
-      const body = supplierPayload();
-      if (editingSupplierId) {
-        await api(`/suppliers/${editingSupplierId}`, {
-          method: "PATCH",
-          body: JSON.stringify(body),
-        });
-        toast.success(t("inventory.supplierUpdated"));
-      } else {
-        await api("/suppliers", {
-          method: "POST",
-          body: JSON.stringify(body),
-        });
-        toast.success(t("inventory.supplierAdded"));
-      }
-      closeSupplierModal();
-      setTab("suppliers");
-      await refreshInventory();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("inventory.supplierFailed"));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function createPO(e: React.FormEvent) {
-    e.preventDefault();
+  async function createPO(form: PurchaseOrderFormValues) {
     const session = getSession();
-    const items = poForm.product_ids
+    const items = form.product_ids
       .map((product_id) => ({
         product_id,
-        quantity: poForm.quantities[product_id] || "1",
-        unit_cost: poForm.unit_costs[product_id] || "0",
+        quantity: form.quantities[product_id] || "1",
+        unit_cost: form.unit_costs[product_id] || "0",
       }))
       .filter((i) => Number(i.quantity) > 0);
-    if (!poForm.supplier_id || items.length === 0) {
+    if (!form.supplier_id || items.length === 0) {
       toast.error(t("inventory.poFailed"));
       return;
     }
@@ -522,17 +360,12 @@ function InventoryPageInner() {
         method: "POST",
         body: JSON.stringify({
           branch_id: session?.branch_id,
-          supplier_id: poForm.supplier_id,
+          supplier_id: form.supplier_id,
           items,
         }),
       });
       setModal(null);
-      setPoForm({
-        supplier_id: "",
-        product_ids: [],
-        quantities: {},
-        unit_costs: {},
-      });
+      setPoInitial(emptyPurchaseOrderForm());
       toast.success(t("inventory.poCreated"));
       setTab("pos");
       await refreshInventory();
@@ -543,18 +376,17 @@ function InventoryPageInner() {
     }
   }
 
-  async function attachSupplier(e: React.FormEvent) {
-    e.preventDefault();
-    if (!attachSupplierProductId || !attachSupplierId) return;
+  async function attachSupplier(form: AttachSupplierFormValues) {
+    if (!attachSupplierProductId || !form.supplier_id) return;
     setBusy(true);
     try {
       await api(`/products/${attachSupplierProductId}/suppliers`, {
         method: "POST",
-        body: JSON.stringify({ supplier_id: attachSupplierId }),
+        body: JSON.stringify({ supplier_id: form.supplier_id }),
       });
       toast.success(t("table.attachSupplier"));
       setAttachSupplierProductId(null);
-      setAttachSupplierId(null);
+      setAttachSupplierInitial(emptyAttachSupplierForm());
       await refreshInventory();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.error"));
@@ -563,17 +395,16 @@ function InventoryPageInner() {
     }
   }
 
-  async function receiveGRN(e: React.FormEvent) {
-    e.preventDefault();
+  async function receiveGRN(form: GrnFormValues) {
     const session = getSession();
-    const po = pos.find((p) => p.id === grnForm.purchase_order_id);
+    const po = pos.find((p) => p.id === form.purchase_order_id);
     const items = (po?.items || [])
       .map((item) => ({
         product_id: item.product_id,
-        quantity_received: grnForm.quantities[item.product_id] || "0",
+        quantity_received: form.quantities[item.product_id] || "0",
       }))
       .filter((i) => Number(i.quantity_received) > 0);
-    if (!grnForm.purchase_order_id || items.length === 0) {
+    if (!form.purchase_order_id || items.length === 0) {
       toast.error(t("inventory.grnFailed"));
       return;
     }
@@ -583,12 +414,12 @@ function InventoryPageInner() {
         method: "POST",
         body: JSON.stringify({
           branch_id: session?.branch_id,
-          purchase_order_id: grnForm.purchase_order_id,
+          purchase_order_id: form.purchase_order_id,
           items,
         }),
       });
       toast.success(t("inventory.grnReceived"));
-      setGrnForm({ purchase_order_id: "", quantities: {} });
+      setGrnInitial(emptyGrnForm());
       setModal(null);
       await refreshInventory();
     } catch (err) {
@@ -604,20 +435,11 @@ function InventoryPageInner() {
     for (const item of po?.items || []) {
       quantities[item.product_id] = item.quantity || "0";
     }
-    setGrnForm({
+    setGrnInitial({
       purchase_order_id: poId || "",
       quantities,
     });
     setModal("grn");
-  }
-
-  function selectPoForGrn(poId: string) {
-    const po = pos.find((p) => p.id === poId);
-    const quantities: Record<string, string> = {};
-    for (const item of po?.items || []) {
-      quantities[item.product_id] = item.quantity || "0";
-    }
-    setGrnForm({ purchase_order_id: poId, quantities });
   }
 
   async function loadPoSupplierProducts(supplierId: string) {
@@ -637,20 +459,19 @@ function InventoryPageInner() {
     }
   }
 
-  async function createTransfer(e: React.FormEvent) {
-    e.preventDefault();
+  async function createTransfer(form: TransferFormValues) {
     const session = getSession();
-    if (!transferForm.to_branch_id) {
+    if (!form.to_branch_id) {
       toast.error(t("inventory.selectToBranch"));
       return;
     }
-    if (transferForm.product_ids.length === 0) {
+    if (form.product_ids.length === 0) {
       toast.error(t("inventory.selectProducts"));
       return;
     }
-    const items = transferForm.product_ids.map((product_id) => ({
+    const items = form.product_ids.map((product_id) => ({
       product_id,
-      quantity: transferForm.quantities[product_id] || "1",
+      quantity: form.quantities[product_id] || "1",
     }));
     setBusy(true);
     try {
@@ -658,13 +479,13 @@ function InventoryPageInner() {
         method: "POST",
         body: JSON.stringify({
           from_branch_id: session?.branch_id,
-          to_branch_id: transferForm.to_branch_id,
+          to_branch_id: form.to_branch_id,
           items,
         }),
       });
       toast.success(t("inventory.transferCreated"));
       setModal(null);
-      setTransferForm({ to_branch_id: "", product_ids: [], quantities: {} });
+      setTransferInitial(emptyTransferForm());
       await refreshInventory();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("inventory.transferFailed"));
@@ -683,9 +504,8 @@ function InventoryPageInner() {
     }
   }
 
-  async function adjustStock(e: React.FormEvent) {
-    e.preventDefault();
-    if (!adjustForm.product_id) {
+  async function adjustStock(form: AdjustStockFormValues) {
+    if (!form.product_id) {
       toast.error(t("inventory.selectProduct"));
       return;
     }
@@ -695,11 +515,11 @@ function InventoryPageInner() {
         method: "POST",
         body: JSON.stringify({
           branch_id: session?.branch_id,
-          ...adjustForm,
+          ...form,
         }),
       });
       toast.success(t("inventory.stockAdjusted"));
-      setAdjustForm({ product_id: "", quantity_delta: "", reason_code: "adjustment" });
+      setAdjustInitial(emptyAdjustStockForm());
       await refreshInventory();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("inventory.adjustFailed"));
@@ -732,12 +552,7 @@ function InventoryPageInner() {
           ? {
               label: t("inventory.newPo"),
               onClick: () => {
-                setPoForm({
-                  supplier_id: "",
-                  product_ids: [],
-                  quantities: {},
-                  unit_costs: {},
-                });
+                setPoInitial(emptyPurchaseOrderForm());
                 setPoSupplierProducts([]);
                 setModal("po");
               },
@@ -747,11 +562,7 @@ function InventoryPageInner() {
             ? {
                 label: t("inventory.createTransfer"),
                 onClick: () => {
-                  setTransferForm({
-                    to_branch_id: "",
-                    product_ids: [],
-                    quantities: {},
-                  });
+                  setTransferInitial(emptyTransferForm());
                   setModal("transfer");
                 },
                 icon: <ArrowLeftRight className="h-4 w-4" />,
@@ -799,11 +610,6 @@ function InventoryPageInner() {
   const openPos = useMemo(
     () => pos.filter((p) => p.status !== "received" && p.status !== "cancelled"),
     [pos]
-  );
-
-  const selectedGrnPo = useMemo(
-    () => pos.find((p) => p.id === grnForm.purchase_order_id) || null,
-    [pos, grnForm.purchase_order_id]
   );
 
   return (
@@ -1013,7 +819,7 @@ function InventoryPageInner() {
                         label: t("table.attachSupplier"),
                         onClick: () => {
                           setAttachSupplierProductId(p.id);
-                          setAttachSupplierId(null);
+                          setAttachSupplierInitial(emptyAttachSupplierForm());
                         },
                       },
                     ]}
@@ -1338,42 +1144,21 @@ function InventoryPageInner() {
 
       {tab === "adjust" ? (
         <SurfaceCard className="max-w-xl p-5">
-          <form onSubmit={adjustStock} className="space-y-3">
-            <SearchSelect
-              label={t("inventory.product")}
-              options={productOptions}
-              value={adjustForm.product_id || null}
-              onChange={(product_id) =>
-                setAdjustForm((f) => ({ ...f, product_id: product_id || "" }))
-              }
-              placeholder={t("inventory.selectProduct")}
-              searchPlaceholder={t("searchSelect.search")}
-            />
-            <input
-              className={fieldClass}
-              placeholder="Qty delta (e.g. -2 or 5)"
-              value={adjustForm.quantity_delta}
-              onChange={(e) =>
-                setAdjustForm({ ...adjustForm, quantity_delta: e.target.value })
-              }
-              required
-            />
-            <Select
-              value={adjustForm.reason_code}
-              onChange={(v) => setAdjustForm({ ...adjustForm, reason_code: v })}
-              options={[
-                "adjustment",
-                "damage",
-                "theft",
-                "count_correction",
-                "expired",
-                "sample",
-              ].map((r) => ({ value: r, label: r }))}
-            />
-            <Button type="submit" startIcon={<SlidersHorizontal className="h-4 w-4" />}>
-              Apply adjustment
-            </Button>
-          </form>
+          <CustomForm
+            className="space-y-3"
+            initialValues={adjustInitial}
+            validationSchema={adjustStockFormSchema}
+            onSubmit={adjustStock}
+          >
+            {() => (
+              <>
+                <AdjustStockFormFields productOptions={productOptions} t={t} />
+                <Button type="submit" startIcon={<SlidersHorizontal className="h-4 w-4" />}>
+                  Apply adjustment
+                </Button>
+              </>
+            )}
+          </CustomForm>
         </SurfaceCard>
       ) : null}
 
@@ -1389,12 +1174,12 @@ function InventoryPageInner() {
 
       <SupplierFormModal
         isOpen={modal === "supplier"}
-        editingSupplierId={editingSupplierId}
-        supplierForm={supplierForm}
-        setSupplierForm={setSupplierForm}
-        busy={busy}
         onClose={closeSupplierModal}
-        onSubmit={saveSupplier}
+        supplier={editingSupplier}
+        onSuccess={async () => {
+          setTab("suppliers");
+          await refreshInventory();
+        }}
       />
 
       <Modal
@@ -1414,115 +1199,31 @@ function InventoryPageInner() {
           </div>
         }
       >
-        <form id="po-modal-form" onSubmit={createPO} className="space-y-5">
-          <SearchSelect
-            label={t("inventory.supplier")}
-            options={supplierOptions}
-            value={poForm.supplier_id || null}
-            onChange={(supplier_id) => {
-              const sid = supplier_id || "";
-              setPoForm({
-                supplier_id: sid,
-                product_ids: [],
-                quantities: {},
-                unit_costs: {},
-              });
-              void loadPoSupplierProducts(sid);
-            }}
-            placeholder={t("inventory.selectSupplier")}
-            searchPlaceholder={t("searchSelect.search")}
-          />
-          <SearchMultiSelect
-            label={t("inventory.products")}
-            options={poProductOptions}
-            value={poForm.product_ids}
-            onChange={(product_ids) =>
-              setPoForm((f) => ({
-                ...f,
-                product_ids,
-                quantities: Object.fromEntries(
-                  product_ids.map((id) => [id, f.quantities[id] || "10"])
-                ),
-                unit_costs: Object.fromEntries(
-                  product_ids.map((id) => [id, f.unit_costs[id] || "50"])
-                ),
-              }))
-            }
-            placeholder={t("pos.searchProducts")}
-            searchPlaceholder={t("searchSelect.search")}
-            disabled={!poForm.supplier_id || poSupplierProductsLoading}
-          />
-          {poForm.supplier_id && !poSupplierProductsLoading && poProductOptions.length === 0 ? (
-            <p className="text-sm text-body">{t("inventory.poNoSupplierProducts")}</p>
-          ) : null}
-          {poForm.supplier_id && poProductOptions.length > 0 ? (
-            <p className="text-sm text-muted">{t("inventory.supplierProductsHint")}</p>
-          ) : null}
-          {poForm.product_ids.length > 0 ? (
-            <div className="space-y-3 rounded-md border border-border p-3">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-muted">
-                {t("inventory.quantities")}
-              </p>
-              {poForm.product_ids.map((id) => {
-                const p = poSupplierProducts.find((x) => x.id === id);
-                return (
-                  <div key={id} className="grid gap-2 sm:grid-cols-[1fr_6rem_6rem]">
-                    <p className="text-sm font-medium text-heading">
-                      {p?.name || id}
-                    </p>
-                    <Field label={t("common.quantity")}>
-                      <input
-                        className={fieldClass}
-                        value={poForm.quantities[id] || ""}
-                        onChange={(e) =>
-                          setPoForm((f) => ({
-                            ...f,
-                            quantities: {
-                              ...f.quantities,
-                              [id]: e.target.value,
-                            },
-                          }))
-                        }
-                      />
-                    </Field>
-                    <Field label={t("inventory.unitCost")}>
-                      <input
-                        className={fieldClass}
-                        type="number"
-                        step="0.01"
-                        value={poForm.unit_costs[id] || ""}
-                        onChange={(e) =>
-                          setPoForm((f) => ({
-                            ...f,
-                            unit_costs: {
-                              ...f.unit_costs,
-                              [id]: e.target.value,
-                            },
-                          }))
-                        }
-                        onBlur={(e) => {
-                          if (e.target.value.trim() === "") return;
-                          const v = formatDecimal(e.target.value);
-                          setPoForm((f) => ({
-                            ...f,
-                            unit_costs: { ...f.unit_costs, [id]: v },
-                          }));
-                        }}
-                      />
-                    </Field>
-                  </div>
-                );
-              })}
-            </div>
-          ) : null}
-        </form>
+        <CustomForm
+          id="po-modal-form"
+          className="space-y-5"
+          initialValues={poInitial}
+          validationSchema={purchaseOrderFormSchema}
+          onSubmit={createPO}
+        >
+          {() => (
+            <PurchaseOrderFormFields
+              supplierOptions={supplierOptions}
+              productOptions={poProductOptions}
+              products={poSupplierProducts}
+              productsLoading={poSupplierProductsLoading}
+              onSupplierChange={(sid) => void loadPoSupplierProducts(sid)}
+              t={t}
+            />
+          )}
+        </CustomForm>
       </Modal>
 
       <Modal
         isOpen={modal === "grn"}
         onClose={() => {
           setModal(null);
-          setGrnForm({ purchase_order_id: "", quantities: {} });
+          setGrnInitial(emptyGrnForm());
         }}
         title={t("inventory.receiveGrnTitle")}
         description={t("inventory.receiveGrnDesc")}
@@ -1533,7 +1234,7 @@ function InventoryPageInner() {
               variant="outline"
               onClick={() => {
                 setModal(null);
-                setGrnForm({ purchase_order_id: "", quantities: {} });
+                setGrnInitial(emptyGrnForm());
               }}
             >
               {t("common.cancel")}
@@ -1542,7 +1243,6 @@ function InventoryPageInner() {
               type="submit"
               form="grn-modal-form"
               loading={busy}
-              disabled={!grnForm.purchase_order_id}
               startIcon={<Check className="h-4 w-4" />}
             >
               {t("inventory.receiveGrn")}
@@ -1550,79 +1250,24 @@ function InventoryPageInner() {
           </div>
         }
       >
-        <form id="grn-modal-form" onSubmit={receiveGRN} className="space-y-5">
-          <SearchSelect
-            label={t("inventory.selectPo")}
-            options={openPos.map((p) => ({
-              value: p.id,
-              label: `${p.supplier_name || p.id.slice(0, 8)} · ${p.status}`,
-            }))}
-            value={grnForm.purchase_order_id || null}
-            onChange={(poId) => {
-              if (poId) selectPoForGrn(poId);
-              else setGrnForm({ purchase_order_id: "", quantities: {} });
-            }}
-            placeholder={t("inventory.selectPo")}
-            searchPlaceholder={t("searchSelect.search")}
-          />
-          {openPos.length === 0 ? (
-            <p className="text-sm text-body">{t("inventory.noOpenPos")}</p>
-          ) : null}
-          {selectedGrnPo ? (
-            <div className="space-y-3 rounded-md border border-border p-3">
-              {(selectedGrnPo.items || []).map((item) => (
-                <div
-                  key={item.product_id}
-                  className="grid gap-2 sm:grid-cols-[1fr_6rem_6rem] sm:items-end"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-heading">
-                      {item.product_name ||
-                        products.find((p) => p.id === item.product_id)?.name ||
-                        item.product_id}
-                    </p>
-                    <p className="text-xs text-muted">
-                      {item.product_sku ||
-                        products.find((p) => p.id === item.product_id)?.sku ||
-                        "—"}{" "}
-                      · {t("inventory.orderedQty")}: {item.quantity}
-                    </p>
-                  </div>
-                  <Field label={t("inventory.orderedQty")}>
-                    <input
-                      className={fieldClass}
-                      value={item.quantity}
-                      disabled
-                      readOnly
-                    />
-                  </Field>
-                  <Field label={t("inventory.qtyReceived")}>
-                    <input
-                      className={fieldClass}
-                      value={grnForm.quantities[item.product_id] || ""}
-                      onChange={(e) =>
-                        setGrnForm((f) => ({
-                          ...f,
-                          quantities: {
-                            ...f.quantities,
-                            [item.product_id]: e.target.value,
-                          },
-                        }))
-                      }
-                    />
-                  </Field>
-                </div>
-              ))}
-            </div>
-          ) : null}
-        </form>
+        <CustomForm
+          id="grn-modal-form"
+          className="space-y-5"
+          initialValues={grnInitial}
+          validationSchema={grnFormSchema}
+          onSubmit={receiveGRN}
+        >
+          {() => (
+            <GrnFormFields openPos={openPos} products={products} t={t} />
+          )}
+        </CustomForm>
       </Modal>
 
       <Modal
         isOpen={!!attachSupplierProductId}
         onClose={() => {
           setAttachSupplierProductId(null);
-          setAttachSupplierId(null);
+          setAttachSupplierInitial(emptyAttachSupplierForm());
         }}
         title={t("table.attachSupplier")}
         description={t("table.suppliersAttached")}
@@ -1633,7 +1278,7 @@ function InventoryPageInner() {
               type="button"
               onClick={() => {
                 setAttachSupplierProductId(null);
-                setAttachSupplierId(null);
+                setAttachSupplierInitial(emptyAttachSupplierForm());
               }}
             >
               {t("common.cancel")}
@@ -1644,16 +1289,17 @@ function InventoryPageInner() {
           </div>
         }
       >
-        <form id="attach-supplier-form" onSubmit={attachSupplier} className="space-y-4">
-          <SearchSelect
-            label={t("inventory.supplier")}
-            options={supplierOptions}
-            value={attachSupplierId}
-            onChange={setAttachSupplierId}
-            placeholder={t("inventory.selectSupplier")}
-            searchPlaceholder={t("searchSelect.search")}
-          />
-        </form>
+        <CustomForm
+          id="attach-supplier-form"
+          className="space-y-4"
+          initialValues={attachSupplierInitial}
+          validationSchema={attachSupplierFormSchema}
+          onSubmit={attachSupplier}
+        >
+          {() => (
+            <AttachSupplierFormFields supplierOptions={supplierOptions} t={t} />
+          )}
+        </CustomForm>
       </Modal>
 
       <Modal
@@ -1673,70 +1319,22 @@ function InventoryPageInner() {
           </div>
         }
       >
-        <form id="transfer-modal-form" onSubmit={createTransfer} className="space-y-5">
-          <SearchSelect
-            label={t("inventory.toBranch")}
-            options={branchOptions}
-            value={transferForm.to_branch_id || null}
-            onChange={(to_branch_id) =>
-              setTransferForm((f) => ({ ...f, to_branch_id: to_branch_id || "" }))
-            }
-            placeholder={t("inventory.selectToBranch")}
-            searchPlaceholder={t("searchSelect.search")}
-          />
-          <SearchMultiSelect
-            label={t("inventory.products")}
-            options={productOptions}
-            value={transferForm.product_ids}
-            onChange={(product_ids) =>
-              setTransferForm((f) => {
-                const quantities = Object.fromEntries(
-                  product_ids.map((id) => [id, f.quantities[id] || "1"])
-                );
-                for (const id of product_ids) {
-                  if (!quantities[id]) quantities[id] = "1";
-                }
-                return { ...f, product_ids, quantities };
-              })
-            }
-            placeholder={t("inventory.selectProducts")}
-            searchPlaceholder={t("searchSelect.search")}
-          />
-          {transferForm.product_ids.length > 0 ? (
-            <div className="space-y-3 rounded-md border border-border p-3">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-muted">
-                {t("inventory.quantities")}
-              </p>
-              {transferForm.product_ids.map((id) => {
-                const meta = transferProductMetaById.get(id);
-                const displayName = meta?.name || `${id.slice(0, 8)}...`;
-                const displaySku = meta?.sku || null;
-                return (
-                  <div key={id} className="grid gap-2 sm:grid-cols-[1fr_7rem] sm:items-end">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-heading">{displayName}</p>
-                      <p className="truncate text-xs text-muted">{displaySku || id}</p>
-                    </div>
-                    <input
-                      type="number"
-                      min="0.001"
-                      step="any"
-                      className={fieldClass}
-                      value={transferForm.quantities[id] || "1"}
-                      onChange={(e) =>
-                        setTransferForm((f) => ({
-                          ...f,
-                          quantities: { ...f.quantities, [id]: e.target.value },
-                        }))
-                      }
-                      required
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          ) : null}
-        </form>
+        <CustomForm
+          id="transfer-modal-form"
+          className="space-y-5"
+          initialValues={transferInitial}
+          validationSchema={transferFormSchema}
+          onSubmit={createTransfer}
+        >
+          {() => (
+            <TransferFormFields
+              branchOptions={branchOptions}
+              productOptions={productOptions}
+              productMetaById={transferProductMetaById}
+              t={t}
+            />
+          )}
+        </CustomForm>
       </Modal>
     </WorkspacePageScaffold>
   );

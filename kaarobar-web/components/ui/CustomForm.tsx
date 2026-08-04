@@ -17,6 +17,10 @@ interface FormProps<T extends FormikValues> extends Omit<
   onSubmit: (values: T, helpers: FormikHelpers<T>) => void | Promise<void>;
   children: (formik: FormikProps<T>) => React.ReactNode;
   className?: string;
+  /** Passed to the underlying HTML form (for footer submit buttons). */
+  id?: string;
+  /** Defaults to true so edit forms refresh when the entity changes. */
+  enableReinitialize?: boolean;
 }
 
 const CustomForm = <T extends FormikValues>({
@@ -24,11 +28,22 @@ const CustomForm = <T extends FormikValues>({
   onSubmit,
   children,
   className,
+  id,
+  enableReinitialize = true,
   ...props
 }: FormProps<T>) => {
   return (
-    <Formik<T> initialValues={initialValues} onSubmit={onSubmit} {...props}>
-      {(formik) => <Form className={className}>{children(formik)}</Form>}
+    <Formik<T>
+      initialValues={initialValues}
+      onSubmit={onSubmit}
+      enableReinitialize={enableReinitialize}
+      {...props}
+    >
+      {(formik) => (
+        <Form id={id} className={className}>
+          {children(formik)}
+        </Form>
+      )}
     </Formik>
   );
 };

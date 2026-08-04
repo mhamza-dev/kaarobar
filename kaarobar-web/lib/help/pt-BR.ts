@@ -477,7 +477,10 @@ const catalog: HelpCatalog = {
       "Digite o código em POS antes de finalizar a compra.",
     ],
     when: "Para campanhas de descontos e ofertas de parceiros.",
-    tips: ["Defina limites de uso para que os códigos não sejam resgatados em excesso."],
+    tips: [
+      "Defina limites de uso para que os códigos não sejam resgatados em excesso.",
+      "Deixe Válido de/até em branco sem limite de datas; janelas expiradas falham no POS.",
+    ],
   },
   "tab.marketing.tiers": {
     title: "Níveis de fidelidade",

@@ -90,12 +90,15 @@ defmodule Kaarobar.Catalog do
   end
 
   def list_products(business_id, owner_id, opts \\ []) do
+    alias KaarobarWeb.Controllers.Helpers.ListFilters
+
     q_term = blank_to_nil(opts[:q])
     active = opts[:active]
     category_ids = List.wrap(opts[:category_ids]) |> Enum.reject(&is_nil/1)
     category_id = blank_to_nil(opts[:category_id])
     category = blank_to_nil(opts[:category])
     product_kind = blank_to_nil(opts[:product_kind])
+    lean? = opts[:lean] != false
 
     category_ids =
       if is_binary(category_id), do: Enum.uniq([category_id | category_ids]), else: category_ids
@@ -145,15 +148,22 @@ defmodule Kaarobar.Catalog do
           q
         end
       end)
-      |> preload([
-        :images,
-        :variants,
-        :product_category,
-        product_modifier_groups: [modifier_group: :modifiers]
-      ])
+      |> then(fn q ->
+        if lean? do
+          preload(q, [:images, :product_category])
+        else
+          preload(q, [
+            :images,
+            :variants,
+            :product_category,
+            product_modifier_groups: [modifier_group: :modifiers]
+          ])
+        end
+      end)
       |> order_by([p], asc: p.name)
 
-    Repo.all(query)
+    result = ListFilters.paginate(query, opts)
+    %{data: result.data, meta: result.meta}
   end
 
   def get_product(product_id, business_id, owner_id) do

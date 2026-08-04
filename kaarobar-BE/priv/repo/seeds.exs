@@ -209,12 +209,53 @@ bulk_insert! = fn schema_mod, attrs_list, opts ->
         row_from_changeset!.(cs, extras)
       end)
 
-    rows
-    |> Enum.chunk_every(chunk_size)
-    |> Enum.each(fn chunk -> Repo.insert_all(schema_mod, chunk) end)
+    multi =
+      rows
+      |> Enum.chunk_every(chunk_size)
+      |> Enum.with_index()
+      |> Enum.reduce(Ecto.Multi.new(), fn {chunk, i}, multi ->
+        Ecto.Multi.insert_all(multi, {:bulk_insert, schema_mod, i}, schema_mod, chunk)
+      end)
+
+    case Repo.transaction(multi) do
+      {:ok, _} -> :ok
+      {:error, op, reason, _} ->
+        raise("bulk_insert! failed at #{inspect(op)}: #{inspect(reason)}")
+    end
 
     Enum.map(rows, &struct(schema_mod, &1))
   end
+end
+
+# Same map pipeline as bulk_insert!, exposed for Multi.merge of parent→child phases.
+bulk_rows! = fn schema_mod, attrs_list, opts ->
+  attrs_list = Enum.reject(List.wrap(attrs_list), &is_nil/1)
+
+  if attrs_list == [] do
+    []
+  else
+    cs_fun =
+      Keyword.get(opts, :changeset) || fn data, attrs -> schema_mod.changeset(data, attrs) end
+
+    extras_fun = Keyword.get(opts, :extras) || fn _attrs -> %{} end
+
+    Enum.map(attrs_list, fn attrs ->
+      attrs = Map.new(attrs)
+      extras = extras_fun.(attrs) |> Map.new()
+      cast_attrs = Map.drop(attrs, Map.keys(extras))
+      cs = cs_fun.(struct(schema_mod), cast_attrs)
+      row_from_changeset!.(cs, extras)
+    end)
+  end
+end
+
+append_insert_all = fn multi, name, schema_mod, rows, chunk_size ->
+  rows
+  |> Enum.chunk_every(chunk_size)
+  |> Enum.with_index()
+  |> Enum.reduce(multi, fn {chunk, i}, multi ->
+    Ecto.Multi.insert_all(multi, {name, i}, schema_mod, chunk)
+  end)
 end
 
 # —— Stock imagery (absolute URLs stored as storage/profile keys) ———
@@ -1993,31 +2034,50 @@ seed_scenario_pack = fn owner, business, branches, products, employees, cashier 
     supplier_pool = Enum.take(suppliers, min(4, length(suppliers)))
     supplier_count = length(supplier_pool)
 
-    Enum.with_index(link_pool, fn p, idx ->
-      primary = Enum.at(supplier_pool, rem(idx, supplier_count))
+    existing_pairs =
+      from(ps in ProductSupplier,
+        where: ps.business_id == ^business.id,
+        select: {ps.product_id, ps.supplier_id}
+      )
+      |> Repo.all()
+      |> MapSet.new()
 
-      _ =
-        case Inventory.attach_product_supplier(p.id, primary.id, business.id, owner.id, %{
-               is_primary: true
-             }) do
-          {:ok, _} -> :ok
-          {:error, _} -> :ok
-        end
+    link_attrs =
+      link_pool
+      |> Enum.with_index()
+      |> Enum.flat_map(fn {p, idx} ->
+        primary = Enum.at(supplier_pool, rem(idx, supplier_count))
 
-      if supplier_count >= 2 do
-        alternate = Enum.at(supplier_pool, rem(idx + 1, supplier_count))
+        pairs =
+          [{primary, true}] ++
+            if supplier_count >= 2 do
+              alternate = Enum.at(supplier_pool, rem(idx + 1, supplier_count))
 
-        if alternate.id != primary.id do
-          _ =
-            case Inventory.attach_product_supplier(p.id, alternate.id, business.id, owner.id, %{
-                   is_primary: false
-                 }) do
-              {:ok, _} -> :ok
-              {:error, _} -> :ok
+              if alternate.id != primary.id do
+                [{alternate, false}]
+              else
+                []
+              end
+            else
+              []
             end
-        end
-      end
-    end)
+
+        Enum.map(pairs, fn {sup, primary?} ->
+          %{
+            product_id: p.id,
+            supplier_id: sup.id,
+            business_id: business.id,
+            owner_id: owner.id,
+            is_primary: primary?
+          }
+        end)
+      end)
+      |> Enum.reject(fn attrs ->
+        MapSet.member?(existing_pairs, {attrs.product_id, attrs.supplier_id})
+      end)
+      |> Enum.uniq_by(fn attrs -> {attrs.product_id, attrs.supplier_id} end)
+
+    _ = bulk_insert!.(ProductSupplier, link_attrs, [])
   end
 
   # 1) Low / zero stock on a couple of tracked goods
@@ -2848,18 +2908,61 @@ seed_crm_and_finance = fn owner, business, branches, products ->
   silver = Enum.find(tiers, &(&1.name == "Silver"))
   bronze = Enum.find(tiers, &(&1.name == "Bronze"))
 
-  Enum.each(customers, fn c ->
-    tier =
-      cond do
-        (c.loyalty_points || 0) >= 800 -> gold
-        (c.loyalty_points || 0) >= 200 -> silver
-        true -> bronze
+  multi =
+    Ecto.Multi.new()
+    |> then(fn multi ->
+      if gold do
+        Ecto.Multi.update_all(
+          multi,
+          :tier_gold,
+          from(c in Customer,
+            where:
+              c.business_id == ^business.id and c.owner_id == ^owner.id and
+                coalesce(c.loyalty_points, 0) >= 800 and
+                (is_nil(c.loyalty_tier_id) or c.loyalty_tier_id != ^gold.id)
+          ),
+          set: [loyalty_tier_id: gold.id, updated_at: seed_now]
+        )
+      else
+        multi
       end
+    end)
+    |> then(fn multi ->
+      if silver do
+        Ecto.Multi.update_all(
+          multi,
+          :tier_silver,
+          from(c in Customer,
+            where:
+              c.business_id == ^business.id and c.owner_id == ^owner.id and
+                coalesce(c.loyalty_points, 0) >= 200 and coalesce(c.loyalty_points, 0) < 800 and
+                (is_nil(c.loyalty_tier_id) or c.loyalty_tier_id != ^silver.id)
+          ),
+          set: [loyalty_tier_id: silver.id, updated_at: seed_now]
+        )
+      else
+        multi
+      end
+    end)
+    |> then(fn multi ->
+      if bronze do
+        Ecto.Multi.update_all(
+          multi,
+          :tier_bronze,
+          from(c in Customer,
+            where:
+              c.business_id == ^business.id and c.owner_id == ^owner.id and
+                coalesce(c.loyalty_points, 0) < 200 and
+                (is_nil(c.loyalty_tier_id) or c.loyalty_tier_id != ^bronze.id)
+          ),
+          set: [loyalty_tier_id: bronze.id, updated_at: seed_now]
+        )
+      else
+        multi
+      end
+    end)
 
-    if tier && c.loyalty_tier_id != tier.id do
-      _ = c |> Customer.changeset(%{loyalty_tier_id: tier.id}) |> Repo.update()
-    end
-  end)
+  _ = Repo.transaction(multi)
 
   segment =
     case from(s in CampaignSegment,
@@ -3171,77 +3274,126 @@ seed_crm_and_finance = fn owner, business, branches, products ->
     customers
     |> Enum.filter(fn c -> c.portal_enabled and is_binary(c.email) and c.email != "" end)
 
-  Enum.each(portal_customers, fn c ->
-    email = String.downcase(c.email)
-
-    account =
-      case Repo.get_by(CustomerAccount, email: email) do
-        %CustomerAccount{} = existing ->
-          existing
-
-        nil ->
-          {:ok, created} =
-            %CustomerAccount{}
-            |> cast(
-              %{
-                email: email,
-                name: c.name,
-                phone: c.phone,
-                status: "active",
-                email_verified: true
-              },
-              [:email, :name, :phone, :status, :email_verified]
-            )
-            |> validate_required([:email])
-            |> update_change(:email, &String.downcase/1)
-            |> unique_constraint(:email, name: :customer_accounts_email_uidx)
-            |> put_change(:password_hash, demo_password_hash)
-            |> Repo.insert()
-
-          created
+  existing_accounts =
+    portal_customers
+    |> Enum.map(&String.downcase(&1.email))
+    |> then(fn emails ->
+      if emails == [] do
+        %{}
+      else
+        from(a in CustomerAccount, where: a.email in ^emails)
+        |> Repo.all()
+        |> Map.new(&{&1.email, &1})
       end
+    end)
 
-    if is_nil(c.customer_account_id) or c.customer_account_id != account.id do
-      _ =
-        c
-        |> change(%{customer_account_id: account.id, portal_enabled: true})
-        |> Repo.update()
+  account_attrs =
+    portal_customers
+    |> Enum.map(fn c -> String.downcase(c.email) end)
+    |> Enum.uniq()
+    |> Enum.reject(&Map.has_key?(existing_accounts, &1))
+    |> Enum.map(fn email ->
+      c = Enum.find(portal_customers, &(String.downcase(&1.email) == email))
+
+      %{
+        email: email,
+        name: c.name,
+        phone: c.phone,
+        status: "active",
+        email_verified: true,
+        password_hash: demo_password_hash
+      }
+    end)
+
+  account_cs = fn data, attrs ->
+    data
+    |> cast(attrs, [:email, :name, :phone, :status, :email_verified])
+    |> validate_required([:email])
+    |> update_change(:email, &String.downcase/1)
+    |> unique_constraint(:email, name: :customer_accounts_email_uidx)
+  end
+
+  created_accounts =
+    bulk_insert!.(CustomerAccount, account_attrs,
+      changeset: account_cs,
+      extras: fn attrs -> %{password_hash: attrs.password_hash} end
+    )
+
+  accounts_by_email =
+    existing_accounts
+    |> Map.merge(Map.new(created_accounts, &{&1.email, &1}))
+
+  # Link customers → accounts in one Multi of update_alls keyed by account
+  link_multi =
+    portal_customers
+    |> Enum.group_by(fn c ->
+      acc = Map.get(accounts_by_email, String.downcase(c.email))
+      acc && acc.id
+    end)
+    |> Enum.reject(fn {account_id, _} -> is_nil(account_id) end)
+    |> Enum.reduce(Ecto.Multi.new(), fn {account_id, group}, multi ->
+      ids =
+        group
+        |> Enum.filter(fn c -> is_nil(c.customer_account_id) or c.customer_account_id != account_id end)
+        |> Enum.map(& &1.id)
+
+      if ids == [] do
+        multi
+      else
+        Ecto.Multi.update_all(
+          multi,
+          {:link_customers, account_id},
+          from(c in Customer, where: c.id in ^ids),
+          set: [
+            customer_account_id: account_id,
+            portal_enabled: true,
+            updated_at: seed_now
+          ]
+        )
+      end
+    end)
+
+  _ = Repo.transaction(link_multi)
+
+  # Consumer in-app samples (order + CRM) — account-scoped notifications
+  Enum.each(portal_customers, fn c ->
+    account = Map.get(accounts_by_email, String.downcase(c.email))
+
+    if account do
+      existing_consumer_types =
+        from(n in Notification,
+          where: n.customer_account_id == ^account.id and n.channel == "in_app",
+          select: n.type
+        )
+        |> Repo.all()
+        |> MapSet.new()
+
+      consumer_notes =
+        [
+          {"order.placed", "Order placed at #{business.name}",
+           "Your demo order was placed successfully. Track status in Orders."},
+          {"order.status_changed", "Order update · Confirmed",
+           "Your order at #{business.name} is now Confirmed."},
+          {"crm.campaign", "#{business.name} special for you",
+           "Hi #{c.name || "there"}, enjoy a limited offer from #{business.name}."}
+        ]
+        |> Enum.reject(fn {type, _, _} -> MapSet.member?(existing_consumer_types, type) end)
+        |> Enum.map(fn {type, title, body} ->
+          %{
+            customer_account_id: account.id,
+            owner_id: owner.id,
+            channel: "in_app",
+            type: type,
+            title: title,
+            body: body,
+            payload: %{business_id: business.id, business_name: business.name},
+            status: "sent",
+            sent_at: seed_now
+          }
+        end)
+
+      _ = bulk_insert!.(Notification, consumer_notes, [])
     end
-
-    # Consumer in-app samples (order + CRM) — account-scoped notifications
-    existing_consumer_types =
-      from(n in Notification,
-        where: n.customer_account_id == ^account.id and n.channel == "in_app",
-        select: n.type
-      )
-      |> Repo.all()
-      |> MapSet.new()
-
-    consumer_notes =
-      [
-        {"order.placed", "Order placed at #{business.name}",
-         "Your demo order was placed successfully. Track status in Orders."},
-        {"order.status_changed", "Order update · Confirmed",
-         "Your order at #{business.name} is now Confirmed."},
-        {"crm.campaign", "#{business.name} special for you",
-         "Hi #{c.name || "there"}, enjoy a limited offer from #{business.name}."}
-      ]
-      |> Enum.reject(fn {type, _, _} -> MapSet.member?(existing_consumer_types, type) end)
-      |> Enum.map(fn {type, title, body} ->
-        %{
-          customer_account_id: account.id,
-          owner_id: owner.id,
-          channel: "in_app",
-          type: type,
-          title: title,
-          body: body,
-          payload: %{business_id: business.id, business_name: business.name},
-          status: "sent",
-          sent_at: seed_now
-        }
-      end)
-
-    _ = bulk_insert!.(Notification, consumer_notes, [])
   end)
 
   :ok

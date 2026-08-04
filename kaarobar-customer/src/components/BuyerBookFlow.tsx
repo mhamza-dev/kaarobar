@@ -5,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { api, colors } from "../lib/api";
@@ -15,6 +14,12 @@ import { useNavigation } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
 import { pushPath } from "../lib/nav";
 import { formatDecimal } from "../lib/decimal";
+import CustomForm from "./ui/CustomForm";
+import { FormikTextField } from "./ui/FormFields";
+import {
+  appointmentNotesSchema,
+  type AppointmentNotesValues,
+} from "../lib/validations/checkout";
 
 export type BookableService = {
   id: string;
@@ -95,9 +100,7 @@ export default function BuyerBookFlow({
   const [date, setDate] = useState(addDaysIso(1));
   const [slots, setSlots] = useState<Slot[]>([]);
   const [slot, setSlot] = useState<Slot | null>(null);
-  const [notes, setNotes] = useState("");
   const [loadingSlots, setLoadingSlots] = useState(false);
-  const [booking, setBooking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const dateOptions = useMemo(
@@ -173,9 +176,8 @@ export default function BuyerBookFlow({
     setStep("confirm");
   }
 
-  async function confirmBooking() {
+  async function confirmBooking(values: AppointmentNotesValues) {
     if (!service || !slot) return;
-    setBooking(true);
     setError(null);
     try {
       await api("/portal/appointments", {
@@ -187,7 +189,7 @@ export default function BuyerBookFlow({
           staff_id: slot.staff_id,
           starts_at: slot.starts_at,
           ends_at: slot.ends_at,
-          notes: notes.trim() || undefined,
+          notes: values.notes.trim() || undefined,
         }),
       });
       toast.success(t("appointments.booked"));
@@ -196,8 +198,6 @@ export default function BuyerBookFlow({
       const msg = err instanceof Error ? err.message : t("appointments.bookFailed");
       setError(msg);
       toast.error(msg);
-    } finally {
-      setBooking(false);
     }
   }
 
@@ -407,31 +407,44 @@ export default function BuyerBookFlow({
               {" · "}
               Rs {formatPrice(service.price)}
             </Text>
-            <Text style={styles.notesLabel}>{t("appointments.notes")}</Text>
-            <TextInput
-              style={styles.notesInput}
-              value={notes}
-              onChangeText={setNotes}
-              placeholder={t("appointments.notesPlaceholder")}
-              placeholderTextColor={colors.muted}
-              multiline
-            />
+            <CustomForm
+              initialValues={{ notes: "" }}
+              validationSchema={appointmentNotesSchema}
+              onSubmit={confirmBooking}
+            >
+              {({ handleSubmit, isSubmitting }) => (
+                <View>
+                  <FormikTextField
+                    name="notes"
+                    label={t("appointments.notes")}
+                    multiline
+                    placeholder={t("appointments.notesPlaceholder")}
+                    inputStyle={styles.notesInput}
+                  />
+                  {error ? <Text style={styles.error}>{error}</Text> : null}
+                  <Pressable
+                    style={[
+                      styles.primaryBtn,
+                      {
+                        backgroundColor: accent || colors.brand,
+                        opacity: isSubmitting ? 0.6 : 1,
+                      },
+                    ]}
+                    disabled={isSubmitting}
+                    onPress={() => handleSubmit()}
+                  >
+                    {isSubmitting ? (
+                      <ActivityIndicator color={colors.white} />
+                    ) : (
+                      <Text style={styles.primaryBtnText}>
+                        {t("appointments.confirmBook")}
+                      </Text>
+                    )}
+                  </Pressable>
+                </View>
+              )}
+            </CustomForm>
           </View>
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-          <Pressable
-            style={[
-              styles.primaryBtn,
-              { backgroundColor: accent || colors.brand, opacity: booking ? 0.6 : 1 },
-            ]}
-            disabled={booking}
-            onPress={() => void confirmBooking()}
-          >
-            {booking ? (
-              <ActivityIndicator color={colors.white} />
-            ) : (
-              <Text style={styles.primaryBtnText}>{t("appointments.confirmBook")}</Text>
-            )}
-          </Pressable>
         </View>
       ) : null}
     </ScrollView>
@@ -536,12 +549,6 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   confirmTitle: { fontSize: 18, fontWeight: "800", color: colors.heading },
-  notesLabel: {
-    marginTop: 10,
-    fontSize: 13,
-    fontWeight: "700",
-    color: colors.heading,
-  },
   notesInput: {
     marginTop: 6,
     borderWidth: 1,

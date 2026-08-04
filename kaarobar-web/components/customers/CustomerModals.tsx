@@ -2,11 +2,22 @@
 
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
-import { Field, fieldClass } from "@/components/app/ui";
+import CustomForm from "@/components/ui/CustomForm";
+import {
+  FormikCheckboxField,
+  FormikTextField,
+} from "@/components/ui/FormFields";
 import { formatDecimal } from "@/lib/decimal";
 import type { Customer, CustomerForm } from "@/lib/customers";
-import { CUSTOMER_FORM_FIELDS } from "@/lib/customers";
-import type { FormEvent } from "react";
+import {
+  CUSTOMER_FORM_FIELDS,
+  customerToForm,
+  emptyCustomerForm,
+} from "@/lib/customers";
+import {
+  customerFormSchema,
+  loyaltyAdjustSchema,
+} from "@/lib/validations/customers";
 
 type Translate = (key: string, values?: Record<string, string | number>) => string;
 
@@ -14,23 +25,25 @@ type CustomerFormModalProps = {
   isOpen: boolean;
   busy: boolean;
   editing: Customer | null;
-  form: CustomerForm;
-  setForm: (next: CustomerForm) => void;
+  /** Overrides values derived from `editing` when provided. */
+  initialValues?: CustomerForm;
   t: Translate;
   onClose: () => void;
-  onSubmit: (e: FormEvent) => void;
+  onSubmit: (values: CustomerForm) => void | Promise<void>;
 };
 
 export function CustomerFormModal({
   isOpen,
   busy,
   editing,
-  form,
-  setForm,
+  initialValues,
   t,
   onClose,
   onSubmit,
 }: CustomerFormModalProps) {
+  const values =
+    initialValues ?? (editing ? customerToForm(editing) : emptyCustomerForm());
+
   return (
     <Modal
       isOpen={isOpen}
@@ -42,78 +55,87 @@ export function CustomerFormModal({
         </Button>
       }
     >
-      <form id="customer-form" onSubmit={onSubmit} className="grid gap-3 sm:grid-cols-2">
-        {CUSTOMER_FORM_FIELDS.map((f) =>
-          f.type === "checkbox" ? (
-            <label key={f.key} className="flex items-center gap-2 text-sm text-heading sm:col-span-2">
-              <input
-                type="checkbox"
-                checked={Boolean(form[f.key])}
-                onChange={(e) => setForm({ ...form, [f.key]: e.target.checked })}
-              />
-              {t(f.labelKey)}
-            </label>
-          ) : f.type === "textarea" ? (
-            <Field key={f.key} label={t(f.labelKey)}>
-              <textarea
-                className={fieldClass}
-                rows={3}
-                value={String(form[f.key] ?? "")}
-                onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
-              />
-            </Field>
-          ) : (
-            <Field key={f.key} label={t(f.labelKey)}>
-              <input
-                className={fieldClass}
-                type={f.key === "credit_limit" ? "number" : f.type || "text"}
-                step={f.key === "credit_limit" ? "0.01" : undefined}
-                required={
-                  f.required ||
-                  (f.key === "portal_password" && form.portal_enabled && !editing?.portal_enabled)
-                }
-                minLength={f.type === "password" ? 8 : undefined}
-                autoComplete={f.type === "password" ? "new-password" : undefined}
-                placeholder={
-                  f.key === "portal_password" && editing?.portal_enabled
-                    ? t("customers.portalPasswordHint")
-                    : undefined
-                }
-                value={String(form[f.key] ?? "")}
-                onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
-                onBlur={
-                  f.key === "credit_limit"
-                    ? (e) => {
-                        if (e.target.value.trim() === "") return;
-                        setForm({
-                          ...form,
-                          credit_limit: formatDecimal(e.target.value),
-                        });
-                      }
-                    : undefined
-                }
-              />
-              {f.hintKey ? <p className="mt-1 text-xs text-muted">{t(f.hintKey)}</p> : null}
-            </Field>
-          )
+      <CustomForm
+        id="customer-form"
+        className="grid gap-3 sm:grid-cols-2"
+        initialValues={values}
+        validationSchema={customerFormSchema}
+        onSubmit={async (formValues) => {
+          const next = { ...formValues };
+          if (next.credit_limit.trim()) {
+            next.credit_limit = formatDecimal(next.credit_limit);
+          }
+          await onSubmit(next);
+        }}
+      >
+        {({ values: formValues }) => (
+          <>
+            {CUSTOMER_FORM_FIELDS.map((f) => {
+              if (f.type === "checkbox") {
+                return (
+                  <FormikCheckboxField
+                    key={f.key}
+                    name={f.key}
+                    label={t(f.labelKey)}
+                    className="sm:col-span-2"
+                  />
+                );
+              }
+              if (f.type === "textarea") {
+                return (
+                  <FormikTextField
+                    key={f.key}
+                    name={f.key}
+                    label={t(f.labelKey)}
+                    type="textarea"
+                    rows={3}
+                  />
+                );
+              }
+              return (
+                <div key={f.key}>
+                  <FormikTextField
+                    name={f.key}
+                    label={t(f.labelKey)}
+                    type={f.key === "credit_limit" ? "number" : f.type || "text"}
+                    required={
+                      f.required ||
+                      (f.key === "portal_password" &&
+                        formValues.portal_enabled &&
+                        !editing?.portal_enabled)
+                    }
+                    placeholder={
+                      f.key === "portal_password" && editing?.portal_enabled
+                        ? t("customers.portalPasswordHint")
+                        : undefined
+                    }
+                  />
+                  {f.hintKey ? (
+                    <p className="mt-1 text-xs text-muted">{t(f.hintKey)}</p>
+                  ) : null}
+                </div>
+              );
+            })}
+          </>
         )}
-      </form>
+      </CustomForm>
     </Modal>
   );
 }
+
+type LoyaltyFormValues = {
+  delta: number;
+  reason: string;
+};
 
 type LoyaltyModalProps = {
   isOpen: boolean;
   busy: boolean;
   customerName: string;
   currentPoints: number;
-  loyaltyDelta: string;
-  loyaltyReason: string;
-  setLoyaltyDelta: (next: string) => void;
-  setLoyaltyReason: (next: string) => void;
   t: Translate;
   onClose: () => void;
-  onSubmit: (e: FormEvent) => void;
+  onSubmit: (values: LoyaltyFormValues) => void | Promise<void>;
 };
 
 export function LoyaltyAdjustmentModal({
@@ -121,10 +143,6 @@ export function LoyaltyAdjustmentModal({
   busy,
   customerName,
   currentPoints,
-  loyaltyDelta,
-  loyaltyReason,
-  setLoyaltyDelta,
-  setLoyaltyReason,
   t,
   onClose,
   onSubmit,
@@ -140,24 +158,28 @@ export function LoyaltyAdjustmentModal({
         </Button>
       }
     >
-      <form id="loyalty-form" onSubmit={onSubmit} className="grid gap-3">
-        <p className="text-sm text-body">{t("customers.currentPoints", { count: currentPoints })}</p>
-        <Field label={t("customers.delta")}>
-          <input
-            className={fieldClass}
-            value={loyaltyDelta}
-            onChange={(e) => setLoyaltyDelta(e.target.value)}
-            required
-          />
-        </Field>
-        <Field label={t("customers.reason")}>
-          <input
-            className={fieldClass}
-            value={loyaltyReason}
-            onChange={(e) => setLoyaltyReason(e.target.value)}
-          />
-        </Field>
-      </form>
+      <CustomForm
+        id="loyalty-form"
+        className="grid gap-3"
+        initialValues={{ delta: 10, reason: "" } satisfies LoyaltyFormValues}
+        validationSchema={loyaltyAdjustSchema}
+        onSubmit={async (values) => {
+          await onSubmit({
+            delta: Number(values.delta),
+            reason: values.reason || "",
+          });
+        }}
+      >
+        {() => (
+          <>
+            <p className="text-sm text-body">
+              {t("customers.currentPoints", { count: currentPoints })}
+            </p>
+            <FormikTextField name="delta" label={t("customers.delta")} type="number" required />
+            <FormikTextField name="reason" label={t("customers.reason")} />
+          </>
+        )}
+      </CustomForm>
     </Modal>
   );
 }

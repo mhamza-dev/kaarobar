@@ -229,6 +229,43 @@ defmodule Kaarobar.AccountingTest do
 
     aging = Accounting.ar_aging(business.id, owner.id)
     assert Enum.any?(aging, &(&1.id == inv.id and &1.bucket in ["1_30", "31_60"]))
+
+    {:ok, other_customer} =
+      %Customer{}
+      |> Customer.changeset(%{
+        name: "Other Debtor",
+        business_id: business.id,
+        owner_id: owner.id
+      })
+      |> Repo.insert()
+
+    assert {:ok, other_inv} =
+             Accounting.create_ar_invoice(business.id, owner.id, owner.id, %{
+               customer_id: other_customer.id,
+               branch_id: branch.id,
+               invoice_number: "AR-101",
+               subtotal: "50",
+               tax_amount: "0",
+               invoice_date: Date.utc_today(),
+               due_date: Date.utc_today() |> Date.add(7)
+             })
+
+    filtered =
+      Accounting.list_ar_invoices(business.id, owner.id,
+        customer_id: customer.id,
+        open_only: true
+      )
+
+    assert Enum.any?(filtered.data, &(&1.id == inv.id))
+    refute Enum.any?(filtered.data, &(&1.id == other_inv.id))
+    assert is_map(filtered.meta)
+    assert filtered.meta.limit == 25
+
+    page =
+      Accounting.list_ar_invoices(business.id, owner.id, limit: 1)
+
+    assert length(page.data) == 1
+    assert is_binary(page.meta.next_cursor)
   end
 
   test "ACC-FR-013 AP bill, payment, aging", %{

@@ -4,16 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Megaphone, UserPlus } from "lucide-react";
-import { api, isConsumerSession } from "@/lib/api/client";
+import { api, apiAllPages, isConsumerSession } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
-import {
-  EmptyState,
-  Field,
-  SurfaceCard,
-  fieldClass,
-} from "@/components/app/ui";
+import { EmptyState, SurfaceCard } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { formatDecimal } from "@/lib/decimal";
@@ -23,8 +18,6 @@ import {
   type CustomerForm,
   customerPayload,
   customerSearchText,
-  customerToForm,
-  emptyCustomerForm,
 } from "@/lib/customers";
 import {
   emptyStaffListFilters,
@@ -37,6 +30,9 @@ import {
   CustomerFormModal,
   LoyaltyAdjustmentModal,
 } from "@/components/customers/CustomerModals";
+import ReceiveArPaymentFormModal, {
+  type OpenArInvoice,
+} from "@/components/customers/ReceiveArPaymentFormModal";
 
 type LedgerEntry = {
   kind: string;
@@ -65,20 +61,17 @@ function StaffCustomersPage() {
   const [busy, setBusy] = useState(false);
   const [modal, setModal] = useState<"create" | "edit" | "loyalty" | null>(null);
   const [editing, setEditing] = useState<Customer | null>(null);
-  const [form, setForm] = useState<CustomerForm>(emptyCustomerForm());
-  const [loyaltyDelta, setLoyaltyDelta] = useState("10");
-  const [loyaltyReason, setLoyaltyReason] = useState("");
   const [ledgerCustomer, setLedgerCustomer] = useState<Customer | null>(null);
   const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([]);
   const [ledgerBalance, setLedgerBalance] = useState("0");
-  const [payAmount, setPayAmount] = useState("");
-  const [payInvoiceId, setPayInvoiceId] = useState("");
+  const [openInvoices, setOpenInvoices] = useState<OpenArInvoice[]>([]);
+  const [payOpen, setPayOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api<{ data: Customer[] }>("/customers");
-      setCustomers(res.data || []);
+      const data = await apiAllPages<Customer>("/customers");
+      setCustomers(data);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.loadFailed"));
     } finally {
@@ -105,28 +98,23 @@ function StaffCustomersPage() {
 
   function openCreate() {
     setEditing(null);
-    setForm(emptyCustomerForm());
     setModal("create");
   }
 
   function openEdit(c: Customer) {
     setEditing(c);
-    setForm(customerToForm(c));
     setModal("edit");
   }
 
   function openLoyalty(c: Customer) {
     setEditing(c);
-    setLoyaltyDelta("10");
-    setLoyaltyReason("");
     setModal("loyalty");
   }
 
-  async function saveCustomer(e: React.FormEvent) {
-    e.preventDefault();
+  async function saveCustomer(values: CustomerForm) {
     setBusy(true);
     try {
-      const body = customerPayload(form);
+      const body = customerPayload(values);
       if (editing) {
         await api(`/customers/${editing.id}`, {
           method: "PATCH",
@@ -157,16 +145,15 @@ function StaffCustomersPage() {
     }
   }
 
-  async function adjustLoyalty(e: React.FormEvent) {
-    e.preventDefault();
+  async function adjustLoyalty(values: { delta: number; reason: string }) {
     if (!editing) return;
     setBusy(true);
     try {
       await api(`/customers/${editing.id}/loyalty`, {
         method: "POST",
         body: JSON.stringify({
-          delta: Number(loyaltyDelta),
-          reason: loyaltyReason || undefined,
+          delta: values.delta,
+          reason: values.reason || undefined,
         }),
       });
       toast.success(t("common.success"));
@@ -185,43 +172,37 @@ function StaffCustomersPage() {
         api<{
           data: { balance: string; entries: LedgerEntry[]; customer: Customer };
         }>(`/customers/${c.id}/ledger`),
-        api<{
-          data: {
-            id: string;
-            customer_id?: string;
-            balance_due: string;
-            status: string;
-          }[];
-        }>("/ar/invoices").catch(() => ({ data: [] })),
+        api<{ data: OpenArInvoice[] }>(
+          `/ar/invoices?customer_id=${encodeURIComponent(c.id)}&open_only=true&limit=100`
+        ).catch(() => ({ data: [] as OpenArInvoice[] })),
       ]);
       setLedgerCustomer({ ...c, ...ledgerRes.data.customer, balance: ledgerRes.data.balance });
       setLedgerEntries(ledgerRes.data.entries || []);
       setLedgerBalance(ledgerRes.data.balance || "0");
-      const openInv = (arRes.data || []).find(
-        (inv) =>
-          inv.customer_id === c.id &&
-          Number(inv.balance_due) > 0 &&
-          (inv.status === "open" || inv.status === "partial")
-      );
-      setPayInvoiceId(openInv?.id || "");
-      setPayAmount(openInv?.balance_due || "");
+      setOpenInvoices(arRes.data || []);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.error"));
     }
   }
 
-  async function receivePayment() {
-    if (!payInvoiceId || !payAmount) {
-      toast.error(t("customers.paymentRequired"));
-      return;
-    }
+  async function handleReceivePayment(payload: {
+    invoiceId: string;
+    amount: string;
+    method: string;
+    reference: string;
+  }) {
     setBusy(true);
     try {
-      await api(`/ar/invoices/${payInvoiceId}/pay`, {
+      await api(`/ar/invoices/${payload.invoiceId}/pay`, {
         method: "POST",
-        body: JSON.stringify({ amount: payAmount }),
+        body: JSON.stringify({
+          amount: payload.amount,
+          method: payload.method,
+          reference: payload.reference || undefined,
+        }),
       });
-      toast.success(t("common.success"));
+      toast.success(t("customers.paymentReceived"));
+      setPayOpen(false);
       if (ledgerCustomer) await openLedger(ledgerCustomer);
       await load();
     } catch (err) {
@@ -386,32 +367,9 @@ function StaffCustomersPage() {
             </Button>
           </div>
           {Number(ledgerBalance) > 0 ? (
-            <div className="flex flex-wrap items-end gap-2">
-              <Field label={t("customers.invoiceId")}>
-                <input
-                  className={fieldClass}
-                  value={payInvoiceId}
-                  onChange={(e) => setPayInvoiceId(e.target.value)}
-                  placeholder={t("customers.invoicePlaceholder")}
-                />
-              </Field>
-              <Field label={t("common.amount")}>
-                <input
-                  className={fieldClass}
-                  type="number"
-                  step="0.01"
-                  value={payAmount}
-                  onChange={(e) => setPayAmount(e.target.value)}
-                  onBlur={(e) => {
-                    if (e.target.value.trim() === "") return;
-                    setPayAmount(formatDecimal(e.target.value));
-                  }}
-                />
-              </Field>
-              <Button size="sm" loading={busy} onClick={() => void receivePayment()}>
-                {t("customers.receivePayment")}
-              </Button>
-            </div>
+            <Button size="sm" onClick={() => setPayOpen(true)}>
+              {t("customers.receivePayment")}
+            </Button>
           ) : null}
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
@@ -452,8 +410,6 @@ function StaffCustomersPage() {
         isOpen={modal === "create" || modal === "edit"}
         busy={busy}
         editing={editing}
-        form={form}
-        setForm={setForm}
         t={t}
         onClose={() => setModal(null)}
         onSubmit={saveCustomer}
@@ -464,13 +420,18 @@ function StaffCustomersPage() {
         busy={busy}
         customerName={editing?.name || ""}
         currentPoints={editing?.loyalty_points ?? 0}
-        loyaltyDelta={loyaltyDelta}
-        loyaltyReason={loyaltyReason}
-        setLoyaltyDelta={setLoyaltyDelta}
-        setLoyaltyReason={setLoyaltyReason}
         t={t}
         onClose={() => setModal(null)}
         onSubmit={adjustLoyalty}
+      />
+
+      <ReceiveArPaymentFormModal
+        isOpen={payOpen}
+        busy={busy}
+        invoices={openInvoices}
+        t={t}
+        onClose={() => setPayOpen(false)}
+        onSubmit={handleReceivePayment}
       />
     </WorkspacePageScaffold>
   );

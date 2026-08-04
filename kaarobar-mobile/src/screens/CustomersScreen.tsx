@@ -9,7 +9,8 @@ import {
   StyleSheet,
   Switch,
 } from "react-native";
-import { api, colors, getSession, type Session } from "../lib/api";
+import { useField } from "formik";
+import { api, apiAllPages, colors, getSession, type Session } from "../lib/api";
 import { canAccess, canAccessRoute } from "../lib/rbac";
 import { t } from "../lib/i18n";
 import {
@@ -27,6 +28,8 @@ import { applyListingFilters } from "../lib/listingFilters";
 import { formatDecimal } from "../lib/decimal";
 import ScreenCard from "../components/screen/ScreenCard";
 import CustomerFormFields from "../features/customers/components/CustomerFormFields";
+import CustomForm from "../components/ui/CustomForm";
+import { customerFormSchema } from "../lib/validations/customers";
 
 type LedgerEntry = {
   kind: string;
@@ -37,6 +40,21 @@ type LedgerEntry = {
   credit: string;
 };
 
+function CreditEnabledSwitch({ label }: { label: string }) {
+  const [field, , helpers] = useField<boolean>("credit_enabled");
+  const palette = useBrandPalette();
+  return (
+    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+      <Text style={{ color: colors.body, fontSize: 13 }}>{label}</Text>
+      <Switch
+        value={Boolean(field.value)}
+        onValueChange={(v) => void helpers.setValue(v)}
+        trackColor={{ true: palette.brand }}
+      />
+    </View>
+  );
+}
+
 export default function CustomersScreen() {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const palette = useBrandPalette();
@@ -44,7 +62,7 @@ export default function CustomersScreen() {
   const [session, setSession] = useState<Session | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filters, setFilters] = useState(emptyStaffFilters());
-  const [form, setForm] = useState<CustomerForm>(emptyCustomerForm());
+  const [formInitial, setFormInitial] = useState<CustomerForm>(emptyCustomerForm());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [ledger, setLedger] = useState<{
@@ -59,8 +77,8 @@ export default function CustomersScreen() {
 
   const load = useCallback(async () => {
     try {
-      const res = await api<{ data: Customer[] }>("/app/customers");
-      setCustomers(res.data || []);
+      const data = await apiAllPages<Customer>("/customers");
+      setCustomers(data);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load");
@@ -87,19 +105,19 @@ export default function CustomersScreen() {
     searchText: (c) => `${c.name} ${c.phone || ""} ${c.company_name || ""}`,
   });
 
-  async function save() {
+  async function save(values: CustomerForm) {
     setBusy(true);
     setMessage(null);
     try {
-      const body = customerPayload(form);
+      const body = customerPayload(values);
       if (editingId) {
         await api(`/customers/${editingId}`, { method: "PATCH", body: JSON.stringify(body) });
       } else {
-        await api("/app/customers", { method: "POST", body: JSON.stringify(body) });
+        await api("/customers", { method: "POST", body: JSON.stringify(body) });
       }
       setShowForm(false);
       setEditingId(null);
-      setForm(emptyCustomerForm());
+      setFormInitial(emptyCustomerForm());
       setMessage("Saved");
       await load();
     } catch (err) {
@@ -161,7 +179,7 @@ export default function CustomersScreen() {
         style={styles.primaryBtn}
         onPress={() => {
           setEditingId(null);
-          setForm(emptyCustomerForm());
+          setFormInitial(emptyCustomerForm());
           setShowForm(true);
         }}
       >
@@ -174,20 +192,37 @@ export default function CustomersScreen() {
           title={editingId ? t("customers.edit") : t("customers.add")}
           titleStyle={styles.cardTitle}
         >
-          <CustomerFormFields form={form} inputStyle={styles.input} onChange={setForm} />
-          <View style={styles.row}>
-            <Text style={styles.cardBody}>{t("customers.khata")}</Text>
-            <Switch
-              value={form.credit_enabled}
-              onValueChange={(v) => setForm({ ...form, credit_enabled: v })}
-            />
-          </View>
-          <Pressable style={styles.primaryBtn} disabled={busy} onPress={() => void save()}>
-            <Text style={styles.primaryBtnText}>{busy ? t("common.loading") : t("common.save")}</Text>
-          </Pressable>
-          <Pressable onPress={() => setShowForm(false)}>
-            <Text style={styles.link}>{t("common.cancel")}</Text>
-          </Pressable>
+          <CustomForm
+            initialValues={formInitial}
+            validationSchema={customerFormSchema}
+            enableReinitialize
+            onSubmit={async (values) => {
+              const next = { ...values };
+              if (next.credit_limit.trim()) {
+                next.credit_limit = formatDecimal(next.credit_limit);
+              }
+              await save(next);
+            }}
+          >
+            {({ handleSubmit }) => (
+              <>
+                <CustomerFormFields inputStyle={styles.input} />
+                <CreditEnabledSwitch label={t("customers.khata")} />
+                <Pressable
+                  style={styles.primaryBtn}
+                  disabled={busy}
+                  onPress={() => handleSubmit()}
+                >
+                  <Text style={styles.primaryBtnText}>
+                    {busy ? t("common.loading") : t("common.save")}
+                  </Text>
+                </Pressable>
+                <Pressable onPress={() => setShowForm(false)}>
+                  <Text style={styles.link}>{t("common.cancel")}</Text>
+                </Pressable>
+              </>
+            )}
+          </CustomForm>
         </ScreenCard>
       ) : null}
 
@@ -216,7 +251,7 @@ export default function CustomersScreen() {
                   style={styles.chip}
                   onPress={() => {
                     setEditingId(c.id);
-                    setForm(customerToForm(c));
+                    setFormInitial(customerToForm(c));
                     setShowForm(true);
                   }}
                 >

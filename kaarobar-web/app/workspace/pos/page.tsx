@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Banknote,
   BookUser,
   Check,
   CreditCard,
+  Loader2,
   Minus,
   Plus,
   Search,
@@ -14,7 +15,7 @@ import {
   Wallet,
   X,
 } from "lucide-react";
-import { api, getSession } from "@/lib/api/client";
+import { api, apiAllPages, getSession } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/modals/Modal";
 import InfoButton from "@/components/ui/InfoButton";
@@ -79,6 +80,7 @@ type Customer = {
 
 
 const MAX_LINE_QTY = 99_999;
+const PRODUCT_PAGE_SIZE = 100;
 
 function CartQtyInput({
   quantity,
@@ -134,6 +136,47 @@ function round2(n: number) {
   return Math.round(n * 100) / 100;
 }
 
+type PosT = (key: string, vars?: Record<string, string | number>) => string;
+
+function formatCouponValidateError(err: unknown, t: PosT): string {
+  const raw = err instanceof Error ? err.message : String(err);
+  const reason = raw.includes(":") ? raw.split(":").pop()! : raw;
+  switch (reason) {
+    case "outside_validity":
+      return t("pos.couponOutsideValidity");
+    case "inactive":
+      return t("pos.couponInactive");
+    case "usage_limit_reached":
+      return t("pos.couponUsageLimit");
+    case "below_min_cart":
+      return t("pos.couponBelowMinCart");
+    case "not_stackable":
+      return t("pos.couponNotStackable");
+    case "not_found":
+      return t("pos.couponNotFound");
+    default:
+      return t("pos.couponInvalid");
+  }
+}
+
+function formatSaleError(err: unknown, t: PosT): string {
+  const raw = err instanceof Error ? err.message : String(err);
+  if (raw.startsWith("payment_mismatch:")) {
+    const [, expected, paid] = raw.split(":");
+    return t("pos.paymentMismatch", {
+      expected: expected || "—",
+      paid: paid || "—",
+    });
+  }
+  if (raw.startsWith("coupon_invalid:")) {
+    return formatCouponValidateError(raw, t);
+  }
+  if (raw.includes("coupon_invalid") || raw.includes("outside_validity")) {
+    return formatCouponValidateError(raw, t);
+  }
+  return raw || t("pos.checkoutFailed");
+}
+
 function productInitials(name: string) {
   return name
     .split(" ")
@@ -148,6 +191,12 @@ export default function PosPage() {
   const toast = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [query, setQuery] = useState("");
+  const [debouncedQ, setDebouncedQ] = useState("");
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [productsLoading, setProductsLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const productSentinelRef = useRef<HTMLDivElement>(null);
+  const loadingMoreRef = useRef(false);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [busy, setBusy] = useState(false);
   const [till, setTill] = useState<Till | null>(null);
@@ -165,6 +214,8 @@ export default function PosPage() {
   const [customerQuery, setCustomerQuery] = useState("");
   const [loyaltyRedeem, setLoyaltyRedeem] = useState("");
   const [couponCode, setCouponCode] = useState("");
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponError, setCouponError] = useState<string | null>(null);
   const [newCustomerName, setNewCustomerName] = useState("");
   const [newCustomerPhone, setNewCustomerPhone] = useState("");
   const [showNewCustomer, setShowNewCustomer] = useState(false);
@@ -185,15 +236,70 @@ export default function PosPage() {
     }
   }, []);
 
+  const loadProductPage = useCallback(
+    async (opts: { reset: boolean; cursor?: string | null; q: string }) => {
+      const { reset, q } = opts;
+      if (reset) {
+        setProductsLoading(true);
+      } else {
+        if (loadingMoreRef.current) return;
+        loadingMoreRef.current = true;
+        setLoadingMore(true);
+      }
+      try {
+        const params = new URLSearchParams();
+        params.set("limit", String(PRODUCT_PAGE_SIZE));
+        if (opts.cursor) params.set("cursor", opts.cursor);
+        if (q) params.set("q", q);
+        const res = await api<{
+          data: Product[];
+          meta?: { next_cursor?: string | null };
+        }>(`/products?${params.toString()}`);
+        const rows = res.data || [];
+        setProducts((prev) => (reset ? rows : [...prev, ...rows]));
+        setNextCursor(res.meta?.next_cursor ?? null);
+      } catch (err) {
+        if (reset) setProducts([]);
+        toast.error(err instanceof Error ? err.message : t("common.loadFailed"));
+      } finally {
+        setProductsLoading(false);
+        setLoadingMore(false);
+        loadingMoreRef.current = false;
+      }
+    },
+    [t, toast]
+  );
+
   useEffect(() => {
-    api<{ data: Product[] }>("/products")
-      .then((res) => setProducts(res.data || []))
-      .catch((err) => toast.error(err.message));
-    api<{ data: Customer[] }>("/customers")
-      .then((res) => setCustomers(res.data || []))
+    const id = window.setTimeout(() => setDebouncedQ(query.trim()), 300);
+    return () => window.clearTimeout(id);
+  }, [query]);
+
+  useEffect(() => {
+    void loadProductPage({ reset: true, q: debouncedQ });
+  }, [debouncedQ, loadProductPage]);
+
+  useEffect(() => {
+    apiAllPages<Customer>("/customers")
+      .then((data) => setCustomers(data))
       .catch(() => setCustomers([]));
     loadTill();
-  }, [loadTill, toast]);
+  }, [loadTill]);
+
+  useEffect(() => {
+    const el = productSentinelRef.current;
+    if (!el || !nextCursor) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting) && nextCursor && !loadingMoreRef.current) {
+          void loadProductPage({ reset: false, cursor: nextCursor, q: debouncedQ });
+        }
+      },
+      { root: el.parentElement, rootMargin: "120px", threshold: 0 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [nextCursor, debouncedQ, loadProductPage, products.length]);
 
   const selectedCustomer = customers.find((c) => c.id === customerId) || null;
   const filteredCustomers = useMemo(() => {
@@ -205,16 +311,7 @@ export default function PosPage() {
         (c.phone || "").toLowerCase().includes(q)
     );
   }, [customers, customerQuery]);
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return products;
-    return products.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.sku.toLowerCase().includes(q) ||
-        (p.barcode || "").toLowerCase().includes(q)
-    );
-  }, [products, query]);
+  const filtered = products;
 
   function cartLineKey(line: CartLine) {
     return [
@@ -320,7 +417,45 @@ export default function PosPage() {
   const subtotal = cart.reduce((s, l) => s + l.quantity * l.unit_price, 0);
   const discount = round2(Math.min(Math.max(Number(discountInput || 0), 0), subtotal));
   const tax = round2(Math.max(Number(taxInput || 0), 0));
-  const total = round2(subtotal - discount + tax);
+  /** Matches BE `money.total_amount` before coupon (POS-FR-019). */
+  const preCouponTotal = round2(subtotal - discount + tax);
+  const total = round2(Math.max(0, preCouponTotal - couponDiscount));
+
+  useEffect(() => {
+    const code = couponCode.trim();
+    if (!code) {
+      setCouponDiscount(0);
+      setCouponError(null);
+      return;
+    }
+
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const res = await api<{ data: { discount: string } }>("/crm/coupons/validate", {
+            method: "POST",
+            body: JSON.stringify({
+              code,
+              cart_total: formatDecimal(preCouponTotal),
+            }),
+          });
+          if (cancelled) return;
+          setCouponDiscount(round2(Number(res.data.discount || 0)));
+          setCouponError(null);
+        } catch (err) {
+          if (cancelled) return;
+          setCouponDiscount(0);
+          setCouponError(formatCouponValidateError(err, t));
+        }
+      })();
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [couponCode, preCouponTotal, t]);
 
   useEffect(() => {
     setPayCash(formatDecimal(total));
@@ -447,10 +582,46 @@ export default function PosPage() {
       toast.warning(t("tenant.noBranches"));
       return;
     }
+
+    let payableTotal = total;
+    const code = couponCode.trim();
+    if (code) {
+      try {
+        const res = await api<{ data: { discount: string } }>("/crm/coupons/validate", {
+          method: "POST",
+          body: JSON.stringify({
+            code,
+            cart_total: formatDecimal(preCouponTotal),
+          }),
+        });
+        const quoted = round2(Number(res.data.discount || 0));
+        setCouponDiscount(quoted);
+        setCouponError(null);
+        payableTotal = round2(Math.max(0, preCouponTotal - quoted));
+      } catch (err) {
+        const msg = formatCouponValidateError(err, t);
+        setCouponDiscount(0);
+        setCouponError(msg);
+        toast.error(msg);
+        return;
+      }
+    }
+
     const payments = buildPayments();
-    const paySum = round2(payments.reduce((s, p) => s + p.amount, 0));
-    if (payments.length === 0 || Math.abs(paySum - total) > 0.001) {
-      toast.warning(`${t("common.total")}: ${formatDecimal(total)} / ${formatDecimal(paySum)}`);
+    let paySum = round2(payments.reduce((s, p) => s + p.amount, 0));
+    // Coupon can change the due amount after payments were filled — sync single-method tenders.
+    if (payments.length === 1 && Math.abs(paySum - payableTotal) > 0.001) {
+      payments[0].amount = payableTotal;
+      paySum = payableTotal;
+      if (payments[0].method === "cash") setPayCash(formatDecimal(payableTotal));
+      if (payments[0].method === "card") setPayCard(formatDecimal(payableTotal));
+      if (payments[0].method === "wallet") setPayWallet(formatDecimal(payableTotal));
+      if (payments[0].method === "credit") setPayKhata(formatDecimal(payableTotal));
+    }
+    if (payments.length === 0 || Math.abs(paySum - payableTotal) > 0.001) {
+      toast.warning(
+        `${t("common.total")}: ${formatDecimal(payableTotal)} / ${formatDecimal(paySum)}`
+      );
       return;
     }
     const khataAmt = payments.find((p) => p.method === "credit")?.amount || 0;
@@ -475,7 +646,7 @@ export default function PosPage() {
           till_id: till?.id,
           customer_id: customerId || undefined,
           loyalty_redeem_points: loyaltyRedeem ? Number(loyaltyRedeem) : undefined,
-          coupon_code: couponCode.trim() || undefined,
+          coupon_code: code || undefined,
           items: cart.map((l) => ({
             product_id: l.product.id,
             quantity: l.quantity,
@@ -490,12 +661,14 @@ export default function PosPage() {
       setCart([]);
       setLoyaltyRedeem("");
       setCouponCode("");
+      setCouponDiscount(0);
+      setCouponError(null);
       setCheckoutModalOpen(false);
       setLastInvoice(res.data.invoice_number);
       setReceipt(res.data);
       toast.success(`${t("pos.saleComplete")} · ${res.data.invoice_number}`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("pos.checkoutFailed"));
+      toast.error(formatSaleError(err, t));
     } finally {
       setBusy(false);
     }
@@ -647,11 +820,21 @@ export default function PosPage() {
         </div>
 
         <div className="mt-4 flex shrink-0 items-center justify-between text-sm">
-          <p className="font-medium text-body">{filtered.length} products</p>
+          <p className="font-medium text-body">
+            {productsLoading
+              ? t("common.loading")
+              : `${filtered.length} products${nextCursor ? "+" : ""}`}
+          </p>
         </div>
 
-        <div className="mt-3 grid min-h-0 flex-1 auto-rows-max grid-cols-2 content-start gap-3 overflow-y-auto overscroll-contain py-4 sm:grid-cols-3 xl:grid-cols-4">
-          {filtered.map((p) => {
+        <div className="relative mt-3 grid min-h-0 flex-1 auto-rows-max grid-cols-2 content-start gap-3 overflow-y-auto overscroll-contain py-4 sm:grid-cols-3 xl:grid-cols-4">
+          {productsLoading ? (
+            <div className="col-span-full flex flex-1 items-center justify-center py-16 text-muted">
+              <Loader2 className="h-8 w-8 animate-spin text-brand" aria-label={t("common.loading")} />
+            </div>
+          ) : (
+            <>
+              {filtered.map((p) => {
             const inCart = cart.find((l) => l.product.id === p.id);
             return (
               <button
@@ -686,6 +869,13 @@ export default function PosPage() {
               </button>
             );
           })}
+              <div ref={productSentinelRef} className="col-span-full flex justify-center py-3">
+                {loadingMore ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-brand" aria-label={t("common.loading")} />
+                ) : null}
+              </div>
+            </>
+          )}
         </div>
       </section>
 
@@ -807,7 +997,7 @@ export default function PosPage() {
                   />
                 </label>
                 <label className="text-xs text-muted">
-                  Coupon
+                  {t("pos.coupon")}
                   <input
                     value={couponCode}
                     onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
@@ -816,6 +1006,15 @@ export default function PosPage() {
                   />
                 </label>
               </div>
+              {couponDiscount > 0 ? (
+                <div className="flex justify-between text-body">
+                  <span>{t("pos.couponDiscount")}</span>
+                  <strong className="text-heading">−{formatDecimal(couponDiscount)}</strong>
+                </div>
+              ) : null}
+              {couponError ? (
+                <p className="text-xs text-danger">{couponError}</p>
+              ) : null}
               <div className="grid grid-cols-2 gap-2">
                 <label className="text-xs text-muted">
                   {t("pos.taxOptional")}

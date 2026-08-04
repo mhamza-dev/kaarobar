@@ -6,13 +6,20 @@ import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
-import Select from "@/components/ui/Select";
 import {
-  Field,
   PageHeader,
   SurfaceCard,
-  fieldClass,
 } from "@/components/app/ui";
+import CustomForm from "@/components/ui/CustomForm";
+import {
+  FormikSelectField,
+  FormikTextField,
+} from "@/components/ui/FormFields";
+import {
+  businessCreateFormSchema,
+  emptyBusinessCreateForm,
+  type BusinessCreateFormValues,
+} from "@/lib/validations/businesses";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { detailRoutes } from "@/lib/navigation";
@@ -39,13 +46,6 @@ const INDUSTRIES = [
   "general",
 ] as const;
 
-const emptyForm = {
-  name: "",
-  industry: "retail",
-  tax_jurisdiction: "PK",
-  tagline: "",
-};
-
 export default function BusinessesPage() {
   const t = useT();
   const toast = useToast();
@@ -54,7 +54,7 @@ export default function BusinessesPage() {
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [modal, setModal] = useState(false);
-  const [form, setForm] = useState(emptyForm);
+  const [formInitial, setFormInitial] = useState(() => emptyBusinessCreateForm());
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -72,22 +72,21 @@ export default function BusinessesPage() {
     void load();
   }, [load]);
 
-  async function createBusiness(e: React.FormEvent) {
-    e.preventDefault();
+  async function createBusiness(values: BusinessCreateFormValues) {
     setBusy(true);
     try {
       const res = await api<{ data: Business }>("/businesses", {
         method: "POST",
         body: JSON.stringify({
-          name: form.name.trim(),
-          industry: form.industry,
-          tax_jurisdiction: form.tax_jurisdiction || "PK",
-          tagline: form.tagline.trim() || null,
+          name: values.name.trim(),
+          industry: values.industry,
+          tax_jurisdiction: values.tax_jurisdiction || "PK",
+          tagline: values.tagline.trim() || null,
         }),
       });
       toast.success(t("businesses.created"));
       setModal(false);
-      setForm(emptyForm);
+      setFormInitial(emptyBusinessCreateForm());
       await load();
       if (res.data?.id) navigate(detailRoutes.business(res.data.id));
     } catch (err) {
@@ -118,7 +117,7 @@ export default function BusinessesPage() {
         action={{
           label: t("businesses.add"),
           onClick: () => {
-            setForm(emptyForm);
+            setFormInitial(emptyBusinessCreateForm());
             setModal(true);
           },
           icon: <Building2 className="h-4 w-4" />,
@@ -193,48 +192,36 @@ export default function BusinessesPage() {
         onClose={() => setModal(false)}
         title={t("businesses.add")}
       >
-        <form onSubmit={createBusiness} className="space-y-4">
-          <Field label={t("common.name")}>
-            <input
-              className={fieldClass}
-              required
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-            />
-          </Field>
-          <Field label={t("businesses.industry")}>
-            <Select
-              value={form.industry}
-              onChange={(v) => setForm({ ...form, industry: v })}
-              options={INDUSTRIES.map((ind) => ({ value: ind, label: ind }))}
-              triggerClassName="border-border bg-bg-secondary/80"
-            />
-          </Field>
-          <Field label={t("businesses.taxJurisdiction")}>
-            <input
-              className={fieldClass}
-              value={form.tax_jurisdiction}
-              onChange={(e) =>
-                setForm({ ...form, tax_jurisdiction: e.target.value })
-              }
-            />
-          </Field>
-          <Field label={t("businesses.tagline")}>
-            <input
-              className={fieldClass}
-              value={form.tagline}
-              onChange={(e) => setForm({ ...form, tagline: e.target.value })}
-            />
-          </Field>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="secondary" onClick={() => setModal(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" loading={busy}>
-              {t("common.create")}
-            </Button>
-          </div>
-        </form>
+        <CustomForm
+          className="space-y-4"
+          initialValues={formInitial}
+          validationSchema={businessCreateFormSchema}
+          onSubmit={createBusiness}
+        >
+          {() => (
+            <>
+              <FormikTextField name="name" label={t("common.name")} required />
+              <FormikSelectField
+                name="industry"
+                label={t("businesses.industry")}
+                options={INDUSTRIES.map((ind) => ({ value: ind, label: ind }))}
+              />
+              <FormikTextField
+                name="tax_jurisdiction"
+                label={t("businesses.taxJurisdiction")}
+              />
+              <FormikTextField name="tagline" label={t("businesses.tagline")} />
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="secondary" onClick={() => setModal(false)}>
+                  {t("common.cancel")}
+                </Button>
+                <Button type="submit" loading={busy}>
+                  {t("common.create")}
+                </Button>
+              </div>
+            </>
+          )}
+        </CustomForm>
       </Modal>
     </div>
   );

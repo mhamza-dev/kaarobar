@@ -529,16 +529,8 @@ defmodule Kaarobar.Accounting do
         end
       end)
       |> order_by([j], desc: j.date, desc: j.inserted_at)
-      |> preload(:lines)
 
-    # Default page size when client omits limit
-    opts =
-      if Keyword.has_key?(opts, :limit) do
-        opts
-      else
-        Keyword.put(opts, :limit, 25)
-      end
-
+    # List returns headers only; preload lines on show
     result = ListFilters.paginate(query, opts)
 
     %{data: result.data, meta: result.meta}
@@ -601,6 +593,9 @@ defmodule Kaarobar.Accounting do
   end
 
   def general_ledger(business_id, owner_id, account_id, from_date, to_date) do
+    from_date = from_date || Date.add(Date.utc_today(), -90)
+    to_date = to_date || Date.utc_today()
+
     query =
       from(jl in JournalLine,
         join: je in JournalEntry,
@@ -626,7 +621,7 @@ defmodule Kaarobar.Accounting do
 
     query =
       if account_id in [nil, ""] do
-        query
+        limit(query, 2000)
       else
         from([jl, je, acc] in query, where: jl.account_id == ^account_id)
       end
@@ -1091,13 +1086,23 @@ defmodule Kaarobar.Accounting do
         ]
 
     # COGS uses avg cost * qty captured at post time (stock already decremented)
+    product_ids = Enum.map(sale.items || [], & &1.product_id) |> Enum.uniq()
+
+    inv_by_product =
+      if product_ids == [] do
+        %{}
+      else
+        from(i in Kaarobar.Schemas.InventoryRecord,
+          where: i.branch_id == ^sale.branch_id and i.product_id in ^product_ids,
+          select: {i.product_id, i}
+        )
+        |> Repo.all()
+        |> Map.new()
+      end
+
     total_cost =
       Enum.reduce(sale.items, Decimal.new(0), fn item, acc ->
-        inventory_record =
-          Repo.get_by(Kaarobar.Schemas.InventoryRecord,
-            branch_id: sale.branch_id,
-            product_id: item.product_id
-          )
+        inventory_record = Map.get(inv_by_product, item.product_id)
 
         cost =
           if inventory_record do
@@ -1657,13 +1662,56 @@ defmodule Kaarobar.Accounting do
     |> Enum.map(&age_row(&1, as_of, :ap))
   end
 
-  def list_ar_invoices(business_id, owner_id) do
-    from(i in Kaarobar.Schemas.ArInvoice,
-      where: i.business_id == ^business_id and i.owner_id == ^owner_id,
-      order_by: [desc: i.invoice_date],
-      preload: [:customer]
-    )
-    |> Repo.all()
+  def list_ar_invoices(business_id, owner_id, opts \\ []) do
+    alias KaarobarWeb.Controllers.Helpers.ListFilters
+
+    customer_id = blank_to_nil(Keyword.get(opts, :customer_id))
+    status = blank_to_nil(Keyword.get(opts, :status))
+    q = blank_to_nil(Keyword.get(opts, :q))
+    open_only = Keyword.get(opts, :open_only) == true
+
+    query =
+      from(i in Kaarobar.Schemas.ArInvoice,
+        where: i.business_id == ^business_id and i.owner_id == ^owner_id,
+        order_by: [desc: i.invoice_date, desc: i.inserted_at],
+        preload: [:customer]
+      )
+
+    query =
+      if customer_id do
+        where(query, [i], i.customer_id == ^customer_id)
+      else
+        query
+      end
+
+    query =
+      cond do
+        open_only ->
+          where(query, [i], i.status in ["open", "partial"] and i.balance_due > 0)
+
+        is_binary(status) and status != "" ->
+          where(query, [i], i.status == ^status)
+
+        true ->
+          query
+      end
+
+    query =
+      if q do
+        like = "%#{q}%"
+
+        where(
+          query,
+          [i],
+          ilike(i.invoice_number, ^like) or
+            ilike(coalesce(i.notes, ""), ^like)
+        )
+      else
+        query
+      end
+
+    result = ListFilters.paginate(query, opts)
+    %{data: result.data, meta: result.meta}
   end
 
   def get_ar_invoice(id, business_id, owner_id) do
@@ -1682,13 +1730,50 @@ defmodule Kaarobar.Accounting do
     |> Repo.one()
   end
 
-  def list_ap_bills(business_id, owner_id) do
-    from(b in Kaarobar.Schemas.ApBill,
-      where: b.business_id == ^business_id and b.owner_id == ^owner_id,
-      order_by: [desc: b.bill_date],
-      preload: [:supplier]
-    )
-    |> Repo.all()
+  def list_ap_bills(business_id, owner_id, opts \\ []) do
+    alias KaarobarWeb.Controllers.Helpers.ListFilters
+
+    supplier_id = blank_to_nil(Keyword.get(opts, :supplier_id))
+    status = blank_to_nil(Keyword.get(opts, :status))
+    q = blank_to_nil(Keyword.get(opts, :q))
+    open_only = Keyword.get(opts, :open_only) == true
+
+    query =
+      from(b in Kaarobar.Schemas.ApBill,
+        where: b.business_id == ^business_id and b.owner_id == ^owner_id,
+        order_by: [desc: b.bill_date, desc: b.inserted_at],
+        preload: [:supplier]
+      )
+
+    query =
+      if supplier_id do
+        where(query, [b], b.supplier_id == ^supplier_id)
+      else
+        query
+      end
+
+    query =
+      cond do
+        open_only ->
+          where(query, [b], b.status in ["open", "partial"] and b.balance_due > 0)
+
+        is_binary(status) and status != "" ->
+          where(query, [b], b.status == ^status)
+
+        true ->
+          query
+      end
+
+    query =
+      if q do
+        like = "%#{q}%"
+        where(query, [b], ilike(b.bill_number, ^like) or ilike(coalesce(b.notes, ""), ^like))
+      else
+        query
+      end
+
+    result = ListFilters.paginate(query, opts)
+    %{data: result.data, meta: result.meta}
   end
 
   defp age_row(doc, as_of, kind) do
@@ -1741,7 +1826,9 @@ defmodule Kaarobar.Accounting do
 
     balance_sq =
       from(i in Kaarobar.Schemas.ArInvoice,
-        where: i.status in ["open", "partial"],
+        where:
+          i.business_id == ^business_id and i.owner_id == ^owner_id and
+            i.status in ["open", "partial"],
         group_by: i.customer_id,
         select: %{
           customer_id: i.customer_id,

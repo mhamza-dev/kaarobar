@@ -1,4 +1,5 @@
-import { TextInput, type StyleProp, type TextStyle } from "react-native";
+import { useField } from "formik";
+import { Text, TextInput, View, type StyleProp, type TextStyle } from "react-native";
 import { colors } from "../../../lib/api";
 import type { CustomerForm } from "../../../lib/customers";
 
@@ -16,26 +17,47 @@ const CUSTOMER_FORM_FIELDS: readonly { key: keyof CustomerForm; label: string }[
 ];
 
 type CustomerFormFieldsProps = {
-  form: CustomerForm;
   inputStyle: StyleProp<TextStyle>;
-  onChange: (next: CustomerForm) => void;
 };
 
-export default function CustomerFormFields({
-  form,
+function FormikTextInput({
+  name,
+  label,
   inputStyle,
-  onChange,
-}: CustomerFormFieldsProps) {
+}: {
+  name: keyof CustomerForm;
+  label: string;
+  inputStyle: StyleProp<TextStyle>;
+}) {
+  const [field, meta, helpers] = useField(name);
+  return (
+    <View>
+      <TextInput
+        style={inputStyle}
+        placeholder={label}
+        placeholderTextColor={colors.muted}
+        value={String(field.value ?? "")}
+        onChangeText={(value) => void helpers.setValue(value)}
+        onBlur={() => void helpers.setTouched(true)}
+      />
+      {meta.touched && meta.error ? (
+        <Text style={{ color: colors.danger, fontSize: 12, marginBottom: 6 }}>
+          {meta.error}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+export default function CustomerFormFields({ inputStyle }: CustomerFormFieldsProps) {
   return (
     <>
       {CUSTOMER_FORM_FIELDS.map(({ key, label }) => (
-        <TextInput
+        <FormikTextInput
           key={key}
-          style={inputStyle}
-          placeholder={label}
-          placeholderTextColor={colors.muted}
-          value={String(form[key] ?? "")}
-          onChangeText={(value) => onChange({ ...form, [key]: value })}
+          name={key}
+          label={label}
+          inputStyle={inputStyle}
         />
       ))}
     </>

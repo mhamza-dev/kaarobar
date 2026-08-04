@@ -8,21 +8,36 @@ defmodule Kaarobar.Reporting do
   alias Kaarobar.Repo
   alias Kaarobar.Schemas.{Sale, InventoryRecord, SaleReturn, Business, Branch, Product}
 
+  defp day_range(%Date{} = day) do
+    start_at = DateTime.new!(day, ~T[00:00:00], "Etc/UTC")
+    end_at = DateTime.new!(Date.add(day, 1), ~T[00:00:00], "Etc/UTC")
+    {start_at, end_at}
+  end
+
+  defp period_range(%Date{} = from_date, %Date{} = to_date) do
+    start_at = DateTime.new!(from_date, ~T[00:00:00], "Etc/UTC")
+    end_at = DateTime.new!(Date.add(to_date, 1), ~T[00:00:00], "Etc/UTC")
+    {start_at, end_at}
+  end
+
   def owner_dashboard(owner_id) do
     today = Date.utc_today()
+    {day_start, day_end} = day_range(today)
 
     sales_today =
       from(s in Sale,
         where:
           s.owner_id == ^owner_id and s.status == "Completed" and
-            fragment("(? AT TIME ZONE 'UTC')::date", s.inserted_at) == ^today,
+            s.inserted_at >= ^day_start and s.inserted_at < ^day_end,
         select: coalesce(sum(s.total_amount), 0)
       )
       |> Repo.one()
 
     cash_position =
       from(s in Sale,
-        where: s.owner_id == ^owner_id and s.status == "Completed",
+        where:
+          s.owner_id == ^owner_id and s.status == "Completed" and
+            s.inserted_at >= ^day_start and s.inserted_at < ^day_end,
         select: coalesce(sum(s.total_amount), 0)
       )
       |> Repo.one()
@@ -59,13 +74,13 @@ defmodule Kaarobar.Reporting do
 
   def branch_dashboard(owner_id, business_id, branch_id) do
     today = Date.utc_today()
+    {day_start, day_end} = day_range(today)
 
     sales_today =
       from(s in Sale,
         where:
           s.owner_id == ^owner_id and s.business_id == ^business_id and s.branch_id == ^branch_id and
-            s.status == "Completed" and
-            fragment("(? AT TIME ZONE 'UTC')::date", s.inserted_at) == ^today,
+            s.status == "Completed" and s.inserted_at >= ^day_start and s.inserted_at < ^day_end,
         select: coalesce(sum(s.total_amount), 0)
       )
       |> Repo.one()
@@ -74,8 +89,7 @@ defmodule Kaarobar.Reporting do
       from(s in Sale,
         where:
           s.owner_id == ^owner_id and s.business_id == ^business_id and s.branch_id == ^branch_id and
-            s.status == "Completed" and
-            fragment("(? AT TIME ZONE 'UTC')::date", s.inserted_at) == ^today,
+            s.status == "Completed" and s.inserted_at >= ^day_start and s.inserted_at < ^day_end,
         select: count(s.id)
       )
       |> Repo.one()
@@ -109,17 +123,17 @@ defmodule Kaarobar.Reporting do
 
   def sales_by_day(owner_id, business_id, from_date, to_date, opts \\ []) do
     branch_id = Keyword.get(opts, :branch_id)
+    {start_at, end_at} = period_range(from_date, to_date)
 
     q =
       from(s in Sale,
         where:
           s.owner_id == ^owner_id and s.business_id == ^business_id and s.status == "Completed" and
-            fragment("(? AT TIME ZONE 'UTC')::date", s.inserted_at) >= ^from_date and
-            fragment("(? AT TIME ZONE 'UTC')::date", s.inserted_at) <= ^to_date,
-        group_by: fragment("(? AT TIME ZONE 'UTC')::date", s.inserted_at),
-        order_by: fragment("(? AT TIME ZONE 'UTC')::date", s.inserted_at),
+            s.inserted_at >= ^start_at and s.inserted_at < ^end_at,
+        group_by: fragment("((? AT TIME ZONE 'UTC')::date)", s.inserted_at),
+        order_by: fragment("((? AT TIME ZONE 'UTC')::date)", s.inserted_at),
         select: %{
-          date: fragment("(? AT TIME ZONE 'UTC')::date", s.inserted_at),
+          date: fragment("((? AT TIME ZONE 'UTC')::date)", s.inserted_at),
           total: coalesce(sum(s.total_amount), 0),
           count: count(s.id)
         }

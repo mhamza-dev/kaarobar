@@ -20,15 +20,17 @@ defmodule KaarobarWeb.V1.ProductController do
           :category_id,
           :category_ids,
           :category,
-          :product_kind
+          :product_kind,
+          :limit,
+          :cursor
         ])
 
-      products =
+      %{data: products, meta: meta} =
         Catalog.list_products(business_id, conn.assigns.current_owner_id || user.id, opts)
 
       branch_id = conn.assigns[:current_branch_id]
       data = Enum.map(products, &Catalog.serialize_product(&1, branch_id))
-      json(conn, %{data: data})
+      json(conn, %{data: data, meta: meta})
     end
   end
 

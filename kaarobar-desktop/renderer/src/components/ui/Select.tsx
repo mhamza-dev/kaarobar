@@ -14,6 +14,8 @@ export type SelectProps = {
   options: SelectOption[];
   value: string;
   onChange: (value: string) => void;
+  /** Shown while `options` have not yet loaded the current value (edit forms). */
+  selectedLabel?: string;
   placeholder?: string;
   disabled?: boolean;
   className?: string;
@@ -32,6 +34,7 @@ export default function Select({
   options,
   value,
   onChange,
+  selectedLabel,
   placeholder,
   disabled = false,
   className = "",
@@ -50,12 +53,26 @@ export default function Select({
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState<Coords | null>(null);
+  const [cachedLabel, setCachedLabel] = useState<string | null>(null);
 
   const resolvedPlaceholder = placeholder ?? t("searchSelect.select");
   const selected = useMemo(
     () => options.find((o) => o.value === value) ?? null,
     [options, value]
   );
+
+  useEffect(() => {
+    if (selected) {
+      setCachedLabel(selected.label);
+    } else if (!value) {
+      setCachedLabel(null);
+    }
+  }, [selected, value]);
+
+  const displayLabel =
+    selected?.label ||
+    (value ? selectedLabel || cachedLabel : null) ||
+    null;
 
   useEffect(() => {
     setMounted(true);
@@ -191,8 +208,8 @@ export default function Select({
         onClick={() => !disabled && setOpen((o) => !o)}
         className={`box-border flex w-full items-center gap-2 text-start text-heading outline-none transition hover:border-brand/40 focus:border-brand/20 disabled:cursor-not-allowed disabled:opacity-60 ${sizeClass} ${triggerClassName}`}
       >
-        <span className={`min-w-0 flex-1 truncate ${selected ? "" : "text-muted"}`}>
-          {selected ? selected.label : resolvedPlaceholder}
+        <span className={`min-w-0 flex-1 truncate ${displayLabel ? "" : "text-muted"}`}>
+          {displayLabel || resolvedPlaceholder}
         </span>
         <ChevronDown
           className={`h-4 w-4 shrink-0 text-muted transition-transform ${open ? "rotate-180" : ""}`}

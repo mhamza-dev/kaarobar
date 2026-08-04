@@ -123,11 +123,16 @@ defmodule KaarobarWeb.Controllers.Helpers.ListFilters do
   Apply offset/limit pagination to an already-built Ecto query and return
   `%{data: rows, meta: %{limit, next_cursor}}`.
 
-  When `opts` has no `:limit`, returns all rows with `meta.limit` equal to the
-  result length and `next_cursor: nil` (backward compatible clients still use `data`).
+  Defaults to `limit: 25` (capped at 200) when opts omit `:limit`, so list
+  endpoints never return unbounded tables. Pass `limit: :all` to fetch everything
+  (offline sync / explicit full dumps only).
   """
   def paginate(query, opts, repo \\ Kaarobar.Repo) do
-    case Keyword.get(opts, :limit) do
+    case Keyword.get(opts, :limit, 25) do
+      :all ->
+        rows = repo.all(query)
+        %{data: rows, meta: %{limit: length(rows), next_cursor: nil}}
+
       limit when is_integer(limit) and limit > 0 ->
         limit = min(limit, 200)
         offset = max(Keyword.get(opts, :cursor) || 0, 0)
@@ -150,8 +155,22 @@ defmodule KaarobarWeb.Controllers.Helpers.ListFilters do
         %{data: page, meta: %{limit: limit, next_cursor: next_cursor}}
 
       _ ->
-        rows = repo.all(query)
-        %{data: rows, meta: %{limit: length(rows), next_cursor: nil}}
+        # Invalid limit → safe default
+        paginate(query, Keyword.put(opts, :limit, 25), repo)
+    end
+  end
+
+  @doc "Ensure opts have a positive integer `:limit` (default 25, max 200)."
+  def with_default_limit(opts, default \\ 25) do
+    case Keyword.get(opts, :limit) do
+      :all ->
+        opts
+
+      limit when is_integer(limit) and limit > 0 ->
+        Keyword.put(opts, :limit, min(limit, 200))
+
+      _ ->
+        Keyword.put(opts, :limit, default)
     end
   end
 

@@ -10,9 +10,20 @@ import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
-import Select from "@/components/ui/Select";
-import { Field, fieldClass } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
+import CustomForm from "@/components/ui/CustomForm";
+import {
+  AccountFormFields,
+  JournalEntryFormFields,
+  emptyAccountForm,
+  emptyJournalEntryForm,
+} from "@/components/accounting/AccountingModalForms";
+import {
+  accountFormSchema,
+  journalEntryFormSchema,
+  type AccountFormValues,
+  type JournalEntryFormValues,
+} from "@/lib/validations/accounting";
 import { useT } from "@/lib/i18n";
 import { formatDecimal } from "@/lib/decimal";
 import { useTabQueryParam } from "@/lib/hooks/useTabQueryParam";
@@ -144,30 +155,6 @@ type AgingRow = {
   bill_number?: string;
 };
 
-const ACCOUNT_TYPES = ["Asset", "Liability", "Equity", "Revenue", "Expense"] as const;
-const CLASSIFICATIONS = [
-  "current_asset",
-  "non_current_asset",
-  "current_liability",
-  "non_current_liability",
-  "equity",
-  "revenue",
-  "cost_of_sales",
-  "operating_expense",
-  "other_income",
-  "other_expense",
-] as const;
-
-const emptyAccountForm = {
-  code: "",
-  name: "",
-  type: "Expense",
-  parent_account_id: "",
-  classification: "operating_expense",
-  normal_balance: "debit",
-  is_header: false,
-};
-
 export default function AccountingPage() {
   if (isConsumerSession()) {
     return <BuyerAr />;
@@ -192,7 +179,8 @@ function StaffAccountingPage() {
   const [jeModal, setJeModal] = useState(false);
   const [accountModal, setAccountModal] = useState(false);
   const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
-  const [accountForm, setAccountForm] = useState(emptyAccountForm);
+  const [accountInitial, setAccountInitial] = useState(() => emptyAccountForm());
+  const [jeInitial, setJeInitial] = useState(() => emptyJournalEntryForm());
   const [busy, setBusy] = useState(false);
   const [journalDetailId, setJournalDetailId] = useState<string | null>(null);
   const [journalFilters, setJournalFilters] = useState(emptyStaffListFilters);
@@ -209,10 +197,6 @@ function StaffAccountingPage() {
       to: new Date().toISOString().slice(0, 10),
     };
   });
-
-  const [jeDesc, setJeDesc] = useState("");
-  const [lineA, setLineA] = useState({ account_id: "", debit: "", credit: "" });
-  const [lineB, setLineB] = useState({ account_id: "", debit: "", credit: "" });
 
   const from = reportFilters.from;
   const to = reportFilters.to;
@@ -355,11 +339,6 @@ function StaffAccountingPage() {
     [accounts]
   );
 
-  const postableAccounts = useMemo(
-    () => accounts.filter((a) => !a.is_header),
-    [accounts]
-  );
-
   const sortedAccounts = useMemo(() => {
     const byParent = new Map<string | null, Account[]>();
     for (const a of accounts) {
@@ -391,33 +370,30 @@ function StaffAccountingPage() {
     await queryClient.invalidateQueries({ queryKey: accountingKeys.journals(businessId) });
   }
 
-  async function createJournal(e: React.FormEvent) {
-    e.preventDefault();
+  async function createJournal(values: JournalEntryFormValues) {
     setBusy(true);
     try {
       await api("/journals", {
         method: "POST",
         body: JSON.stringify({
-          description: jeDesc,
+          description: values.description,
           date: to,
           lines: [
             {
-              account_id: lineA.account_id,
-              debit: lineA.debit || "0",
-              credit: lineA.credit || "0",
+              account_id: values.lineA.account_id,
+              debit: values.lineA.debit || "0",
+              credit: values.lineA.credit || "0",
             },
             {
-              account_id: lineB.account_id,
-              debit: lineB.debit || "0",
-              credit: lineB.credit || "0",
+              account_id: values.lineB.account_id,
+              debit: values.lineB.debit || "0",
+              credit: values.lineB.credit || "0",
             },
           ],
         }),
       });
       toast.success(t("accounting.journalPosted"));
-      setJeDesc("");
-      setLineA({ account_id: "", debit: "", credit: "" });
-      setLineB({ account_id: "", debit: "", credit: "" });
+      setJeInitial(emptyJournalEntryForm());
       setJeModal(false);
       await refreshCore();
       setTab("journals");
@@ -440,13 +416,13 @@ function StaffAccountingPage() {
 
   function openCreateAccount() {
     setEditingAccountId(null);
-    setAccountForm(emptyAccountForm);
+    setAccountInitial(emptyAccountForm());
     setAccountModal(true);
   }
 
   function openEditAccount(a: Account) {
     setEditingAccountId(a.id);
-    setAccountForm({
+    setAccountInitial({
       code: a.code,
       name: a.name,
       type: a.type || "Expense",
@@ -458,17 +434,16 @@ function StaffAccountingPage() {
     setAccountModal(true);
   }
 
-  async function saveAccount(e: React.FormEvent) {
-    e.preventDefault();
+  async function saveAccount(values: AccountFormValues) {
     setBusy(true);
     const payload = {
-      code: accountForm.code,
-      name: accountForm.name,
-      type: accountForm.type,
-      parent_account_id: accountForm.parent_account_id || null,
-      classification: accountForm.classification,
-      normal_balance: accountForm.normal_balance,
-      is_header: accountForm.is_header,
+      code: values.code,
+      name: values.name,
+      type: values.type,
+      parent_account_id: values.parent_account_id || null,
+      classification: values.classification,
+      normal_balance: values.normal_balance,
+      is_header: values.is_header,
     };
     try {
       if (editingAccountId) {
@@ -576,7 +551,10 @@ function StaffAccountingPage() {
           tab === "journals"
             ? {
                 label: t("accounting.postJournal"),
-                onClick: () => setJeModal(true),
+                onClick: () => {
+                  setJeInitial(emptyJournalEntryForm());
+                  setJeModal(true);
+                },
                 icon: <BookPlus className="h-4 w-4" />,
               }
             : tab === "coa"
@@ -1165,99 +1143,23 @@ function StaffAccountingPage() {
         submitLabel={editingAccountId ? t("common.save") : t("accounting.createAccount")}
         submitLoading={busy}
       >
-        <form id="account-modal-form" onSubmit={saveAccount} className="space-y-4">
-          <Field label="Code">
-            <input
-              className={fieldClass}
-              value={accountForm.code}
-              onChange={(e) => setAccountForm({ ...accountForm, code: e.target.value })}
-              required
+        <CustomForm
+          id="account-modal-form"
+          className="space-y-4"
+          initialValues={accountInitial}
+          validationSchema={accountFormSchema}
+          enableReinitialize
+          onSubmit={async (values) => {
+            await saveAccount(values);
+          }}
+        >
+          {() => (
+            <AccountFormFields
+              accounts={accounts}
+              editingAccountId={editingAccountId}
             />
-          </Field>
-          <Field label="Name">
-            <input
-              className={fieldClass}
-              value={accountForm.name}
-              onChange={(e) => setAccountForm({ ...accountForm, name: e.target.value })}
-              required
-            />
-          </Field>
-          <Field label="Type">
-            <Select
-              value={accountForm.type}
-              onChange={(v) => {
-                const defaults: Record<string, { classification: string; normal_balance: string }> =
-                  {
-                    Asset: { classification: "current_asset", normal_balance: "debit" },
-                    Liability: {
-                      classification: "current_liability",
-                      normal_balance: "credit",
-                    },
-                    Equity: { classification: "equity", normal_balance: "credit" },
-                    Revenue: { classification: "revenue", normal_balance: "credit" },
-                    Expense: {
-                      classification: "operating_expense",
-                      normal_balance: "debit",
-                    },
-                  };
-                const d = defaults[v] || defaults.Expense;
-                setAccountForm({
-                  ...accountForm,
-                  type: v,
-                  classification: d.classification,
-                  normal_balance: d.normal_balance,
-                });
-              }}
-              options={ACCOUNT_TYPES.map((ty) => ({ value: ty, label: ty }))}
-            />
-          </Field>
-          <Field label={t("accounting.classification")}>
-            <Select
-              value={accountForm.classification}
-              onChange={(v) => setAccountForm({ ...accountForm, classification: v })}
-              options={CLASSIFICATIONS.map((c) => ({
-                value: c,
-                label: c.replace(/_/g, " "),
-              }))}
-            />
-          </Field>
-          <Field label={t("accounting.normalBalance")}>
-            <Select
-              value={accountForm.normal_balance}
-              onChange={(v) => setAccountForm({ ...accountForm, normal_balance: v })}
-              options={[
-                { value: "debit", label: "Debit" },
-                { value: "credit", label: "Credit" },
-              ]}
-            />
-          </Field>
-          <Field label={t("accounting.parentAccount")}>
-            <Select
-              value={accountForm.parent_account_id}
-              onChange={(v) => setAccountForm({ ...accountForm, parent_account_id: v })}
-              placeholder="—"
-              options={[
-                { value: "", label: "—" },
-                ...accounts
-                  .filter((a) => a.id !== editingAccountId)
-                  .map((a) => ({
-                    value: a.id,
-                    label: `${a.code} ${a.name}`,
-                  })),
-              ]}
-            />
-          </Field>
-          <label className="flex items-center gap-2 text-sm text-heading">
-            <input
-              type="checkbox"
-              checked={accountForm.is_header}
-              onChange={(e) =>
-                setAccountForm({ ...accountForm, is_header: e.target.checked })
-              }
-            />
-            {t("accounting.headerAccount")}
-          </label>
-        </form>
+          )}
+        </CustomForm>
       </FormModal>
 
       <FormModal
@@ -1269,74 +1171,18 @@ function StaffAccountingPage() {
         submitLabel="Post journal"
         submitLoading={busy}
       >
-        <form id="je-modal-form" onSubmit={createJournal} className="space-y-4">
-          <Field label="Description">
-            <input
-              className={fieldClass}
-              placeholder="Description"
-              value={jeDesc}
-              onChange={(e) => setJeDesc(e.target.value)}
-              required
-            />
-          </Field>
-          {([lineA, lineB] as const).map((line, idx) => (
-            <div key={idx} className="grid gap-2 md:grid-cols-3">
-              <Select
-                value={line.account_id}
-                onChange={(v) =>
-                  idx === 0
-                    ? setLineA({ ...lineA, account_id: v })
-                    : setLineB({ ...lineB, account_id: v })
-                }
-                required
-                placeholder="Account"
-                options={[
-                  { value: "", label: "Account" },
-                  ...postableAccounts.map((a) => ({
-                    value: a.id,
-                    label: `${a.code} ${a.name}`,
-                  })),
-                ]}
-              />
-              <input
-                className={fieldClass}
-                placeholder="Debit"
-                type="number"
-                step="0.01"
-                value={line.debit}
-                onChange={(e) =>
-                  idx === 0
-                    ? setLineA({ ...lineA, debit: e.target.value })
-                    : setLineB({ ...lineB, debit: e.target.value })
-                }
-                onBlur={(e) => {
-                  if (e.target.value.trim() === "") return;
-                  const v = formatDecimal(e.target.value);
-                  if (idx === 0) setLineA({ ...lineA, debit: v });
-                  else setLineB({ ...lineB, debit: v });
-                }}
-              />
-              <input
-                className={fieldClass}
-                placeholder="Credit"
-                type="number"
-                step="0.01"
-                value={line.credit}
-                onChange={(e) =>
-                  idx === 0
-                    ? setLineA({ ...lineA, credit: e.target.value })
-                    : setLineB({ ...lineB, credit: e.target.value })
-                }
-                onBlur={(e) => {
-                  if (e.target.value.trim() === "") return;
-                  const v = formatDecimal(e.target.value);
-                  if (idx === 0) setLineA({ ...lineA, credit: v });
-                  else setLineB({ ...lineB, credit: v });
-                }}
-              />
-            </div>
-          ))}
-        </form>
+        <CustomForm
+          id="je-modal-form"
+          className="space-y-4"
+          initialValues={jeInitial}
+          validationSchema={journalEntryFormSchema}
+          enableReinitialize
+          onSubmit={async (values) => {
+            await createJournal(values);
+          }}
+        >
+          {() => <JournalEntryFormFields accounts={accounts} />}
+        </CustomForm>
       </FormModal>
     </WorkspacePageScaffold>
   );

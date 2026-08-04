@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useBrandPalette } from "../lib/BrandThemeContext";
 import {
   ActivityIndicator,
+  FlatList,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,7 +10,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { api, colors, getSession, type Session } from "../lib/api";
+import { api, apiAllPages, colors, getSession, type Session } from "../lib/api";
 import { uuid } from "../lib/uuid";
 import { t } from "../lib/i18n";
 import { canAccessRoute } from "../lib/rbac";
@@ -52,6 +53,8 @@ function round2(n: number) {
   return Math.round(n * 100) / 100;
 }
 
+const PRODUCT_PAGE_SIZE = 100;
+
 export default function PosScreen() {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const palette = useBrandPalette();
@@ -59,6 +62,11 @@ export default function PosScreen() {
   const [session, setLocal] = useState<Session | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [query, setQuery] = useState("");
+  const [debouncedQ, setDebouncedQ] = useState("");
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const loadingMoreRef = useRef(false);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [till, setTill] = useState<Till | null>(null);
   const [openingCash, setOpeningCash] = useState("0");
@@ -85,6 +93,39 @@ export default function PosScreen() {
     }
   }, []);
 
+  const loadProductPage = useCallback(
+    async (opts: { reset: boolean; cursor?: string | null; q: string }) => {
+      const { reset, q } = opts;
+      if (reset) setProductsLoading(true);
+      else {
+        if (loadingMoreRef.current) return;
+        loadingMoreRef.current = true;
+        setLoadingMore(true);
+      }
+      try {
+        const params = new URLSearchParams();
+        params.set("limit", String(PRODUCT_PAGE_SIZE));
+        if (opts.cursor) params.set("cursor", opts.cursor);
+        if (q) params.set("q", q);
+        const res = await api<{
+          data: Product[];
+          meta?: { next_cursor?: string | null };
+        }>(`/products?${params.toString()}`);
+        const rows = res.data || [];
+        setProducts((prev) => (reset ? rows : [...prev, ...rows]));
+        setNextCursor(res.meta?.next_cursor ?? null);
+      } catch (err) {
+        if (reset) setProducts([]);
+        setMessage(err instanceof Error ? err.message : "Failed to load products");
+      } finally {
+        setProductsLoading(false);
+        setLoadingMore(false);
+        loadingMoreRef.current = false;
+      }
+    },
+    []
+  );
+
   useEffect(() => {
     (async () => {
       const s = await getSession();
@@ -98,29 +139,26 @@ export default function PosScreen() {
       }
       setLocal(s);
       try {
-        const [prod, cust] = await Promise.all([
-          api<{ data: Product[] }>("/products"),
-          api<{ data: Customer[] }>("/app/customers").catch(() => ({ data: [] as Customer[] })),
-        ]);
-        setProducts(prod.data || []);
-        setCustomers(cust.data || []);
+        const cust = await apiAllPages<Customer>("/customers").catch(() => [] as Customer[]);
+        setCustomers(cust);
         await loadTill();
       } catch (err) {
         setMessage(err instanceof Error ? err.message : "Failed to load");
       }
     })();
-  }, [loadTill]);
+  }, [loadTill, navigation]);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return products;
-    return products.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.sku.toLowerCase().includes(q) ||
-        (p.barcode || "").toLowerCase().includes(q)
-    );
-  }, [products, query]);
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedQ(query.trim()), 300);
+    return () => clearTimeout(id);
+  }, [query]);
+
+  useEffect(() => {
+    if (!session) return;
+    void loadProductPage({ reset: true, q: debouncedQ });
+  }, [session, debouncedQ, loadProductPage]);
+
+  const filtered = products;
 
   async function lookupBarcode(code: string) {
     try {
@@ -333,39 +371,64 @@ export default function PosScreen() {
         placeholder="Search SKU / name"
         placeholderTextColor={colors.muted}
       />
-      <Text style={styles.count}>{filtered.length} products</Text>
+      <Text style={styles.count}>
+        {productsLoading
+          ? "Loading…"
+          : `${filtered.length} products${nextCursor ? "+" : ""}`}
+      </Text>
 
-      <View style={styles.productGrid}>
-        {filtered.map((p) => {
-          const inCart = cart.find((l) => l.product.id === p.id);
-          return (
-            <Pressable
-              key={p.id}
-              style={[styles.product, inCart ? styles.productActive : null]}
-              onPress={() => addProduct(p)}
-            >
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
-                  {p.name
-                    .split(" ")
-                    .map((w) => w[0])
-                    .join("")
-                    .slice(0, 2)
-                    .toUpperCase()}
-                </Text>
-              </View>
-              <Text style={styles.productName}>{p.name}</Text>
-              <Text style={styles.sku}>{p.sku}</Text>
-              <View style={styles.productFooter}>
-                <Text style={styles.productPrice}>Rs {formatDecimal(p.price)}</Text>
-                {inCart ? (
-                  <Text style={styles.qtyChip}>×{inCart.quantity}</Text>
-                ) : null}
-              </View>
-            </Pressable>
-          );
-        })}
-      </View>
+      {productsLoading ? (
+        <ActivityIndicator style={{ marginVertical: 24 }} color={palette.brand} />
+      ) : (
+        <FlatList
+          data={filtered}
+          keyExtractor={(p) => p.id}
+          numColumns={2}
+          scrollEnabled
+          style={{ maxHeight: 360 }}
+          columnWrapperStyle={{ gap: 8 }}
+          contentContainerStyle={{ gap: 8, paddingBottom: 8 }}
+          onEndReachedThreshold={0.4}
+          onEndReached={() => {
+            if (nextCursor && !loadingMoreRef.current) {
+              void loadProductPage({ reset: false, cursor: nextCursor, q: debouncedQ });
+            }
+          }}
+          ListFooterComponent={
+            loadingMore ? (
+              <ActivityIndicator style={{ marginVertical: 12 }} color={palette.brand} />
+            ) : null
+          }
+          renderItem={({ item: p }) => {
+            const inCart = cart.find((l) => l.product.id === p.id);
+            return (
+              <Pressable
+                style={[styles.product, inCart ? styles.productActive : null, { flex: 1 }]}
+                onPress={() => addProduct(p)}
+              >
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>
+                    {p.name
+                      .split(" ")
+                      .map((w) => w[0])
+                      .join("")
+                      .slice(0, 2)
+                      .toUpperCase()}
+                  </Text>
+                </View>
+                <Text style={styles.productName}>{p.name}</Text>
+                <Text style={styles.sku}>{p.sku}</Text>
+                <View style={styles.productFooter}>
+                  <Text style={styles.productPrice}>Rs {formatDecimal(p.price)}</Text>
+                  {inCart ? (
+                    <Text style={styles.qtyChip}>×{inCart.quantity}</Text>
+                  ) : null}
+                </View>
+              </Pressable>
+            );
+          }}
+        />
+      )}
 
       <View style={styles.card}>
         <Text style={styles.section}>Order detail</Text>

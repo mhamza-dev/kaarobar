@@ -10,7 +10,7 @@ import Button from "@/components/ui/Button";
 import Link from "@/components/ui/Link";
 import OptionSelector from "@/components/ui/OptionSelector";
 import { authMethodOptions } from "@/components/auth/auth-method-options";
-import { loginSchema } from "@/lib/validations/auth";
+import { inviteAcceptSchema, loginSchema } from "@/lib/validations/auth";
 import {
   api,
   hydrateSessionContext,
@@ -41,8 +41,6 @@ const LoginForm = ({ actor, onActorChange }: LoginFormProps): React.ReactElement
   const toast = useToast();
   const [formError, setFormError] = useState<string | null>(null);
   const [inviteToken, setInviteToken] = useState<string | null>(null);
-  const [invitePassword, setInvitePassword] = useState("");
-  const [inviteBusy, setInviteBusy] = useState(false);
 
   useEffect(() => {
     const invite = searchParams.get("invite");
@@ -90,10 +88,8 @@ const LoginForm = ({ actor, onActorChange }: LoginFormProps): React.ReactElement
     return session;
   };
 
-  async function acceptInvite(e: React.FormEvent) {
-    e.preventDefault();
+  async function acceptInvite(values: { password: string }) {
     if (!inviteToken) return;
-    setInviteBusy(true);
     setFormError(null);
     try {
       const result = await api<{
@@ -104,7 +100,7 @@ const LoginForm = ({ actor, onActorChange }: LoginFormProps): React.ReactElement
         "/auth/buyer/accept-invite",
         {
           method: "POST",
-          body: JSON.stringify({ token: inviteToken, password: invitePassword }),
+          body: JSON.stringify({ token: inviteToken, password: values.password }),
         },
         null
       );
@@ -115,8 +111,6 @@ const LoginForm = ({ actor, onActorChange }: LoginFormProps): React.ReactElement
       const msg = error instanceof Error ? error.message : t("auth.loginFailed");
       setFormError(msg);
       toast.error(msg);
-    } finally {
-      setInviteBusy(false);
     }
   }
 
@@ -194,37 +188,43 @@ const LoginForm = ({ actor, onActorChange }: LoginFormProps): React.ReactElement
 
   if (inviteToken && actor === "consumer") {
     return (
-      <form onSubmit={acceptInvite} className="space-y-4">
-        {formError ? (
-          <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {formError}
-          </p>
-        ) : null}
-        <p className="text-sm text-body">
-          Set a password to join Kaarobar as a buyer and shop across listed stores.
-        </p>
-        <label className="block text-sm font-medium text-heading">
-          New password
-          <input
-            type="password"
-            required
-            minLength={8}
-            className="mt-1 w-full rounded-md border border-border px-3 py-2"
-            value={invitePassword}
-            onChange={(e) => setInvitePassword(e.target.value)}
-          />
-        </label>
-        <Button type="submit" fullWidth size="lg" loading={inviteBusy}>
-          Accept invite &amp; sign in
-        </Button>
-        <button
-          type="button"
-          className="w-full text-sm text-brand hover:underline"
-          onClick={() => setInviteToken(null)}
-        >
-          Already have a password? Sign in instead
-        </button>
-      </form>
+      <CustomForm
+        className="space-y-4"
+        initialValues={{ password: "" }}
+        validationSchema={inviteAcceptSchema}
+        onSubmit={acceptInvite}
+      >
+        {({ isSubmitting }) => (
+          <div className="space-y-4">
+            {formError ? (
+              <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {formError}
+              </p>
+            ) : null}
+            <p className="text-sm text-body">
+              Set a password to join Kaarobar as a buyer and shop across listed stores.
+            </p>
+            <Input
+              type="password"
+              name="password"
+              label="New password"
+              placeholder="Create a password"
+              leftIcon={<Lock size={18} />}
+              required
+            />
+            <Button type="submit" fullWidth size="lg" loading={isSubmitting}>
+              Accept invite &amp; sign in
+            </Button>
+            <button
+              type="button"
+              className="w-full text-sm text-brand hover:underline"
+              onClick={() => setInviteToken(null)}
+            >
+              Already have a password? Sign in instead
+            </button>
+          </div>
+        )}
+      </CustomForm>
     );
   }
 

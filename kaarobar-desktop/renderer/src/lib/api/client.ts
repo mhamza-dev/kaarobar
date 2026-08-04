@@ -283,3 +283,28 @@ export async function api<T>(
   }
   return body as T;
 }
+
+/** Walk cursor pages until exhausted (server default page size is 25, max 200). */
+export async function apiAllPages<T>(
+  path: string,
+  init: RequestInit = {},
+  session?: StoredSession | null,
+  pageLimit = 200
+): Promise<T[]> {
+  const sep = path.includes("?") ? "&" : "?";
+  const rows: T[] = [];
+  let cursor: string | null = null;
+
+  for (;;) {
+    const qs: string = `limit=${pageLimit}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`;
+    const res: { data: T[]; meta?: { next_cursor?: string | null } } = await api<{
+      data: T[];
+      meta?: { next_cursor?: string | null };
+    }>(`${path}${sep}${qs}`, init, session);
+    rows.push(...(res.data || []));
+    cursor = res.meta?.next_cursor ?? null;
+    if (!cursor || !(res.data || []).length) break;
+  }
+
+  return rows;
+}

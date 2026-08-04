@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   Modal,
@@ -21,6 +21,8 @@ type SearchSelectProps = {
   options: SearchSelectOption[];
   value: string | null;
   onChange: (next: string | null) => void;
+  /** Shown while `options` have not yet loaded the current value (edit forms). */
+  selectedLabel?: string;
   label?: string;
   placeholder?: string;
   searchPlaceholder?: string;
@@ -32,6 +34,7 @@ export function SearchSelect({
   options,
   value,
   onChange,
+  selectedLabel,
   label,
   placeholder = "Select…",
   searchPlaceholder = "Search…",
@@ -42,7 +45,18 @@ export function SearchSelect({
   const styles = useMemo(() => createStyles(palette.brand), [palette.brand]);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const selected = options.find((o) => o.value === value);
+  const [cached, setCached] = useState<SearchSelectOption | null>(null);
+  const selected = options.find((o) => o.value === value) ?? null;
+
+  useEffect(() => {
+    if (selected) setCached(selected);
+    else if (!value) setCached(null);
+  }, [selected, value]);
+
+  const display =
+    selected ||
+    (value && selectedLabel ? { value, label: selectedLabel } : null) ||
+    (value && cached?.value === value ? cached : null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -62,8 +76,8 @@ export function SearchSelect({
         onPress={() => setOpen(true)}
         style={[styles.trigger, disabled && styles.disabled]}
       >
-        <Text style={selected ? styles.triggerText : styles.placeholder} numberOfLines={1}>
-          {selected ? selected.label : placeholder}
+        <Text style={display ? styles.triggerText : styles.placeholder} numberOfLines={1}>
+          {display ? display.label : placeholder}
         </Text>
       </Pressable>
       <Modal visible={open} animationType="slide" transparent onRequestClose={() => setOpen(false)}>
@@ -89,6 +103,7 @@ export function SearchSelect({
                   style={[styles.row, on && styles.rowOn]}
                   onPress={() => {
                     onChange(item.value);
+                    setCached(item);
                     setOpen(false);
                     setQuery("");
                   }}
@@ -102,6 +117,7 @@ export function SearchSelect({
           <Pressable
             style={styles.clearBtn}
             onPress={() => {
+              setCached(null);
               onChange(null);
               setOpen(false);
               setQuery("");

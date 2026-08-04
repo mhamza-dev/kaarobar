@@ -477,7 +477,10 @@ const catalog: HelpCatalog = {
       "Entrez le code sur POS avant de procéder au paiement.",
     ],
     when: "Pour les campagnes de réduction et les offres partenaires.",
-    tips: ["Définissez des limites d'utilisation afin que les codes ne soient pas utilisés de manière excessive."],
+    tips: [
+      "Définissez des limites d'utilisation afin que les codes ne soient pas utilisés de manière excessive.",
+      "Laissez Valide du/au vide pour aucune limite de dates ; une fenêtre expirée échoue au POS.",
+    ],
   },
   "tab.marketing.tiers": {
     title: "Niveaux de fidélité",

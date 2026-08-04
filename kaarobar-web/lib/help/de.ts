@@ -477,7 +477,10 @@ const catalog: HelpCatalog = {
       "Geben Sie vor dem Bezahlen den Code bei POS ein.",
     ],
     when: "Für Rabattaktionen und Partnerangebote.",
-    tips: ["Legen Sie Nutzungsbeschränkungen fest, damit Codes nicht zu oft eingelöst werden."],
+    tips: [
+      "Legen Sie Nutzungsbeschränkungen fest, damit Codes nicht zu oft eingelöst werden.",
+      "Gültig von/bis leer lassen = kein Datumsfenster; abgelaufene Codes scheitern an der Kasse.",
+    ],
   },
   "tab.marketing.tiers": {
     title: "Treuestufen",

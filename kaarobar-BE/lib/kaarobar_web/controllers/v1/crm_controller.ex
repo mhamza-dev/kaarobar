@@ -5,15 +5,17 @@ defmodule KaarobarWeb.V1.CrmController do
 
   ## Campaigns
 
-  def index(conn, _params) do
+  def index(conn, params) do
     business_id = conn.assigns[:business_id]
     owner_id = conn.assigns[:owner_id]
 
-    data =
-      Crm.list_campaigns(business_id, owner_id)
-      |> Enum.map(&serialize_campaign/1)
+    alias KaarobarWeb.Controllers.Helpers.ListFilters
+    opts = ListFilters.parse(params, [:q, :status, :limit, :cursor])
 
-    json(conn, %{data: data})
+    %{data: rows, meta: meta} = Crm.list_campaigns(business_id, owner_id, opts)
+    data = Enum.map(rows, &serialize_campaign/1)
+
+    json(conn, %{data: data, meta: meta})
   end
 
   def create(conn, params) do
@@ -404,6 +406,18 @@ defmodule KaarobarWeb.V1.CrmController do
   defp serialize_campaign(c, with_recipients \\ false) do
     recipients = loaded_recipients(c)
 
+    recipient_count =
+      cond do
+        recipients != [] ->
+          length(recipients)
+
+        is_map(c) and Map.has_key?(c, :recipients_count) ->
+          c.recipients_count
+
+        true ->
+          Map.get(c, :recipients_count, 0)
+      end
+
     base = %{
       id: c.id,
       name: c.name,
@@ -421,7 +435,7 @@ defmodule KaarobarWeb.V1.CrmController do
       unit_cost_snapshot: c.unit_cost_snapshot && to_string(c.unit_cost_snapshot),
       status: c.status,
       sent_at: c.sent_at,
-      recipient_count: length(recipients),
+      recipient_count: recipient_count,
       delivery: delivery_summary(c)
     }
 

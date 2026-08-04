@@ -87,20 +87,20 @@ defmodule Kaarobar.Notifications do
       when is_list(roles) do
     import Ecto.Query
 
-    role_set = MapSet.new(Enum.map(roles, &to_string/1))
+    role_list = Enum.map(roles, &to_string/1)
 
     user_ids =
       from(m in Kaarobar.Schemas.Membership,
-        where: m.business_id == ^business_id and m.status == "active"
+        where:
+          m.business_id == ^business_id and m.status == "active" and
+            fragment("? && ?", m.roles, ^role_list),
+        select: m.user_id,
+        distinct: true
       )
       |> Repo.all()
-      |> Enum.filter(fn m ->
-        Enum.any?(m.roles || [], &MapSet.member?(role_set, &1))
-      end)
-      |> Enum.map(& &1.user_id)
 
     user_ids =
-      if MapSet.member?(role_set, "owner") do
+      if "owner" in role_list do
         Enum.uniq([owner_id | user_ids])
       else
         Enum.uniq(user_ids)

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -10,13 +10,40 @@ import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
-import Select from "@/components/ui/Select";
-import { Field, SurfaceCard, fieldClass } from "@/components/app/ui";
+import { SurfaceCard } from "@/components/app/ui";
+import CustomForm from "@/components/ui/CustomForm";
+import CampaignFormFields, {
+  emptyCampaignForm,
+} from "@/components/marketing/CampaignFormFields";
+import {
+  CouponFormFields,
+  LoyaltyTierFormFields,
+  SegmentFormFields,
+  TemplateFormFields,
+  couponDateToApi,
+  emptyCouponForm,
+  emptyLoyaltyTierForm,
+  emptySegmentForm,
+  emptyTemplateForm,
+} from "@/components/marketing/MarketingModalForms";
+import {
+  campaignFormSchema,
+  couponFormSchema,
+  loyaltyTierFormSchema,
+  segmentFormSchema,
+  templateFormSchema,
+  type CampaignFormValues,
+  type CouponFormValues,
+  type LoyaltyTierFormValues,
+  type SegmentFormValues,
+  type TemplateFormValues,
+} from "@/lib/validations/marketing";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { useTabQueryParam } from "@/lib/hooks/useTabQueryParam";
 import { crmKeys } from "@/lib/queryClient";
 import { detailRoutes, routes } from "@/lib/navigation";
+import { formatLocalDateTime } from "@/lib/datetime";
 import {
   emptyStaffListFilters,
   type ListFilterConfig,
@@ -73,6 +100,8 @@ type Coupon = {
   code: string;
   discount_type: string;
   discount_value: string;
+  valid_from?: string | null;
+  valid_to?: string | null;
   usage_limit?: number | null;
   usage_count: number;
   min_cart?: string | null;
@@ -80,25 +109,13 @@ type Coupon = {
   active: boolean;
   campaign_id?: string | null;
 };
+
 type Tier = {
   id: string;
   name: string;
   min_points: number;
   earn_rate: string;
   redeem_rate: string;
-};
-
-const emptyForm = {
-  name: "",
-  title: "",
-  message: "",
-  audience: "all",
-  channel: "email",
-  min_points: "",
-  segment_id: "",
-  coupon_id: "",
-  template_id: "",
-  budget_amount: "",
 };
 
 type Tab = "campaigns" | "templates" | "segments" | "coupons" | "tiers";
@@ -118,13 +135,6 @@ type TemplateVariable = {
   example: string;
 };
 
-const emptyTplForm = {
-  name: "",
-  channel: "email",
-  title_template: "",
-  body_template: "",
-};
-
 function MarketingPageInner() {
   const t = useT();
   const toast = useToast();
@@ -142,30 +152,20 @@ function MarketingPageInner() {
   const [segModal, setSegModal] = useState(false);
   const [couponModal, setCouponModal] = useState(false);
   const [tierModal, setTierModal] = useState(false);
-  const [form, setForm] = useState(emptyForm);
+  const [campaignInitial, setCampaignInitial] = useState(() => emptyCampaignForm());
+  const campaignValuesRef = useRef(emptyCampaignForm());
   const [detail, setDetail] = useState<Campaign | null>(null);
   const [previewCount, setPreviewCount] = useState<number | null>(null);
   const [costPreview, setCostPreview] = useState<{
     estimated_cost: string;
     unit_cost: string;
   } | null>(null);
-  const [tplForm, setTplForm] = useState(emptyTplForm);
+  const [tplInitial, setTplInitial] = useState(() => emptyTemplateForm());
+  const tplValuesRef = useRef(emptyTemplateForm());
   const [tplPreview, setTplPreview] = useState<{ title: string; message: string } | null>(null);
-  const [segForm, setSegForm] = useState({ name: "", min_points: "", khata: false });
-  const [couponForm, setCouponForm] = useState({
-    code: "",
-    discount_type: "percent",
-    discount_value: "",
-    usage_limit: "",
-    min_cart: "",
-    stackable: false,
-  });
-  const [tierForm, setTierForm] = useState({
-    name: "",
-    min_points: "0",
-    earn_rate: "1",
-    redeem_rate: "1",
-  });
+  const [segInitial, setSegInitial] = useState(() => emptySegmentForm());
+  const [couponInitial, setCouponInitial] = useState(() => emptyCouponForm());
+  const [tierInitial, setTierInitial] = useState(() => emptyLoyaltyTierForm());
 
   const campaignsQuery = useQuery({
     queryKey: crmKeys.campaigns(businessId),
@@ -278,7 +278,7 @@ function MarketingPageInner() {
     queryClient.invalidateQueries({ queryKey: crmKeys.tiers(businessId) });
 
   const createCampaignMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (form: CampaignFormValues) => {
       await api("/crm/campaigns", {
         method: "POST",
         body: JSON.stringify({
@@ -301,7 +301,8 @@ function MarketingPageInner() {
     onSuccess: async () => {
       toast.success(t("marketing.drafted"));
       setModal(false);
-      setForm(emptyForm);
+      setCampaignInitial(emptyCampaignForm());
+      campaignValuesRef.current = emptyCampaignForm();
       setPreviewCount(null);
       setCostPreview(null);
       await invalidateCampaigns();
@@ -312,17 +313,18 @@ function MarketingPageInner() {
   });
 
   const createTemplateMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (form: TemplateFormValues) => {
       await api("/crm/templates", {
         method: "POST",
         body: JSON.stringify({
-          ...tplForm,
+          ...form,
           variables: sampleValues,
         }),
       });
     },
     onSuccess: async () => {
-      setTplForm(emptyTplForm);
+      setTplInitial(emptyTemplateForm());
+      tplValuesRef.current = emptyTemplateForm();
       setTplPreview(null);
       setTplModal(false);
       await invalidateTemplates();
@@ -404,17 +406,17 @@ function MarketingPageInner() {
   });
 
   const createSegmentMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (form: SegmentFormValues) => {
       const filters: Record<string, unknown> = {};
-      if (segForm.khata) filters.credit_enabled = true;
-      if (segForm.min_points) filters.min_points = Number(segForm.min_points);
+      if (form.khata) filters.credit_enabled = true;
+      if (form.min_points) filters.min_points = Number(form.min_points);
       await api("/crm/segments", {
         method: "POST",
-        body: JSON.stringify({ name: segForm.name, filters }),
+        body: JSON.stringify({ name: form.name, filters }),
       });
     },
     onSuccess: async () => {
-      setSegForm({ name: "", min_points: "", khata: false });
+      setSegInitial(emptySegmentForm());
       setSegModal(false);
       await invalidateSegments();
       toast.success(t("marketing.segmentSaved"));
@@ -425,28 +427,23 @@ function MarketingPageInner() {
   });
 
   const createCouponMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (form: CouponFormValues) => {
       await api("/crm/coupons", {
         method: "POST",
         body: JSON.stringify({
-          code: couponForm.code,
-          discount_type: couponForm.discount_type,
-          discount_value: couponForm.discount_value,
-          usage_limit: couponForm.usage_limit ? Number(couponForm.usage_limit) : null,
-          min_cart: couponForm.min_cart || null,
-          stackable: couponForm.stackable,
+          code: form.code,
+          discount_type: form.discount_type,
+          discount_value: form.discount_value,
+          valid_from: couponDateToApi(form.valid_from),
+          valid_to: couponDateToApi(form.valid_to),
+          usage_limit: form.usage_limit ? Number(form.usage_limit) : null,
+          min_cart: form.min_cart || null,
+          stackable: form.stackable,
         }),
       });
     },
     onSuccess: async () => {
-      setCouponForm({
-        code: "",
-        discount_type: "percent",
-        discount_value: "",
-        usage_limit: "",
-        min_cart: "",
-        stackable: false,
-      });
+      setCouponInitial(emptyCouponForm());
       setCouponModal(false);
       await invalidateCoupons();
       toast.success(t("marketing.couponSaved"));
@@ -457,19 +454,19 @@ function MarketingPageInner() {
   });
 
   const createTierMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (form: LoyaltyTierFormValues) => {
       await api("/crm/loyalty-tiers", {
         method: "POST",
         body: JSON.stringify({
-          name: tierForm.name,
-          min_points: Number(tierForm.min_points),
-          earn_rate: tierForm.earn_rate,
-          redeem_rate: tierForm.redeem_rate,
+          name: form.name,
+          min_points: Number(form.min_points),
+          earn_rate: form.earn_rate,
+          redeem_rate: form.redeem_rate,
         }),
       });
     },
     onSuccess: async () => {
-      setTierForm({ name: "", min_points: "0", earn_rate: "1", redeem_rate: "1" });
+      setTierInitial(emptyLoyaltyTierForm());
       setTierModal(false);
       await invalidateTiers();
       toast.success(t("marketing.tierSaved"));
@@ -490,6 +487,7 @@ function MarketingPageInner() {
 
   async function previewAudience() {
     try {
+      const form = campaignValuesRef.current;
       const res = await api<{
         data: {
           count: number;
@@ -521,77 +519,43 @@ function MarketingPageInner() {
     }
   }
 
-  function createCampaign(e: React.FormEvent) {
-    e.preventDefault();
-    createCampaignMutation.mutate();
-  }
-
-  function applyTemplate(id: string) {
-    const tpl = templates.find((x) => x.id === id);
-    setForm((f) => {
-      if (!tpl) return { ...f, template_id: id };
-      const vars = tpl.variables || {};
-      let title = tpl.title_template;
-      let message = tpl.body_template;
-      Object.entries(vars).forEach(([k, v]) => {
-        title = title.replaceAll(`{{${k}}}`, String(v));
-        message = message.replaceAll(`{{${k}}}`, String(v));
-      });
-      return {
-        ...f,
-        template_id: id,
-        channel: tpl.channel,
-        title,
-        message,
-      };
-    });
+  function createCampaign(values: CampaignFormValues) {
+    createCampaignMutation.mutate(values);
   }
 
   function openTplModal() {
-    setTplForm(emptyTplForm);
+    setTplInitial(emptyTemplateForm());
+    tplValuesRef.current = emptyTemplateForm();
     setTplPreview(null);
     setTplModal(true);
   }
 
   function openSegModal() {
-    setSegForm({ name: "", min_points: "", khata: false });
+    setSegInitial(emptySegmentForm());
     setSegModal(true);
   }
 
   function openCouponModal() {
-    setCouponForm({
-      code: "",
-      discount_type: "percent",
-      discount_value: "",
-      usage_limit: "",
-      min_cart: "",
-      stackable: false,
-    });
+    setCouponInitial(emptyCouponForm());
     setCouponModal(true);
   }
 
   function openTierModal() {
-    setTierForm({ name: "", min_points: "0", earn_rate: "1", redeem_rate: "1" });
+    setTierInitial(emptyLoyaltyTierForm());
     setTierModal(true);
-  }
-
-  function insertTplVar(placeholder: string) {
-    setTplForm((f) => ({
-      ...f,
-      body_template: `${f.body_template}${f.body_template ? " " : ""}${placeholder}`,
-    }));
   }
 
   async function previewTemplate() {
     try {
+      const form = tplValuesRef.current;
       const res = await api<{ data: { title: string; message: string } }>(
         "/crm/templates/preview",
         {
           method: "POST",
           body: JSON.stringify({
-            channel: tplForm.channel,
-            title_template: tplForm.title_template,
-            body_template: tplForm.body_template,
+            channel: form.channel,
+            title_template: form.title_template,
+            body_template: form.body_template,
             variables: sampleValues,
           }),
         }
@@ -602,9 +566,8 @@ function MarketingPageInner() {
     }
   }
 
-  function createTemplate(e: React.FormEvent) {
-    e.preventDefault();
-    createTemplateMutation.mutate();
+  function createTemplate(values: TemplateFormValues) {
+    createTemplateMutation.mutate(values);
   }
 
   function sendCampaign(c: Campaign) {
@@ -617,19 +580,16 @@ function MarketingPageInner() {
     payAndSendMutation.mutate(c);
   }
 
-  function createSegment(e: React.FormEvent) {
-    e.preventDefault();
-    createSegmentMutation.mutate();
+  function createSegment(values: SegmentFormValues) {
+    createSegmentMutation.mutate(values);
   }
 
-  function createCoupon(e: React.FormEvent) {
-    e.preventDefault();
-    createCouponMutation.mutate();
+  function createCoupon(values: CouponFormValues) {
+    createCouponMutation.mutate(values);
   }
 
-  function createTier(e: React.FormEvent) {
-    e.preventDefault();
-    createTierMutation.mutate();
+  function createTier(values: LoyaltyTierFormValues) {
+    createTierMutation.mutate(values);
   }
 
   const tabs: { id: Tab; label: string; infoKey?: string }[] = [
@@ -669,7 +629,13 @@ function MarketingPageInner() {
           tab === "campaigns"
             ? {
                 label: t("marketing.newCampaign"),
-                onClick: () => setModal(true),
+                onClick: () => {
+                  setCampaignInitial(emptyCampaignForm());
+                  campaignValuesRef.current = emptyCampaignForm();
+                  setPreviewCount(null);
+                  setCostPreview(null);
+                  setModal(true);
+                },
                 icon: <Megaphone className="h-4 w-4" />,
               }
             : tab === "templates"
@@ -916,6 +882,20 @@ function MarketingPageInner() {
                   : `Rs ${c.discount_value}`,
             },
             {
+              id: "valid_from",
+              header: t("marketing.validFrom"),
+              cell: (c) =>
+                c.valid_from
+                  ? formatLocalDateTime(c.valid_from)
+                  : t("marketing.validityOpen"),
+            },
+            {
+              id: "valid_to",
+              header: t("marketing.validTo"),
+              cell: (c) =>
+                c.valid_to ? formatLocalDateTime(c.valid_to) : t("marketing.validityOpen"),
+            },
+            {
               id: "usage",
               header: t("marketing.usage"),
               cell: (c) =>
@@ -999,135 +979,48 @@ function MarketingPageInner() {
           </div>
         }
       >
-        <form id="campaign-form" onSubmit={createCampaign} className="grid gap-3">
-          <Field label={t("marketing.internalName")}>
-            <input
-              className={fieldClass}
-              required
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-            />
-          </Field>
-          <Field label="Template (optional)">
-            <Select
-              value={form.template_id}
-              onChange={(v) => applyTemplate(v)}
-              placeholder="None — write freely"
-              options={[
-                { value: "", label: "None — write freely" },
-                ...templates.map((tpl) => ({
-                  value: tpl.id,
-                  label: `${tpl.name} (${tpl.channel})`,
-                })),
-              ]}
-            />
-          </Field>
-          <Field label={t("marketing.notificationTitle")}>
-            <input
-              className={fieldClass}
-              required
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-            />
-          </Field>
-          <Field label={t("marketing.message")}>
-            <textarea
-              className={fieldClass}
-              required
-              rows={4}
-              value={form.message}
-              onChange={(e) => setForm({ ...form, message: e.target.value })}
-            />
-          </Field>
-          <div className="rounded-md border border-border bg-bg-primary p-3 text-sm">
-            <p className="mb-1 text-xs font-semibold uppercase text-muted">Message preview</p>
-            <p className="font-semibold text-heading">{form.title || "Title"}</p>
-            <p className="mt-1 whitespace-pre-wrap text-body">{form.message || "Message body…"}</p>
-          </div>
-          <Field label="Channel">
-            <Select
-              value={form.channel}
-              onChange={(v) => setForm({ ...form, channel: v })}
-              options={[
-                { value: "email", label: "Email" },
-                { value: "in_app", label: "In-app" },
-                { value: "sms", label: "SMS" },
-                { value: "whatsapp", label: "WhatsApp" },
-              ]}
-            />
-          </Field>
-          <Field label="Budget (PKR)">
-            <input
-              className={fieldClass}
-              type="number"
-              min={0}
-              step="0.01"
-              placeholder={
-                form.channel === "sms" || form.channel === "whatsapp"
-                  ? "Required for paid channels"
-                  : "Optional soft cap"
-              }
-              value={form.budget_amount}
-              onChange={(e) => setForm({ ...form, budget_amount: e.target.value })}
-            />
-          </Field>
-          <Field label={t("marketing.audience")}>
-            <Select
-              value={form.audience}
-              onChange={(v) => setForm({ ...form, audience: v })}
-              options={[
-                { value: "all", label: t("marketing.audienceAll") },
-                { value: "credit", label: t("marketing.audienceKhata") },
-                { value: "min_points", label: t("marketing.audienceMinPoints") },
-                { value: "segment", label: t("marketing.audienceSegment") },
-              ]}
-            />
-          </Field>
-          {form.audience === "min_points" ? (
-            <Field label={t("marketing.minPoints")}>
-              <input
-                className={fieldClass}
-                type="number"
-                min={0}
-                value={form.min_points}
-                onChange={(e) => setForm({ ...form, min_points: e.target.value })}
-              />
-            </Field>
-          ) : null}
-          {form.audience === "segment" ? (
-            <Field label="Segment">
-              <Select
-                required
-                value={form.segment_id}
-                onChange={(v) => setForm({ ...form, segment_id: v })}
-                placeholder="Select…"
-                options={[
-                  { value: "", label: "Select…" },
-                  ...segments.map((s) => ({ value: s.id, label: s.name })),
-                ]}
-              />
-            </Field>
-          ) : null}
-          <Field label="Link coupon (optional)">
-            <Select
-              value={form.coupon_id}
-              onChange={(v) => setForm({ ...form, coupon_id: v })}
-              placeholder="None"
-              options={[
-                { value: "", label: "None" },
-                ...coupons.map((c) => ({ value: c.id, label: c.code })),
-              ]}
-            />
-          </Field>
-          {costPreview ? (
-            <p className="text-sm text-body">
-              {t("marketing.estCost", {
-                cost: costPreview.estimated_cost,
-                unit: costPreview.unit_cost,
-              })}
-            </p>
-          ) : null}
-        </form>
+        <CustomForm
+          id="campaign-form"
+          className="grid gap-3"
+          initialValues={campaignInitial}
+          validationSchema={campaignFormSchema}
+          enableReinitialize
+          onSubmit={async (values) => {
+            createCampaign(values);
+          }}
+        >
+          {(formik) => {
+            campaignValuesRef.current = formik.values;
+            return (
+              <>
+                <CampaignFormFields
+                  templateOptions={templates.map((tpl) => ({
+                    value: tpl.id,
+                    label: `${tpl.name} (${tpl.channel})`,
+                  }))}
+                  segmentOptions={segments.map((s) => ({
+                    value: s.id,
+                    label: s.name,
+                  }))}
+                  couponOptions={coupons.map((c) => ({
+                    value: c.id,
+                    label: c.code,
+                  }))}
+                  templates={templates}
+                  t={t}
+                />
+                {costPreview ? (
+                  <p className="text-sm text-body">
+                    {t("marketing.estCost", {
+                      cost: costPreview.estimated_cost,
+                      unit: costPreview.unit_cost,
+                    })}
+                  </p>
+                ) : null}
+              </>
+            );
+          }}
+        </CustomForm>
       </Modal>
 
       <Modal
@@ -1147,80 +1040,24 @@ function MarketingPageInner() {
           </div>
         }
       >
-        <form id="template-form" onSubmit={createTemplate} className="grid gap-3">
-          <Field label={t("common.name")}>
-            <input
-              className={fieldClass}
-              required
-              value={tplForm.name}
-              onChange={(e) => setTplForm({ ...tplForm, name: e.target.value })}
-            />
-          </Field>
-          <Field label={t("marketing.channel")}>
-            <Select
-              value={tplForm.channel}
-              onChange={(v) => setTplForm({ ...tplForm, channel: v })}
-              options={[
-                { value: "email", label: t("marketing.channelEmail") },
-                { value: "in_app", label: t("marketing.channelInApp") },
-                { value: "sms", label: t("marketing.channelSms") },
-                { value: "whatsapp", label: t("marketing.channelWhatsapp") },
-              ]}
-            />
-          </Field>
-          <Field label={t("marketing.titleTemplate")}>
-            <input
-              className={fieldClass}
-              required
-              value={tplForm.title_template}
-              onChange={(e) => setTplForm({ ...tplForm, title_template: e.target.value })}
-              placeholder="{{business}} offer for {{name}}"
-            />
-          </Field>
-          <Field label={t("marketing.bodyTemplate")}>
-            <textarea
-              className={fieldClass}
-              required
-              rows={4}
-              value={tplForm.body_template}
-              onChange={(e) => setTplForm({ ...tplForm, body_template: e.target.value })}
-              placeholder="Hi {{name}}, … Use {{points}} for loyalty."
-            />
-          </Field>
-          {templateVars.length > 0 ? (
-            <div>
-              <p className="mb-2 text-xs font-semibold uppercase text-muted">
-                {t("marketing.variablesTitle")}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {templateVars.map((v) => (
-                  <button
-                    key={v.key}
-                    type="button"
-                    className="rounded-md border border-border bg-bg-tertiary px-2 py-1 font-mono text-xs text-heading hover:border-brand"
-                    onClick={() => insertTplVar(v.placeholder)}
-                  >
-                    {v.placeholder}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : null}
-          {tplPreview ? (
-            <div className="rounded-md border border-border bg-white p-3 text-sm shadow-sm">
-              <p className="text-xs font-semibold uppercase text-muted">
-                {t("marketing.preview")} ({tplForm.channel})
-              </p>
-              <p className="mt-2 font-bold text-heading">{tplPreview.title}</p>
-              <p className="mt-1 whitespace-pre-wrap text-body">{tplPreview.message}</p>
-              {tplForm.channel === "sms" ? (
-                <p className="mt-2 text-xs text-muted">
-                  {t("marketing.charsCount", { count: tplPreview.message.length })}
-                </p>
-              ) : null}
-            </div>
-          ) : null}
-        </form>
+        <CustomForm
+          id="template-form"
+          className="grid gap-3"
+          initialValues={tplInitial}
+          validationSchema={templateFormSchema}
+          onSubmit={createTemplate}
+        >
+          {(formik) => {
+            tplValuesRef.current = formik.values;
+            return (
+              <TemplateFormFields
+                templateVars={templateVars}
+                preview={tplPreview}
+                t={t}
+              />
+            );
+          }}
+        </CustomForm>
       </Modal>
 
       <FormModal
@@ -1233,33 +1070,15 @@ function MarketingPageInner() {
         cancelLabel={t("common.cancel")}
         submitLoading={busy}
       >
-        <form id="segment-form" onSubmit={createSegment} className="grid gap-3">
-          <Field label={t("common.name")}>
-            <input
-              className={fieldClass}
-              required
-              value={segForm.name}
-              onChange={(e) => setSegForm({ ...segForm, name: e.target.value })}
-            />
-          </Field>
-          <Field label={t("marketing.minPoints")}>
-            <input
-              className={fieldClass}
-              type="number"
-              min={0}
-              value={segForm.min_points}
-              onChange={(e) => setSegForm({ ...segForm, min_points: e.target.value })}
-            />
-          </Field>
-          <label className="flex items-center gap-2 text-sm text-body">
-            <input
-              type="checkbox"
-              checked={segForm.khata}
-              onChange={(e) => setSegForm({ ...segForm, khata: e.target.checked })}
-            />
-            {t("marketing.khataOnly")}
-          </label>
-        </form>
+        <CustomForm
+          id="segment-form"
+          className="grid gap-3"
+          initialValues={segInitial}
+          validationSchema={segmentFormSchema}
+          onSubmit={createSegment}
+        >
+          {() => <SegmentFormFields t={t} />}
+        </CustomForm>
       </FormModal>
 
       <FormModal
@@ -1272,64 +1091,15 @@ function MarketingPageInner() {
         cancelLabel={t("common.cancel")}
         submitLoading={busy}
       >
-        <form id="coupon-form" onSubmit={createCoupon} className="grid gap-3">
-          <Field label={t("marketing.couponCode")}>
-            <input
-              className={fieldClass}
-              required
-              value={couponForm.code}
-              onChange={(e) =>
-                setCouponForm({ ...couponForm, code: e.target.value.toUpperCase() })
-              }
-            />
-          </Field>
-          <Field label={t("marketing.discountType")}>
-            <Select
-              value={couponForm.discount_type}
-              onChange={(v) => setCouponForm({ ...couponForm, discount_type: v })}
-              options={[
-                { value: "percent", label: t("marketing.discountPercent") },
-                { value: "fixed", label: t("marketing.discountFixed") },
-              ]}
-            />
-          </Field>
-          <Field label={t("marketing.discountValue")}>
-            <input
-              className={fieldClass}
-              required
-              value={couponForm.discount_value}
-              onChange={(e) =>
-                setCouponForm({ ...couponForm, discount_value: e.target.value })
-              }
-            />
-          </Field>
-          <Field label={t("marketing.usageLimit")}>
-            <input
-              className={fieldClass}
-              value={couponForm.usage_limit}
-              onChange={(e) =>
-                setCouponForm({ ...couponForm, usage_limit: e.target.value })
-              }
-            />
-          </Field>
-          <Field label={t("marketing.minCart")}>
-            <input
-              className={fieldClass}
-              value={couponForm.min_cart}
-              onChange={(e) => setCouponForm({ ...couponForm, min_cart: e.target.value })}
-            />
-          </Field>
-          <label className="flex items-center gap-2 text-sm text-body">
-            <input
-              type="checkbox"
-              checked={couponForm.stackable}
-              onChange={(e) =>
-                setCouponForm({ ...couponForm, stackable: e.target.checked })
-              }
-            />
-            {t("marketing.stackable")}
-          </label>
-        </form>
+        <CustomForm
+          id="coupon-form"
+          className="grid gap-3"
+          initialValues={couponInitial}
+          validationSchema={couponFormSchema}
+          onSubmit={createCoupon}
+        >
+          {() => <CouponFormFields t={t} />}
+        </CustomForm>
       </FormModal>
 
       <FormModal
@@ -1342,40 +1112,15 @@ function MarketingPageInner() {
         cancelLabel={t("common.cancel")}
         submitLoading={busy}
       >
-        <form id="tier-form" onSubmit={createTier} className="grid gap-3">
-          <Field label={t("common.name")}>
-            <input
-              className={fieldClass}
-              required
-              value={tierForm.name}
-              onChange={(e) => setTierForm({ ...tierForm, name: e.target.value })}
-            />
-          </Field>
-          <Field label={t("marketing.minPoints")}>
-            <input
-              className={fieldClass}
-              type="number"
-              min={0}
-              required
-              value={tierForm.min_points}
-              onChange={(e) => setTierForm({ ...tierForm, min_points: e.target.value })}
-            />
-          </Field>
-          <Field label={t("marketing.earnRate")}>
-            <input
-              className={fieldClass}
-              value={tierForm.earn_rate}
-              onChange={(e) => setTierForm({ ...tierForm, earn_rate: e.target.value })}
-            />
-          </Field>
-          <Field label={t("marketing.redeemRate")}>
-            <input
-              className={fieldClass}
-              value={tierForm.redeem_rate}
-              onChange={(e) => setTierForm({ ...tierForm, redeem_rate: e.target.value })}
-            />
-          </Field>
-        </form>
+        <CustomForm
+          id="tier-form"
+          className="grid gap-3"
+          initialValues={tierInitial}
+          validationSchema={loyaltyTierFormSchema}
+          onSubmit={createTier}
+        >
+          {() => <LoyaltyTierFormFields t={t} />}
+        </CustomForm>
       </FormModal>
     </WorkspacePageScaffold>
   );

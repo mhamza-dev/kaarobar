@@ -16,11 +16,19 @@ import { detailRoutes, routes } from "@/lib/navigation";
 import { accountingKeys } from "@/lib/queryClient";
 import { formatDecimal } from "@/lib/decimal";
 import FormModalFooter from "@/components/app/FormModalFooter";
+import CustomForm from "@/components/ui/CustomForm";
 import {
   AccountFormFields,
   JournalEntryFormFields,
   emptyAccountForm,
+  emptyJournalEntryForm,
 } from "@/components/accounting/AccountingModalForms";
+import {
+  accountFormSchema,
+  journalEntryFormSchema,
+  type AccountFormValues,
+  type JournalEntryFormValues,
+} from "@/lib/validations/accounting";
 import {
   emptyStaffListFilters,
   staffListFilterQuery,
@@ -162,16 +170,13 @@ function AccountingPageInner() {
   const [jeModal, setJeModal] = useState(false);
   const [accountModal, setAccountModal] = useState(false);
   const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
-  const [accountForm, setAccountForm] = useState(emptyAccountForm);
+  const [accountInitial, setAccountInitial] = useState(() => emptyAccountForm());
+  const [jeInitial, setJeInitial] = useState(() => emptyJournalEntryForm());
   const [busy, setBusy] = useState(false);
   const [journalDetailId, setJournalDetailId] = useState<string | null>(null);
   const [journalFilters, setJournalFilters] = useState(emptyStaffListFilters);
   const [journalPage, setJournalPage] = useState(1);
   const [journalPageSize, setJournalPageSize] = useState(20);
-
-  const [jeDesc, setJeDesc] = useState("");
-  const [lineA, setLineA] = useState({ account_id: "", debit: "", credit: "" });
-  const [lineB, setLineB] = useState({ account_id: "", debit: "", credit: "" });
 
   const [reportFilters, setReportFilters] = useState(() => {
     const d = new Date();
@@ -328,33 +333,30 @@ function AccountingPageInner() {
     await queryClient.invalidateQueries({ queryKey: accountingKeys.journals(businessId) });
   }
 
-  async function createJournal(e: React.FormEvent) {
-    e.preventDefault();
+  async function createJournal(values: JournalEntryFormValues) {
     setBusy(true);
     try {
       await api("/journals", {
         method: "POST",
         body: JSON.stringify({
-          description: jeDesc,
+          description: values.description,
           date: to,
           lines: [
             {
-              account_id: lineA.account_id,
-              debit: lineA.debit || "0",
-              credit: lineA.credit || "0",
+              account_id: values.lineA.account_id,
+              debit: values.lineA.debit || "0",
+              credit: values.lineA.credit || "0",
             },
             {
-              account_id: lineB.account_id,
-              debit: lineB.debit || "0",
-              credit: lineB.credit || "0",
+              account_id: values.lineB.account_id,
+              debit: values.lineB.debit || "0",
+              credit: values.lineB.credit || "0",
             },
           ],
         }),
       });
       toast.success(t("accounting.journalPosted"));
-      setJeDesc("");
-      setLineA({ account_id: "", debit: "", credit: "" });
-      setLineB({ account_id: "", debit: "", credit: "" });
+      setJeInitial(emptyJournalEntryForm());
       setJeModal(false);
       await refreshCore();
       setTab("journals");
@@ -377,13 +379,13 @@ function AccountingPageInner() {
 
   function openCreateAccount() {
     setEditingAccountId(null);
-    setAccountForm(emptyAccountForm);
+    setAccountInitial(emptyAccountForm());
     setAccountModal(true);
   }
 
   function openEditAccount(a: Account) {
     setEditingAccountId(a.id);
-    setAccountForm({
+    setAccountInitial({
       code: a.code,
       name: a.name,
       type: a.type || "Expense",
@@ -395,17 +397,16 @@ function AccountingPageInner() {
     setAccountModal(true);
   }
 
-  async function saveAccount(e: React.FormEvent) {
-    e.preventDefault();
+  async function saveAccount(values: AccountFormValues) {
     setBusy(true);
     const payload = {
-      code: accountForm.code,
-      name: accountForm.name,
-      type: accountForm.type,
-      parent_account_id: accountForm.parent_account_id || null,
-      classification: accountForm.classification,
-      normal_balance: accountForm.normal_balance,
-      is_header: accountForm.is_header,
+      code: values.code,
+      name: values.name,
+      type: values.type,
+      parent_account_id: values.parent_account_id || null,
+      classification: values.classification,
+      normal_balance: values.normal_balance,
+      is_header: values.is_header,
     };
     try {
       if (editingAccountId) {
@@ -539,7 +540,10 @@ function AccountingPageInner() {
           tab === "journals"
             ? {
                 label: t("accounting.postJournal"),
-                onClick: () => setJeModal(true),
+                onClick: () => {
+                  setJeInitial(emptyJournalEntryForm());
+                  setJeModal(true);
+                },
                 icon: <BookPlus className="h-4 w-4" />,
               }
             : tab === "coa"
@@ -1092,14 +1096,23 @@ function AccountingPageInner() {
           />
         }
       >
-        <form id="account-modal-form" onSubmit={saveAccount} className="space-y-4">
-          <AccountFormFields
-            form={accountForm}
-            onChange={setAccountForm}
-            accounts={accounts}
-            editingAccountId={editingAccountId}
-          />
-        </form>
+        <CustomForm
+          id="account-modal-form"
+          className="space-y-4"
+          initialValues={accountInitial}
+          validationSchema={accountFormSchema}
+          enableReinitialize
+          onSubmit={async (values) => {
+            await saveAccount(values);
+          }}
+        >
+          {() => (
+            <AccountFormFields
+              accounts={accounts}
+              editingAccountId={editingAccountId}
+            />
+          )}
+        </CustomForm>
       </Modal>
 
       <Modal
@@ -1107,17 +1120,28 @@ function AccountingPageInner() {
         onClose={() => setJeModal(false)}
         title="Post journal"
         description="Enter a balanced two-line manual journal entry."
-        footer={<FormModalFooter cancelLabel="Cancel" submitLabel="Post journal" onCancel={() => setJeModal(false)} submitFormId="je-modal-form" loading={busy} />}
-      >
-        <form id="je-modal-form" onSubmit={createJournal} className="space-y-4">
-          <JournalEntryFormFields
-            description={jeDesc}
-            onDescriptionChange={setJeDesc}
-            lines={[lineA, lineB]}
-            onLineChange={(idx, next) => (idx === 0 ? setLineA(next) : setLineB(next))}
-            accounts={accounts}
+        footer={
+          <FormModalFooter
+            cancelLabel="Cancel"
+            submitLabel="Post journal"
+            onCancel={() => setJeModal(false)}
+            submitFormId="je-modal-form"
+            loading={busy}
           />
-        </form>
+        }
+      >
+        <CustomForm
+          id="je-modal-form"
+          className="space-y-4"
+          initialValues={jeInitial}
+          validationSchema={journalEntryFormSchema}
+          enableReinitialize
+          onSubmit={async (values) => {
+            await createJournal(values);
+          }}
+        >
+          {() => <JournalEntryFormFields accounts={accounts} />}
+        </CustomForm>
       </Modal>
     </div>
   );

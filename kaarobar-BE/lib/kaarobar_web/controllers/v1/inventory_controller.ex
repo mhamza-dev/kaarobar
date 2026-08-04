@@ -4,7 +4,7 @@ defmodule KaarobarWeb.V1.InventoryController do
   alias Kaarobar.Guardian
   alias Kaarobar.Inventory
 
-  def index(conn, _params) do
+  def index(conn, params) do
     user = Guardian.Plug.current_resource(conn)
     business_id = conn.assigns[:business_id]
     owner_id = conn.assigns[:owner_id] || user.id
@@ -13,10 +13,14 @@ defmodule KaarobarWeb.V1.InventoryController do
     if is_nil(business_id) or is_nil(branch_id) do
       conn |> put_status(:bad_request) |> json(%{error: "business_and_branch_required"})
     else
+      alias KaarobarWeb.Controllers.Helpers.ListFilters
+      opts = ListFilters.parse(params, [:q, :limit, :cursor])
+
+      %{data: rows, meta: meta} =
+        Inventory.list_inventory_for_branch(branch_id, owner_id, business_id, opts)
+
       data =
-        branch_id
-        |> Inventory.list_inventory_for_branch(owner_id, business_id)
-        |> Enum.map(fn row ->
+        Enum.map(rows, fn row ->
           %{
             product_id: row.product_id,
             sku: row.product && row.product.sku,
@@ -26,7 +30,7 @@ defmodule KaarobarWeb.V1.InventoryController do
           }
         end)
 
-      json(conn, %{data: data})
+      json(conn, %{data: data, meta: meta})
     end
   end
 

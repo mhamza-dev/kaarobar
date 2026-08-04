@@ -490,12 +490,15 @@ const en: HelpCatalog = {
     summary: "Promo codes for POS checkout.",
     what: "Discount codes cashiers can enter in the cart.",
     how: [
-      "Create a code and discount value.",
+      "Create a code, discount value, and optional validity dates.",
       "Share with customers.",
       "Enter the code at POS before checkout.",
     ],
     when: "For discount campaigns and partner offers.",
-    tips: ["Set usage limits so codes are not over-redeemed."],
+    tips: [
+      "Set usage limits so codes are not over-redeemed.",
+      "Leave Valid from/to blank for no date limit; expired windows fail at POS.",
+    ],
   },
   "tab.marketing.tiers": {
     title: "Loyalty Tiers",

@@ -1,15 +1,24 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useField } from "formik";
 import { api, getSession } from "@/lib/api/client";
 import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
-import Select from "@/components/ui/Select";
+import CustomForm from "@/components/ui/CustomForm";
+import {
+  FormikSelectField,
+  FormikTextField,
+} from "@/components/ui/FormFields";
 import { Field, fieldClass } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { formatDecimal } from "@/lib/decimal";
 import { generateBarcode } from "@/lib/barcode";
+import {
+  productFormSchema,
+  type ProductFormValues,
+} from "@/lib/validations/products";
 
 function activeShopName(): string | null {
   const session = getSession();
@@ -34,20 +43,7 @@ export type ProductFormProduct = {
   category_id?: string | null;
 };
 
-type ProductFormState = {
-  sku: string;
-  name: string;
-  price: string;
-  barcode: string;
-  brand: string;
-  unit: string;
-  product_kind: string;
-  duration_minutes: string;
-  category: string;
-  category_id: string;
-};
-
-const emptyForm: ProductFormState = {
+const emptyForm: ProductFormValues = {
   sku: "",
   name: "",
   price: "",
@@ -60,7 +56,7 @@ const emptyForm: ProductFormState = {
   category_id: "",
 };
 
-function toFormState(product?: ProductFormProduct | null): ProductFormState {
+function toFormState(product?: ProductFormProduct | null): ProductFormValues {
   if (!product) return emptyForm;
   return {
     sku: product.sku || "",
@@ -75,6 +71,38 @@ function toFormState(product?: ProductFormProduct | null): ProductFormState {
     category: product.category || "",
     category_id: product.category_id || "",
   };
+}
+
+function FormikDecimalField({
+  name,
+  label,
+  required,
+}: {
+  name: string;
+  label: string;
+  required?: boolean;
+}) {
+  const [field, meta, helpers] = useField(name);
+  const error = meta.touched && meta.error ? meta.error : undefined;
+  return (
+    <div>
+      <Field label={label}>
+        <input
+          {...field}
+          type="number"
+          step="0.01"
+          required={required}
+          className={fieldClass}
+          onBlur={(e) => {
+            field.onBlur(e);
+            if (e.target.value.trim() === "") return;
+            void helpers.setValue(formatDecimal(e.target.value));
+          }}
+        />
+      </Field>
+      {error ? <p className="mt-1 text-xs text-danger">{error}</p> : null}
+    </div>
+  );
 }
 
 type Props = {
@@ -94,27 +122,31 @@ export default function ProductFormModal({
   const t = useT();
   const toast = useToast();
   const editing = !!product?.id;
-  const [form, setForm] = useState<ProductFormState>(emptyForm);
   const [image, setImage] = useState<File | null>(null);
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>(
+    []
+  );
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
-    setForm(toFormState(product));
     setImage(null);
     void api<{ data: { id: string; name: string }[] }>("/categories")
       .then((res) => setCategories(res.data || []))
       .catch(() => setCategories([]));
   }, [isOpen, product]);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSubmit(values: ProductFormValues) {
     setBusy(true);
     try {
+      const cat = categories.find((c) => c.id === values.category_id);
+      const payload: ProductFormValues = {
+        ...values,
+        category: cat?.name || values.category || "",
+      };
       const fd = new FormData();
-      Object.entries(form).forEach(([k, v]) => {
-        if (v) fd.append(k, v);
+      Object.entries(payload).forEach(([k, v]) => {
+        if (v) fd.append(k, String(v));
       });
       if (image) fd.append("image", image);
 
@@ -162,127 +194,105 @@ export default function ProductFormModal({
         </div>
       }
     >
-      <form id="product-modal-form" onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="SKU">
-            <input
-              className={fieldClass}
-              value={form.sku}
-              onChange={(e) => setForm({ ...form, sku: e.target.value })}
-              required
-            />
-          </Field>
-          <Field label={t("inventory.barcode")}>
-            <div className="flex gap-2">
-              <input
-                className={`${fieldClass} min-w-0 flex-1`}
-                value={form.barcode}
-                onChange={(e) => setForm({ ...form, barcode: e.target.value })}
-                placeholder={t("inventory.barcodePlaceholder")}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                className="shrink-0"
-                onClick={() =>
-                  setForm({ ...form, barcode: generateBarcode(activeShopName()) })
-                }
-              >
-                {t("inventory.generateBarcode")}
-              </Button>
+      <CustomForm<ProductFormValues>
+        id="product-modal-form"
+        className="space-y-4"
+        initialValues={toFormState(product)}
+        validationSchema={productFormSchema}
+        enableReinitialize
+        onSubmit={handleSubmit}
+      >
+        {({ values, setFieldValue }) => (
+          <>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormikTextField name="sku" label="SKU" required />
+              <div>
+                <Field label={t("inventory.barcode")}>
+                  <div className="flex gap-2">
+                    <input
+                      className={`${fieldClass} min-w-0 flex-1`}
+                      value={values.barcode || ""}
+                      onChange={(e) =>
+                        void setFieldValue("barcode", e.target.value)
+                      }
+                      placeholder={t("inventory.barcodePlaceholder")}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="shrink-0"
+                      onClick={() =>
+                        void setFieldValue(
+                          "barcode",
+                          generateBarcode(activeShopName())
+                        )
+                      }
+                    >
+                      {t("inventory.generateBarcode")}
+                    </Button>
+                  </div>
+                </Field>
+              </div>
             </div>
-          </Field>
-        </div>
-        <Field label="Name">
-          <input
-            className={fieldClass}
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            required
-          />
-        </Field>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Field label="Kind">
-            <Select
-              value={form.product_kind}
-              onChange={(v) => setForm({ ...form, product_kind: v })}
-              options={[
-                { value: "goods", label: "Goods" },
-                { value: "service", label: "Service" },
-                { value: "combo", label: "Combo" },
-              ]}
-            />
-          </Field>
-          <Field label="Unit">
-            <Select
-              value={form.unit}
-              onChange={(v) => setForm({ ...form, unit: v })}
-              options={["pcs", "kg", "g", "ml", "l", "box", "pack", "hour", "session"].map(
-                (u) => ({ value: u, label: u })
-              )}
-            />
-          </Field>
-          <Field label="Branch price">
-            <input
-              className={fieldClass}
-              type="number"
-              step="0.01"
-              value={form.price}
-              onChange={(e) => setForm({ ...form, price: e.target.value })}
-              onBlur={(e) => {
-                if (e.target.value.trim() === "") return;
-                setForm({ ...form, price: formatDecimal(e.target.value) });
-              }}
-              required
-            />
-          </Field>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Brand">
-            <input
-              className={fieldClass}
-              value={form.brand}
-              onChange={(e) => setForm({ ...form, brand: e.target.value })}
-            />
-          </Field>
-          <Field label="Category">
-            <Select
-              value={form.category_id}
-              onChange={(v) => {
-                const cat = categories.find((c) => c.id === v);
-                setForm({
-                  ...form,
-                  category_id: v,
-                  category: cat?.name || "",
-                });
-              }}
-              placeholder="Select…"
-              options={[
-                { value: "", label: "Select…" },
-                ...categories.map((c) => ({ value: c.id, label: c.name })),
-              ]}
-            />
-          </Field>
-        </div>
-        {form.product_kind === "service" ? (
-          <Field label="Duration (minutes)">
-            <input
-              className={fieldClass}
-              value={form.duration_minutes}
-              onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })}
-              placeholder="e.g. 45"
-            />
-          </Field>
-        ) : null}
-        <Field label="Product image">
-          <input
-            type="file"
-            accept="image/*"
-            className={fieldClass}
-            onChange={(e) => setImage(e.target.files?.[0] || null)}
-          />
-        </Field>
-      </form>
+            <FormikTextField name="name" label="Name" required />
+            <div className="grid gap-4 sm:grid-cols-3">
+              <FormikSelectField
+                name="product_kind"
+                label="Kind"
+                options={[
+                  { value: "goods", label: "Goods" },
+                  { value: "service", label: "Service" },
+                  { value: "combo", label: "Combo" },
+                ]}
+              />
+              <FormikSelectField
+                name="unit"
+                label="Unit"
+                options={[
+                  "pcs",
+                  "kg",
+                  "g",
+                  "ml",
+                  "l",
+                  "box",
+                  "pack",
+                  "hour",
+                  "session",
+                ].map((u) => ({ value: u, label: u }))}
+              />
+              <FormikDecimalField name="price" label="Branch price" required />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormikTextField name="brand" label="Brand" />
+              <FormikSelectField
+                name="category_id"
+                label="Category"
+                selectedLabel={values.category || undefined}
+                placeholder="Select…"
+                options={[
+                  { value: "", label: "Select…" },
+                  ...categories.map((c) => ({ value: c.id, label: c.name })),
+                ]}
+              />
+            </div>
+            {values.product_kind === "service" ? (
+              <FormikTextField
+                name="duration_minutes"
+                label="Duration (minutes)"
+                placeholder="e.g. 45"
+              />
+            ) : null}
+            <Field label="Product image">
+              <input
+                type="file"
+                accept="image/*"
+                className={fieldClass}
+                onChange={(e) => setImage(e.target.files?.[0] || null)}
+              />
+            </Field>
+          </>
+        )}
+      </CustomForm>
     </Modal>
   );
 }

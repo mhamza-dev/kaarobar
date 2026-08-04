@@ -11,7 +11,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { api, colors, getSession, type Session } from "../lib/api";
+import { api, apiAllPages, colors, getSession, type Session } from "../lib/api";
 import EntityFormModal from "../components/screen/EntityFormModal";
 import { BarcodeScannerModal } from "../components/BarcodeScannerModal";
 import ScreenTabs from "../components/screen/ScreenTabs";
@@ -178,10 +178,7 @@ export default function InventoryScreen() {
 
   const { data: productsData } = useQuery({
     queryKey: inventoryKeys.products(businessId),
-    queryFn: async (): Promise<Product[]> => {
-      const res = await api<{ data: Product[] }>("/products");
-      return res.data || [];
-    },
+    queryFn: async (): Promise<Product[]> => apiAllPages<Product>("/products"),
     enabled: ready && needProducts,
   });
   const products: Product[] = productsData ?? [];
@@ -189,10 +186,11 @@ export default function InventoryScreen() {
   const { data: stockData } = useQuery({
     queryKey: inventoryKeys.stock(businessId),
     queryFn: async (): Promise<StockRow[]> => {
-      const res = await api<{ data: StockRow[] }>("/app/inventory").catch(() => ({
-        data: [] as StockRow[],
-      }));
-      return res.data || [];
+      try {
+        return await apiAllPages<StockRow>("/inventory");
+      } catch {
+        return [] as StockRow[];
+      }
     },
     enabled: ready && tab === "stock",
   });
@@ -201,10 +199,11 @@ export default function InventoryScreen() {
   const { data: suppliersData } = useQuery({
     queryKey: inventoryKeys.suppliers(businessId),
     queryFn: async (): Promise<Supplier[]> => {
-      const res = await api<{ data: Supplier[] }>("/suppliers").catch(() => ({
-        data: [] as Supplier[],
-      }));
-      return res.data || [];
+      try {
+        return await apiAllPages<Supplier>("/suppliers");
+      } catch {
+        return [] as Supplier[];
+      }
     },
     enabled: ready && needSuppliers,
   });

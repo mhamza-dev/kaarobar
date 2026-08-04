@@ -486,16 +486,23 @@ defmodule KaarobarWeb.V1.ArApController do
     end
   end
 
-  def list_ar(conn, _params) do
+  def list_ar(conn, params) do
     user = Guardian.Plug.current_resource(conn)
     business_id = conn.assigns[:business_id]
     owner_id = conn.assigns[:owner_id] || user.id
 
-    data =
-      Accounting.list_ar_invoices(business_id, owner_id)
-      |> Enum.map(&serialize_ar/1)
+    alias KaarobarWeb.Controllers.Helpers.ListFilters
 
-    json(conn, %{data: data})
+    opts =
+      ListFilters.parse(params)
+      |> Keyword.merge(
+        customer_id: blank_param(params["customer_id"]),
+        open_only: params["open_only"] in [true, "true", "1"]
+      )
+
+    %{data: rows, meta: meta} = Accounting.list_ar_invoices(business_id, owner_id, opts)
+
+    json(conn, %{data: Enum.map(rows, &serialize_ar/1), meta: meta})
   end
 
   def show_ar(conn, %{"id" => id}) do
@@ -558,16 +565,23 @@ defmodule KaarobarWeb.V1.ArApController do
     json(conn, %{data: Accounting.ar_aging(business_id, owner_id, as_of)})
   end
 
-  def list_ap(conn, _params) do
+  def list_ap(conn, params) do
     user = Guardian.Plug.current_resource(conn)
     business_id = conn.assigns[:business_id]
     owner_id = conn.assigns[:owner_id] || user.id
 
-    data =
-      Accounting.list_ap_bills(business_id, owner_id)
-      |> Enum.map(&serialize_ap(&1, false))
+    alias KaarobarWeb.Controllers.Helpers.ListFilters
 
-    json(conn, %{data: data})
+    opts =
+      ListFilters.parse(params)
+      |> Keyword.merge(
+        supplier_id: blank_param(params["supplier_id"]),
+        open_only: params["open_only"] in [true, "true", "1"]
+      )
+
+    %{data: rows, meta: meta} = Accounting.list_ap_bills(business_id, owner_id, opts)
+
+    json(conn, %{data: Enum.map(rows, &serialize_ap(&1, false)), meta: meta})
   end
 
   def show_ap(conn, %{"id" => id}) do
@@ -724,4 +738,9 @@ defmodule KaarobarWeb.V1.ArApController do
       base
     end
   end
+
+  defp blank_param(nil), do: nil
+  defp blank_param(""), do: nil
+  defp blank_param(v) when is_binary(v), do: String.trim(v)
+  defp blank_param(v), do: v
 end

@@ -15,7 +15,7 @@ defmodule KaarobarWeb.V1.JournalController do
 
     %{data: entries, meta: meta} = Accounting.list_journals(business_id, owner_id, opts)
 
-    json(conn, %{data: Enum.map(entries, &serialize/1), meta: meta})
+    json(conn, %{data: Enum.map(entries, &serialize_list/1), meta: meta})
   end
 
   def show(conn, %{"id" => id}) do
@@ -71,6 +71,19 @@ defmodule KaarobarWeb.V1.JournalController do
       {:error, reason} ->
         conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(reason)})
     end
+  end
+
+  defp serialize_list(entry) do
+    %{
+      id: entry.id,
+      date: entry.date,
+      description: entry.description,
+      source_type: entry.source_type,
+      is_locked: entry.is_locked,
+      branch_id: entry.branch_id,
+      inserted_at: entry.inserted_at,
+      lines: []
+    }
   end
 
   defp serialize(entry) do

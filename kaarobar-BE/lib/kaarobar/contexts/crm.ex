@@ -65,13 +65,38 @@ defmodule Kaarobar.Crm do
 
   ## —— Campaigns ————————————————————————————————————————————
 
-  def list_campaigns(business_id, owner_id) do
-    from(c in CrmCampaign,
-      where: c.business_id == ^business_id and c.owner_id == ^owner_id,
-      order_by: [desc: c.inserted_at],
-      preload: [:recipients, :segment, :coupon]
-    )
-    |> Repo.all()
+  def list_campaigns(business_id, owner_id, opts \\ []) do
+    alias KaarobarWeb.Controllers.Helpers.ListFilters
+
+    query =
+      from(c in CrmCampaign,
+        where: c.business_id == ^business_id and c.owner_id == ^owner_id,
+        order_by: [desc: c.inserted_at],
+        preload: [:segment, :coupon]
+      )
+
+    result = ListFilters.paginate(query, opts)
+    ids = Enum.map(result.data, & &1.id)
+
+    counts =
+      if ids == [] do
+        %{}
+      else
+        from(r in Kaarobar.Schemas.CrmCampaignRecipient,
+          where: r.campaign_id in ^ids,
+          group_by: r.campaign_id,
+          select: {r.campaign_id, count(r.id)}
+        )
+        |> Repo.all()
+        |> Map.new()
+      end
+
+    data =
+      Enum.map(result.data, fn c ->
+        Map.put(c, :recipients_count, Map.get(counts, c.id, 0))
+      end)
+
+    %{data: data, meta: result.meta}
   end
 
   def get_campaign(id, business_id, owner_id) do

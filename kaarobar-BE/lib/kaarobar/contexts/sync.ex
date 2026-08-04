@@ -12,7 +12,8 @@ defmodule Kaarobar.Sync do
     products =
       from(p in Product,
         where: p.business_id == ^business_id and p.owner_id == ^owner_id and p.is_active == true,
-        order_by: [asc: p.name]
+        order_by: [asc: p.name],
+        preload: [:images]
       )
       |> Repo.all()
 
@@ -45,7 +46,7 @@ defmodule Kaarobar.Sync do
         tax_rate: to_string(p.tax_rate || 0),
         price: price && to_string(price.price),
         quantity_on_hand: inv && to_string(inv.quantity_on_hand || 0),
-        image_url: Kaarobar.Catalog.primary_image_url(Repo.preload(p, :images))
+        image_url: Kaarobar.Catalog.primary_image_url(p)
       }
     end)
   end

@@ -5,10 +5,16 @@ import { useRouter } from "next/navigation";
 import { Calendar, Check, ChevronLeft, Clock, User } from "lucide-react";
 import { api, isConsumerSession } from "@/lib/api/client";
 import Button from "@/components/ui/Button";
+import CustomForm from "@/components/ui/CustomForm";
+import { FormikTextField } from "@/components/ui/FormFields";
 import { Alert, EmptyState } from "@/components/app/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { formatDecimal } from "@/lib/decimal";
+import {
+  appointmentNotesSchema,
+  type AppointmentNotesValues,
+} from "@/lib/validations/checkout";
 
 export type BookableService = {
   id: string;
@@ -90,9 +96,7 @@ export default function BuyerBookFlow({
   const [date, setDate] = useState(addDaysIso(1));
   const [slots, setSlots] = useState<Slot[]>([]);
   const [slot, setSlot] = useState<Slot | null>(null);
-  const [notes, setNotes] = useState("");
   const [loadingSlots, setLoadingSlots] = useState(false);
-  const [booking, setBooking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const dateOptions = useMemo(
@@ -187,9 +191,8 @@ export default function BuyerBookFlow({
     setStep("confirm");
   }
 
-  async function confirmBooking() {
+  async function confirmBooking(values: AppointmentNotesValues) {
     if (!service || !slot) return;
-    setBooking(true);
     setError(null);
     try {
       await api("/portal/appointments", {
@@ -201,7 +204,7 @@ export default function BuyerBookFlow({
           staff_id: slot.staff_id,
           starts_at: slot.starts_at,
           ends_at: slot.ends_at,
-          notes: notes.trim() || undefined,
+          notes: values.notes.trim() || undefined,
         }),
       });
       toast.success(t("appointments.booked"));
@@ -210,8 +213,6 @@ export default function BuyerBookFlow({
       const msg = err instanceof Error ? err.message : t("appointments.bookFailed");
       setError(msg);
       toast.error(msg);
-    } finally {
-      setBooking(false);
     }
   }
 
@@ -430,23 +431,29 @@ export default function BuyerBookFlow({
               {" · "}
               Rs {formatDecimal(service.price)}
             </p>
-            <label className="block text-sm">
-              <span className="mb-1 block font-medium text-heading">
-                {t("appointments.notes")}
-              </span>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={2}
-                className="w-full rounded-md border border-border bg-bg-primary px-3 py-2 text-sm text-heading outline-none focus:border-brand/20"
-                placeholder={t("appointments.notesPlaceholder")}
-              />
-            </label>
+            <CustomForm
+              initialValues={{ notes: "" }}
+              validationSchema={appointmentNotesSchema}
+              onSubmit={confirmBooking}
+              className="space-y-3"
+            >
+              {({ isSubmitting }) => (
+                <>
+                  <FormikTextField
+                    name="notes"
+                    label={t("appointments.notes")}
+                    type="textarea"
+                    rows={2}
+                    placeholder={t("appointments.notesPlaceholder")}
+                  />
+                  {error ? <Alert tone="error">{error}</Alert> : null}
+                  <Button type="submit" loading={isSubmitting} className="rounded-md">
+                    {t("appointments.confirmBook")}
+                  </Button>
+                </>
+              )}
+            </CustomForm>
           </div>
-          {error ? <Alert tone="error">{error}</Alert> : null}
-          <Button loading={booking} onClick={() => void confirmBooking()} className="rounded-md">
-            {t("appointments.confirmBook")}
-          </Button>
         </div>
       ) : null}
     </div>

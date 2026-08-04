@@ -82,3 +82,45 @@ export const signupSchema = yup.object({
     .boolean()
     .oneOf([true], "You must accept the Terms & Conditions"),
 });
+
+/** Consumer / buyer registration (no business name required). */
+export const buyerSignupSchema = yup.object({
+  signupMethod: yup.mixed<AuthMethod>().oneOf(["email", "phone"]).required(),
+
+  fullName: yup
+    .string()
+    .trim()
+    .required("Full name is required")
+    .min(2)
+    .max(100),
+
+  businessName: yup.string().trim().notRequired(),
+
+  email: email.when("signupMethod", {
+    is: "email",
+    then: (schema) => schema.required("Email address is required"),
+    otherwise: (schema) => schema.notRequired(),
+  }),
+
+  phoneNumber: phoneNumber.when("signupMethod", {
+    is: "phone",
+    then: (schema) => schema.required("Phone number is required"),
+    otherwise: (schema) => schema.notRequired(),
+  }),
+
+  password,
+
+  confirmPassword: yup
+    .string()
+    .required("Please confirm your password")
+    .oneOf([yup.ref("password")], "Passwords do not match"),
+
+  acceptTerms: yup
+    .boolean()
+    .oneOf([true], "You must accept the Terms & Conditions"),
+});
+
+/** Buyer invite accept — set password from invite link. */
+export const inviteAcceptSchema = yup.object({
+  password,
+});

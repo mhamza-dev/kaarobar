@@ -15,6 +15,8 @@ export type SearchSelectProps = {
   options: SearchSelectOption[];
   value: string | null;
   onChange: (next: string | null) => void;
+  /** Shown while `options` have not yet loaded the current value (edit forms). */
+  selectedLabel?: string;
   label?: string;
   placeholder?: string;
   searchPlaceholder?: string;
@@ -28,6 +30,7 @@ export default function SearchSelect({
   options,
   value,
   onChange,
+  selectedLabel,
   label,
   placeholder,
   searchPlaceholder,
@@ -49,6 +52,7 @@ export default function SearchSelect({
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState<Coords | null>(null);
   const [query, setQuery] = useState("");
+  const [cached, setCached] = useState<SearchSelectOption | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -58,6 +62,21 @@ export default function SearchSelect({
     () => options.find((o) => o.value === value) ?? null,
     [options, value]
   );
+
+  useEffect(() => {
+    if (selected) {
+      setCached(selected);
+    } else if (!value) {
+      setCached(null);
+    }
+  }, [selected, value]);
+
+  const display =
+    selected ||
+    (value && selectedLabel
+      ? { value, label: selectedLabel, meta: cached?.meta }
+      : null) ||
+    (value && cached?.value === value ? cached : null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -138,10 +157,10 @@ export default function SearchSelect({
         onClick={() => !disabled && setOpen((o) => !o)}
         className="box-border flex h-[2.625rem] min-h-[2.625rem] w-full items-center gap-2 rounded-md border border-border bg-bg-secondary/80 px-3 text-start text-sm leading-none text-heading outline-none transition hover:border-brand/40 focus:border-brand/20 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        <span className={`min-w-0 flex-1 truncate ${selected ? "" : "text-muted"}`}>
-          {selected ? selected.label : resolvedPlaceholder}
+        <span className={`min-w-0 flex-1 truncate ${display ? "" : "text-muted"}`}>
+          {display ? display.label : resolvedPlaceholder}
         </span>
-        {clearable && selected && !disabled ? (
+        {clearable && display && !disabled ? (
           <span
             role="button"
             tabIndex={-1}
@@ -149,6 +168,7 @@ export default function SearchSelect({
             className="rounded-md p-0.5 text-muted hover:bg-bg-secondary hover:text-heading"
             onClick={(e) => {
               e.stopPropagation();
+              setCached(null);
               onChange(null);
             }}
           >

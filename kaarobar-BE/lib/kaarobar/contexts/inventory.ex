@@ -478,14 +478,28 @@ defmodule Kaarobar.Inventory do
     end)
   end
 
-  def list_inventory_for_branch(branch_id, owner_id, business_id) do
-    InventoryRecord
-    |> where(
-      [i],
-      i.branch_id == ^branch_id and i.owner_id == ^owner_id and i.business_id == ^business_id
-    )
-    |> preload(:product)
-    |> Repo.all()
+  def list_inventory_for_branch(branch_id, owner_id, business_id, opts \\ []) do
+    alias KaarobarWeb.Controllers.Helpers.ListFilters
+
+    query =
+      InventoryRecord
+      |> where(
+        [i],
+        i.branch_id == ^branch_id and i.owner_id == ^owner_id and i.business_id == ^business_id
+      )
+      |> preload(:product)
+      |> order_by([i], asc: i.product_id)
+
+    # Branch stock screens often need a large page; default 100 (cap 200).
+    opts =
+      if Keyword.has_key?(opts, :limit) do
+        opts
+      else
+        Keyword.put(opts, :limit, 100)
+      end
+
+    result = ListFilters.paginate(query, opts)
+    %{data: result.data, meta: result.meta}
   end
 
   def adjust_stock(branch_id, owner_id, business_id, adjusted_by_id, params) do

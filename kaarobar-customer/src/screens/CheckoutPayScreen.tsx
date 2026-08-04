@@ -4,7 +4,6 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { api, colors, getSession } from "../lib/api";
@@ -13,10 +12,16 @@ import { useToast } from "../components/Toast";
 import BuyerNav from "../components/BuyerNav";
 import { brandPaletteFromPrimary } from "../lib/brandTheme";
 import { useBrandPalette } from "../lib/BrandThemeContext";
-import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
 import { replacePath, pushPath } from "../lib/nav";
 import { formatDecimal } from "../lib/decimal";
+import CustomForm from "../components/ui/CustomForm";
+import { FormikTextField } from "../components/ui/FormFields";
+import {
+  checkoutPaySchema,
+  type CheckoutPayValues,
+} from "../lib/validations/checkout";
 
 export default function CheckoutPayScreen() {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
@@ -27,12 +32,13 @@ export default function CheckoutPayScreen() {
     stores.length === 1
       ? brandPaletteFromPrimary(stores[0].branding?.primaryColor)
       : staffBrand;
-  const [contactName, setContactName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [pickupNotes, setPickupNotes] = useState("");
-  const [payMethod, setPayMethod] = useState<"card" | "wallet">("card");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [initialValues, setInitialValues] = useState<CheckoutPayValues>({
+    contactName: "",
+    phone: "",
+    pickupNotes: "",
+    payMethod: "card",
+  });
 
   useEffect(() => {
     if (stores.length === 0) {
@@ -42,11 +48,14 @@ export default function CheckoutPayScreen() {
     void (async () => {
       const s = await getSession();
       if (s?.user) {
-        setContactName(s.user.name || "");
-        setPhone(s.user.phone || "");
+        setInitialValues((prev) => ({
+          ...prev,
+          contactName: prev.contactName || s.user.name || "",
+          phone: prev.phone || s.user.phone || "",
+        }));
       }
     })();
-  }, [stores.length]);
+  }, [stores.length, navigation]);
 
   if (stores.length === 0) {
     return (
@@ -57,67 +66,56 @@ export default function CheckoutPayScreen() {
     );
   }
 
-  async function placeOrder() {
+  async function placeOrder(values: CheckoutPayValues) {
     if (stores.length === 0) return;
-    const name = contactName.trim();
-    const phoneVal = phone.trim();
-    if (!name || !phoneVal) {
-      setError("Contact name and phone are required for pickup.");
-      return;
-    }
+    const name = values.contactName.trim();
+    const phoneVal = values.phone.trim();
     const noteParts = [
       `Pickup contact: ${name}`,
       `Phone: ${phoneVal}`,
-      pickupNotes.trim() ? `Notes: ${pickupNotes.trim()}` : null,
+      values.pickupNotes.trim() ? `Notes: ${values.pickupNotes.trim()}` : null,
     ].filter(Boolean);
     const notes = noteParts.join(" · ");
 
-    setBusy(true);
-    setError(null);
+    setSubmitError(null);
     const snapshot = [...stores];
     let placed = 0;
     const failed: string[] = [];
 
-    try {
-      for (const store of snapshot) {
-        try {
-          await api("/portal/orders", {
-            method: "POST",
-            body: JSON.stringify({
-              business_id: store.businessId,
-              payment_method: payMethod,
-              notes,
-              items: store.lines.map((l) => ({
-                product_id: l.productId,
-                quantity: l.quantity,
-              })),
-            }),
-          });
-          placed += 1;
-          clearStore(store.businessId);
-        } catch (err) {
-          failed.push(
-            `${store.businessName}: ${err instanceof Error ? err.message : "Failed"}`
-          );
-        }
-      }
-
-      if (failed.length === 0) {
-        clear();
-        toast.success(
-          placed === 1 ? "Order placed" : `${placed} orders placed`
+    for (const store of snapshot) {
+      try {
+        await api("/portal/orders", {
+          method: "POST",
+          body: JSON.stringify({
+            business_id: store.businessId,
+            payment_method: values.payMethod,
+            notes,
+            items: store.lines.map((l) => ({
+              product_id: l.productId,
+              quantity: l.quantity,
+            })),
+          }),
+        });
+        placed += 1;
+        clearStore(store.businessId);
+      } catch (err) {
+        failed.push(
+          `${store.businessName}: ${err instanceof Error ? err.message : "Failed"}`
         );
-        replacePath(navigation, "/app/sales");
-        return;
       }
-
-      if (placed > 0) {
-        toast.success(`${placed} order(s) placed; ${failed.length} failed`);
-      }
-      setError(failed.join(" · "));
-    } finally {
-      setBusy(false);
     }
+
+    if (failed.length === 0) {
+      clear();
+      toast.success(placed === 1 ? "Order placed" : `${placed} orders placed`);
+      replacePath(navigation, "/app/sales");
+      return;
+    }
+
+    if (placed > 0) {
+      toast.success(`${placed} order(s) placed; ${failed.length} failed`);
+    }
+    setSubmitError(failed.join(" · "));
   }
 
   return (
@@ -145,68 +143,96 @@ export default function CheckoutPayScreen() {
           </Text>
         </View>
       ) : null}
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {submitError ? <Text style={styles.error}>{submitError}</Text> : null}
 
-      <Text style={styles.label}>Name</Text>
-      <TextInput
-        style={styles.input}
-        value={contactName}
-        onChangeText={setContactName}
-        placeholderTextColor={colors.muted}
-      />
-      <Text style={styles.label}>Phone</Text>
-      <TextInput
-        style={styles.input}
-        value={phone}
-        onChangeText={setPhone}
-        keyboardType="phone-pad"
-        placeholderTextColor={colors.muted}
-      />
-      <Text style={styles.label}>Pickup notes</Text>
-      <TextInput
-        style={[styles.input, { minHeight: 72 }]}
-        value={pickupNotes}
-        onChangeText={setPickupNotes}
-        multiline
-        placeholder="e.g. ready after 5pm"
-        placeholderTextColor={colors.muted}
-      />
-
-      <Text style={styles.label}>Payment</Text>
-      <View style={styles.payRow}>
-        {(["card", "wallet"] as const).map((m) => (
-          <Pressable
-            key={m}
-            style={[styles.payBtn, payMethod === m && { backgroundColor: storePalette.brand, borderColor: storePalette.brand }]}
-            onPress={() => setPayMethod(m)}
-          >
-            <Text
-              style={[
-                styles.payText,
-                payMethod === m && { color: storePalette.brandForeground },
-              ]}
-            >
-              {m}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-
-      <Pressable
-        style={[styles.cta, { backgroundColor: storePalette.brand }, busy && { opacity: 0.5 }]}
-        disabled={busy}
-        onPress={() => void placeOrder()}
+      <CustomForm
+        initialValues={initialValues}
+        validationSchema={checkoutPaySchema}
+        onSubmit={placeOrder}
       >
-        {busy ? (
-          <ActivityIndicator color={storePalette.brandForeground} />
-        ) : (
-          <Text style={[styles.ctaText, { color: storePalette.brandForeground }]}>
-            {stores.length > 1 ? `Place ${stores.length} orders` : "Place order"}
-          </Text>
+        {({ values, setFieldValue, handleSubmit, isSubmitting }) => (
+          <View>
+            <FormikTextField
+              name="contactName"
+              label="Name"
+              style={{ marginBottom: 8 }}
+              inputStyle={styles.input}
+            />
+            <FormikTextField
+              name="phone"
+              label="Phone"
+              keyboardType="phone-pad"
+              style={{ marginBottom: 8 }}
+              inputStyle={styles.input}
+            />
+            <FormikTextField
+              name="pickupNotes"
+              label="Pickup notes"
+              multiline
+              placeholder="e.g. ready after 5pm"
+              style={{ marginBottom: 8 }}
+              inputStyle={[styles.input, { minHeight: 72 }]}
+            />
+
+            <Text style={styles.label}>Payment</Text>
+            <View style={styles.payRow}>
+              {(["card", "wallet"] as const).map((m) => (
+                <Pressable
+                  key={m}
+                  style={[
+                    styles.payBtn,
+                    values.payMethod === m && {
+                      backgroundColor: storePalette.brand,
+                      borderColor: storePalette.brand,
+                    },
+                  ]}
+                  onPress={() => void setFieldValue("payMethod", m)}
+                >
+                  <Text
+                    style={[
+                      styles.payText,
+                      values.payMethod === m && {
+                        color: storePalette.brandForeground,
+                      },
+                    ]}
+                  >
+                    {m}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <Pressable
+              style={[
+                styles.cta,
+                { backgroundColor: storePalette.brand },
+                isSubmitting && { opacity: 0.5 },
+              ]}
+              disabled={isSubmitting}
+              onPress={() => handleSubmit()}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator color={storePalette.brandForeground} />
+              ) : (
+                <Text
+                  style={[
+                    styles.ctaText,
+                    { color: storePalette.brandForeground },
+                  ]}
+                >
+                  {stores.length > 1
+                    ? `Place ${stores.length} orders`
+                    : "Place order"}
+                </Text>
+              )}
+            </Pressable>
+          </View>
         )}
-      </Pressable>
+      </CustomForm>
       <Pressable onPress={() => pushPath(navigation, "/app/checkout")}>
-        <Text style={[styles.back, { color: storePalette.brand }]}>← Back to cart</Text>
+        <Text style={[styles.back, { color: storePalette.brand }]}>
+          ← Back to cart
+        </Text>
       </Pressable>
     </View>
   );
@@ -254,7 +280,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
-  payText: { color: colors.heading, textTransform: "capitalize", fontWeight: "600" },
+  payText: {
+    color: colors.heading,
+    textTransform: "capitalize",
+    fontWeight: "600",
+  },
   cta: {
     borderRadius: 12,
     paddingVertical: 14,

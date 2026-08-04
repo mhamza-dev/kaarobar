@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { Wallet } from "lucide-react";
 import { api } from "@/lib/api/client";
 import { routes } from "@/lib/navigation";
 import { DetailFieldGrid, DetailSection, DetailShell } from "@/components/app/DetailShell";
@@ -7,6 +8,11 @@ import ProfilePicEditor from "@/components/app/ProfilePicEditor";
 import type { Customer } from "@/lib/customers";
 import { formatDecimal } from "@/lib/decimal";
 import { useT } from "@/lib/i18n";
+import { useToast } from "@/components/ui/Toast";
+import Button from "@/components/ui/Button";
+import ReceiveArPaymentFormModal, {
+  type OpenArInvoice,
+} from "@/components/customers/ReceiveArPaymentFormModal";
 
 type LedgerEntry = {
   kind: string;
@@ -20,8 +26,12 @@ type LedgerEntry = {
 export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>();
   const t = useT();
+  const toast = useToast();
   const [customer, setCustomer] = useState<(Customer & { balance?: string }) | null>(null);
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
+  const [openInvoices, setOpenInvoices] = useState<OpenArInvoice[]>([]);
+  const [payOpen, setPayOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -30,12 +40,16 @@ export default function CustomerDetailPage() {
     setLoading(true);
     setError(null);
     try {
-      const [c, l] = await Promise.all([
+      const [c, l, ar] = await Promise.all([
         api<{ data: Customer & { balance?: string } }>(`/customers/${id}`),
         api<{ data: { entries: LedgerEntry[]; balance: string } }>(`/customers/${id}/ledger`),
+        api<{ data: OpenArInvoice[] }>(
+          `/ar/invoices?customer_id=${encodeURIComponent(id)}&open_only=true&limit=100`
+        ).catch(() => ({ data: [] as OpenArInvoice[] })),
       ]);
       setCustomer(c.data);
       setLedger(l.data.entries || []);
+      setOpenInvoices(ar.data || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("common.loadFailed"));
     } finally {
@@ -46,6 +60,34 @@ export default function CustomerDetailPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  async function handleReceivePayment(payload: {
+    invoiceId: string;
+    amount: string;
+    method: string;
+    reference: string;
+  }) {
+    setBusy(true);
+    try {
+      await api(`/ar/invoices/${payload.invoiceId}/pay`, {
+        method: "POST",
+        body: JSON.stringify({
+          amount: payload.amount,
+          method: payload.method,
+          reference: payload.reference || undefined,
+        }),
+      });
+      toast.success(t("customers.paymentReceived"));
+      setPayOpen(false);
+      await load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("common.error"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const canPay = Number(customer?.balance || 0) > 0;
 
   return (
     <DetailShell
@@ -63,6 +105,17 @@ export default function CustomerDetailPage() {
       }
       loading={loading}
       error={error}
+      actions={
+        canPay ? (
+          <Button
+            size="sm"
+            startIcon={<Wallet className="h-4 w-4" />}
+            onClick={() => setPayOpen(true)}
+          >
+            {t("customers.receivePayment")}
+          </Button>
+        ) : null
+      }
     >
       {customer ? (
         <>
@@ -164,6 +217,15 @@ export default function CustomerDetailPage() {
           </DetailSection>
         </>
       ) : null}
+
+      <ReceiveArPaymentFormModal
+        isOpen={payOpen}
+        busy={busy}
+        invoices={openInvoices}
+        t={t}
+        onClose={() => setPayOpen(false)}
+        onSubmit={handleReceivePayment}
+      />
     </DetailShell>
   );
 }

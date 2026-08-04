@@ -10,22 +10,33 @@ import Modal from "@/components/modals/Modal";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
-import Select from "@/components/ui/Select";
 import {
   EmptyState,
-  Field,
   StatusBadge,
   SurfaceCard,
-  fieldClass,
 } from "@/components/app/ui";
+import CustomForm from "@/components/ui/CustomForm";
+import {
+  EmployeeFormFields,
+  InviteFormFields,
+  PayrollDraftFormFields,
+  emptyEmployeeForm,
+  emptyInviteForm,
+} from "@/components/hr/HrModalForms";
+import {
+  employeeFormSchema,
+  inviteFormSchema,
+  payrollDraftFormSchema,
+  type EmployeeFormValues,
+  type InviteFormValues,
+  type PayrollDraftFormValues,
+} from "@/lib/validations/hr";
 import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/lib/i18n";
 import { formatDecimal } from "@/lib/decimal";
 import {
   allowancesToRows,
-  defaultAllowanceRows,
   rowsToAllowances,
-  type AllowanceRow,
 } from "@/lib/hrAllowances";
 import { useTabQueryParam } from "@/lib/hooks/useTabQueryParam";
 import { detailRoutes, routes } from "@/lib/navigation";
@@ -42,15 +53,6 @@ import FormModal from "@/components/app/FormModal";
 type Tab = "employees" | "attendance" | "leave" | "payroll";
 const HR_TABS: readonly Tab[] = ["employees", "attendance", "leave", "payroll"];
 type ModalKind = "employee" | "invite" | "payroll" | null;
-
-const emptyEmpForm = {
-  employee_code: "",
-  name: "",
-  position: "Cashier",
-  basic_salary: "30000",
-  allowances: defaultAllowanceRows(),
-  status: "active",
-};
 
 type Employee = {
   id: string;
@@ -211,18 +213,15 @@ function HrPageInner() {
     emptyStaffListFilters()
   );
 
-  const [empForm, setEmpForm] = useState(emptyEmpForm);
-  const [inviteForm, setInviteForm] = useState({
-    email: "",
-    roles: "cashier",
-  });
-  const [periodStart, setPeriodStart] = useState(() => {
+  const [empInitial, setEmpInitial] = useState(() => emptyEmployeeForm());
+  const [inviteInitial, setInviteInitial] = useState(() => emptyInviteForm());
+  const [payrollInitial] = useState(() => {
     const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+    return {
+      period_start: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`,
+      period_end: new Date().toISOString().slice(0, 10),
+    };
   });
-  const [periodEnd, setPeriodEnd] = useState(() =>
-    new Date().toISOString().slice(0, 10)
-  );
   const [expandedPayrollId, setExpandedPayrollId] = useState<string | null>(null);
   const payrollAccordionReadyRef = useRef(false);
 
@@ -343,13 +342,13 @@ function HrPageInner() {
 
   function openNewEmployee() {
     setEditingEmployeeId(null);
-    setEmpForm(emptyEmpForm);
+    setEmpInitial(emptyEmployeeForm());
     setModal("employee");
   }
 
   function openEditEmployee(e: Employee) {
     setEditingEmployeeId(e.id);
-    setEmpForm({
+    setEmpInitial({
       employee_code: e.employee_code || "",
       name: e.name || "",
       position: e.position || "Cashier",
@@ -360,49 +359,22 @@ function HrPageInner() {
     setModal("employee");
   }
 
-  function updateAllowance(index: number, patch: Partial<AllowanceRow>) {
-    setEmpForm((prev) => ({
-      ...prev,
-      allowances: prev.allowances.map((row, i) =>
-        i === index ? { ...row, ...patch } : row
-      ),
-    }));
-  }
-
-  function addAllowance() {
-    setEmpForm((prev) => ({
-      ...prev,
-      allowances: [...prev.allowances, { name: "", amount: "0" }],
-    }));
-  }
-
-  function removeAllowance(index: number) {
-    setEmpForm((prev) => ({
-      ...prev,
-      allowances:
-        prev.allowances.length <= 1
-          ? prev.allowances
-          : prev.allowances.filter((_, i) => i !== index),
-    }));
-  }
-
   function closeEmployeeModal() {
     setModal(null);
     setEditingEmployeeId(null);
-    setEmpForm(emptyEmpForm);
+    setEmpInitial(emptyEmployeeForm());
   }
 
-  async function saveEmployee(ev: React.FormEvent) {
-    ev.preventDefault();
+  async function saveEmployee(values: EmployeeFormValues) {
     setBusy(true);
     try {
       const payload = {
-        employee_code: empForm.employee_code,
-        name: empForm.name,
-        position: empForm.position,
-        basic_salary: empForm.basic_salary,
-        allowances: rowsToAllowances(empForm.allowances),
-        status: empForm.status,
+        employee_code: values.employee_code,
+        name: values.name,
+        position: values.position,
+        basic_salary: values.basic_salary,
+        allowances: rowsToAllowances(values.allowances),
+        status: values.status,
       };
 
       if (editingEmployeeId) {
@@ -430,8 +402,7 @@ function HrPageInner() {
     }
   }
 
-  async function inviteStaff(ev: React.FormEvent) {
-    ev.preventDefault();
+  async function inviteStaff(values: InviteFormValues) {
     const session = getSession();
     if (!session?.business_id) {
       toast.warning(t("tenant.noBusinesses"));
@@ -442,14 +413,14 @@ function HrPageInner() {
       await api(`/businesses/${session.business_id}/memberships`, {
         method: "POST",
         body: JSON.stringify({
-          email: inviteForm.email.trim(),
-          roles: [inviteForm.roles],
+          email: values.email.trim(),
+          roles: [values.roles],
           branch_id: session.branch_id,
           status: "active",
         }),
       });
       toast.success(t("hr.inviteSent"));
-      setInviteForm({ email: "", roles: "cashier" });
+      setInviteInitial(emptyInviteForm());
       setModal(null);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.error"));
@@ -468,15 +439,14 @@ function HrPageInner() {
     }
   }
 
-  async function createPayroll(ev: React.FormEvent) {
-    ev.preventDefault();
+  async function createPayroll(values: PayrollDraftFormValues) {
     setBusy(true);
     try {
       const res = await api<{ data: PayrollRun }>("/payroll", {
         method: "POST",
         body: JSON.stringify({
-          period_start: periodStart,
-          period_end: periodEnd,
+          period_start: values.period_start,
+          period_end: values.period_end,
         }),
       });
       toast.success(t("hr.payrollRun"));
@@ -538,7 +508,10 @@ function HrPageInner() {
           tab === "employees"
             ? {
                 label: t("hr.inviteUser"),
-                onClick: () => setModal("invite"),
+                onClick: () => {
+                  setInviteInitial(emptyInviteForm());
+                  setModal("invite");
+                },
                 icon: <UserRoundPlus className="h-4 w-4" />,
               }
             : undefined,
@@ -747,20 +720,20 @@ function HrPageInner() {
               />
             </SurfaceCard>
           ) : (
-            <div
+                <div
               className="space-y-2"
               role="region"
-              aria-label={t("hr.payrollListLabel")}
-            >
-              {payroll.map((run) => {
+                  aria-label={t("hr.payrollListLabel")}
+                >
+                  {payroll.map((run) => {
                 const expanded = run.id === expandedPayrollId;
-                const slipCount = run.payslips?.length ?? 0;
+                    const slipCount = run.payslips?.length ?? 0;
                 const panelId = `payroll-panel-${run.id}`;
                 const headerId = `payroll-header-${run.id}`;
-                return (
+                    return (
                   <SurfaceCard key={run.id} className="overflow-hidden p-0">
-                    <button
-                      type="button"
+                      <button
+                        type="button"
                       id={headerId}
                       aria-expanded={expanded}
                       aria-controls={expanded ? panelId : undefined}
@@ -790,7 +763,7 @@ function HrPageInner() {
                             net: displayAmount(payrollNetTotal(run)),
                           })}
                         </p>
-                      </div>
+                </div>
                       <ChevronDown
                         className={`mt-0.5 h-4 w-4 shrink-0 text-muted transition-transform ${
                           expanded ? "rotate-180" : ""
@@ -805,150 +778,150 @@ function HrPageInner() {
                         aria-labelledby={headerId}
                         className="space-y-3 border-t border-border px-4 py-3"
                       >
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
                             {run.journal_entry_id ? (
-                              <span className="text-xs text-muted">
-                                {t("hr.postedToLedger")}
-                              </span>
-                            ) : null}
-                            <Link
+                          <span className="text-xs text-muted">
+                            {t("hr.postedToLedger")}
+                          </span>
+                        ) : null}
+                        <Link
                               href={detailRoutes.payroll(run.id)}
-                              className="text-xs font-medium text-brand underline"
-                            >
-                              {t("hr.openPayrollDetail")}
-                            </Link>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
+                          className="text-xs font-medium text-brand underline"
+                        >
+                          {t("hr.openPayrollDetail")}
+                        </Link>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
                             {run.status === "Draft" ||
                             run.status === "Rejected" ? (
-                              <>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() =>
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
                                     payrollAction(run.id, "recalculate")
-                                  }
+                              }
                                   startIcon={<RefreshCw className="h-4 w-4" />}
-                                >
-                                  Recalculate
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
+                            >
+                              Recalculate
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
                                   onClick={() =>
                                     payrollAction(run.id, "submit")
                                   }
                                   startIcon={<Send className="h-4 w-4" />}
-                                >
-                                  Submit
-                                </Button>
-                              </>
-                            ) : null}
+                            >
+                              Submit
+                            </Button>
+                          </>
+                        ) : null}
                             {run.status === "PendingApproval" &&
-                            canPayrollApprove ? (
-                              <>
-                                <Button
-                                  size="sm"
+                        canPayrollApprove ? (
+                          <>
+                            <Button
+                              size="sm"
                                   onClick={() =>
                                     payrollAction(run.id, "approve")
                                   }
                                   startIcon={<Check className="h-4 w-4" />}
-                                >
-                                  Approve & post
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
+                            >
+                              Approve & post
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
                                   onClick={() =>
                                     payrollAction(run.id, "reject")
                                   }
                                   startIcon={<X className="h-4 w-4" />}
-                                >
-                                  Reject
-                                </Button>
-                              </>
-                            ) : null}
-                          </div>
-                        </div>
-                        <div className="overflow-x-auto">
-                          <table className="w-full min-w-[40rem] text-left text-sm">
-                            <thead>
-                              <tr className="border-b border-border text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
-                                <th className="py-2 pe-3 font-bold">Employee</th>
-                                <th className="py-2 pe-3 text-end font-bold">Days</th>
-                                <th className="py-2 pe-3 text-end font-bold">Hours</th>
-                                <th className="py-2 pe-3 text-end font-bold">OT</th>
-                                <th className="py-2 pe-3 text-end font-bold">Factor</th>
-                                <th className="py-2 pe-3 text-end font-bold">Gross</th>
-                                <th className="py-2 text-end font-bold">Net</th>
-                              </tr>
-                            </thead>
-                            <tbody>
+                            >
+                              Reject
+                            </Button>
+                          </>
+                        ) : null}
+                      </div>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[40rem] text-left text-sm">
+                        <thead>
+                          <tr className="border-b border-border text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
+                            <th className="py-2 pe-3 font-bold">Employee</th>
+                            <th className="py-2 pe-3 text-end font-bold">Days</th>
+                            <th className="py-2 pe-3 text-end font-bold">Hours</th>
+                            <th className="py-2 pe-3 text-end font-bold">OT</th>
+                            <th className="py-2 pe-3 text-end font-bold">Factor</th>
+                            <th className="py-2 pe-3 text-end font-bold">Gross</th>
+                            <th className="py-2 text-end font-bold">Net</th>
+                          </tr>
+                        </thead>
+                        <tbody>
                               {run.payslips?.map((s) => {
-                                const name =
+                            const name =
                                   s.employee_name ||
                                   s.employee_code ||
                                   s.id.slice(0, 8);
-                                const code =
-                                  s.employee_name && s.employee_code
-                                    ? s.employee_code
-                                    : null;
+                            const code =
+                              s.employee_name && s.employee_code
+                                ? s.employee_code
+                                : null;
                                 const ot =
                                   s.overtime_hours ?? s.earnings?.ot_hours;
-                                return (
-                                  <Fragment key={s.id}>
-                                    <tr className="border-t border-border text-heading">
-                                      <td className="py-2.5 pe-3 align-top">
+                            return (
+                              <Fragment key={s.id}>
+                                <tr className="border-t border-border text-heading">
+                                  <td className="py-2.5 pe-3 align-top">
                                         <div className="font-medium leading-snug">
                                           {name}
                                         </div>
-                                        {code ? (
+                                    {code ? (
                                           <div className="mt-0.5 text-xs text-muted">
                                             {code}
                                           </div>
-                                        ) : null}
-                                      </td>
-                                      <td className="py-2.5 pe-3 text-end align-top tabular-nums">
-                                        {s.days_worked ?? "—"}
-                                      </td>
-                                      <td className="py-2.5 pe-3 text-end align-top tabular-nums">
-                                        {displayAmount(s.earnings?.worked_hours)}
-                                      </td>
-                                      <td className="py-2.5 pe-3 text-end align-top tabular-nums">
-                                        {displayAmount(ot)}
-                                      </td>
-                                      <td className="py-2.5 pe-3 text-end align-top tabular-nums">
+                                    ) : null}
+                                  </td>
+                                  <td className="py-2.5 pe-3 text-end align-top tabular-nums">
+                                    {s.days_worked ?? "—"}
+                                  </td>
+                                  <td className="py-2.5 pe-3 text-end align-top tabular-nums">
+                                    {displayAmount(s.earnings?.worked_hours)}
+                                  </td>
+                                  <td className="py-2.5 pe-3 text-end align-top tabular-nums">
+                                    {displayAmount(ot)}
+                                  </td>
+                                  <td className="py-2.5 pe-3 text-end align-top tabular-nums">
                                         {displayAmount(
                                           s.earnings?.attendance_factor
                                         )}
-                                      </td>
-                                      <td className="py-2.5 pe-3 text-end align-top tabular-nums">
-                                        {displayAmount(s.gross_pay)}
-                                      </td>
-                                      <td className="py-2.5 text-end align-top font-medium tabular-nums">
-                                        {displayAmount(s.net_pay)}
-                                      </td>
-                                    </tr>
-                                    {s.earnings || s.deductions ? (
-                                      <tr>
-                                        <td colSpan={7} className="pb-3 pt-0">
-                                          <PayslipMeta
-                                            earnings={s.earnings}
-                                            deductions={s.deductions}
-                                          />
-                                        </td>
-                                      </tr>
-                                    ) : null}
-                                  </Fragment>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
+                                  </td>
+                                  <td className="py-2.5 pe-3 text-end align-top tabular-nums">
+                                    {displayAmount(s.gross_pay)}
+                                  </td>
+                                  <td className="py-2.5 text-end align-top font-medium tabular-nums">
+                                    {displayAmount(s.net_pay)}
+                                  </td>
+                                </tr>
+                                {s.earnings || s.deductions ? (
+                                  <tr>
+                                    <td colSpan={7} className="pb-3 pt-0">
+                                      <PayslipMeta
+                                        earnings={s.earnings}
+                                        deductions={s.deductions}
+                                      />
+                                    </td>
+                                  </tr>
+                                ) : null}
+                              </Fragment>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
                       </div>
                     ) : null}
-                  </SurfaceCard>
+              </SurfaceCard>
                 );
               })}
             </div>
@@ -976,120 +949,20 @@ function HrPageInner() {
           </div>
         }
       >
-        <form id="employee-modal-form" onSubmit={saveEmployee} className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Employee code">
-              <input
-                className={fieldClass}
-                value={empForm.employee_code}
-                onChange={(e) =>
-                  setEmpForm({ ...empForm, employee_code: e.target.value })
-                }
-                required
-              />
-            </Field>
-            <Field label="Full name">
-              <input
-                className={fieldClass}
-                value={empForm.name}
-                onChange={(e) => setEmpForm({ ...empForm, name: e.target.value })}
-                required
-              />
-            </Field>
-            <Field label="Position">
-              <input
-                className={fieldClass}
-                value={empForm.position}
-                onChange={(e) => setEmpForm({ ...empForm, position: e.target.value })}
-              />
-            </Field>
-            <Field label={t("hr.basicSalary")}>
-              <input
-                className={fieldClass}
-                type="number"
-                step="0.01"
-                value={empForm.basic_salary}
-                onChange={(e) =>
-                  setEmpForm({ ...empForm, basic_salary: e.target.value })
-                }
-                onBlur={(e) => {
-                  if (e.target.value.trim() === "") return;
-                  setEmpForm({
-                    ...empForm,
-                    basic_salary: formatDecimal(e.target.value),
-                  });
-                }}
-              />
-            </Field>
-            {editingEmployeeId ? (
-              <Field label="Status">
-                <Select
-                  value={empForm.status}
-                  onChange={(v) => setEmpForm({ ...empForm, status: v })}
-                  options={[
-                    { value: "active", label: "Active" },
-                    { value: "inactive", label: "Inactive" },
-                    { value: "terminated", label: "Terminated" },
-                  ]}
-                />
-              </Field>
-            ) : null}
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-semibold text-heading">{t("hr.allowances")}</p>
-              <Button type="button" variant="outline" size="sm" onClick={addAllowance}>
-                {t("hr.addAllowance")}
-              </Button>
-            </div>
-            <p className="text-xs text-muted">{t("hr.allowancesHint")}</p>
-            <div className="space-y-2">
-              {empForm.allowances.map((row, index) => (
-                <div
-                  key={`allowance-${index}`}
-                  className="grid grid-cols-[1fr_1fr_auto] items-end gap-2"
-                >
-                  <Field label={t("hr.allowanceName")}>
-                    <input
-                      className={fieldClass}
-                      value={row.name}
-                      placeholder="transport"
-                      onChange={(e) => updateAllowance(index, { name: e.target.value })}
-                      required={empForm.allowances.length === 1}
-                    />
-                  </Field>
-                  <Field label={t("hr.allowanceAmount")}>
-                    <input
-                      className={fieldClass}
-                      type="number"
-                      step="0.01"
-                      min={0}
-                      value={row.amount}
-                      onChange={(e) => updateAllowance(index, { amount: e.target.value })}
-                      onBlur={(e) => {
-                        if (e.target.value.trim() === "") return;
-                        updateAllowance(index, {
-                          amount: formatDecimal(e.target.value),
-                        });
-                      }}
-                    />
-                  </Field>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="mb-0.5"
-                    disabled={empForm.allowances.length <= 1}
-                    onClick={() => removeAllowance(index)}
-                  >
-                    {t("hr.removeAllowance")}
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </form>
+        <CustomForm
+          id="employee-modal-form"
+          className="space-y-4"
+          initialValues={empInitial}
+          validationSchema={employeeFormSchema}
+          enableReinitialize
+          onSubmit={async (values) => {
+            await saveEmployee(values);
+          }}
+        >
+          {() => (
+            <EmployeeFormFields editing={Boolean(editingEmployeeId)} t={t} />
+          )}
+        </CustomForm>
       </Modal>
 
       <FormModal
@@ -1101,32 +974,18 @@ function HrPageInner() {
         submitLabel="Send invite"
         submitLoading={busy}
       >
-        <form id="invite-modal-form" onSubmit={inviteStaff} className="space-y-4">
-          <Field label="Email">
-            <input
-              type="email"
-              className={fieldClass}
-              value={inviteForm.email}
-              onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
-              placeholder="cashier@kaarobar.local"
-              required
-            />
-          </Field>
-          <Field label="Role">
-            <Select
-              value={inviteForm.roles}
-              onChange={(v) => setInviteForm({ ...inviteForm, roles: v })}
-              options={[
-                "cashier",
-                "branch_manager",
-                "inventory_manager",
-                "accountant",
-                "hr_manager",
-                "employee",
-              ].map((r) => ({ value: r, label: r }))}
-            />
-          </Field>
-        </form>
+        <CustomForm
+          id="invite-modal-form"
+          className="space-y-4"
+          initialValues={inviteInitial}
+          validationSchema={inviteFormSchema}
+          enableReinitialize
+          onSubmit={async (values) => {
+            await inviteStaff(values);
+          }}
+        >
+          {() => <InviteFormFields />}
+        </CustomForm>
       </FormModal>
 
       <FormModal
@@ -1138,24 +997,17 @@ function HrPageInner() {
         submitLabel="Create draft"
         submitLoading={busy}
       >
-        <form id="payroll-modal-form" onSubmit={createPayroll} className="grid gap-4 sm:grid-cols-2">
-          <Field label="Period start">
-            <input
-              type="date"
-              className={fieldClass}
-              value={periodStart}
-              onChange={(e) => setPeriodStart(e.target.value)}
-            />
-          </Field>
-          <Field label="Period end">
-            <input
-              type="date"
-              className={fieldClass}
-              value={periodEnd}
-              onChange={(e) => setPeriodEnd(e.target.value)}
-            />
-          </Field>
-        </form>
+        <CustomForm
+          id="payroll-modal-form"
+          initialValues={payrollInitial}
+          validationSchema={payrollDraftFormSchema}
+          enableReinitialize
+          onSubmit={async (values) => {
+            await createPayroll(values);
+          }}
+        >
+          {() => <PayrollDraftFormFields />}
+        </CustomForm>
       </FormModal>
     </WorkspacePageScaffold>
   );
