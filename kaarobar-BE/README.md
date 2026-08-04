@@ -9,7 +9,7 @@ Elixir/Phoenix modular monolith implementing Kaarobar SRS **KRB-SRS-001** applic
 | Context | SRS coverage |
 |---------|----------------|
 | `Kaarobar.Accounts` | TEN-FR auth, password hashing |
-| `Kaarobar.Tenancy` | TEN-FR businesses/branches/memberships; seeds Pakistan COA on business create (ACC-FR-001) |
+| `Kaarobar.Tenancy` | TEN-FR businesses/branches/memberships; seeds IFRS-SME default COA on business create (ACC-FR-001) |
 | `Kaarobar.Pos` | POS-FR sales, returns, tills; `client_txn_id` idempotency (OFF-FR-003) |
 | `Kaarobar.Inventory` | INV-FR products, stock, PO, GRN, transfers, adjustments |
 | `Kaarobar.Catalog` | Multi-industry catalog: barcodes, images, variants, modifiers, batches |

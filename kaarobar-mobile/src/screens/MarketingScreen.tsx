@@ -492,11 +492,11 @@ export default function MarketingScreen() {
 
 function createStyles(palette: { brand: string }) {
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.bg, padding: 16 },
+    container: { flex: 1, backgroundColor: colors.bgPrimary, padding: 16 },
     title: { fontSize: 22, fontWeight: "800", color: colors.heading, marginBottom: 12 },
     error: { color: colors.danger, marginBottom: 8 },
     card: {
-      backgroundColor: colors.surface,
+      backgroundColor: colors.card,
       borderRadius: 12,
       borderWidth: 1,
       borderColor: colors.border,
@@ -514,7 +514,7 @@ function createStyles(palette: { brand: string }) {
       paddingHorizontal: 12,
       paddingVertical: 10,
       color: colors.heading,
-      backgroundColor: colors.bg,
+      backgroundColor: colors.bgPrimary,
       marginTop: 6,
     },
     btn: {
@@ -540,7 +540,7 @@ function createStyles(palette: { brand: string }) {
       borderRadius: 8,
       paddingHorizontal: 8,
       paddingVertical: 6,
-      backgroundColor: colors.bg,
+      backgroundColor: colors.bgPrimary,
     },
   });
 }

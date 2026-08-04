@@ -78,6 +78,8 @@ export const accountingKeys = {
     [...accountingKeys.all, "profitAndLoss", businessId ?? null, from ?? "", to ?? ""] as const,
   balanceSheet: (businessId?: string | null, asOf?: string) =>
     [...accountingKeys.all, "balanceSheet", businessId ?? null, asOf ?? ""] as const,
+  cashFlow: (businessId?: string | null, from?: string, to?: string) =>
+    [...accountingKeys.all, "cashFlow", businessId ?? null, from ?? "", to ?? ""] as const,
   generalLedger: (
     businessId?: string | null,
     accountId?: string,

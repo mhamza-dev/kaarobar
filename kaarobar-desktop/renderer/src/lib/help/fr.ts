@@ -94,18 +94,18 @@ const catalog: HelpCatalog = {
   },
   "page.accounting": {
     title: "Comptabilité",
-    summary: "Livres, revues, déclarations et vieillissement AR/AP.",
-    what: "Outils en partie double : plan comptable, écritures de journal, balance de vérification, profits et pertes, bilan, grand livre et ancienneté des créances/dettes.",
+    summary: "IFRS-for-SMEs books, journals, statements, and AR/AP aging.",
+    what: "Double-entry tools aligned with IFRS for SMEs presentation: chart of accounts (create/edit), journals, trial balance, sectioned P&L and balance sheet, cash flow, general ledger, and receivables/payables aging.",
     how: [
-      "Parcourez les grands livres dans le plan comptable.",
-      "Publier des corrections manuelles à partir des journaux.",
-      "Exécutez la Balance de vérification, le P&L, le Bilan ou le GL pour une plage de dates.",
-      "Effectuer le suivi des factures en souffrance et des factures dues au vieillissement AR/AP.",
+      "Create or edit ledger accounts on Chart of accounts.",
+      "Post manual corrections from Journals.",
+      "Run Trial balance, P&L, Balance sheet, Cash flow, or GL for a date range.",
+      "Follow up on overdue invoices and bills from AR/AP aging.",
     ],
-    when: "Pour la clôture de fin de mois, le reporting des propriétaires ou le suivi des encaissements et des paiements.",
+    when: "For month-end close, owner reporting, or collections and payments follow-up.",
     tips: [
-      "POS et l'inventaire créent automatiquement de nombreux journaux.",
-      "Corrigez les documents sources avant de valider les journaux manuels.",
+      "POS and inventory create many journals automatically.",
+      "Header accounts are for structure only—post to leaf accounts.",
     ],
   },
   "page.hr": {
@@ -292,11 +292,17 @@ const catalog: HelpCatalog = {
 
   "tab.accounting.coa": {
     title: "Plan comptable",
-    summary: "Comptes généraux pour les journaux et les relevés.",
-    what: "Liste des codes de compte, des noms et des types. Modifiez les noms si nécessaire.",
-    how: ["Parcourez les comptes par code.", "Modifiez un compte pour changer son étiquette."],
-    when: "Lors de la révision de la configuration ou lorsque des noms plus clairs sont nécessaires.",
-    tips: ["Ne supprimez pas les comptes qui ont déjà des publications."],
+    summary: "IFRS-for-SMEs ledger accounts for journals and statements.",
+    what: "Hierarchical list of account codes with type, classification, and normal balance. Create new accounts or edit existing ones.",
+    how: [
+      "Use New account to add a postable or header account.",
+      "Browse by code; indent shows parent hierarchy.",
+      "Edit an account to change labels or classification.",
+    ],
+    when: "During setup review or when you need a new ledger account.",
+    tips: [
+      "Do not delete accounts that already have postings.",
+    ],
   },
   "tab.accounting.journals": {
     title: "Journaux",
@@ -318,21 +324,45 @@ const catalog: HelpCatalog = {
     tips: ["Enquêtez sur des soldes étonnamment importants."],
   },
   "tab.accounting.pl": {
-    title: "Profits et pertes",
-    summary: "Revenus et dépenses pour une plage de dates.",
-    what: "Rentabilité pour la période sélectionnée à partir des journaux validés.",
-    how: ["Choisissez des dates.", "Lisez les revenus par rapport aux dépenses."],
-    when: "Pour examen par le propriétaire et clôture de la période.",
-    tips: ["La précision dépend des types de comptes et des publications corrects."],
+    title: "Compte de résultat",
+    summary: "Sectioned income statement (IFRS for SMEs).",
+    what: "Revenue, cost of sales, operating expenses, and net income for the selected period.",
+    how: [
+      "Choose dates.",
+      "Review sections and subtotals (gross / operating / net).",
+    ],
+    when: "For owner review and period close.",
+    tips: [
+      "Accuracy depends on correct account classifications and postings.",
+    ],
   },
   "tab.accounting.bs": {
     title: "Bilan",
-    summary: "Actif, passif et capitaux propres.",
-    what: "Prise de position à la fin de la période sélectionnée.",
-    how: ["Définissez la plage de dates du rapport.", "Examinez les sections actif/passif."],
-    when: "Pour la clôture de la période et les discussions financières.",
-    tips: ["Le vieillissement AR/AP complète les soldes clients et fournisseurs."],
+    summary: "Sectioned statement of financial position.",
+    what: "Current and non-current assets/liabilities plus equity as of the report date.",
+    how: [
+      "Set the as-of date.",
+      "Review current vs non-current sections.",
+    ],
+    when: "For period close and financial discussions.",
+    tips: [
+      "AR/AP aging complements customer and supplier balances.",
+    ],
   },
+  "tab.accounting.cf": {
+    title: "Flux de trésorerie",
+    summary: "Indirect cash flow summary for a period.",
+    what: "Starts from net income and adjusts for working-capital changes (AR, inventory, AP).",
+    how: [
+      "Choose dates.",
+      "Review cash from operations.",
+    ],
+    when: "For cash planning alongside P&L and balance sheet.",
+    tips: [
+      "This is a simplified indirect method—not a full IAS 7 statement.",
+    ],
+  },
+
   "tab.accounting.gl": {
     title: "Grand livre général",
     summary: "Activité ligne par ligne pour un compte.",

@@ -162,8 +162,8 @@ defmodule Kaarobar.OpsApprovalsKhataTest do
     inv_a = Repo.get!(Kaarobar.Schemas.ArInvoice, sale_a.ar_invoice_id)
     inv_b = Repo.get!(Kaarobar.Schemas.ArInvoice, sale_b.ar_invoice_id)
     assert inv_a.invoice_number != inv_b.invoice_number
-    assert String.starts_with?(inv_a.invoice_number, "KH-")
-    assert String.starts_with?(inv_b.invoice_number, "KH-")
+    assert String.starts_with?(inv_a.invoice_number, "AR-")
+    assert String.starts_with?(inv_b.invoice_number, "AR-")
   end
 
   test "low stock notify debounced per day", %{

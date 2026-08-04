@@ -18,7 +18,7 @@ defmodule Kaarobar.Tenancy do
       |> Business.changeset(Map.put(attrs, :owner_id, owner_id))
     end)
     |> Ecto.Multi.run(:seed_coa, fn _repo, %{business: business} ->
-      Accounting.seed_pakistan_coa(business.id, owner_id)
+      Accounting.seed_default_coa(business.id, owner_id)
       {:ok, :seeded}
     end)
     |> Ecto.Multi.run(:seed_categories, fn _repo, %{business: business} ->
@@ -197,6 +197,7 @@ defmodule Kaarobar.Tenancy do
              metadata:
                Map.take(attrs, [
                  :name,
+                 :code,
                  :timezone,
                  :refund_auto_approve_limit,
                  :discount_auto_approve_limit

@@ -125,8 +125,18 @@ defmodule Kaarobar.PosTest do
     assert {:ok, s2} =
              Pos.create_sale(branch.id, owner.id, business.id, owner.id, sale_attrs(product))
 
-    assert s1.invoice_number == "INV-000001"
-    assert s2.invoice_number == "INV-000002"
+    assert Regex.match?(
+             ~r/^KB[A-Z0-9]+-[A-Z0-9]+-\d{8}-00001$/,
+             s1.invoice_number
+           )
+
+    assert Regex.match?(
+             ~r/^KB[A-Z0-9]+-[A-Z0-9]+-\d{8}-00002$/,
+             s2.invoice_number
+           )
+
+    assert String.replace_suffix(s1.invoice_number, "00001", "") ==
+             String.replace_suffix(s2.invoice_number, "00002", "")
   end
 
   test "POS-FR discount over limit is rejected", %{

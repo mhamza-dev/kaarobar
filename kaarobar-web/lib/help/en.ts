@@ -111,18 +111,18 @@ const en: HelpCatalog = {
   },
   "page.accounting": {
     title: "Accounting",
-    summary: "Books, journals, statements, and AR/AP aging.",
-    what: "Double-entry tools: chart of accounts, journal entries, trial balance, profit & loss, balance sheet, general ledger, and receivables/payables aging.",
+    summary: "IFRS-for-SMEs books, journals, statements, and AR/AP aging.",
+    what: "Double-entry tools aligned with IFRS for SMEs presentation: chart of accounts (create/edit), journals, trial balance, sectioned P&L and balance sheet, cash flow, general ledger, and receivables/payables aging.",
     how: [
-      "Browse ledgers in Chart of accounts.",
+      "Create or edit ledger accounts on Chart of accounts.",
       "Post manual corrections from Journals.",
-      "Run Trial balance, P&L, Balance sheet, or GL for a date range.",
+      "Run Trial balance, P&L, Balance sheet, Cash flow, or GL for a date range.",
       "Follow up on overdue invoices and bills from AR/AP aging.",
     ],
     when: "For month-end close, owner reporting, or collections and payments follow-up.",
     tips: [
       "POS and inventory create many journals automatically.",
-      "Fix source documents before posting manual journals.",
+      "Header accounts are for structure only—post to leaf accounts.",
     ],
   },
   "page.hr": {
@@ -310,11 +310,17 @@ const en: HelpCatalog = {
 
   "tab.accounting.coa": {
     title: "Chart of Accounts",
-    summary: "Ledger accounts for journals and statements.",
-    what: "List of account codes, names, and types. Edit names when needed.",
-    how: ["Browse accounts by code.", "Edit an account to change its label."],
-    when: "During setup review or when clearer names are needed.",
-    tips: ["Do not delete accounts that already have postings."],
+    summary: "IFRS-for-SMEs ledger accounts for journals and statements.",
+    what: "Hierarchical list of account codes with type, classification, and normal balance. Create new accounts or edit existing ones.",
+    how: [
+      "Use New account to add a postable or header account.",
+      "Browse by code; indent shows parent hierarchy.",
+      "Edit an account to change labels or classification.",
+    ],
+    when: "During setup review or when you need a new ledger account.",
+    tips: [
+      "Do not delete accounts that already have postings.",
+    ],
   },
   "tab.accounting.journals": {
     title: "Journals",
@@ -337,20 +343,44 @@ const en: HelpCatalog = {
   },
   "tab.accounting.pl": {
     title: "Profit & Loss",
-    summary: "Revenue and expenses for a date range.",
-    what: "Profitability for the selected period from posted journals.",
-    how: ["Choose dates.", "Read revenue versus expenses."],
+    summary: "Sectioned income statement (IFRS for SMEs).",
+    what: "Revenue, cost of sales, operating expenses, and net income for the selected period.",
+    how: [
+      "Choose dates.",
+      "Review sections and subtotals (gross / operating / net).",
+    ],
     when: "For owner review and period close.",
-    tips: ["Accuracy depends on correct account types and postings."],
+    tips: [
+      "Accuracy depends on correct account classifications and postings.",
+    ],
   },
   "tab.accounting.bs": {
     title: "Balance Sheet",
-    summary: "Assets, liabilities, and equity.",
-    what: "Position statement as of the end of the selected period.",
-    how: ["Set the report date range.", "Review assets versus liabilities sections."],
+    summary: "Sectioned statement of financial position.",
+    what: "Current and non-current assets/liabilities plus equity as of the report date.",
+    how: [
+      "Set the as-of date.",
+      "Review current vs non-current sections.",
+    ],
     when: "For period close and financial discussions.",
-    tips: ["AR/AP aging complements customer and supplier balances."],
+    tips: [
+      "AR/AP aging complements customer and supplier balances.",
+    ],
   },
+  "tab.accounting.cf": {
+    title: "Cash Flow",
+    summary: "Indirect cash flow summary for a period.",
+    what: "Starts from net income and adjusts for working-capital changes (AR, inventory, AP).",
+    how: [
+      "Choose dates.",
+      "Review cash from operations.",
+    ],
+    when: "For cash planning alongside P&L and balance sheet.",
+    tips: [
+      "This is a simplified indirect method—not a full IAS 7 statement.",
+    ],
+  },
+
   "tab.accounting.gl": {
     title: "General Ledger",
     summary: "Line-by-line activity for one account.",

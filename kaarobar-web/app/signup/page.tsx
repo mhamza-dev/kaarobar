@@ -28,7 +28,7 @@ function SignupInner() {
         subtitle={
           isBuyer
             ? "Order from stores on the marketplace and keep loyalty in one place."
-            : "We will create your first business, a Pakistan chart of accounts, and a starting branch."
+            : "We will create your first business, an IFRS-for-SMEs chart of accounts, and a starting branch."
         }
         footer={
           <>

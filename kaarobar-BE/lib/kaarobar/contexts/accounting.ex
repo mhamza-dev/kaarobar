@@ -4,39 +4,250 @@ defmodule Kaarobar.Accounting do
   alias Kaarobar.Schemas.{ChartOfAccount, JournalEntry, JournalLine}
   alias Ecto.Multi
 
-  def seed_pakistan_coa(business_id, owner_id) do
-    accounts = [
-      %{code: "1000", name: "Cash in Hand", type: "Asset"},
-      %{code: "1010", name: "Cash at Bank", type: "Asset"},
-      %{code: "1100", name: "Accounts Receivable", type: "Asset"},
-      %{code: "1200", name: "Inventory", type: "Asset"},
-      %{code: "1300", name: "Prepaid Expenses", type: "Asset"},
-      %{code: "1500", name: "Furniture & Fixtures", type: "Asset"},
-      %{code: "1510", name: "Equipment", type: "Asset"},
-      %{code: "2000", name: "Accounts Payable", type: "Liability"},
-      %{code: "2100", name: "Sales Tax Payable", type: "Liability"},
-      %{code: "2200", name: "Salaries Payable", type: "Liability"},
-      %{code: "2210", name: "EOBI Payable", type: "Liability"},
-      %{code: "2300", name: "Loans Payable", type: "Liability"},
-      %{code: "3000", name: "Owner Capital", type: "Equity"},
-      %{code: "3100", name: "Retained Earnings", type: "Equity"},
-      %{code: "3200", name: "Owner Drawings", type: "Equity"},
-      %{code: "4000", name: "Sales Revenue", type: "Revenue"},
-      %{code: "4100", name: "Sales Returns", type: "Revenue"},
-      %{code: "4900", name: "Other Income", type: "Revenue"},
-      %{code: "5000", name: "Cost of Goods Sold", type: "Expense"},
-      %{code: "5100", name: "Salaries Expense", type: "Expense"},
-      %{code: "5200", name: "Rent Expense", type: "Expense"},
-      %{code: "5300", name: "Utilities Expense", type: "Expense"},
-      %{code: "5400", name: "Marketing Expense", type: "Expense"},
-      %{code: "5500", name: "Depreciation Expense", type: "Expense"},
-      %{code: "5900", name: "Miscellaneous Expense", type: "Expense"}
+  @doc """
+  Default IFRS-for-SMEs style chart. System posting codes (1000, 1100, …) stay stable.
+  """
+  def seed_default_coa(business_id, owner_id) do
+    headers = [
+      %{code: "1", name: "Assets", type: "Asset", classification: "current_asset", is_header: true},
+      %{
+        code: "15",
+        name: "Non-current assets",
+        type: "Asset",
+        classification: "non_current_asset",
+        is_header: true
+      },
+      %{
+        code: "2",
+        name: "Liabilities",
+        type: "Liability",
+        classification: "current_liability",
+        is_header: true
+      },
+      %{
+        code: "25",
+        name: "Non-current liabilities",
+        type: "Liability",
+        classification: "non_current_liability",
+        is_header: true
+      },
+      %{code: "3", name: "Equity", type: "Equity", classification: "equity", is_header: true},
+      %{code: "4", name: "Income", type: "Revenue", classification: "revenue", is_header: true},
+      %{
+        code: "5",
+        name: "Expenses",
+        type: "Expense",
+        classification: "operating_expense",
+        is_header: true
+      }
     ]
 
-    Enum.each(accounts, fn account_attrs ->
+    leaves = [
+      %{code: "1000", name: "Cash", type: "Asset", classification: "current_asset", parent: "1"},
+      %{
+        code: "1010",
+        name: "Bank",
+        type: "Asset",
+        classification: "current_asset",
+        parent: "1"
+      },
+      %{
+        code: "1100",
+        name: "Accounts Receivable",
+        type: "Asset",
+        classification: "current_asset",
+        parent: "1"
+      },
+      %{
+        code: "1200",
+        name: "Inventory",
+        type: "Asset",
+        classification: "current_asset",
+        parent: "1"
+      },
+      %{
+        code: "1300",
+        name: "Prepaid Expenses",
+        type: "Asset",
+        classification: "current_asset",
+        parent: "1"
+      },
+      %{
+        code: "1500",
+        name: "Furniture & Fixtures",
+        type: "Asset",
+        classification: "non_current_asset",
+        parent: "15"
+      },
+      %{
+        code: "1510",
+        name: "Equipment",
+        type: "Asset",
+        classification: "non_current_asset",
+        parent: "15"
+      },
+      %{
+        code: "2000",
+        name: "Accounts Payable",
+        type: "Liability",
+        classification: "current_liability",
+        parent: "2"
+      },
+      %{
+        code: "2100",
+        name: "Sales Tax Payable",
+        type: "Liability",
+        classification: "current_liability",
+        parent: "2"
+      },
+      %{
+        code: "2200",
+        name: "Salaries Payable",
+        type: "Liability",
+        classification: "current_liability",
+        parent: "2"
+      },
+      %{
+        code: "2210",
+        name: "Statutory Payables",
+        type: "Liability",
+        classification: "current_liability",
+        parent: "2"
+      },
+      %{
+        code: "2300",
+        name: "Loans Payable",
+        type: "Liability",
+        classification: "non_current_liability",
+        parent: "25"
+      },
+      %{
+        code: "3000",
+        name: "Owner Capital",
+        type: "Equity",
+        classification: "equity",
+        parent: "3"
+      },
+      %{
+        code: "3100",
+        name: "Retained Earnings",
+        type: "Equity",
+        classification: "equity",
+        parent: "3"
+      },
+      %{
+        code: "3200",
+        name: "Owner Drawings",
+        type: "Equity",
+        classification: "equity",
+        parent: "3"
+      },
+      %{
+        code: "4000",
+        name: "Sales Revenue",
+        type: "Revenue",
+        classification: "revenue",
+        parent: "4"
+      },
+      %{
+        code: "4100",
+        name: "Sales Returns",
+        type: "Revenue",
+        classification: "revenue",
+        parent: "4"
+      },
+      %{
+        code: "4900",
+        name: "Other Income",
+        type: "Revenue",
+        classification: "other_income",
+        parent: "4"
+      },
+      %{
+        code: "5000",
+        name: "Cost of Goods Sold",
+        type: "Expense",
+        classification: "cost_of_sales",
+        parent: "5"
+      },
+      %{
+        code: "5100",
+        name: "Salaries Expense",
+        type: "Expense",
+        classification: "operating_expense",
+        parent: "5"
+      },
+      %{
+        code: "5200",
+        name: "Rent Expense",
+        type: "Expense",
+        classification: "operating_expense",
+        parent: "5"
+      },
+      %{
+        code: "5300",
+        name: "Utilities Expense",
+        type: "Expense",
+        classification: "operating_expense",
+        parent: "5"
+      },
+      %{
+        code: "5400",
+        name: "Marketing Expense",
+        type: "Expense",
+        classification: "operating_expense",
+        parent: "5"
+      },
+      %{
+        code: "5500",
+        name: "Depreciation Expense",
+        type: "Expense",
+        classification: "operating_expense",
+        parent: "5"
+      },
+      %{
+        code: "5900",
+        name: "Miscellaneous Expense",
+        type: "Expense",
+        classification: "other_expense",
+        parent: "5"
+      }
+    ]
+
+    header_ids =
+      Enum.reduce(headers, %{}, fn attrs, acc ->
+        {:ok, row} =
+          %ChartOfAccount{}
+          |> ChartOfAccount.changeset(
+            Map.merge(attrs, %{
+              business_id: business_id,
+              owner_id: owner_id,
+              normal_balance: ChartOfAccount.default_normal_balance(attrs.type),
+              is_header: true
+            })
+          )
+          |> Repo.insert()
+
+        Map.put(acc, attrs.code, row.id)
+      end)
+
+    Enum.each(leaves, fn attrs ->
+      parent_code = Map.fetch!(attrs, :parent)
+      parent_id = Map.fetch!(header_ids, parent_code)
+
       %ChartOfAccount{}
       |> ChartOfAccount.changeset(
-        Map.merge(account_attrs, %{business_id: business_id, owner_id: owner_id})
+        %{
+          code: attrs.code,
+          name: attrs.name,
+          type: attrs.type,
+          classification: attrs.classification,
+          normal_balance: ChartOfAccount.default_normal_balance(attrs.type),
+          is_header: false,
+          parent_account_id: parent_id,
+          business_id: business_id,
+          owner_id: owner_id
+        }
       )
       |> Repo.insert()
     end)
@@ -44,9 +255,12 @@ defmodule Kaarobar.Accounting do
     {:ok, :seeded}
   end
 
+  # Back-compat alias for older call sites / docs
+  def seed_pakistan_coa(business_id, owner_id), do: seed_default_coa(business_id, owner_id)
+
   def get_account_by_code(business_id, code) do
     ChartOfAccount
-    |> where([a], a.business_id == ^business_id and a.code == ^code)
+    |> where([a], a.business_id == ^business_id and a.code == ^code and a.is_header == false)
     |> Repo.one()
   end
 
@@ -58,9 +272,11 @@ defmodule Kaarobar.Accounting do
   end
 
   def create_account(business_id, owner_id, attrs) do
+    normalized = normalize_attrs(attrs)
+
     %ChartOfAccount{}
     |> ChartOfAccount.changeset(
-      Map.merge(normalize_attrs(attrs), %{business_id: business_id, owner_id: owner_id})
+      Map.merge(normalized, %{business_id: business_id, owner_id: owner_id})
     )
     |> Repo.insert()
   end
@@ -73,7 +289,15 @@ defmodule Kaarobar.Accounting do
       account ->
         account
         |> ChartOfAccount.changeset(
-          Map.take(normalize_attrs(attrs), [:name, :type, :parent_account_id])
+          Map.take(normalize_attrs(attrs), [
+            :name,
+            :type,
+            :parent_account_id,
+            :normal_balance,
+            :classification,
+            :is_header,
+            :code
+          ])
         )
         |> Repo.update()
     end
@@ -85,7 +309,7 @@ defmodule Kaarobar.Accounting do
 
     with :ok <- ensure_no_duplicate_source(source_type, source_id),
          lines <- attrs[:lines] || attrs["lines"] || [],
-         :ok <- validate_lines(lines) do
+         :ok <- validate_lines(lines, business_id, owner_id) do
       total_debit = sum_side(lines, :debit)
       total_credit = sum_side(lines, :credit)
 
@@ -127,7 +351,6 @@ defmodule Kaarobar.Accounting do
           end
         end)
         |> Multi.run(:lock, fn _repo, %{journal_entry: entry} ->
-          # Bypass immutability: lock while still unlocked (OLD.is_locked = false)
           {1, _} =
             from(j in JournalEntry, where: j.id == ^entry.id and j.is_locked == false)
             |> Repo.update_all(set: [is_locked: true])
@@ -155,9 +378,9 @@ defmodule Kaarobar.Accounting do
     if existing, do: {:ok, existing}, else: :ok
   end
 
-  defp validate_lines([]), do: {:error, :empty_lines}
+  defp validate_lines([], _business_id, _owner_id), do: {:error, :empty_lines}
 
-  defp validate_lines(lines) do
+  defp validate_lines(lines, business_id, owner_id) do
     Enum.reduce_while(lines, :ok, fn line, :ok ->
       debit = to_dec(line[:debit] || line["debit"] || 0)
       credit = to_dec(line[:credit] || line["credit"] || 0)
@@ -173,10 +396,20 @@ defmodule Kaarobar.Accounting do
         Decimal.compare(debit, 0) == :eq and Decimal.compare(credit, 0) == :eq ->
           {:halt, {:error, :line_zero}}
 
+        header_account?(account_id, business_id, owner_id) ->
+          {:halt, {:error, :header_not_postable}}
+
         true ->
           {:cont, :ok}
       end
     end)
+  end
+
+  defp header_account?(account_id, business_id, owner_id) do
+    case Repo.get_by(ChartOfAccount, id: account_id, business_id: business_id, owner_id: owner_id) do
+      %{is_header: true} -> true
+      _ -> false
+    end
   end
 
   defp sum_side(lines, side) do
@@ -438,13 +671,14 @@ defmodule Kaarobar.Accounting do
         where:
           je.business_id == ^business_id and je.owner_id == ^owner_id and
             je.date >= ^from_date and je.date <= ^to_date and
-            acc.type in ["Revenue", "Expense"],
-        group_by: [acc.id, acc.code, acc.name, acc.type],
+            acc.type in ["Revenue", "Expense"] and acc.is_header == false,
+        group_by: [acc.id, acc.code, acc.name, acc.type, acc.classification],
         select: %{
           account_id: acc.id,
           code: acc.code,
           name: acc.name,
           type: acc.type,
+          classification: acc.classification,
           total_debit: sum(jl.debit),
           total_credit: sum(jl.credit)
         }
@@ -473,6 +707,7 @@ defmodule Kaarobar.Accounting do
           code: row.code,
           name: row.name,
           type: row.type,
+          classification: row.classification || ChartOfAccount.default_classification(row.type),
           amount: to_string(amount)
         }
       end)
@@ -487,13 +722,58 @@ defmodule Kaarobar.Accounting do
       |> Enum.filter(&(&1.type == "Expense"))
       |> Enum.reduce(Decimal.new(0), &Decimal.add(&2, to_dec(&1.amount)))
 
+    sections = build_pl_sections(rows)
+
     %{
       from: from_date,
       to: to_date,
       lines: rows,
+      sections: sections,
       total_revenue: to_string(revenue),
       total_expense: to_string(expense),
-      net_income: to_string(Decimal.sub(revenue, expense))
+      net_income: to_string(Decimal.sub(revenue, expense)),
+      gross_profit: Map.get(sections, :gross_profit),
+      operating_profit: Map.get(sections, :operating_profit)
+    }
+  end
+
+  defp build_pl_sections(rows) do
+    sum_class = fn class ->
+      rows
+      |> Enum.filter(&(&1.classification == class))
+      |> Enum.reduce(Decimal.new(0), &Decimal.add(&2, to_dec(&1.amount)))
+    end
+
+    revenue = sum_class.("revenue")
+    other_income = sum_class.("other_income")
+    cost_of_sales = sum_class.("cost_of_sales")
+    operating_expense = sum_class.("operating_expense")
+    other_expense = sum_class.("other_expense")
+
+    gross = Decimal.sub(revenue, cost_of_sales)
+    operating = Decimal.sub(Decimal.add(gross, other_income), operating_expense)
+    net = Decimal.sub(operating, other_expense)
+
+    %{
+      revenue: section_block(rows, "revenue", revenue),
+      cost_of_sales: section_block(rows, "cost_of_sales", cost_of_sales),
+      gross_profit: to_string(gross),
+      other_income: section_block(rows, "other_income", other_income),
+      operating_expense: section_block(rows, "operating_expense", operating_expense),
+      operating_profit: to_string(operating),
+      other_expense: section_block(rows, "other_expense", other_expense),
+      net_income: to_string(net)
+    }
+  end
+
+  defp section_block(rows, classification, total) do
+    %{
+      classification: classification,
+      total: to_string(total),
+      lines:
+        rows
+        |> Enum.filter(&(&1.classification == classification))
+        |> Enum.map(&Map.take(&1, [:code, :name, :type, :classification, :amount]))
     }
   end
 
@@ -509,13 +789,14 @@ defmodule Kaarobar.Accounting do
         where:
           je.business_id == ^business_id and je.owner_id == ^owner_id and
             je.date <= ^as_of_date and
-            acc.type in ["Asset", "Liability", "Equity"],
-        group_by: [acc.id, acc.code, acc.name, acc.type],
+            acc.type in ["Asset", "Liability", "Equity"] and acc.is_header == false,
+        group_by: [acc.id, acc.code, acc.name, acc.type, acc.classification],
         select: %{
           account_id: acc.id,
           code: acc.code,
           name: acc.name,
           type: acc.type,
+          classification: acc.classification,
           total_debit: sum(jl.debit),
           total_credit: sum(jl.credit)
         }
@@ -543,6 +824,7 @@ defmodule Kaarobar.Accounting do
           code: row.code,
           name: row.name,
           type: row.type,
+          classification: row.classification || ChartOfAccount.default_classification(row.type),
           balance: to_string(balance)
         }
       end)
@@ -553,13 +835,121 @@ defmodule Kaarobar.Accounting do
       |> Enum.reduce(Decimal.new(0), &Decimal.add(&2, to_dec(&1.balance)))
     end
 
+    sections = build_bs_sections(rows)
+
     %{
       as_of: as_of_date,
       lines: rows,
+      sections: sections,
       total_assets: to_string(total.("Asset")),
       total_liabilities: to_string(total.("Liability")),
       total_equity: to_string(total.("Equity"))
     }
+  end
+
+  defp build_bs_sections(rows) do
+    sum_class = fn class ->
+      rows
+      |> Enum.filter(&(&1.classification == class))
+      |> Enum.reduce(Decimal.new(0), &Decimal.add(&2, to_dec(&1.balance)))
+    end
+
+    current_assets = sum_class.("current_asset")
+    non_current_assets = sum_class.("non_current_asset")
+    current_liabilities = sum_class.("current_liability")
+    non_current_liabilities = sum_class.("non_current_liability")
+    equity = sum_class.("equity")
+
+    %{
+      current_assets: bs_section(rows, "current_asset", current_assets),
+      non_current_assets: bs_section(rows, "non_current_asset", non_current_assets),
+      total_assets: to_string(Decimal.add(current_assets, non_current_assets)),
+      current_liabilities: bs_section(rows, "current_liability", current_liabilities),
+      non_current_liabilities: bs_section(rows, "non_current_liability", non_current_liabilities),
+      total_liabilities: to_string(Decimal.add(current_liabilities, non_current_liabilities)),
+      equity: bs_section(rows, "equity", equity),
+      total_equity: to_string(equity)
+    }
+  end
+
+  defp bs_section(rows, classification, total) do
+    %{
+      classification: classification,
+      total: to_string(total),
+      lines:
+        rows
+        |> Enum.filter(&(&1.classification == classification))
+        |> Enum.map(&Map.take(&1, [:code, :name, :type, :classification, :balance]))
+    }
+  end
+
+  @doc """
+  Indirect cash-flow style summary from period P&L net income plus working-capital proxies.
+  """
+  def cash_flow(business_id, owner_id, from_date, to_date, opts \\ []) do
+    pl = profit_and_loss(business_id, owner_id, from_date, to_date, opts)
+    start_bs = balance_sheet(business_id, owner_id, Date.add(from_date, -1), opts)
+    end_bs = balance_sheet(business_id, owner_id, to_date, opts)
+
+    net_income = to_dec(pl.net_income)
+
+    # Asset increase uses cash; liability increase provides cash
+    ar_delta = account_balance_delta(start_bs.lines, end_bs.lines, "1100")
+    inv_delta = account_balance_delta(start_bs.lines, end_bs.lines, "1200")
+    ap_delta = account_balance_delta(start_bs.lines, end_bs.lines, "2000")
+
+    operating =
+      net_income
+      |> Decimal.sub(ar_delta)
+      |> Decimal.sub(inv_delta)
+      |> Decimal.add(ap_delta)
+
+    ca_delta =
+      Decimal.sub(
+        section_total(end_bs.sections, :current_assets),
+        section_total(start_bs.sections, :current_assets)
+      )
+
+    cl_delta =
+      Decimal.sub(
+        section_total(end_bs.sections, :current_liabilities),
+        section_total(start_bs.sections, :current_liabilities)
+      )
+
+    %{
+      from: from_date,
+      to: to_date,
+      method: "indirect",
+      net_income: to_string(net_income),
+      changes: %{
+        accounts_receivable: to_string(Decimal.mult(ar_delta, Decimal.new(-1))),
+        inventory: to_string(Decimal.mult(inv_delta, Decimal.new(-1))),
+        accounts_payable: to_string(ap_delta)
+      },
+      cash_from_operations: to_string(operating),
+      net_change_in_cash: to_string(operating),
+      current_asset_change: to_string(ca_delta),
+      current_liability_change: to_string(cl_delta)
+    }
+  end
+
+  defp section_total(sections, key) when is_map(sections) do
+    case Map.get(sections, key) do
+      %{total: t} -> to_dec(t)
+      t when is_binary(t) -> to_dec(t)
+      _ -> Decimal.new(0)
+    end
+  end
+
+  defp account_balance_delta(start_lines, end_lines, code) do
+    find = fn lines ->
+      case Enum.find(lines, &(&1.code == code)) do
+        %{balance: b} -> to_dec(b)
+        _ -> Decimal.new(0)
+      end
+    end
+
+    Decimal.sub(find.(end_lines), find.(start_lines))
   end
 
   def consolidated_trial_balance(owner_id) do

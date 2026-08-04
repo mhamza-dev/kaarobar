@@ -110,19 +110,19 @@ const ur: HelpCatalog = {
     tips: ["اصل انوائس رکھیں—ریٹرن اسی سیل سے جڑتا ہے۔"],
   },
   "page.accounting": {
-    title: "اکاؤنٹنگ",
-    summary: "کتابیں، جرنلز، اسٹیٹمنٹس اور AR/AP ایجنگ۔",
-    what: "ڈبل انٹری ٹولز: چارٹ آف اکاؤنٹس، جرنل انٹریز، ٹرائل بیلنس، منافع و نقصان، بیلنس شیٹ، جنرل لیجر اور وصولی/ادائیگی ایجنگ۔",
+    title: "اکاونٹنگ",
+    summary: "IFRS-for-SMEs books, journals, statements, and AR/AP aging.",
+    what: "Double-entry tools aligned with IFRS for SMEs presentation: chart of accounts (create/edit), journals, trial balance, sectioned P&L and balance sheet, cash flow, general ledger, and receivables/payables aging.",
     how: [
-      "Chart of accounts میں لیجرز دیکھیں۔",
-      "دستی اصلاح کے لیے Journals پوسٹ کریں۔",
-      "تاریخ کی رینج پر Trial balance، P&L، Balance sheet یا GL چلائیں۔",
-      "AR/AP ایجنگ سے واجب الادا انوائس/بلز فالو اپ کریں۔",
+      "Create or edit ledger accounts on Chart of accounts.",
+      "Post manual corrections from Journals.",
+      "Run Trial balance, P&L, Balance sheet, Cash flow, or GL for a date range.",
+      "Follow up on overdue invoices and bills from AR/AP aging.",
     ],
-    when: "مہینہ بند، مالک رپورٹنگ یا وصولی/ادائیگی پیچھا۔",
+    when: "For month-end close, owner reporting, or collections and payments follow-up.",
     tips: [
-      "POS اور انوینٹری بہت سے جرنلز خود بناتے ہیں۔",
-      "دستی جرنل سے پہلے سورس دستاویز درست کریں۔",
+      "POS and inventory create many journals automatically.",
+      "Header accounts are for structure only—post to leaf accounts.",
     ],
   },
   "page.hr": {
@@ -309,11 +309,17 @@ const ur: HelpCatalog = {
 
   "tab.accounting.coa": {
     title: "چارٹ آف اکاؤنٹس",
-    summary: "جرنلز اور اسٹیٹمنٹس کے لیجر اکاؤنٹس۔",
-    what: "اکاؤنٹ کوڈ، نام اور قسم کی فہرست۔ ضرورت ہو تو نام ایڈٹ کریں۔",
-    how: ["کوڈ سے اکاؤنٹس دیکھیں۔", "لیبل بدلنے کے لیے اکاؤنٹ ایڈٹ کریں۔"],
-    when: "سیٹ اپ جائزہ یا واضح ناموں کے لیے۔",
-    tips: ["جن اکاؤنٹس پر پوسٹنگ ہو انہیں حذف نہ کریں۔"],
+    summary: "IFRS-for-SMEs ledger accounts for journals and statements.",
+    what: "Hierarchical list of account codes with type, classification, and normal balance. Create new accounts or edit existing ones.",
+    how: [
+      "Use New account to add a postable or header account.",
+      "Browse by code; indent shows parent hierarchy.",
+      "Edit an account to change labels or classification.",
+    ],
+    when: "During setup review or when you need a new ledger account.",
+    tips: [
+      "Do not delete accounts that already have postings.",
+    ],
   },
   "tab.accounting.journals": {
     title: "جرنلز",
@@ -335,21 +341,45 @@ const ur: HelpCatalog = {
     tips: ["غیر متوقع بڑے بیلنس کی جانچ کریں۔"],
   },
   "tab.accounting.pl": {
-    title: "منافع و نقصان",
-    summary: "تاریخ کی رینج کے لیے آمدنی اور اخراجات۔",
-    what: "پوسٹ شدہ جرنلز سے منتخب مدت کی منافعیت۔",
-    how: ["تاریخیں چنیں۔", "آمدنی بمقابلہ اخراجات پڑھیں۔"],
-    when: "مالک جائزہ اور مدت بند۔",
-    tips: ["صحیح اکاؤنٹ اقسام اور پوسٹنگز پر منحصر ہے۔"],
+    title: "منافع و خسارہ",
+    summary: "Sectioned income statement (IFRS for SMEs).",
+    what: "Revenue, cost of sales, operating expenses, and net income for the selected period.",
+    how: [
+      "Choose dates.",
+      "Review sections and subtotals (gross / operating / net).",
+    ],
+    when: "For owner review and period close.",
+    tips: [
+      "Accuracy depends on correct account classifications and postings.",
+    ],
   },
   "tab.accounting.bs": {
     title: "بیلنس شیٹ",
-    summary: "اثاثے، ذمہ داریاں اور ایکویٹی۔",
-    what: "منتخب مدت کے اختتام پر پوزیشن اسٹیٹمنٹ۔",
-    how: ["رپورٹ کی تاریخ رینج سیٹ کریں۔", "اثاثہ بمقابلہ ذمہ داری سیکشن دیکھیں۔"],
-    when: "مدت بند اور مالیاتی بات چیت۔",
-    tips: ["AR/AP ایجنگ کسٹمر/سپلائر بقایا کی تکمیل کرتی ہے۔"],
+    summary: "Sectioned statement of financial position.",
+    what: "Current and non-current assets/liabilities plus equity as of the report date.",
+    how: [
+      "Set the as-of date.",
+      "Review current vs non-current sections.",
+    ],
+    when: "For period close and financial discussions.",
+    tips: [
+      "AR/AP aging complements customer and supplier balances.",
+    ],
   },
+  "tab.accounting.cf": {
+    title: "کیش فلو",
+    summary: "Indirect cash flow summary for a period.",
+    what: "Starts from net income and adjusts for working-capital changes (AR, inventory, AP).",
+    how: [
+      "Choose dates.",
+      "Review cash from operations.",
+    ],
+    when: "For cash planning alongside P&L and balance sheet.",
+    tips: [
+      "This is a simplified indirect method—not a full IAS 7 statement.",
+    ],
+  },
+
   "tab.accounting.gl": {
     title: "جنرل لیجر",
     summary: "ایک اکاؤنٹ کی لائن بہ لائن حرکت۔",

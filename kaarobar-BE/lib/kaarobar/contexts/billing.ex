@@ -29,7 +29,7 @@ defmodule Kaarobar.Billing do
       features: [
         "1 business · 2 branches",
         "POS + inventory",
-        "Pakistan chart of accounts included",
+        "IFRS-for-SMEs chart of accounts included",
         "Owner dashboard",
         "Email support"
       ],

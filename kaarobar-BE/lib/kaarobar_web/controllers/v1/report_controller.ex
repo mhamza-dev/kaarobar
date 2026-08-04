@@ -114,6 +114,17 @@ defmodule KaarobarWeb.V1.ReportController do
     json(conn, %{data: Accounting.balance_sheet(business_id, owner_id, as_of, opts)})
   end
 
+  def cash_flow(conn, params) do
+    user = Guardian.Plug.current_resource(conn)
+    business_id = conn.assigns[:business_id]
+    owner_id = conn.assigns[:owner_id] || user.id
+    from = parse_date(params["from"])
+    to = parse_date(params["to"])
+    opts = if params["branch_id"], do: [branch_id: params["branch_id"]], else: []
+
+    json(conn, %{data: Accounting.cash_flow(business_id, owner_id, from, to, opts)})
+  end
+
   def consolidated(conn, _params) do
     user = Guardian.Plug.current_resource(conn)
     owner_id = conn.assigns[:owner_id] || user.id

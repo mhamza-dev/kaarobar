@@ -53,7 +53,10 @@ defmodule KaarobarWeb.V1.AccountController do
       code: a.code,
       name: a.name,
       type: a.type,
-      parent_account_id: a.parent_account_id
+      parent_account_id: a.parent_account_id,
+      normal_balance: a.normal_balance,
+      classification: a.classification,
+      is_header: a.is_header
     }
   end
 end

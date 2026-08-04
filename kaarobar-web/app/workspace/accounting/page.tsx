@@ -27,19 +27,29 @@ import {
 import WorkspacePageScaffold from "@/components/app/WorkspacePageScaffold";
 import FormModal from "@/components/app/FormModal";
 
-type Tab = "coa" | "journals" | "tb" | "pl" | "bs" | "gl" | "ar" | "ap";
+type Tab = "coa" | "journals" | "tb" | "pl" | "bs" | "cf" | "gl" | "ar" | "ap";
 const ACCOUNTING_TABS: readonly Tab[] = [
   "coa",
   "journals",
   "tb",
   "pl",
   "bs",
+  "cf",
   "gl",
   "ar",
   "ap",
 ];
 
-type Account = { id: string; code: string; name: string; type: string };
+type Account = {
+  id: string;
+  code: string;
+  name: string;
+  type: string;
+  parent_account_id?: string | null;
+  normal_balance?: string;
+  classification?: string | null;
+  is_header?: boolean;
+};
 type Journal = {
   id: string;
   date: string;
@@ -56,17 +66,63 @@ type Journal = {
   }[];
 };
 type TbRow = { code: string; name: string; type: string; debit: string; credit: string };
+type StatementLine = {
+  code: string;
+  name: string;
+  type: string;
+  classification?: string;
+  amount?: string;
+  balance?: string;
+};
+type StatementSection = {
+  classification: string;
+  total: string;
+  lines: StatementLine[];
+};
 type PlData = {
-  lines: { code: string; name: string; type: string; amount: string }[];
+  lines: StatementLine[];
+  sections?: {
+    revenue?: StatementSection;
+    cost_of_sales?: StatementSection;
+    gross_profit?: string;
+    other_income?: StatementSection;
+    operating_expense?: StatementSection;
+    operating_profit?: string;
+    other_expense?: StatementSection;
+    net_income?: string;
+  };
   total_revenue: string;
   total_expense: string;
   net_income: string;
+  gross_profit?: string;
+  operating_profit?: string;
 };
 type BsData = {
-  lines: { code: string; name: string; type: string; balance: string }[];
+  lines: StatementLine[];
+  sections?: {
+    current_assets?: StatementSection;
+    non_current_assets?: StatementSection;
+    total_assets?: string;
+    current_liabilities?: StatementSection;
+    non_current_liabilities?: StatementSection;
+    total_liabilities?: string;
+    equity?: StatementSection;
+    total_equity?: string;
+  };
   total_assets: string;
   total_liabilities: string;
   total_equity: string;
+};
+type CfData = {
+  method: string;
+  net_income: string;
+  cash_from_operations: string;
+  net_change_in_cash: string;
+  changes?: {
+    accounts_receivable?: string;
+    inventory?: string;
+    accounts_payable?: string;
+  };
 };
 type GlRow = {
   date: string;
@@ -86,6 +142,30 @@ type AgingRow = {
   supplier_name?: string;
   invoice_number?: string;
   bill_number?: string;
+};
+
+const ACCOUNT_TYPES = ["Asset", "Liability", "Equity", "Revenue", "Expense"] as const;
+const CLASSIFICATIONS = [
+  "current_asset",
+  "non_current_asset",
+  "current_liability",
+  "non_current_liability",
+  "equity",
+  "revenue",
+  "cost_of_sales",
+  "operating_expense",
+  "other_income",
+  "other_expense",
+] as const;
+
+const emptyAccountForm = {
+  code: "",
+  name: "",
+  type: "Expense",
+  parent_account_id: "",
+  classification: "operating_expense",
+  normal_balance: "debit",
+  is_header: false,
 };
 
 export default function AccountingPage() {
@@ -112,11 +192,7 @@ function StaffAccountingPage() {
   const [jeModal, setJeModal] = useState(false);
   const [accountModal, setAccountModal] = useState(false);
   const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
-  const [accountForm, setAccountForm] = useState({
-    code: "",
-    name: "",
-    type: "expense",
-  });
+  const [accountForm, setAccountForm] = useState(emptyAccountForm);
   const [busy, setBusy] = useState(false);
   const [journalDetailId, setJournalDetailId] = useState<string | null>(null);
   const [journalFilters, setJournalFilters] = useState(emptyStaffListFilters);
@@ -141,7 +217,7 @@ function StaffAccountingPage() {
   const from = reportFilters.from;
   const to = reportFilters.to;
 
-  const needAccounts = tab === "coa" || tab === "journals" || tab === "gl" || jeModal;
+  const needAccounts = tab === "coa" || tab === "journals" || tab === "gl" || jeModal || accountModal;
 
   const { data: accounts = [], isLoading: accountsLoading } = useQuery({
     queryKey: accountingKeys.accounts(businessId),
@@ -246,6 +322,17 @@ function StaffAccountingPage() {
     enabled: tab === "bs",
   });
 
+  const { data: cf = null, isLoading: cfLoading } = useQuery({
+    queryKey: accountingKeys.cashFlow(businessId, from, to),
+    queryFn: async () => {
+      const res = await api<{ data: CfData }>(
+        `/reports/cash-flow?from=${from}&to=${to}`
+      );
+      return res.data;
+    },
+    enabled: tab === "cf",
+  });
+
   const { data: gl = [], isLoading: glLoading } = useQuery({
     queryKey: accountingKeys.generalLedger(businessId, undefined, from, to),
     queryFn: async () => {
@@ -259,12 +346,45 @@ function StaffAccountingPage() {
 
   const glAccountOptions = useMemo(
     () =>
-      accounts.map((a) => ({
-        value: a.id,
-        label: `${a.code} · ${a.name}`,
-      })),
+      accounts
+        .filter((a) => !a.is_header)
+        .map((a) => ({
+          value: a.id,
+          label: `${a.code} · ${a.name}`,
+        })),
     [accounts]
   );
+
+  const postableAccounts = useMemo(
+    () => accounts.filter((a) => !a.is_header),
+    [accounts]
+  );
+
+  const sortedAccounts = useMemo(() => {
+    const byParent = new Map<string | null, Account[]>();
+    for (const a of accounts) {
+      const key = a.parent_account_id || null;
+      const list = byParent.get(key) || [];
+      list.push(a);
+      byParent.set(key, list);
+    }
+    for (const list of byParent.values()) {
+      list.sort((x, y) => x.code.localeCompare(y.code));
+    }
+    const out: { account: Account; depth: number }[] = [];
+    const walk = (parentId: string | null, depth: number) => {
+      for (const a of byParent.get(parentId) || []) {
+        out.push({ account: a, depth });
+        walk(a.id, depth + 1);
+      }
+    };
+    walk(null, 0);
+    const seen = new Set(out.map((x) => x.account.id));
+    for (const a of accounts) {
+      if (!seen.has(a.id)) out.push({ account: a, depth: 0 });
+    }
+    return out;
+  }, [accounts]);
 
   async function refreshCore() {
     await queryClient.invalidateQueries({ queryKey: accountingKeys.accounts(businessId) });
@@ -318,42 +438,132 @@ function StaffAccountingPage() {
     }
   }
 
+  function openCreateAccount() {
+    setEditingAccountId(null);
+    setAccountForm(emptyAccountForm);
+    setAccountModal(true);
+  }
+
   function openEditAccount(a: Account) {
     setEditingAccountId(a.id);
-    setAccountForm({ code: a.code, name: a.name, type: a.type });
+    setAccountForm({
+      code: a.code,
+      name: a.name,
+      type: a.type || "Expense",
+      parent_account_id: a.parent_account_id || "",
+      classification: a.classification || "operating_expense",
+      normal_balance: a.normal_balance || "debit",
+      is_header: Boolean(a.is_header),
+    });
     setAccountModal(true);
   }
 
   async function saveAccount(e: React.FormEvent) {
     e.preventDefault();
-    if (!editingAccountId) return;
     setBusy(true);
+    const payload = {
+      code: accountForm.code,
+      name: accountForm.name,
+      type: accountForm.type,
+      parent_account_id: accountForm.parent_account_id || null,
+      classification: accountForm.classification,
+      normal_balance: accountForm.normal_balance,
+      is_header: accountForm.is_header,
+    };
     try {
-      await api(`/accounts/${editingAccountId}`, {
-        method: "PATCH",
-        body: JSON.stringify(accountForm),
-      });
-      toast.success(t("accounting.accountUpdated"));
+      if (editingAccountId) {
+        await api(`/accounts/${editingAccountId}`, {
+          method: "PATCH",
+          body: JSON.stringify(payload),
+        });
+        toast.success(t("accounting.accountUpdated"));
+      } else {
+        await api("/accounts", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        toast.success(t("accounting.accountCreated"));
+      }
       setAccountModal(false);
       setEditingAccountId(null);
       await refreshCore();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("accounting.accountUpdateFailed"));
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : editingAccountId
+            ? t("accounting.accountUpdateFailed")
+            : t("accounting.accountCreateFailed")
+      );
     } finally {
       setBusy(false);
     }
   }
 
   const tabs: { id: Tab; label: string; infoKey?: string }[] = [
-    { id: "tb", label: "Trial balance", infoKey: "tab.accounting.tb" },
-    { id: "pl", label: "P&L", infoKey: "tab.accounting.pl" },
-    { id: "bs", label: "Balance sheet", infoKey: "tab.accounting.bs" },
-    { id: "gl", label: "General ledger", infoKey: "tab.accounting.gl" },
-    { id: "journals", label: "Journals", infoKey: "tab.accounting.journals" },
-    { id: "coa", label: "Chart of accounts", infoKey: "tab.accounting.coa" },
-    { id: "ar", label: "AR aging", infoKey: "tab.accounting.ar" },
+    { id: "tb", label: t("accounting.trialBalance"), infoKey: "tab.accounting.tb" },
+    { id: "pl", label: t("accounting.profitLoss"), infoKey: "tab.accounting.pl" },
+    { id: "bs", label: t("accounting.balanceSheet"), infoKey: "tab.accounting.bs" },
+    { id: "cf", label: t("accounting.cashFlow"), infoKey: "tab.accounting.cf" },
+    { id: "gl", label: t("accounting.generalLedger"), infoKey: "tab.accounting.gl" },
+    { id: "journals", label: t("accounting.tabs.journals"), infoKey: "tab.accounting.journals" },
+    { id: "coa", label: t("accounting.tabs.coa"), infoKey: "tab.accounting.coa" },
+    { id: "ar", label: t("accounting.aging"), infoKey: "tab.accounting.ar" },
     { id: "ap", label: "AP aging", infoKey: "tab.accounting.ap" },
   ];
+
+  function sectionRows(
+    section: StatementSection | undefined,
+    valueKey: "amount" | "balance"
+  ): (string | undefined)[][] {
+    if (!section?.lines?.length) return [];
+    return [
+      [`— ${section.classification.replace(/_/g, " ")} —`, "", "", ""],
+      ...section.lines.map((r) => [
+        r.code,
+        r.name,
+        r.type,
+        formatDecimal(valueKey === "amount" ? r.amount : r.balance),
+      ]),
+      ["", t("accounting.sectionTotal"), "", formatDecimal(section.total)],
+    ];
+  }
+
+  const plRows = pl?.sections
+    ? [
+        ...sectionRows(pl.sections.revenue, "amount"),
+        ...sectionRows(pl.sections.cost_of_sales, "amount"),
+        ["", t("accounting.grossProfit"), "", formatDecimal(pl.sections.gross_profit || pl.gross_profit)],
+        ...sectionRows(pl.sections.other_income, "amount"),
+        ...sectionRows(pl.sections.operating_expense, "amount"),
+        [
+          "",
+          t("accounting.operatingProfit"),
+          "",
+          formatDecimal(pl.sections.operating_profit || pl.operating_profit),
+        ],
+        ...sectionRows(pl.sections.other_expense, "amount"),
+        ["", t("accounting.netIncome"), "", formatDecimal(pl.sections.net_income || pl.net_income)],
+      ]
+    : (pl?.lines || []).map((r) => [r.code, r.name, r.type, formatDecimal(r.amount)]);
+
+  const bsRows = bs?.sections
+    ? [
+        ...sectionRows(bs.sections.current_assets, "balance"),
+        ...sectionRows(bs.sections.non_current_assets, "balance"),
+        ["", t("accounting.totalAssets"), "", formatDecimal(bs.sections.total_assets || bs.total_assets)],
+        ...sectionRows(bs.sections.current_liabilities, "balance"),
+        ...sectionRows(bs.sections.non_current_liabilities, "balance"),
+        [
+          "",
+          t("accounting.totalLiabilities"),
+          "",
+          formatDecimal(bs.sections.total_liabilities || bs.total_liabilities),
+        ],
+        ...sectionRows(bs.sections.equity, "balance"),
+        ["", t("accounting.totalEquity"), "", formatDecimal(bs.sections.total_equity || bs.total_equity)],
+      ]
+    : (bs?.lines || []).map((r) => [r.code, r.name, r.type, formatDecimal(r.balance)]);
 
   return (
     <WorkspacePageScaffold
@@ -369,7 +579,13 @@ function StaffAccountingPage() {
                 onClick: () => setJeModal(true),
                 icon: <BookPlus className="h-4 w-4" />,
               }
-            : undefined,
+            : tab === "coa"
+              ? {
+                  label: t("accounting.newAccount"),
+                  onClick: openCreateAccount,
+                  icon: <BookPlus className="h-4 w-4" />,
+                }
+              : undefined,
       }}
       tabs={{ tabs, value: tab, onChange: setTab }}
     >
@@ -382,43 +598,77 @@ function StaffAccountingPage() {
           onFilterChange={setCoaFilters}
           clientFilter
           filterAccessors={{
-            searchText: (a) => `${a.code} ${a.name} ${a.type}`,
+            searchText: (row) =>
+              `${row.account.code} ${row.account.name} ${row.account.type} ${row.account.classification || ""}`,
           }}
           filterConfig={{}}
           searchPlaceholder={t("accounting.searchAccounts")}
-          getSearchText={(a) => `${a.code} ${a.name} ${a.type}`}
-          pagination={{ mode: "client", pageSize: 20 }}
+          getSearchText={(row) =>
+            `${row.account.code} ${row.account.name} ${row.account.type}`
+          }
+          pagination={{ mode: "client", pageSize: 40 }}
           exportable
           exportFilename="chart-of-accounts"
           exportTitle="Chart of accounts"
-          getExportRow={(a) => ({
-            code: a.code,
-            name: a.name,
-            type: a.type,
+          getExportRow={(row) => ({
+            code: row.account.code,
+            name: row.account.name,
+            type: row.account.type,
+            classification: row.account.classification || "",
+            normal_balance: row.account.normal_balance || "",
+            header: row.account.is_header ? "yes" : "no",
           })}
           exportColumns={[
             { key: "code", header: "Code" },
             { key: "name", header: "Name" },
             { key: "type", header: "Type" },
+            { key: "classification", header: "Classification" },
+            { key: "normal_balance", header: "Normal balance" },
+            { key: "header", header: "Header" },
           ]}
-          onRowClick={openEditAccount}
+          onRowClick={(row) => openEditAccount(row.account)}
           columns={[
             {
               id: "code",
               header: "Code",
-              cell: (a) => <span className="font-medium tabular-nums">{a.code}</span>,
+              cell: (row) => (
+                <span
+                  className="font-medium tabular-nums"
+                  style={{ paddingInlineStart: `${row.depth * 1.1}rem` }}
+                >
+                  {row.account.code}
+                </span>
+              ),
             },
             {
               id: "name",
               header: "Name",
-              cell: (a) => <span className="font-medium">{a.name}</span>,
+              cell: (row) => (
+                <span className="font-medium">
+                  {row.account.name}
+                  {row.account.is_header ? (
+                    <span className="ms-2 text-xs font-normal text-body">
+                      ({t("accounting.headerAccount")})
+                    </span>
+                  ) : null}
+                </span>
+              ),
             },
             {
               id: "type",
               header: "Type",
-              cell: (a) => (
-                <span className="inline-flex rounded-md bg-bg-tertiary px-2 py-0.5 text-xs font-semibold capitalize">
-                  {a.type}
+              cell: (row) => (
+                <span className="inline-flex rounded-md bg-bg-tertiary px-2 py-0.5 text-xs font-semibold">
+                  {row.account.type}
+                </span>
+              ),
+            },
+            {
+              id: "classification",
+              header: t("accounting.classification"),
+              cell: (row) => (
+                <span className="text-xs text-body">
+                  {(row.account.classification || "").replace(/_/g, " ") || "—"}
                 </span>
               ),
             },
@@ -427,14 +677,14 @@ function StaffAccountingPage() {
               header: "",
               align: "right",
               width: 48,
-              cell: (a) => (
+              cell: (row) => (
                 <div className="flex justify-end">
                   <ActionMenu
                     items={[
                       {
                         id: "edit",
                         label: "Edit",
-                        onClick: () => openEditAccount(a),
+                        onClick: () => openEditAccount(row.account),
                       },
                     ]}
                   />
@@ -442,8 +692,8 @@ function StaffAccountingPage() {
               ),
             },
           ]}
-          data={accounts}
-          rowKey={(a) => a.id}
+          data={sortedAccounts}
+          rowKey={(row) => row.account.id}
           emptyTitle="No accounts"
           emptyBody="Accounts are seeded when you create a business."
         />
@@ -584,10 +834,10 @@ function StaffAccountingPage() {
       {tab === "pl" ? (
         <div className="space-y-3">
           <StatementTable
-            title="Profit and loss"
+            title={t("accounting.profitLoss")}
             filename="profit-and-loss"
             headers={["Code", "Account", "Type", "Amount"]}
-            rows={(pl?.lines || []).map((r) => [r.code, r.name, r.type, formatDecimal(r.amount)])}
+            rows={plRows}
             loading={plLoading}
             filterState={reportFilters}
             onFilterChange={setReportFilters}
@@ -595,8 +845,8 @@ function StaffAccountingPage() {
           />
           {pl ? (
             <p className="text-heading">
-              Revenue {formatDecimal(pl.total_revenue)} − Expense {formatDecimal(pl.total_expense)} ={" "}
-              <strong>Net {formatDecimal(pl.net_income)}</strong>
+              {t("accounting.ifrsHint")} · {t("accounting.netIncome")}{" "}
+              <strong>{formatDecimal(pl.net_income)}</strong>
             </p>
           ) : null}
         </div>
@@ -605,10 +855,10 @@ function StaffAccountingPage() {
       {tab === "bs" ? (
         <div className="space-y-3">
           <StatementTable
-            title="Balance sheet"
+            title={t("accounting.balanceSheet")}
             filename="balance-sheet"
             headers={["Code", "Account", "Type", "Balance"]}
-            rows={(bs?.lines || []).map((r) => [r.code, r.name, r.type, formatDecimal(r.balance)])}
+            rows={bsRows}
             loading={bsLoading}
             filterState={reportFilters}
             onFilterChange={setReportFilters}
@@ -616,8 +866,60 @@ function StaffAccountingPage() {
           />
           {bs ? (
             <p className="text-sm text-heading">
-              Assets {formatDecimal(bs.total_assets)} · Liabilities {formatDecimal(bs.total_liabilities)} · Equity{" "}
-              {formatDecimal(bs.total_equity)}
+              {t("accounting.totalAssets")} {formatDecimal(bs.total_assets)} ·{" "}
+              {t("accounting.totalLiabilities")} {formatDecimal(bs.total_liabilities)} ·{" "}
+              {t("accounting.totalEquity")} {formatDecimal(bs.total_equity)}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {tab === "cf" ? (
+        <div className="space-y-3">
+          <StatementTable
+            title={t("accounting.cashFlow")}
+            filename="cash-flow"
+            headers={["Item", "", "", "Amount"]}
+            rows={
+              cf
+                ? [
+                    [t("accounting.netIncome"), "", "", formatDecimal(cf.net_income)],
+                    [
+                      t("accounting.changeAr"),
+                      "",
+                      "",
+                      formatDecimal(cf.changes?.accounts_receivable),
+                    ],
+                    [
+                      t("accounting.changeInventory"),
+                      "",
+                      "",
+                      formatDecimal(cf.changes?.inventory),
+                    ],
+                    [
+                      t("accounting.changeAp"),
+                      "",
+                      "",
+                      formatDecimal(cf.changes?.accounts_payable),
+                    ],
+                    [
+                      t("accounting.cashFromOps"),
+                      "",
+                      "",
+                      formatDecimal(cf.cash_from_operations),
+                    ],
+                  ]
+                : []
+            }
+            loading={cfLoading}
+            filterState={reportFilters}
+            onFilterChange={setReportFilters}
+            showDateRange
+          />
+          {cf ? (
+            <p className="text-sm text-heading">
+              {t("accounting.indirectMethod")} · {t("accounting.netChangeCash")}{" "}
+              <strong>{formatDecimal(cf.net_change_in_cash)}</strong>
             </p>
           ) : null}
         </div>
@@ -853,10 +1155,14 @@ function StaffAccountingPage() {
           setAccountModal(false);
           setEditingAccountId(null);
         }}
-        title="Edit account"
-        description="Update chart of accounts name, code, or type."
+        title={editingAccountId ? t("accounting.editAccount") : t("accounting.createAccount")}
+        description={
+          editingAccountId
+            ? t("accounting.editAccountDesc")
+            : t("accounting.createAccountDesc")
+        }
         formId="account-modal-form"
-        submitLabel="Save changes"
+        submitLabel={editingAccountId ? t("common.save") : t("accounting.createAccount")}
         submitLoading={busy}
       >
         <form id="account-modal-form" onSubmit={saveAccount} className="space-y-4">
@@ -879,12 +1185,78 @@ function StaffAccountingPage() {
           <Field label="Type">
             <Select
               value={accountForm.type}
-              onChange={(v) => setAccountForm({ ...accountForm, type: v })}
-              options={["asset", "liability", "equity", "revenue", "expense"].map(
-                (t) => ({ value: t, label: t })
-              )}
+              onChange={(v) => {
+                const defaults: Record<string, { classification: string; normal_balance: string }> =
+                  {
+                    Asset: { classification: "current_asset", normal_balance: "debit" },
+                    Liability: {
+                      classification: "current_liability",
+                      normal_balance: "credit",
+                    },
+                    Equity: { classification: "equity", normal_balance: "credit" },
+                    Revenue: { classification: "revenue", normal_balance: "credit" },
+                    Expense: {
+                      classification: "operating_expense",
+                      normal_balance: "debit",
+                    },
+                  };
+                const d = defaults[v] || defaults.Expense;
+                setAccountForm({
+                  ...accountForm,
+                  type: v,
+                  classification: d.classification,
+                  normal_balance: d.normal_balance,
+                });
+              }}
+              options={ACCOUNT_TYPES.map((ty) => ({ value: ty, label: ty }))}
             />
           </Field>
+          <Field label={t("accounting.classification")}>
+            <Select
+              value={accountForm.classification}
+              onChange={(v) => setAccountForm({ ...accountForm, classification: v })}
+              options={CLASSIFICATIONS.map((c) => ({
+                value: c,
+                label: c.replace(/_/g, " "),
+              }))}
+            />
+          </Field>
+          <Field label={t("accounting.normalBalance")}>
+            <Select
+              value={accountForm.normal_balance}
+              onChange={(v) => setAccountForm({ ...accountForm, normal_balance: v })}
+              options={[
+                { value: "debit", label: "Debit" },
+                { value: "credit", label: "Credit" },
+              ]}
+            />
+          </Field>
+          <Field label={t("accounting.parentAccount")}>
+            <Select
+              value={accountForm.parent_account_id}
+              onChange={(v) => setAccountForm({ ...accountForm, parent_account_id: v })}
+              placeholder="—"
+              options={[
+                { value: "", label: "—" },
+                ...accounts
+                  .filter((a) => a.id !== editingAccountId)
+                  .map((a) => ({
+                    value: a.id,
+                    label: `${a.code} ${a.name}`,
+                  })),
+              ]}
+            />
+          </Field>
+          <label className="flex items-center gap-2 text-sm text-heading">
+            <input
+              type="checkbox"
+              checked={accountForm.is_header}
+              onChange={(e) =>
+                setAccountForm({ ...accountForm, is_header: e.target.checked })
+              }
+            />
+            {t("accounting.headerAccount")}
+          </label>
         </form>
       </FormModal>
 
@@ -920,7 +1292,7 @@ function StaffAccountingPage() {
                 placeholder="Account"
                 options={[
                   { value: "", label: "Account" },
-                  ...accounts.map((a) => ({
+                  ...postableAccounts.map((a) => ({
                     value: a.id,
                     label: `${a.code} ${a.name}`,
                   })),

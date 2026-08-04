@@ -333,6 +333,7 @@ defmodule KaarobarWeb.Router do
     get "/reports/general-ledger", ReportController, :general_ledger
     get "/reports/profit-and-loss", ReportController, :profit_and_loss
     get "/reports/balance-sheet", ReportController, :balance_sheet
+    get "/reports/cash-flow", ReportController, :cash_flow
     get "/reports/consolidated", ReportController, :consolidated
   end
 

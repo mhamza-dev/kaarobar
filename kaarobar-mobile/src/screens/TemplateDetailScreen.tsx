@@ -123,7 +123,7 @@ export default function TemplateDetailScreen() {
 
 function createStyles() {
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.bg, padding: 16 },
+    container: { flex: 1, backgroundColor: colors.bgPrimary, padding: 16 },
     center: { flex: 1, alignItems: "center", justifyContent: "center" },
     title: { fontSize: 22, fontWeight: "800", color: colors.heading },
     error: { color: colors.danger, marginBottom: 8 },
@@ -131,7 +131,7 @@ function createStyles() {
     body: { fontSize: 14, color: colors.body, lineHeight: 20, marginTop: 4 },
     card: {
       marginTop: 14,
-      backgroundColor: colors.surface,
+      backgroundColor: colors.card,
       borderRadius: 12,
       borderWidth: 1,
       borderColor: colors.border,

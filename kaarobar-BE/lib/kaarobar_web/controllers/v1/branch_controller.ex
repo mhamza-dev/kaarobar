@@ -110,6 +110,7 @@ defmodule KaarobarWeb.V1.BranchController do
       business_id: b.business_id,
       owner_id: b.owner_id,
       name: b.name,
+      code: b.code,
       timezone: b.timezone,
       is_active: b.is_active,
       refund_auto_approve_limit: to_string(b.refund_auto_approve_limit || 0),

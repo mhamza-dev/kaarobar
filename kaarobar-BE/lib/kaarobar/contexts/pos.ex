@@ -90,7 +90,7 @@ defmodule Kaarobar.Pos do
        ) do
     Multi.new()
     |> Multi.run(:invoice_number, fn _repo, _ ->
-      next_invoice_number(branch.id, business_id, owner_id)
+      next_invoice_number(branch, business_id, owner_id)
     end)
     |> Multi.run(:decrement_stock, fn _repo, _ ->
       decrement_stock!(branch.id, priced_items)
@@ -440,13 +440,13 @@ defmodule Kaarobar.Pos do
     end
   end
 
-  # business-scoped unique AR number for a POS khata sale
+  # Readable AR number tied to the POS invoice id
   defp khata_ar_invoice_number(%Sale{invoice_number: inv, id: id}) when is_binary(inv) do
-    "KH-#{inv}-#{String.slice(to_string(id), 0, 8)}"
+    "AR-#{inv}-#{String.slice(to_string(id), 0, 8)}"
   end
 
   defp khata_ar_invoice_number(%Sale{id: id}) do
-    "KH-#{String.slice(to_string(id), 0, 12)}"
+    "AR-#{String.slice(to_string(id), 0, 12)}"
   end
 
   defp maybe_notify_low_stock_after_sale(branch_id, business_id, owner_id, priced_items) do
@@ -889,7 +889,11 @@ defmodule Kaarobar.Pos do
     end
   end
 
-  defp next_invoice_number(branch_id, business_id, owner_id) do
+  defp next_invoice_number(%{id: branch_id} = branch, business_id, owner_id) do
+    business = Repo.get(Kaarobar.Schemas.Business, business_id)
+    shop = Kaarobar.Accounts.Codes.shop_initials(business && business.name)
+    branch_code = branch.code || Kaarobar.Accounts.Codes.branch_code_from_name(branch.name)
+
     case Repo.get_by(InvoiceSequence, branch_id: branch_id) do
       nil ->
         case %InvoiceSequence{}
@@ -901,21 +905,21 @@ defmodule Kaarobar.Pos do
              })
              |> Repo.insert() do
           {:ok, _} ->
-            {:ok, format_invoice(1)}
+            {:ok, format_invoice(1, shop, branch_code)}
 
           {:error, _} ->
             seq = Repo.get_by!(InvoiceSequence, branch_id: branch_id)
-            bump_and_format(seq)
+            bump_and_format(seq, shop, branch_code)
         end
 
       seq ->
-        bump_and_format(seq)
+        bump_and_format(seq, shop, branch_code)
     end
   end
 
-  defp bump_and_format(seq) do
+  defp bump_and_format(seq, shop, branch_code) do
     case bump_sequence(seq) do
-      {:ok, n} -> {:ok, format_invoice(n)}
+      {:ok, n} -> {:ok, format_invoice(n, shop, branch_code)}
       err -> err
     end
   end
@@ -933,8 +937,12 @@ defmodule Kaarobar.Pos do
     {:ok, n}
   end
 
-  defp format_invoice(n) when is_integer(n) do
-    "INV-#{String.pad_leading(Integer.to_string(n), 6, "0")}"
+  defp format_invoice(n, shop, branch_code) when is_integer(n) do
+    date = Date.utc_today() |> Calendar.strftime("%Y%m%d")
+    seq = String.pad_leading(Integer.to_string(n), 5, "0")
+    shop_part = shop || "SH"
+    branch_part = branch_code || "MAIN"
+    "KB#{shop_part}-#{branch_part}-#{date}-#{seq}"
   end
 
   ## —— Returns (POS-FR-007 / 008) ————————————————————————————————

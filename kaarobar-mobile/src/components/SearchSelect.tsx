@@ -74,7 +74,7 @@ export function SearchSelect({
             value={query}
             onChangeText={setQuery}
             placeholder={searchPlaceholder}
-            placeholderTextColor={colors.textMuted}
+            placeholderTextColor={colors.muted}
             style={styles.search}
             autoFocus
           />
@@ -175,7 +175,7 @@ export function SearchMultiSelect({
             value={query}
             onChangeText={setQuery}
             placeholder={searchPlaceholder}
-            placeholderTextColor={colors.textMuted}
+            placeholderTextColor={colors.muted}
             style={styles.search}
             autoFocus
           />
@@ -213,7 +213,7 @@ function createStyles(brand: string) {
     label: {
       fontSize: 11,
       fontWeight: "700",
-      color: colors.textMuted,
+      color: colors.muted,
       textTransform: "uppercase",
       letterSpacing: 0.6,
       marginBottom: 6,
@@ -227,8 +227,8 @@ function createStyles(brand: string) {
       backgroundColor: colors.bgPrimary,
     },
     disabled: { opacity: 0.55 },
-    triggerText: { color: colors.textHeading, fontSize: 14 },
-    placeholder: { color: colors.textMuted, fontSize: 14 },
+    triggerText: { color: colors.heading, fontSize: 14 },
+    placeholder: { color: colors.muted, fontSize: 14 },
     backdrop: { flex: 1, backgroundColor: "rgba(15,23,42,0.45)" },
     sheet: {
       maxHeight: "70%",
@@ -241,7 +241,7 @@ function createStyles(brand: string) {
     sheetTitle: {
       fontSize: 16,
       fontWeight: "700",
-      color: colors.textHeading,
+      color: colors.heading,
       marginBottom: 10,
     },
     search: {
@@ -251,9 +251,9 @@ function createStyles(brand: string) {
       paddingHorizontal: 12,
       paddingVertical: 10,
       marginBottom: 8,
-      color: colors.textHeading,
+      color: colors.heading,
     },
-    empty: { color: colors.textMuted, padding: 12, textAlign: "center" },
+    empty: { color: colors.muted, padding: 12, textAlign: "center" },
     row: {
       flexDirection: "row",
       alignItems: "center",
@@ -263,8 +263,8 @@ function createStyles(brand: string) {
       borderRadius: 6,
     },
     rowOn: { backgroundColor: `${brand}18` },
-    rowText: { flex: 1, color: colors.textHeading, fontSize: 14 },
-    meta: { color: colors.textMuted, fontSize: 12 },
+    rowText: { flex: 1, color: colors.heading, fontSize: 14 },
+    meta: { color: colors.muted, fontSize: 12 },
     check: {
       width: 18,
       height: 18,
@@ -277,7 +277,7 @@ function createStyles(brand: string) {
     checkOn: { backgroundColor: brand, borderColor: brand },
     checkMark: { color: "#fff", fontSize: 11, fontWeight: "700" },
     clearBtn: { marginTop: 8, alignItems: "center", padding: 12 },
-    clearText: { color: colors.textMuted, fontWeight: "600" },
+    clearText: { color: colors.muted, fontWeight: "600" },
     doneBtn: {
       marginTop: 8,
       backgroundColor: brand,

@@ -42,6 +42,18 @@ defmodule Kaarobar.AccountingTest do
     assert cash.type == "Asset"
   end
 
+  test "ACC-FR-001 IFRS-SME seed has headers and classifications", %{
+    business: business,
+    owner: owner
+  } do
+    accounts = Accounting.list_accounts(business.id, owner.id)
+    assert Enum.any?(accounts, & &1.is_header)
+    cash = Enum.find(accounts, &(&1.code == "1000"))
+    assert cash.classification == "current_asset"
+    assert cash.normal_balance == "debit"
+    assert cash.is_header == false
+  end
+
   test "ACC-FR-003 rejects unbalanced journals", %{
     owner: owner,
     business: business,
@@ -169,10 +181,13 @@ defmodule Kaarobar.AccountingTest do
     pl = Accounting.profit_and_loss(business.id, owner.id, ~D[2026-01-01], ~D[2026-12-31])
     assert Decimal.eq?(Decimal.new(pl.total_revenue), Decimal.new("118"))
     assert Decimal.eq?(Decimal.new(pl.net_income), Decimal.new("118"))
+    assert is_map(pl.sections)
+    assert pl.sections.revenue
 
     bs = Accounting.balance_sheet(business.id, owner.id, ~D[2026-12-31])
     assert is_binary(bs.total_assets)
     assert length(bs.lines) >= 1
+    assert is_map(bs.sections)
   end
 
   test "ACC-FR-012 AR invoice, payment, aging", %{

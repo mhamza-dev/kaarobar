@@ -10,7 +10,7 @@ export default function SignupPage() {
       <AuthShell
         badge="Start free trial"
         title="Create your owner account"
-        subtitle="We’ll set up your first business, a Pakistan chart of accounts, and a starting branch."
+        subtitle="We’ll set up your first business, an IFRS-for-SMEs chart of accounts, and a starting branch."
         footer={
           <>
             Already have an account?{" "}

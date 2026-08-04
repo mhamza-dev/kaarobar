@@ -93,19 +93,19 @@ const catalog: HelpCatalog = {
     tips: ["احتفظ بالفاتورة الأصلية، حيث يعود الرابط إلى ذلك البيع."],
   },
   "page.accounting": {
-    title: "محاسبة",
-    summary: "الكتب والمجلات والبيانات وتقادم AR/AP.",
-    what: "أدوات القيد المزدوج: دليل الحسابات، وقيود اليومية، وميزان المراجعة، والأرباح والخسائر، والميزانية العمومية، ودفتر الأستاذ العام، وتقادم المستحقات/الدائنين.",
+    title: "المحاسبة",
+    summary: "IFRS-for-SMEs books, journals, statements, and AR/AP aging.",
+    what: "Double-entry tools aligned with IFRS for SMEs presentation: chart of accounts (create/edit), journals, trial balance, sectioned P&L and balance sheet, cash flow, general ledger, and receivables/payables aging.",
     how: [
-      "تصفح دفاتر الأستاذ في دليل الحسابات.",
-      "نشر التصحيحات اليدوية من المجلات.",
-      "قم بتشغيل ميزان المراجعة أو الربح والخسارة أو الميزانية العمومية أو دفتر الأستاذ العام لنطاق زمني.",
-      "متابعة الفواتير المتأخرة والفواتير من تقادم AR/AP.",
+      "Create or edit ledger accounts on Chart of accounts.",
+      "Post manual corrections from Journals.",
+      "Run Trial balance, P&L, Balance sheet, Cash flow, or GL for a date range.",
+      "Follow up on overdue invoices and bills from AR/AP aging.",
     ],
-    when: "لإغلاق نهاية الشهر، أو تقارير المالك، أو متابعة التحصيلات والمدفوعات.",
+    when: "For month-end close, owner reporting, or collections and payments follow-up.",
     tips: [
-      "يقوم POS والمخزون بإنشاء العديد من دفاتر اليومية تلقائيًا.",
-      "قم بإصلاح المستندات المصدرية قبل نشر المجلات اليدوية.",
+      "POS and inventory create many journals automatically.",
+      "Header accounts are for structure only—post to leaf accounts.",
     ],
   },
   "page.hr": {
@@ -291,12 +291,18 @@ const catalog: HelpCatalog = {
   },
 
   "tab.accounting.coa": {
-    title: "مخطط الحسابات",
-    summary: "حسابات دفتر الأستاذ للمجلات والبيانات.",
-    what: "قائمة برموز الحسابات وأسماءها وأنواعها. تعديل الأسماء عند الحاجة.",
-    how: ["تصفح الحسابات عن طريق الرمز.", "تحرير حساب لتغيير التسمية الخاصة به."],
-    when: "أثناء مراجعة الإعداد أو عند الحاجة إلى أسماء أكثر وضوحًا.",
-    tips: ["لا تقم بحذف الحسابات التي لديها منشورات بالفعل."],
+    title: "دليل الحسابات",
+    summary: "IFRS-for-SMEs ledger accounts for journals and statements.",
+    what: "Hierarchical list of account codes with type, classification, and normal balance. Create new accounts or edit existing ones.",
+    how: [
+      "Use New account to add a postable or header account.",
+      "Browse by code; indent shows parent hierarchy.",
+      "Edit an account to change labels or classification.",
+    ],
+    when: "During setup review or when you need a new ledger account.",
+    tips: [
+      "Do not delete accounts that already have postings.",
+    ],
   },
   "tab.accounting.journals": {
     title: "المجلات",
@@ -318,21 +324,45 @@ const catalog: HelpCatalog = {
     tips: ["التحقيق في الأرصدة الكبيرة بشكل غير متوقع."],
   },
   "tab.accounting.pl": {
-    title: "الربح والخسارة",
-    summary: "الإيرادات والنفقات لنطاق زمني.",
-    what: "الربحية للفترة المختارة من المجلات المنشورة.",
-    how: ["اختر التواريخ.", "قراءة الإيرادات مقابل النفقات."],
-    when: "لمراجعة المالك وإغلاق الفترة.",
-    tips: ["تعتمد الدقة على أنواع الحسابات والمنشورات الصحيحة."],
+    title: "الأرباح والخسائر",
+    summary: "Sectioned income statement (IFRS for SMEs).",
+    what: "Revenue, cost of sales, operating expenses, and net income for the selected period.",
+    how: [
+      "Choose dates.",
+      "Review sections and subtotals (gross / operating / net).",
+    ],
+    when: "For owner review and period close.",
+    tips: [
+      "Accuracy depends on correct account classifications and postings.",
+    ],
   },
   "tab.accounting.bs": {
-    title: "الميزانية العمومية",
-    summary: "الأصول والخصوم وحقوق الملكية.",
-    what: "بيان الموقف اعتبارا من نهاية الفترة المحددة.",
-    how: ["قم بتعيين النطاق الزمني للتقرير.", "مراجعة أقسام الأصول مقابل الخصوم."],
-    when: "لإغلاق الفترة والمناقشات المالية.",
-    tips: ["يكمل تقادم AR/AP أرصدة العملاء والموردين."],
+    title: "الميزانية",
+    summary: "Sectioned statement of financial position.",
+    what: "Current and non-current assets/liabilities plus equity as of the report date.",
+    how: [
+      "Set the as-of date.",
+      "Review current vs non-current sections.",
+    ],
+    when: "For period close and financial discussions.",
+    tips: [
+      "AR/AP aging complements customer and supplier balances.",
+    ],
   },
+  "tab.accounting.cf": {
+    title: "التدفق النقدي",
+    summary: "Indirect cash flow summary for a period.",
+    what: "Starts from net income and adjusts for working-capital changes (AR, inventory, AP).",
+    how: [
+      "Choose dates.",
+      "Review cash from operations.",
+    ],
+    when: "For cash planning alongside P&L and balance sheet.",
+    tips: [
+      "This is a simplified indirect method—not a full IAS 7 statement.",
+    ],
+  },
+
   "tab.accounting.gl": {
     title: "دفتر الأستاذ العام",
     summary: "نشاط سطرًا بسطر لحساب واحد.",

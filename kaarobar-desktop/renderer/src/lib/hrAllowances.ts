@@ -48,7 +48,7 @@ export function sumAllowances(
   map?: Record<string, string | number> | null
 ): number {
   if (!map) return 0;
-  return Object.values(map).reduce((acc, v) => {
+  return Object.values(map).reduce<number>((acc, v) => {
     const n = Number(String(v).replace(/,/g, ""));
     return acc + (Number.isFinite(n) ? n : 0);
   }, 0);
