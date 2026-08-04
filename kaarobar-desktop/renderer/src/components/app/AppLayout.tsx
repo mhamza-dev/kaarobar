@@ -62,6 +62,7 @@ export default function AppLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [tenantKey, setTenantKey] = useState("boot");
   const [planLockHandled, setPlanLockHandled] = useState(false);
+  const [animatedNavHref, setAnimatedNavHref] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -147,6 +148,15 @@ export default function AppLayout() {
     )?.titleKey ?? "common.appName";
   const isPos = pathname.startsWith("/app/pos");
 
+  useEffect(() => {
+    const activeItem = visibleNav.find(
+      (item) =>
+        pathname === item.href ||
+        (item.href !== "/app" && pathname.startsWith(item.href))
+    );
+    setAnimatedNavHref(activeItem?.href ?? null);
+  }, [pathname, visibleNav]);
+
   if (!session || booting) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-bg-primary text-body">
@@ -202,7 +212,9 @@ export default function AppLayout() {
                     to={item.href}
                     className={`nav-pill flex items-center gap-3 px-3 py-2.5 text-sm font-medium ${
                       active
-                        ? "nav-pill-active animate-nav-in"
+                        ? `nav-pill-active ${
+                            item.href === animatedNavHref ? "animate-nav-in" : ""
+                          }`
                         : "text-rail-foreground hover:bg-rail-hover/80"
                     }`}
                   >

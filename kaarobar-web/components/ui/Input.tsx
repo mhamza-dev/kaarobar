@@ -85,8 +85,8 @@ const Input = ({
 
     ${
       hasError
-        ? "border-danger focus:border-danger"
-        : "border-border focus:border-brand"
+        ? "border-danger"
+        : "border-border"
     }
 
     disabled:bg-bg-tertiary

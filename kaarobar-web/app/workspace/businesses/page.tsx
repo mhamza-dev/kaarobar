@@ -56,16 +56,20 @@ export default function BusinessesPage() {
   const isOwner = canAccessBundle(session, "owner_manage");
 
   const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState({ name: "", industry: "general" });
 
   const load = useCallback(async () => {
+    setLoading(true);
     try {
       const res = await api<{ data: Business[] }>("/businesses");
       setBusinesses(res.data || []);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.loadFailed"));
+    } finally {
+      setLoading(false);
     }
   }, [t, toast]);
 
@@ -135,6 +139,7 @@ export default function BusinessesPage() {
 
       <DataTable
         maxHeight="28rem"
+        loading={loading}
         searchable
         searchPlaceholder={t("businesses.search")}
         getSearchText={(b) => `${b.name} ${b.industry || ""} ${b.tagline || ""}`}

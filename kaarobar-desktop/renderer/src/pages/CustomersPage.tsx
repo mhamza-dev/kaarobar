@@ -48,6 +48,7 @@ export default function CustomersPage() {
   const toast = useToast();
   const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState<StaffListFilterState>(emptyStaffListFilters());
   const [busy, setBusy] = useState(false);
   const [modal, setModal] = useState<"create" | "edit" | "loyalty" | null>(null);
@@ -62,11 +63,14 @@ export default function CustomersPage() {
   const [payInvoiceId, setPayInvoiceId] = useState("");
 
   const load = useCallback(async () => {
+    setLoading(true);
     try {
       const res = await api<{ data: Customer[] }>("/customers");
       setCustomers(res.data || []);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.loadFailed"));
+    } finally {
+      setLoading(false);
     }
   }, [t, toast]);
 
@@ -244,6 +248,7 @@ export default function CustomersPage() {
 
       <DataTable
         maxHeight="28rem"
+        loading={loading}
         filterState={filters}
         onFilterChange={setFilters}
         filterConfig={filterConfig}

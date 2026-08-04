@@ -322,9 +322,27 @@ function InventoryPageInner() {
   }, [branches, session?.branch_id]);
 
   const allProductOptions = useMemo(
-    () => products.map((p) => ({ value: p.id, label: `${p.name} (${p.sku})` })),
+    () =>
+      products.map((p) => ({
+        value: p.id,
+        label: p.name || p.id,
+        meta: p.sku || undefined,
+      })),
     [products]
   );
+
+  const transferProductMetaById = useMemo(() => {
+    const byId = new Map<string, { name: string; sku?: string }>();
+    for (const p of products) {
+      byId.set(p.id, { name: p.name || p.id, sku: p.sku || undefined });
+    }
+    for (const opt of allProductOptions) {
+      if (!byId.has(opt.value)) {
+        byId.set(opt.value, { name: opt.label || opt.value, sku: opt.meta || undefined });
+      }
+    }
+    return byId;
+  }, [products, allProductOptions]);
 
   const poProductOptions = useMemo(
     () =>
@@ -1672,7 +1690,9 @@ function InventoryPageInner() {
             value={transferForm.product_ids}
             onChange={(product_ids) =>
               setTransferForm((f) => {
-                const quantities = { ...f.quantities };
+                const quantities = Object.fromEntries(
+                  product_ids.map((id) => [id, f.quantities[id] || "1"])
+                );
                 for (const id of product_ids) {
                   if (!quantities[id]) quantities[id] = "1";
                 }
@@ -1688,17 +1708,20 @@ function InventoryPageInner() {
                 {t("inventory.quantities")}
               </p>
               {transferForm.product_ids.map((id) => {
-                const p = products.find((x) => x.id === id);
+                const meta = transferProductMetaById.get(id);
+                const displayName = meta?.name || `${id.slice(0, 8)}...`;
+                const displaySku = meta?.sku || null;
                 return (
-                  <div key={id} className="flex items-center gap-3">
-                    <span className="min-w-0 flex-1 truncate text-sm text-heading">
-                      {p?.name || id}
-                    </span>
+                  <div key={id} className="grid gap-2 sm:grid-cols-[1fr_7rem] sm:items-end">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-heading">{displayName}</p>
+                      <p className="truncate text-xs text-muted">{displaySku || id}</p>
+                    </div>
                     <input
                       type="number"
                       min="0.001"
                       step="any"
-                      className={`${fieldClass} w-28`}
+                      className={fieldClass}
                       value={transferForm.quantities[id] || "1"}
                       onChange={(e) =>
                         setTransferForm((f) => ({

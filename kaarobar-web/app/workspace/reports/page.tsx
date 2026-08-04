@@ -35,6 +35,7 @@ export default function ReportsPage() {
   const [days, setDays] = useState<DayRow[]>([]);
   const [lowStock, setLowStock] = useState<LowStock[]>([]);
   const [branch, setBranch] = useState<BranchDash | null>(null);
+  const [loading, setLoading] = useState(false);
   const [from, setFrom] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 13);
@@ -43,6 +44,7 @@ export default function ReportsPage() {
   const [to, setTo] = useState(() => new Date().toISOString().slice(0, 10));
 
   const load = useCallback(async () => {
+    setLoading(true);
     try {
       const [sales, stock, br] = await Promise.all([
         api<{ data: DayRow[] }>(`/reports/sales-by-day?from=${from}&to=${to}`),
@@ -54,6 +56,8 @@ export default function ReportsPage() {
       setBranch(br.data);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("reports.loadFailed"));
+    } finally {
+      setLoading(false);
     }
   }, [from, t, toast, to]);
 
@@ -115,6 +119,7 @@ export default function ReportsPage() {
 
       <DataTable
         maxHeight="22rem"
+        loading={loading}
         searchable
         searchPlaceholder={t("reports.searchDate")}
         getSearchText={(d) => `${d.date} ${d.total} ${d.count}`}
@@ -144,6 +149,7 @@ export default function ReportsPage() {
         <h2 className="mb-4 text-lg font-bold text-heading">{t("reports.lowStock")}</h2>
         <DataTable
           maxHeight="22rem"
+          loading={loading}
           searchable
           searchPlaceholder={t("reports.searchLowStock")}
           getSearchText={(r) => `${r.sku} ${r.name} ${r.quantity_on_hand}`}

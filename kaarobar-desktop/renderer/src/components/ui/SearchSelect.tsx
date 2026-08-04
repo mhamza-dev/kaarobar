@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Check, ChevronDown, Search, X } from "lucide-react";
 import { useT } from "@/lib/i18n";
 
@@ -35,14 +36,23 @@ export default function SearchSelect({
   clearable = true,
   className = "",
 }: SearchSelectProps) {
+  type Coords = { top: number; left: number; width: number; openUp: boolean };
   const t = useT();
   const resolvedPlaceholder = placeholder ?? t("searchSelect.select");
   const resolvedSearch = searchPlaceholder ?? t("searchSelect.search");
   const resolvedEmpty = emptyHint ?? t("searchSelect.noMatches");
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
+  const [coords, setCoords] = useState<Coords | null>(null);
   const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const selected = useMemo(
     () => options.find((o) => o.value === value) ?? null,
@@ -60,10 +70,41 @@ export default function SearchSelect({
     );
   }, [options, query]);
 
+  function updatePosition() {
+    const el = triggerRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const estimatedHeight = 300;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const openUp = spaceBelow < estimatedHeight && rect.top > spaceBelow;
+    setCoords({
+      top: openUp ? rect.top - 6 : rect.bottom + 6,
+      left: Math.max(8, Math.min(rect.left, window.innerWidth - rect.width - 8)),
+      width: rect.width,
+      openUp,
+    });
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    updatePosition();
+    const onScroll = () => updatePosition();
+    const onResize = () => updatePosition();
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onResize);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, filtered.length]);
+
   useEffect(() => {
     if (!open) return;
     function onDoc(e: MouseEvent) {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (rootRef.current?.contains(target) || panelRef.current?.contains(target)) return;
+      setOpen(false);
     }
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
@@ -88,13 +129,14 @@ export default function SearchSelect({
         </p>
       ) : null}
       <button
+        ref={triggerRef}
         type="button"
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={listId}
         onClick={() => !disabled && setOpen((o) => !o)}
-        className="flex w-full items-center gap-2 rounded-md border border-border bg-bg-primary px-3 py-2.5 text-start text-sm text-heading outline-none transition hover:border-brand/40 focus:border-brand/40 disabled:cursor-not-allowed disabled:opacity-60"
+        className="flex w-full items-center gap-2 rounded-md border border-border bg-bg-primary px-3 py-2.5 text-start text-sm text-heading outline-none transition hover:border-brand/40 disabled:cursor-not-allowed disabled:opacity-60"
       >
         <span className={`min-w-0 flex-1 truncate ${selected ? "" : "text-muted"}`}>
           {selected ? selected.label : resolvedPlaceholder}
@@ -116,56 +158,68 @@ export default function SearchSelect({
         <ChevronDown className="h-4 w-4 shrink-0 text-muted" />
       </button>
 
-      {open ? (
-        <div className="absolute z-50 mt-1 w-full overflow-hidden rounded-md border border-border bg-card shadow-lg">
-          <div className="relative border-b border-border p-2">
-            <Search className="pointer-events-none absolute start-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted" />
-            <input
-              autoFocus
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={resolvedSearch}
-              className="w-full rounded-md border border-border bg-bg-primary py-2 pe-3 ps-8 text-sm outline-none focus:border-brand/40"
-            />
-          </div>
-          <ul
-            id={listId}
-            role="listbox"
-            className="max-h-56 overflow-y-auto py-1"
-          >
-            {filtered.length === 0 ? (
-              <li className="px-3 py-2 text-sm text-muted">{resolvedEmpty}</li>
-            ) : (
-              filtered.map((opt) => {
-                const on = opt.value === value;
-                return (
-                  <li key={opt.value} role="option" aria-selected={on}>
-                    <button
-                      type="button"
-                      className={`flex w-full items-center gap-2 px-3 py-2 text-start text-sm hover:bg-bg-secondary ${
-                        on ? "bg-brand/10 text-heading" : "text-heading"
-                      }`}
-                      onClick={() => {
-                        onChange(opt.value);
-                        setOpen(false);
-                      }}
-                    >
-                      <span className="min-w-0 flex-1 truncate">{opt.label}</span>
-                      {opt.meta ? (
-                        <span className="shrink-0 text-xs text-muted">{opt.meta}</span>
-                      ) : null}
-                      {on ? (
-                        <Check className="h-3.5 w-3.5 shrink-0 text-brand" strokeWidth={2.5} />
-                      ) : null}
-                    </button>
-                  </li>
-                );
-              })
-            )}
-          </ul>
-        </div>
-      ) : null}
+      {open && coords && mounted
+        ? createPortal(
+            <div
+              ref={panelRef}
+              className="fixed z-[220] overflow-hidden rounded-md border border-border bg-card shadow-lg"
+              style={{
+                top: coords.top,
+                left: coords.left,
+                width: coords.width,
+                transform: coords.openUp ? "translateY(-100%)" : undefined,
+              }}
+            >
+              <div className="relative border-b border-border p-2">
+                <Search className="pointer-events-none absolute start-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted" />
+                <input
+                  autoFocus
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={resolvedSearch}
+                  className="w-full rounded-md border border-border bg-bg-primary py-2 pe-3 ps-8 text-sm outline-none"
+                />
+              </div>
+              <ul
+                id={listId}
+                role="listbox"
+                className="max-h-56 overflow-y-auto py-1"
+              >
+                {filtered.length === 0 ? (
+                  <li className="px-3 py-2 text-sm text-muted">{resolvedEmpty}</li>
+                ) : (
+                  filtered.map((opt) => {
+                    const on = opt.value === value;
+                    return (
+                      <li key={opt.value} role="option" aria-selected={on}>
+                        <button
+                          type="button"
+                          className={`flex w-full items-center gap-2 px-3 py-2 text-start text-sm hover:bg-bg-secondary ${
+                            on ? "bg-brand/10 text-heading" : "text-heading"
+                          }`}
+                          onClick={() => {
+                            onChange(opt.value);
+                            setOpen(false);
+                          }}
+                        >
+                          <span className="min-w-0 flex-1 truncate">{opt.label}</span>
+                          {opt.meta ? (
+                            <span className="shrink-0 text-xs text-muted">{opt.meta}</span>
+                          ) : null}
+                          {on ? (
+                            <Check className="h-3.5 w-3.5 shrink-0 text-brand" strokeWidth={2.5} />
+                          ) : null}
+                        </button>
+                      </li>
+                    );
+                  })
+                )}
+              </ul>
+            </div>,
+            document.body
+          )
+        : null}
     </div>
   );
 }

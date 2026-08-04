@@ -26,6 +26,7 @@ alias Kaarobar.Schemas.{
   Product,
   ProductBranchPrice,
   ProductImage,
+  ProductSupplier,
   SubscriptionPlan,
   Supplier,
   User
@@ -1982,17 +1983,40 @@ seed_scenario_pack = fn owner, business, branches, products, employees, cashier 
     |> Repo.all()
 
   khata_customer = Enum.find(customers, & &1.khata_enabled)
-  suppliers = from(s in Supplier, where: s.business_id == ^business.id) |> Repo.all()
+  suppliers =
+    from(s in Supplier, where: s.business_id == ^business.id, order_by: [asc: s.name])
+    |> Repo.all()
 
-  # Link a few goods to preferred suppliers (product_suppliers)
+  # Link ~50 goods to suppliers (product_suppliers); leave remaining unlinked
   if length(goods) > 0 and length(suppliers) > 0 do
-    Enum.each(Enum.take(goods, min(5, length(goods))), fn p ->
-      Enum.each(Enum.take(suppliers, 2), fn s ->
-        _ =
-          Inventory.attach_product_supplier(p.id, s.id, business.id, owner.id, %{
-            is_primary: false
-          })
-      end)
+    link_pool = Enum.take(goods, min(50, length(goods)))
+    supplier_pool = Enum.take(suppliers, min(4, length(suppliers)))
+    supplier_count = length(supplier_pool)
+
+    Enum.with_index(link_pool, fn p, idx ->
+      primary = Enum.at(supplier_pool, rem(idx, supplier_count))
+
+      _ =
+        case Inventory.attach_product_supplier(p.id, primary.id, business.id, owner.id, %{
+               is_primary: true
+             }) do
+          {:ok, _} -> :ok
+          {:error, _} -> :ok
+        end
+
+      if supplier_count >= 2 do
+        alternate = Enum.at(supplier_pool, rem(idx + 1, supplier_count))
+
+        if alternate.id != primary.id do
+          _ =
+            case Inventory.attach_product_supplier(p.id, alternate.id, business.id, owner.id, %{
+                   is_primary: false
+                 }) do
+              {:ok, _} -> :ok
+              {:error, _} -> :ok
+            end
+        end
+      end
     end)
   end
 
@@ -3348,6 +3372,13 @@ total_employees =
 total_products =
   from(p in Kaarobar.Schemas.Product) |> Repo.aggregate(:count)
 
+total_product_suppliers =
+  from(ps in ProductSupplier) |> Repo.aggregate(:count)
+
+total_linked_products =
+  from(ps in ProductSupplier, select: count(ps.product_id, :distinct))
+  |> Repo.one()
+
 total_sales =
   from(s in Kaarobar.Schemas.Sale) |> Repo.aggregate(:count)
 
@@ -3427,7 +3458,8 @@ Scenario coverage (primary owner — all 7 industries)
   Accounting: opening capital + reversing journal; AR partial/open; AP paid via bank
   HR: pending/approved/rejected leave; inactive/terminated employees
   CRM: Sent+Draft campaigns, active/expired/inactive coupons, loyalty tiers, portal buyers
-  Suppliers: active/pending/inactive/blocked mix; inactive product & soft-deactivated branch
+  Suppliers: ~50 goods linked per business (primary+alternate); remaining products unlinked
+  Suppliers status: active/pending/inactive/blocked mix; inactive product & soft-deactivated branch
 
 Buyer login (/login?as=consumer) — email + password only (no business ID)
   Marketplace: /app (discover) · /app/market/:id (order) · /app/notifications
@@ -3441,6 +3473,7 @@ Counts
   Businesses:   #{total_businesses}
   Branches:     #{total_branches}
   Products:     #{total_products}
+  Linked prods: #{total_linked_products} (#{total_product_suppliers} product_suppliers rows)
   Product imgs: #{total_images}
   Employees:    #{total_employees}
   Customers:    #{total_customers}

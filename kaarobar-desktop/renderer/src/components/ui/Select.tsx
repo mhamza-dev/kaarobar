@@ -189,7 +189,7 @@ export default function Select({
         aria-expanded={open}
         aria-controls={listId}
         onClick={() => !disabled && setOpen((o) => !o)}
-        className={`flex w-full items-center gap-2 border-border bg-bg-primary text-start text-heading outline-none transition hover:border-brand/40 focus:border-brand/40 disabled:cursor-not-allowed disabled:opacity-60 ${sizeClass} ${triggerClassName}`}
+        className={`flex w-full items-center gap-2 border-border bg-bg-primary text-start text-heading outline-none transition hover:border-brand/40 disabled:cursor-not-allowed disabled:opacity-60 ${sizeClass} ${triggerClassName}`}
       >
         <span className={`min-w-0 flex-1 truncate ${selected ? "" : "text-muted"}`}>
           {selected ? selected.label : resolvedPlaceholder}

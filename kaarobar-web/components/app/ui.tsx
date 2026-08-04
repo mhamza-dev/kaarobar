@@ -191,7 +191,7 @@ export function Field({
 }
 
 export const fieldClass =
-  "w-full rounded-md border border-border bg-bg-secondary/80 px-3 py-2.5 text-sm text-heading outline-none transition placeholder:text-muted focus:border-brand";
+  "w-full rounded-md border border-border bg-bg-secondary/80 px-3 py-2.5 text-sm text-heading outline-none transition placeholder:text-muted";
 
 export function Alert({
   tone = "info",

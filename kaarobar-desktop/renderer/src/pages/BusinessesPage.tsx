@@ -51,16 +51,20 @@ export default function BusinessesPage() {
   const toast = useToast();
   const navigate = useNavigate();
   const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState(emptyForm);
 
   const load = useCallback(async () => {
+    setLoading(true);
     try {
       const res = await api<{ data: Business[] }>("/businesses?include_inactive=true");
       setBusinesses(res.data || []);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.loadFailed"));
+    } finally {
+      setLoading(false);
     }
   }, [t, toast]);
 
@@ -124,6 +128,7 @@ export default function BusinessesPage() {
       <SurfaceCard className="p-0">
         <DataTable
           maxHeight="28rem"
+          loading={loading}
           searchable
           searchPlaceholder={t("businesses.search")}
           getSearchText={(b) => `${b.name} ${b.industry || ""} ${b.tax_jurisdiction || ""}`}
