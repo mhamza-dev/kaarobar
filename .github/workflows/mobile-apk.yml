@@ -47,7 +47,7 @@ jobs:
       - name: Build release APK
         run: |
           chmod +x ./gradlew
-          ./gradlew assembleRelease
+          ./gradlew assembleRelease -PreactNativeArchitectures=armeabi-v7a,arm64-v8a
         working-directory: ${{ matrix.app_dir }}/android
 
       - name: Stage APK

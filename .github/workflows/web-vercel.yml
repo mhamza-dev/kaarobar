@@ -13,7 +13,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check Vercel secrets
+        id: secrets
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          if [ -z "${VERCEL_TOKEN:-}" ] || [ -z "${VERCEL_ORG_ID:-}" ] || [ -z "${VERCEL_PROJECT_ID:-}" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "Vercel secrets are not set. Skipping deploy."
+            echo "Add repository secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID"
+            echo "(or rely on Vercel's GitHub integration alone)."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Setup Node
+        if: steps.secrets.outputs.configured == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: "20"
@@ -21,10 +38,12 @@ jobs:
           cache-dependency-path: "kaarobar-web/package-lock.json"
 
       - name: Install dependencies
+        if: steps.secrets.outputs.configured == 'true'
         run: npm ci
         working-directory: kaarobar-web
 
       - name: Pull Vercel project settings
+        if: steps.secrets.outputs.configured == 'true'
         run: npx vercel pull --yes --environment=production --token="${VERCEL_TOKEN}"
         working-directory: kaarobar-web
         env:
@@ -33,6 +52,7 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Build Vercel output
+        if: steps.secrets.outputs.configured == 'true'
         run: npx vercel build --prod --token="${VERCEL_TOKEN}"
         working-directory: kaarobar-web
         env:
@@ -41,6 +61,7 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Deploy to Vercel production
+        if: steps.secrets.outputs.configured == 'true'
         run: npx vercel deploy --prebuilt --prod --token="${VERCEL_TOKEN}"
         working-directory: kaarobar-web
         env:

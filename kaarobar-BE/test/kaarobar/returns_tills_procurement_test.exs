@@ -54,6 +54,11 @@ defmodule Kaarobar.ReturnsTillsProcurementTest do
       })
       |> Repo.insert()
 
+    {:ok, _} =
+      Inventory.attach_product_supplier(product.id, supplier.id, business.id, owner.id, %{
+        is_primary: true
+      })
+
     %{
       owner: owner,
       business: business,

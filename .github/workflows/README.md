@@ -4,7 +4,8 @@ These workflows deploy on push to `main` (or build artifacts).
 
 ## Required GitHub repository secrets
 
-### Vercel (`web-vercel.yml`)
+### Vercel (`web-vercel.yml`) — optional
+If unset, the workflow **skips** (does not fail). Prefer Vercel’s GitHub integration, or set:
 - `VERCEL_TOKEN`
 - `VERCEL_ORG_ID`
 - `VERCEL_PROJECT_ID`
@@ -41,6 +42,7 @@ Do **not** paste shell prompts into Build/Start (no `kaarobar-BE/ $ …`). Root 
 - **Mobile** (`mobile-apk.yml`) publishes **APKs only** to a GitHub Release (`android-<sha>`):
   - `Kaarobar-staff.apk`
   - `Kaarobar-customer.apk`
+  - Keep `react-native-screens` at `4.4.0` while on RN `0.76` (New Arch). `4.19+` needs RN `0.81+`.
 - **Desktop** (`desktop-release.yml`) publishes **installers only** to a GitHub Release (`desktop-<sha>`):
   - macOS `.dmg`
   - Windows `.exe` (NSIS)
