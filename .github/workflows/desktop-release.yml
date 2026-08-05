@@ -1,0 +1,48 @@
+name: Desktop Release
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: "kaarobar-desktop/package-lock.json"
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: kaarobar-desktop
+
+      - name: Build desktop renderer bundle
+        run: npm run build
+        working-directory: kaarobar-desktop
+
+      - name: Prepare release archive
+        run: |
+          mkdir -p artifacts
+          archive_name="kaarobar-desktop-${GITHUB_SHA::7}.zip"
+          cd kaarobar-desktop
+          zip -r "../artifacts/${archive_name}" dist src package.json package-lock.json
+          echo "ARCHIVE_NAME=${archive_name}" >> "$GITHUB_ENV"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "desktop-${{ github.sha }}"
+          name: "Desktop Build ${{ github.sha }}"
+          body: "Automated desktop build for commit `${{ github.sha }}`."
+          files: "artifacts/${{ env.ARCHIVE_NAME }}"

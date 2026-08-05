@@ -1,0 +1,53 @@
+name: Mobile APK Build
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    name: Build ${{ matrix.app_name }} APK
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app_name: kaarobar-mobile
+            app_dir: kaarobar-mobile
+          - app_name: kaarobar-customer
+            app_dir: kaarobar-customer
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: "${{ matrix.app_dir }}/package-lock.json"
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ${{ matrix.app_dir }}
+
+      - name: Build release APK
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleRelease
+        working-directory: ${{ matrix.app_dir }}/android
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: "${{ matrix.app_name }}-release-apk"
+          path: "${{ matrix.app_dir }}/android/app/build/outputs/apk/release/app-release.apk"
+          if-no-files-found: error

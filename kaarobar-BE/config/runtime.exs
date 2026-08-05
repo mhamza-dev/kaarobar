@@ -30,11 +30,22 @@ if config_env() == :prod do
 
   maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
 
+  # Neon / managed Postgres require TLS. Set DATABASE_SSL=false to force off.
+  use_ssl? =
+    cond do
+      System.get_env("DATABASE_SSL") in ~w(false 0) -> false
+      System.get_env("DATABASE_SSL") in ~w(true 1) -> true
+      String.contains?(database_url, "sslmode=require") -> true
+      String.contains?(database_url, "neon.tech") -> true
+      true -> false
+    end
+
   config :kaarobar, Kaarobar.Repo,
-    # ssl: true,
     url: database_url,
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
-    socket_options: maybe_ipv6
+    socket_options: maybe_ipv6,
+    ssl: use_ssl?,
+    ssl_opts: if(use_ssl?, do: [verify: :verify_none], else: [])
 
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you
@@ -48,7 +59,21 @@ if config_env() == :prod do
       You can generate one by calling: mix phx.gen.secret
       """
 
-  host = System.get_env("PHX_HOST") || "example.com"
+  guardian_secret =
+    System.get_env("GUARDIAN_SECRET_KEY") ||
+      raise """
+      environment variable GUARDIAN_SECRET_KEY is missing.
+      You can generate one by calling: mix phx.gen.secret
+      """
+
+  config :kaarobar, Kaarobar.Guardian, secret_key: guardian_secret
+
+  # Render sets RENDER_EXTERNAL_HOSTNAME; override with PHX_HOST for a custom domain.
+  host =
+    System.get_env("PHX_HOST") ||
+      System.get_env("RENDER_EXTERNAL_HOSTNAME") ||
+      "example.com"
+
   port = String.to_integer(System.get_env("PORT") || "4000")
 
   config :kaarobar, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")

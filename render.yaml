@@ -1,0 +1,27 @@
+# Optional Blueprint — you can also create the Web Service in the Render UI.
+# Docs: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: kaarobar-api
+    runtime: elixir
+    plan: free
+    rootDir: kaarobar-BE
+    buildCommand: ./build.sh
+    startCommand: _build/prod/rel/kaarobar/bin/server
+    preDeployCommand: _build/prod/rel/kaarobar/bin/migrate
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: MIX_ENV
+        value: prod
+      - key: PHX_SERVER
+        value: "true"
+      - key: STORAGE_BACKEND
+        value: local
+      - key: SECRET_KEY_BASE
+        generateValue: true
+      - key: GUARDIAN_SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: POOL_SIZE
+        value: "5"
