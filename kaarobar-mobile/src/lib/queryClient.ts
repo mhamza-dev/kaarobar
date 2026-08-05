@@ -74,3 +74,29 @@ export const settingsKeys = {
   profile: () => [...settingsKeys.all, "profile"] as const,
   notificationPrefs: () => [...settingsKeys.all, "notificationPrefs"] as const,
 };
+
+/** Customers / AR (staff). */
+export const customerKeys = {
+  all: ["customers"] as const,
+  list: (businessId?: string | null) =>
+    [...customerKeys.all, "list", businessId ?? null] as const,
+  detail: (id: string) => [...customerKeys.all, "detail", id] as const,
+};
+
+/** Sales history (staff). */
+export const salesKeys = {
+  all: ["sales"] as const,
+  list: (businessId?: string | null, branchId?: string | null, params?: string) =>
+    [...salesKeys.all, "list", businessId ?? null, branchId ?? null, params ?? ""] as const,
+  detail: (id: string) => [...salesKeys.all, "detail", id] as const,
+};
+
+/** POS till / catalog (staff). */
+export const posKeys = {
+  all: ["pos"] as const,
+  products: (businessId?: string | null, branchId?: string | null, page?: number) =>
+    [...posKeys.all, "products", businessId ?? null, branchId ?? null, page ?? 0] as const,
+  till: (branchId?: string | null) =>
+    [...posKeys.all, "till", branchId ?? null] as const,
+};
+

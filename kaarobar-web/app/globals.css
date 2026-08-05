@@ -765,7 +765,13 @@ select:focus-visible,
     display: flex;
     align-items: center;
     justify-content: center;
-    color: color-mix(in srgb, var(--muted) 88%, var(--brand) 12%);
+    color: color-mix(in srgb, var(--body) 82%, var(--brand) 18%);
+    opacity: 1;
+  }
+
+  .glass-field:focus-within ~ .glass-field-icon,
+  .relative:focus-within > .glass-field-icon {
+    color: var(--brand);
   }
 
   .glass-field-icon-start {
@@ -1014,5 +1020,138 @@ select:focus-visible,
   .glass-card:hover,
   .nav-pill-active:hover {
     transform: none;
+  }
+}
+
+/* ======================================================
+   Thermal POS receipt (80mm roll)
+====================================================== */
+
+.kaarobar-thermal-receipt {
+  width: 100%;
+  max-width: 80mm;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #0f172a;
+}
+
+.kaarobar-thermal-receipt .thermal-center {
+  text-align: center;
+}
+
+.kaarobar-thermal-receipt .thermal-shop {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.kaarobar-thermal-receipt .thermal-strong {
+  font-weight: 700;
+}
+
+.kaarobar-thermal-receipt .thermal-muted {
+  font-size: 11px;
+  color: #475569;
+}
+
+.kaarobar-thermal-receipt .thermal-line {
+  margin-top: 2px;
+}
+
+.kaarobar-thermal-receipt .thermal-rule {
+  margin: 6px 0;
+  overflow: hidden;
+  white-space: nowrap;
+  letter-spacing: 0;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.kaarobar-thermal-receipt .thermal-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.kaarobar-thermal-receipt .thermal-table th,
+.kaarobar-thermal-receipt .thermal-table td {
+  padding: 2px 0;
+  vertical-align: top;
+}
+
+.kaarobar-thermal-receipt .thermal-table th:first-child,
+.kaarobar-thermal-receipt .thermal-table td:first-child {
+  padding-inline-end: 6px;
+}
+
+.kaarobar-thermal-receipt .thermal-totals {
+  font-size: 12px;
+}
+
+.kaarobar-thermal-receipt .thermal-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.kaarobar-thermal-receipt .thermal-total {
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.kaarobar-thermal-receipt .thermal-fbr {
+  margin-top: 6px;
+  word-break: break-all;
+  text-align: center;
+  font-size: 9px;
+  color: #64748b;
+}
+
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 2mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  #kaarobar-receipt,
+  #kaarobar-receipt * {
+    visibility: visible !important;
+  }
+
+  .kaarobar-receipt-overlay,
+  .kaarobar-receipt-sheet {
+    position: static !important;
+    inset: auto !important;
+    display: block !important;
+    width: 80mm !important;
+    max-width: 80mm !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  #kaarobar-receipt {
+    position: absolute !important;
+    inset-inline-start: 0 !important;
+    top: 0 !important;
+    width: 80mm !important;
+    max-width: 80mm !important;
   }
 }

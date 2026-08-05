@@ -400,7 +400,9 @@
     "processing": "Processing…",
     "scanPlaceholder": "Scan barcode or search SKU / name",
     "productsCount": "{count} products",
-    "lastInvoice": "Last"
+    "lastInvoice": "Last",
+    "loyaltyDiscount": "Loyalty points",
+    "redeemRatePerPoint": "Rs {rate} / point"
   },
   "returns": {
     "eyebrow": "Returns",
@@ -674,7 +676,10 @@
     "phNotes": "Internal notes…",
     "phPortalPassword": "Set a portal password",
     "phDelta": "e.g. 10 or -5",
-    "phReason": "Why adjust points…"
+    "phReason": "Why adjust points…",
+    "optInEmail": "Email marketing opt-in",
+    "optInSms": "SMS marketing opt-in",
+    "optInWhatsapp": "WhatsApp marketing opt-in"
   },
   "marketing": {
     "eyebrow": "Marketing",

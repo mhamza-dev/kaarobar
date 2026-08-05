@@ -51,6 +51,23 @@ const catalog: HelpCatalog = {
       "Verwenden Sie unter „Anpassen für Prüfpfade“ einen eindeutigen Ursachencode.",
     ],
   },
+  "page.inventory.supplier": {
+    title: "Lieferantendetails",
+    summary: "Kontakt, Konditionen und verknüpfte Produkte für Bestellungen.",
+    what: "Jeder Lieferant speichert Firmendaten und Kontakt sowie eine explizite Liste der Katalogprodukte, die er liefern kann. Beim Erstellen einer Bestellung erscheinen nur verknüpfte Produkte (INV-FR).",
+    how: [
+      "Öffnen Sie einen Lieferanten unter Inventar → Lieferanten.",
+      "Prüfen Sie Kontakt, Adresse und Zahlungsbedingungen.",
+      "Verknüpfen Sie Katalogprodukte, die dieser Lieferant liefert.",
+      "Trennen Sie Produkte, die der Lieferant nicht mehr führt.",
+      "Erstellen Sie Bestellungen unter Inventar → Bestellungen nur mit verknüpften Produkten.",
+    ],
+    when: "Beim Onboarding eines Lieferanten, bei der Zuordnung von SKUs oder vor einer Bestellung.",
+    tips: [
+      "Verknüpfen Sie Produkte vor Bestellungen — die API lehnt Zeilen für nicht verknüpfte SKUs ab.",
+      "Empfangen Sie Waren (GRN) gegen die Bestellung, damit Bestand und Durchschnittskosten stimmen.",
+    ],
+  },
   "page.customers": {
     title: "Kunden & Kredit",
     summary: "Kundenprofile, Guthaben/Kredit-Guthaben, Hauptbuch und Treuepunkte.",

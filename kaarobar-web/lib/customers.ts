@@ -87,7 +87,7 @@ export function customerToForm(c: Customer): CustomerForm {
 }
 
 export function customerPayload(form: CustomerForm) {
-  const payload: Record<string, unknown> = {
+  return {
     name: form.name.trim(),
     phone: form.phone.trim() || null,
     email: form.email.trim() || null,
@@ -97,16 +97,11 @@ export function customerPayload(form: CustomerForm) {
     ntn: form.ntn.trim() || null,
     company_name: form.company_name.trim() || null,
     credit_limit: form.credit_limit.trim() || null,
-    user_id: form.user_id.trim() || null,
     credit_enabled: form.credit_enabled,
     marketing_opt_in_email: form.marketing_opt_in_email,
     marketing_opt_in_sms: form.marketing_opt_in_sms,
     marketing_opt_in_whatsapp: form.marketing_opt_in_whatsapp,
-    portal_enabled: form.portal_enabled,
   };
-  const pwd = form.portal_password.trim();
-  if (pwd) payload.portal_password = pwd;
-  return payload;
 }
 
 export function customerSearchText(c: Customer) {
@@ -129,17 +124,8 @@ export const CUSTOMER_FORM_FIELDS: {
   { key: "ntn", labelKey: "customers.ntn", placeholderKey: "customers.phNtn" },
   { key: "address", labelKey: "customers.address", placeholderKey: "customers.phAddress" },
   { key: "credit_limit", labelKey: "customers.creditLimit", placeholderKey: "customers.phCreditLimit" },
-  { key: "user_id", labelKey: "customers.userId", placeholderKey: "customers.phUserId" },
   { key: "notes", labelKey: "customers.notes", type: "textarea", placeholderKey: "customers.phNotes" },
   { key: "credit_enabled", labelKey: "customers.khataEnabled", type: "checkbox" },
-  { key: "portal_enabled", labelKey: "customers.portalEnabled", type: "checkbox" },
-  {
-    key: "portal_password",
-    labelKey: "customers.portalPassword",
-    type: "password",
-    hintKey: "customers.portalPasswordHint",
-    placeholderKey: "customers.phPortalPassword",
-  },
   { key: "marketing_opt_in_email", labelKey: "customers.optInEmail", type: "checkbox" },
   { key: "marketing_opt_in_sms", labelKey: "customers.optInSms", type: "checkbox" },
   { key: "marketing_opt_in_whatsapp", labelKey: "customers.optInWhatsapp", type: "checkbox" },

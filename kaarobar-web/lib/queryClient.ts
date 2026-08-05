@@ -135,3 +135,41 @@ export const marketplaceKeys = {
   product: (storeKey: string, productId: string) =>
     [...marketplaceKeys.all, "product", storeKey, productId] as const,
 };
+
+/** Customers / AR (staff). */
+export const customerKeys = {
+  all: ["customers"] as const,
+  list: (businessId?: string | null) =>
+    [...customerKeys.all, "list", businessId ?? null] as const,
+  detail: (id: string) => [...customerKeys.all, "detail", id] as const,
+  ledger: (id: string) => [...customerKeys.all, "ledger", id] as const,
+  openInvoices: (id: string) =>
+    [...customerKeys.all, "openInvoices", id] as const,
+};
+
+/** Sales history (staff). */
+export const salesKeys = {
+  all: ["sales"] as const,
+  list: (businessId?: string | null, branchId?: string | null, params?: string) =>
+    [...salesKeys.all, "list", businessId ?? null, branchId ?? null, params ?? ""] as const,
+  detail: (id: string) => [...salesKeys.all, "detail", id] as const,
+};
+
+/** POS till / catalog (staff). */
+export const posKeys = {
+  all: ["pos"] as const,
+  products: (businessId?: string | null, branchId?: string | null, page?: number) =>
+    [...posKeys.all, "products", businessId ?? null, branchId ?? null, page ?? 0] as const,
+  till: (branchId?: string | null) =>
+    [...posKeys.all, "till", branchId ?? null] as const,
+  customers: (businessId?: string | null) =>
+    [...posKeys.all, "customers", businessId ?? null] as const,
+};
+
+/** Tenant switcher (businesses / branches). */
+export const tenantKeys = {
+  all: ["tenant"] as const,
+  businesses: () => [...tenantKeys.all, "businesses"] as const,
+  branches: (businessId?: string | null) =>
+    [...tenantKeys.all, "branches", businessId ?? null] as const,
+};

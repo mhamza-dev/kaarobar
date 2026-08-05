@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Megaphone, UserPlus } from "lucide-react";
-import { api, apiAllPages, isConsumerSession } from "@/lib/api/client";
+import { api, apiAllPages, getSession, isConsumerSession } from "@/lib/api/client";
+import { customerKeys } from "@/lib/queryClient";
 import Button from "@/components/ui/Button";
 import DataTable from "@/components/ui/DataTable";
 import ActionMenu from "@/components/ui/ActionMenu";
@@ -55,8 +57,8 @@ function StaffCustomersPage() {
   const t = useT();
   const toast = useToast();
   const router = useRouter();
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const businessId = getSession()?.business_id ?? null;
   const [filters, setFilters] = useState<StaffListFilterState>(emptyStaffListFilters());
   const [busy, setBusy] = useState(false);
   const [modal, setModal] = useState<"create" | "edit" | "loyalty" | null>(null);
@@ -67,21 +69,27 @@ function StaffCustomersPage() {
   const [openInvoices, setOpenInvoices] = useState<OpenArInvoice[]>([]);
   const [payOpen, setPayOpen] = useState(false);
 
-  const load = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await apiAllPages<Customer>("/customers");
-      setCustomers(data);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("common.loadFailed"));
-    } finally {
-      setLoading(false);
-    }
-  }, [t, toast]);
+  const customersQuery = useQuery({
+    queryKey: customerKeys.list(businessId),
+    queryFn: () => apiAllPages<Customer>("/customers"),
+  });
+
+  const customers = customersQuery.data ?? [];
+  const loading = customersQuery.isLoading;
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (customersQuery.error) {
+      toast.error(
+        customersQuery.error instanceof Error
+          ? customersQuery.error.message
+          : t("common.loadFailed")
+      );
+    }
+  }, [customersQuery.error, t, toast]);
+
+  const invalidateCustomers = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: customerKeys.all });
+  }, [queryClient]);
 
   const filterConfig = useMemo<ListFilterConfig>(
     () => ({
@@ -125,7 +133,7 @@ function StaffCustomersPage() {
       }
       toast.success(t("common.success"));
       setModal(null);
-      await load();
+      await invalidateCustomers();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.error"));
     } finally {
@@ -139,7 +147,7 @@ function StaffCustomersPage() {
         method: "PATCH",
         body: JSON.stringify({ credit_enabled: !c.credit_enabled }),
       });
-      await load();
+      await invalidateCustomers();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.error"));
     }
@@ -158,7 +166,7 @@ function StaffCustomersPage() {
       });
       toast.success(t("common.success"));
       setModal(null);
-      await load();
+      await invalidateCustomers();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.error"));
     } finally {
@@ -204,7 +212,7 @@ function StaffCustomersPage() {
       toast.success(t("customers.paymentReceived"));
       setPayOpen(false);
       if (ledgerCustomer) await openLedger(ledgerCustomer);
-      await load();
+      await invalidateCustomers();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.error"));
     } finally {

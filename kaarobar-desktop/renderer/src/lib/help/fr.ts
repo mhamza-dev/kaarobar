@@ -51,6 +51,23 @@ const catalog: HelpCatalog = {
       "Utilisez un code motif clair dans Adjust pour les pistes d’audit.",
     ],
   },
+  "page.inventory.supplier": {
+    title: "Détail fournisseur",
+    summary: "Contact, conditions et produits liés pour les bons de commande.",
+    what: "Chaque fournisseur stocke les coordonnées et une liste explicite des produits catalogue qu’il peut fournir. Seuls les produits liés apparaissent lors d’un bon de commande (INV-FR).",
+    how: [
+      "Ouvrez un fournisseur depuis Inventaire → Fournisseurs.",
+      "Vérifiez le contact, l’adresse et les conditions de paiement.",
+      "Liez les produits catalogue que ce fournisseur fournit.",
+      "Déliez les produits que le fournisseur ne propose plus.",
+      "Créez des bons de commande depuis Inventaire → Bons de commande avec les produits liés uniquement.",
+    ],
+    when: "Lors de l’onboarding d’un fournisseur, de la mise à jour des SKU, ou avant un bon de commande.",
+    tips: [
+      "Liez les produits avant les BC — l’API refuse les lignes pour des SKU non liés.",
+      "Réceptionnez (GRN) contre le BC pour garder stock et coût moyen exacts.",
+    ],
+  },
   "page.customers": {
     title: "Clients et Crédit",
     summary: "Profils clients, crédit/solde crédit, grand livre et points de fidélité.",

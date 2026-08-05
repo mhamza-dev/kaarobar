@@ -51,6 +51,23 @@ const catalog: HelpCatalog = {
       "Use um código de motivo claro em Ajustar para trilhas de auditoria.",
     ],
   },
+  "page.inventory.supplier": {
+    title: "Detalhes do fornecedor",
+    summary: "Contato, condições e produtos vinculados para pedidos de compra.",
+    what: "Cada fornecedor guarda dados da empresa e contato, além de uma lista explícita de produtos do catálogo que pode fornecer. Ao criar um pedido, só aparecem produtos vinculados (INV-FR).",
+    how: [
+      "Abra um fornecedor em Estoque → Fornecedores.",
+      "Revise contato, endereço e condições de pagamento.",
+      "Vincule produtos do catálogo que este fornecedor atende.",
+      "Desvincule produtos que o fornecedor não fornece mais.",
+      "Crie pedidos em Estoque → Pedidos de compra usando apenas produtos vinculados.",
+    ],
+    when: "Ao cadastrar um fornecedor, atualizar quais SKUs ele fornece ou antes de criar um pedido.",
+    tips: [
+      "Vincule produtos antes dos pedidos — a API rejeita linhas de SKUs não vinculados.",
+      "Receba mercadorias (GRN) contra o pedido para manter estoque e custo médio corretos.",
+    ],
+  },
   "page.customers": {
     title: "Clientes e Crédito",
     summary: "Perfis de clientes, saldo de crédito/crédito, razão e pontos de fidelidade.",

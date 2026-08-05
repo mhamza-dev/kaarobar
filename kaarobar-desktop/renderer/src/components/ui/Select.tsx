@@ -210,7 +210,7 @@ export default function Select({
           {displayLabel || resolvedPlaceholder}
         </span>
         <ChevronDown
-          className={`h-4 w-4 shrink-0 text-muted transition-transform ${open ? "rotate-180" : ""}`}
+          className={`h-4 w-4 shrink-0 text-body transition-transform ${open ? "rotate-180" : ""}`}
           aria-hidden
         />
       </button>

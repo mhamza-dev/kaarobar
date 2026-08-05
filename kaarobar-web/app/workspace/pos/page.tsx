@@ -89,6 +89,14 @@ type Customer = {
   phone?: string | null;
   credit_enabled?: boolean;
   loyalty_points?: number;
+  loyalty_tier_id?: string | null;
+};
+
+type LoyaltyTier = {
+  id: string;
+  name: string;
+  min_points: number;
+  redeem_rate: string;
 };
 
 
@@ -224,6 +232,8 @@ export default function PosPage() {
   const [customerId, setCustomerId] = useState("");
   const [customerQuery, setCustomerQuery] = useState("");
   const [loyaltyRedeem, setLoyaltyRedeem] = useState("");
+  const [loyaltyRedeemValue, setLoyaltyRedeemValue] = useState(1);
+  const [loyaltyTiers, setLoyaltyTiers] = useState<LoyaltyTier[]>([]);
   const [couponCode, setCouponCode] = useState("");
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [couponError, setCouponError] = useState<string | null>(null);
@@ -293,6 +303,20 @@ export default function PosPage() {
       .then((data) => setCustomers(data))
       .catch(() => setCustomers([]));
     loadTill();
+    const session = getSession();
+    if (session?.business_id) {
+      void api<{ data: { loyalty_redeem_value?: string } }>(
+        `/businesses/${session.business_id}`
+      )
+        .then((res) => {
+          const v = Number(res.data.loyalty_redeem_value || 1);
+          setLoyaltyRedeemValue(Number.isFinite(v) && v > 0 ? v : 1);
+        })
+        .catch(() => setLoyaltyRedeemValue(1));
+    }
+    void api<{ data: LoyaltyTier[] }>("/crm/loyalty-tiers")
+      .then((res) => setLoyaltyTiers(res.data || []))
+      .catch(() => setLoyaltyTiers([]));
   }, [loadTill]);
 
   useEffect(() => {
@@ -310,7 +334,6 @@ export default function PosPage() {
     return () => obs.disconnect();
   }, [nextCursor, debouncedQ, loadProductPage, products.length]);
 
-  const selectedCustomer = customers.find((c) => c.id === customerId) || null;
   const filteredCustomers = useMemo(() => {
     const q = customerQuery.trim().toLowerCase();
     if (!q) return customers;
@@ -426,9 +449,30 @@ export default function PosPage() {
   const subtotal = cart.reduce((s, l) => s + l.quantity * l.unit_price, 0);
   const discount = round2(Math.min(Math.max(Number(discountInput || 0), 0), subtotal));
   const tax = round2(Math.max(Number(taxInput || 0), 0));
-  /** Matches BE `money.total_amount` before coupon (POS-FR-019). */
+  /** Matches BE `money.total_amount` before loyalty + coupon. */
   const preCouponTotal = round2(subtotal - discount + tax);
-  const total = round2(Math.max(0, preCouponTotal - couponDiscount));
+  const selectedCustomer = customers.find((c) => c.id === customerId) || null;
+  const customerTier = selectedCustomer?.loyalty_tier_id
+    ? loyaltyTiers.find((t) => t.id === selectedCustomer.loyalty_tier_id)
+    : null;
+  const tierRedeemRate = Number(customerTier?.redeem_rate || 1);
+  /** Matches BE: base redeem_value × tier.redeem_rate (rounded to 4dp). */
+  const effectiveRedeemValue =
+    Math.round(
+      loyaltyRedeemValue *
+      (Number.isFinite(tierRedeemRate) && tierRedeemRate > 0 ? tierRedeemRate : 1) *
+      10000
+    ) / 10000;
+  const loyaltyPtsRaw = Math.max(0, Math.floor(Number(loyaltyRedeem || 0) || 0));
+  const loyaltyPts = selectedCustomer
+    ? Math.min(loyaltyPtsRaw, selectedCustomer.loyalty_points ?? 0)
+    : 0;
+  /** BE applies loyalty before coupon — keep client payable in the same order. */
+  const loyaltyDiscount = round2(
+    Math.min(loyaltyPts * effectiveRedeemValue, Math.max(0, preCouponTotal))
+  );
+  const afterLoyaltyTotal = round2(Math.max(0, preCouponTotal - loyaltyDiscount));
+  const total = round2(Math.max(0, afterLoyaltyTotal - couponDiscount));
 
   useEffect(() => {
     const code = couponCode.trim();
@@ -446,7 +490,7 @@ export default function PosPage() {
             method: "POST",
             body: JSON.stringify({
               code,
-              cart_total: formatDecimal(preCouponTotal),
+              cart_total: formatDecimal(afterLoyaltyTotal),
             }),
           });
           if (cancelled) return;
@@ -464,7 +508,7 @@ export default function PosPage() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [couponCode, preCouponTotal, t]);
+  }, [couponCode, afterLoyaltyTotal, t]);
 
   useEffect(() => {
     setPayCash(formatDecimal(total));
@@ -593,13 +637,13 @@ export default function PosPage() {
           method: "POST",
           body: JSON.stringify({
             code,
-            cart_total: formatDecimal(preCouponTotal),
+            cart_total: formatDecimal(afterLoyaltyTotal),
           }),
         });
         const quoted = round2(Number(res.data.discount || 0));
         setCouponDiscount(quoted);
         setCouponError(null);
-        payableTotal = round2(Math.max(0, preCouponTotal - quoted));
+        payableTotal = round2(Math.max(0, afterLoyaltyTotal - quoted));
       } catch (err) {
         const msg = formatCouponValidateError(err, t);
         setCouponDiscount(0);
@@ -609,24 +653,43 @@ export default function PosPage() {
       }
     }
 
-    const payments = buildPayments();
-    let paySum = round2(payments.reduce((s, p) => s + p.amount, 0));
-    // Coupon can change the due amount after payments were filled — sync single-method tenders.
-    if (payments.length === 1 && Math.abs(paySum - payableTotal) > 0.001) {
-      payments[0].amount = payableTotal;
-      paySum = payableTotal;
-      if (payments[0].method === "cash") setPayCash(formatDecimal(payableTotal));
-      if (payments[0].method === "card") setPayCard(formatDecimal(payableTotal));
-      if (payments[0].method === "wallet") setPayWallet(formatDecimal(payableTotal));
-      if (payments[0].method === "credit") setPayKhata(formatDecimal(payableTotal));
-    }
-    if (payments.length === 0 || Math.abs(paySum - payableTotal) > 0.001) {
+    const paymentsRaw = buildPayments();
+    if (paymentsRaw.length === 0) {
       toast.warning(
-        `${t("common.total")}: ${formatDecimal(payableTotal)} / ${formatDecimal(paySum)}`
+        `${t("common.total")}: ${formatDecimal(payableTotal)} / ${formatDecimal(0)}`
       );
       return;
     }
-    const khataAmt = payments.find((p) => p.method === "credit")?.amount || 0;
+    let paySum = round2(paymentsRaw.reduce((s, p) => s + p.amount, 0));
+
+    // Single tender: omit amount so the API fills the exact due total
+    // (loyalty rates, branch prices, and rounding can diverge from the client estimate).
+    let payments: { method: PayMethod; amount?: number }[];
+    if (paymentsRaw.length === 1) {
+      payments = [{ method: paymentsRaw[0].method }];
+      paySum = payableTotal;
+      if (paymentsRaw[0].method === "cash") setPayCash(formatDecimal(payableTotal));
+      if (paymentsRaw[0].method === "card") setPayCard(formatDecimal(payableTotal));
+      if (paymentsRaw[0].method === "wallet") setPayWallet(formatDecimal(payableTotal));
+      if (paymentsRaw[0].method === "credit") setPayKhata(formatDecimal(payableTotal));
+    } else {
+      payments = paymentsRaw;
+      // Split tenders: reconcile the last line to the payable total.
+      if (Math.abs(paySum - payableTotal) > 0.001) {
+        const last = payments[payments.length - 1];
+        last.amount = round2((last.amount || 0) + (payableTotal - paySum));
+        paySum = round2(payments.reduce((s, p) => s + (p.amount || 0), 0));
+      }
+      if (Math.abs(paySum - payableTotal) > 0.001) {
+        toast.warning(
+          `${t("common.total")}: ${formatDecimal(payableTotal)} / ${formatDecimal(paySum)}`
+        );
+        return;
+      }
+    }
+    const khataAmt =
+      payments.find((p) => p.method === "credit")?.amount ||
+      (payments.length === 1 && payments[0].method === "credit" ? payableTotal : 0);
     if (khataAmt > 0) {
       if (!customerId) {
         toast.warning(t("pos.selectCustomerKhata"));
@@ -647,7 +710,7 @@ export default function PosPage() {
           client_txn_id,
           till_id: till?.id,
           customer_id: customerId || undefined,
-          loyalty_redeem_points: loyaltyRedeem ? Number(loyaltyRedeem) : undefined,
+          loyalty_redeem_points: loyaltyPts > 0 ? loyaltyPts : undefined,
           coupon_code: code || undefined,
           items: cart.map((l) => ({
             product_id: l.product.id,
@@ -869,40 +932,40 @@ export default function PosPage() {
           ) : (
             <>
               {filtered.map((p) => {
-            const inCart = cart.find((l) => l.product.id === p.id);
-            return (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => addProduct(p)}
-                className={`group rounded-md border bg-card p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-md ${inCart
-                  ? "border-brand bg-brand-light ring-2 ring-brand/20"
-                  : "border-border"
-                  }`}
-              >
-                <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-md bg-brand-soft text-sm font-bold text-brand">
-                  {p.image_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.image_url} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    productInitials(p.name)
-                  )}
-                </div>
-                <div className="mt-3 font-semibold text-heading group-hover:text-brand">
-                  {p.name}
-                </div>
-                <div className="mt-0.5 text-xs text-muted">{p.sku}</div>
-                <div className="mt-3 flex items-end justify-between">
-                  <span className="text-base font-bold text-heading">
-                    Rs {formatDecimal(p.price)}
-                  </span>
-                  {inCart ? (
-                    <StatusBadge tone="info">×{inCart.quantity}</StatusBadge>
-                  ) : null}
-                </div>
-              </button>
-            );
-          })}
+                const inCart = cart.find((l) => l.product.id === p.id);
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => addProduct(p)}
+                    className={`group rounded-md border bg-card p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-md ${inCart
+                      ? "border-brand bg-brand-light ring-2 ring-brand/20"
+                      : "border-border"
+                      }`}
+                  >
+                    <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-md bg-brand-soft text-sm font-bold text-brand">
+                      {p.image_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={p.image_url} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        productInitials(p.name)
+                      )}
+                    </div>
+                    <div className="mt-3 font-semibold text-heading group-hover:text-brand">
+                      {p.name}
+                    </div>
+                    <div className="mt-0.5 text-xs text-muted">{p.sku}</div>
+                    <div className="mt-3 flex items-end justify-between">
+                      <span className="text-base font-bold text-heading">
+                        Rs {formatDecimal(p.price)}
+                      </span>
+                      {inCart ? (
+                        <StatusBadge tone="info">×{inCart.quantity}</StatusBadge>
+                      ) : null}
+                    </div>
+                  </button>
+                );
+              })}
               <div ref={productSentinelRef} className="col-span-full flex justify-center py-3">
                 {loadingMore ? (
                   <Loader2 className="h-5 w-5 animate-spin text-brand" aria-label={t("common.loading")} />
@@ -1046,6 +1109,12 @@ export default function PosPage() {
                   <strong className="text-heading">−{formatDecimal(couponDiscount)}</strong>
                 </div>
               ) : null}
+              {loyaltyDiscount > 0 ? (
+                <div className="flex justify-between text-body">
+                  <span>{t("pos.loyaltyDiscount")}</span>
+                  <strong className="text-heading">−{formatDecimal(loyaltyDiscount)}</strong>
+                </div>
+              ) : null}
               {couponError ? (
                 <p className="text-xs text-danger">{couponError}</p>
               ) : null}
@@ -1124,16 +1193,26 @@ export default function PosPage() {
                         {t("pos.startKhata")}
                       </Button>
                     ) : null}
-                    <label className="ml-auto flex items-center gap-1.5 text-xs text-body">
-                      {t("pos.redeemPts")}
-                      <input
-                        className="w-16 rounded-md border border-border bg-card px-2 py-1 text-heading"
-                        value={loyaltyRedeem}
-                        onChange={(e) => setLoyaltyRedeem(e.target.value)}
-                        placeholder="0"
-                        inputMode="numeric"
-                      />
-                    </label>
+                    <div className="ml-auto flex flex-col items-end gap-0.5">
+                      <label className="flex items-center gap-1.5 text-xs text-body">
+                        {t("pos.redeemPts")}
+                        <input
+                          className="w-16 rounded-md border border-border bg-card px-2 py-1 text-heading"
+                          value={loyaltyRedeem}
+                          onChange={(e) => setLoyaltyRedeem(e.target.value)}
+                          placeholder="0"
+                          inputMode="numeric"
+                        />
+                      </label>
+                      <p className="text-[11px] text-muted">
+                        {t("pos.redeemRatePerPoint", {
+                          rate: formatDecimal(effectiveRedeemValue),
+                        })}
+                        {loyaltyPts > 0
+                          ? ` · −Rs ${formatDecimal(loyaltyDiscount)}`
+                          : ""}
+                      </p>
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -1360,14 +1439,14 @@ export default function PosPage() {
                       setShowNewCustomer(false);
                     }}
                     className={`flex w-full items-center gap-3 rounded-md border p-3.5 text-left transition ${selected
-                        ? "border-brand bg-brand-soft shadow-sm"
-                        : "border-border bg-card hover:border-brand/30"
+                      ? "border-brand bg-brand-soft shadow-sm"
+                      : "border-border bg-card hover:border-brand/30"
                       }`}
                   >
                     <span
                       className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-sm font-bold ${selected
-                          ? "bg-brand/15 text-brand"
-                          : "bg-bg-secondary text-heading"
+                        ? "bg-brand/15 text-brand"
+                        : "bg-bg-secondary text-heading"
                         }`}
                     >
                       {c.name.slice(0, 1).toUpperCase()}
@@ -1385,8 +1464,8 @@ export default function PosPage() {
                     </span>
                     <span
                       className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border transition ${selected
-                          ? "border-brand bg-brand text-white"
-                          : "border-border bg-card text-transparent"
+                        ? "border-brand bg-brand text-white"
+                        : "border-border bg-card text-transparent"
                         }`}
                       aria-hidden
                     >

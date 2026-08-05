@@ -51,6 +51,23 @@ const catalog: HelpCatalog = {
       "Utilice un código de motivo claro en Ajustar para los seguimientos de auditoría.",
     ],
   },
+  "page.inventory.supplier": {
+    title: "Detalle del proveedor",
+    summary: "Contacto, condiciones y productos vinculados para órdenes de compra.",
+    what: "Cada proveedor guarda datos de la empresa y contacto, más una lista explícita de productos del catálogo que puede suministrar. Al crear una OC solo aparecen productos vinculados (INV-FR).",
+    how: [
+      "Abra un proveedor en Inventario → Proveedores.",
+      "Revise contacto, dirección y condiciones de pago.",
+      "Vincule productos del catálogo que este proveedor suministra.",
+      "Desvincule productos que el proveedor ya no ofrece.",
+      "Cree órdenes en Inventario → Órdenes de compra usando solo productos vinculados.",
+    ],
+    when: "Al dar de alta un proveedor, actualizar qué SKUs suministra o antes de crear una OC.",
+    tips: [
+      "Vincule productos antes de las OC — la API rechaza líneas de SKUs no vinculados.",
+      "Reciba mercancía (GRN) contra la OC para mantener stock y costo promedio correctos.",
+    ],
+  },
   "page.customers": {
     title: "Clientes y Crédito",
     summary: "Perfiles de clientes, saldo de crédito/crédito, libro mayor y puntos de fidelidad.",

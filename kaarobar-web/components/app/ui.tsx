@@ -219,10 +219,10 @@ export const formStackClass = "space-y-5";
 
 /** Trigger chrome for Select / SearchSelect — matches glass-field. */
 export const fieldTriggerClass =
-  "glass-field flex items-center gap-2 text-start hover:border-brand/40 focus:border-brand/45";
+  "glass-field flex items-center gap-2 whitespace-nowrap text-start hover:border-brand/40 focus:border-brand/45";
 
 export const fieldTriggerSmClass =
-  "glass-field !h-9 !min-h-9 rounded-md px-2 text-xs";
+  "glass-field flex h-9 min-h-9 items-center gap-2 whitespace-nowrap rounded-md !px-2 text-xs text-start hover:border-brand/40 focus:border-brand/45";
 
 export function Alert({
   tone = "info",

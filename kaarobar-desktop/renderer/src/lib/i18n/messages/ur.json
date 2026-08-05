@@ -400,7 +400,9 @@
     "processing": "پروسیسنگ…",
     "scanPlaceholder": "بار کوڈ اسکین یا SKU / نام تلاش…",
     "productsCount": "{count} مصنوعات",
-    "lastInvoice": "آخری"
+    "lastInvoice": "آخری",
+    "loyaltyDiscount": "لائلٹی پوائنٹس",
+    "redeemRatePerPoint": "Rs {rate} / پوائنٹ"
   },
   "returns": {
     "eyebrow": "واپسی",
@@ -674,7 +676,10 @@
     "phNotes": "اندرونی نوٹس…",
     "phPortalPassword": "پورٹل پاس ورڈ سیٹ کریں",
     "phDelta": "مثلاً 10 یا -5",
-    "phReason": "پوائنٹس ایڈجسٹ کرنے کی وجہ…"
+    "phReason": "پوائنٹس ایڈجسٹ کرنے کی وجہ…",
+    "optInEmail": "ای میل مارکیٹنگ اجازت",
+    "optInSms": "SMS مارکیٹنگ اجازت",
+    "optInWhatsapp": "واٹس ایپ مارکیٹنگ اجازت"
   },
   "marketing": {
     "eyebrow": "مارکیٹنگ",
@@ -892,7 +897,7 @@
     "add": "نیا کاروبار",
     "open": "کھولیں",
     "taxJurisdiction": "ٹیکس دائرہ",
-    "tabDetails": "تفصیل",
+    "tabDetails": "تفصیلات",
     "tabBranches": "برانچز",
     "tabBranding": "برانڈنگ",
     "branchesDesc": "اس کاروبار کے تحت برانچز۔",

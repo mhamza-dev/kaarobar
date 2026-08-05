@@ -1,6 +1,10 @@
+"use client";
+
 import { Building2, MapPin } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, getSession, setSession } from "@/lib/api/client";
+import { tenantKeys } from "@/lib/queryClient";
 import { useT } from "@/lib/i18n";
 import Select from "@/components/ui/Select";
 
@@ -12,92 +16,78 @@ const triggerClass =
 
 export default function TenantSwitcher() {
   const t = useT();
-  const [businesses, setBusinesses] = useState<Business[]>([]);
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [businessId, setBusinessId] = useState("");
-  const [branchId, setBranchId] = useState("");
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const session = getSession();
+  const businessId = session?.business_id || "";
+  const branchId = session?.branch_id || "";
 
-  const syncFromSession = useCallback(async () => {
-    const session = getSession();
-    if (!session) return;
-    try {
+  const businessesQuery = useQuery({
+    queryKey: tenantKeys.businesses(),
+    queryFn: async () => {
       const biz = await api<{ data: Business[] }>("/businesses");
-      const list = biz.data || [];
-      setBusinesses(list);
+      return biz.data || [];
+    },
+  });
 
-      const nextBiz = session.business_id || list[0]?.id || "";
-      if (!nextBiz) {
-        setLoading(false);
-        return;
-      }
-      setBusinessId(nextBiz);
+  const businesses = businessesQuery.data ?? [];
+  const resolvedBusinessId = businessId || businesses[0]?.id || "";
 
-      const scoped = { ...session, business_id: nextBiz };
+  const branchesQuery = useQuery({
+    queryKey: tenantKeys.branches(resolvedBusinessId || null),
+    enabled: Boolean(resolvedBusinessId),
+    queryFn: async () => {
+      const s = getSession();
+      if (!s || !resolvedBusinessId) return [] as Branch[];
+      const scoped = { ...s, business_id: resolvedBusinessId };
       const br = await api<{ data: Branch[] }>(
-        `/businesses/${nextBiz}/branches`,
+        `/businesses/${resolvedBusinessId}/branches`,
         {},
         scoped
       );
-      const branchList = br.data || [];
-      setBranches(branchList);
+      return br.data || [];
+    },
+  });
 
-      const nextBranch =
-        (session.branch_id &&
-          branchList.find((b) => b.id === session.branch_id)?.id) ||
-        branchList[0]?.id ||
-        "";
-      setBranchId(nextBranch);
+  const branches = branchesQuery.data ?? [];
+  const resolvedBranchId =
+    (branchId && branches.find((b) => b.id === branchId)?.id) ||
+    branches[0]?.id ||
+    "";
 
-      if (
-        session.business_id !== nextBiz ||
-        (nextBranch && session.branch_id !== nextBranch)
-      ) {
-        setSession({
-          ...session,
-          business_id: nextBiz,
-          branch_id: nextBranch || undefined,
-        });
-      }
-    } catch {
-      /* header stays usable even if tenant list fails */
-    } finally {
-      setLoading(false);
+  // Keep session aligned with loaded tenant lists.
+  useMemo(() => {
+    const s = getSession();
+    if (!s || !resolvedBusinessId) return;
+    if (
+      s.business_id !== resolvedBusinessId ||
+      (resolvedBranchId && s.branch_id !== resolvedBranchId)
+    ) {
+      setSession({
+        ...s,
+        business_id: resolvedBusinessId,
+        branch_id: resolvedBranchId || undefined,
+      });
     }
-  }, []);
-
-  useEffect(() => {
-    syncFromSession();
-    function onSession() {
-      const s = getSession();
-      if (s?.business_id) setBusinessId(s.business_id);
-      if (s?.branch_id) setBranchId(s.branch_id);
-    }
-    window.addEventListener("kaarobar:session", onSession);
-    return () => window.removeEventListener("kaarobar:session", onSession);
-  }, [syncFromSession]);
+  }, [resolvedBusinessId, resolvedBranchId]);
 
   async function switchBusiness(id: string) {
-    const session = getSession();
-    if (!session || !id || id === businessId) return;
-    setBusinessId(id);
-    setBranchId("");
-    const next = { ...session, business_id: id, branch_id: undefined };
+    const s = getSession();
+    if (!s || !id || id === businessId) return;
+    const next = { ...s, business_id: id, branch_id: undefined };
     setSession(next);
+    await queryClient.invalidateQueries({ queryKey: tenantKeys.branches(id) });
     const br = await api<{ data: Branch[] }>(`/businesses/${id}/branches`, {}, next);
     const list = br.data || [];
-    setBranches(list);
+    queryClient.setQueryData(tenantKeys.branches(id), list);
     if (list[0]) {
-      setBranchId(list[0].id);
       setSession({ ...next, branch_id: list[0].id });
     }
   }
 
   function switchBranch(id: string) {
-    const session = getSession();
-    if (!session || !id || id === branchId) return;
-    setBranchId(id);
-    setSession({ ...session, branch_id: id });
+    const s = getSession();
+    if (!s || !id || id === branchId) return;
+    setSession({ ...s, branch_id: id });
   }
 
   const businessOptions = useMemo(
@@ -116,7 +106,9 @@ export default function TenantSwitcher() {
     [branches, t]
   );
 
-  if (loading && !businessId) {
+  const loading = businessesQuery.isLoading && !resolvedBusinessId;
+
+  if (loading) {
     return (
       <div className="h-9 w-40 animate-pulse rounded-md bg-rail-hover sm:w-72" />
     );
@@ -125,11 +117,11 @@ export default function TenantSwitcher() {
   return (
     <div className="flex min-w-0 items-center gap-2">
       <div className="relative min-w-0">
-        <Building2 className="pointer-events-none absolute start-2.5 top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 text-rail-muted" />
+        <Building2 className="pointer-events-none absolute start-2.5 top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 text-body" />
         <Select
           size="sm"
           className="w-auto max-w-[min(42vw,220px)]"
-          value={businessId}
+          value={resolvedBusinessId}
           onChange={(id) => void switchBusiness(id)}
           disabled={businesses.length === 0}
           options={businessOptions}
@@ -140,11 +132,11 @@ export default function TenantSwitcher() {
       </div>
 
       <div className="relative min-w-0">
-        <MapPin className="pointer-events-none absolute start-2.5 top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 text-rail-muted" />
+        <MapPin className="pointer-events-none absolute start-2.5 top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 text-body" />
         <Select
           size="sm"
           className="w-auto max-w-[min(42vw,220px)]"
-          value={branchId}
+          value={resolvedBranchId}
           onChange={switchBranch}
           disabled={branches.length === 0}
           options={branchOptions}

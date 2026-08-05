@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Wallet } from "lucide-react";
 import { api } from "@/lib/api/client";
+import { customerKeys } from "@/lib/queryClient";
 import { routes } from "@/lib/navigation";
 import { DetailFieldGrid, DetailSection, DetailShell } from "@/components/app/DetailShell";
 import { formatDecimal } from "@/lib/decimal";
@@ -29,18 +31,14 @@ export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>();
   const t = useT();
   const toast = useToast();
-  const [customer, setCustomer] = useState<(Customer & { balance?: string }) | null>(null);
-  const [ledger, setLedger] = useState<LedgerEntry[]>([]);
-  const [openInvoices, setOpenInvoices] = useState<OpenArInvoice[]>([]);
+  const queryClient = useQueryClient();
   const [payOpen, setPayOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
+  const detailQuery = useQuery({
+    queryKey: customerKeys.detail(id),
+    enabled: Boolean(id),
+    queryFn: async () => {
       const [c, l, ar] = await Promise.all([
         api<{ data: Customer & { balance?: string } }>(`/customers/${id}`),
         api<{ data: { entries: LedgerEntry[]; balance: string } }>(`/customers/${id}/ledger`),
@@ -48,19 +46,24 @@ export default function CustomerDetailPage() {
           `/ar/invoices?customer_id=${encodeURIComponent(id)}&open_only=true&limit=100`
         ).catch(() => ({ data: [] as OpenArInvoice[] })),
       ]);
-      setCustomer(c.data);
-      setLedger(l.data.entries || []);
-      setOpenInvoices(ar.data || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("common.loadFailed"));
-    } finally {
-      setLoading(false);
-    }
-  }, [id, t]);
+      return {
+        customer: c.data,
+        ledger: l.data.entries || [],
+        openInvoices: ar.data || [],
+      };
+    },
+  });
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const customer = detailQuery.data?.customer ?? null;
+  const ledger = detailQuery.data?.ledger ?? [];
+  const openInvoices = detailQuery.data?.openInvoices ?? [];
+  const loading = detailQuery.isLoading;
+  const error =
+    detailQuery.error instanceof Error
+      ? detailQuery.error.message
+      : detailQuery.error
+        ? t("common.loadFailed")
+        : null;
 
   async function handleReceivePayment(payload: {
     invoiceId: string;
@@ -80,7 +83,8 @@ export default function CustomerDetailPage() {
       });
       toast.success(t("customers.paymentReceived"));
       setPayOpen(false);
-      await load();
+      await queryClient.invalidateQueries({ queryKey: customerKeys.detail(id) });
+      await queryClient.invalidateQueries({ queryKey: customerKeys.all });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.error"));
     } finally {
@@ -98,11 +102,9 @@ export default function CustomerDetailPage() {
       title={customer?.name || t("nav.customers")}
       subtitle={customer?.company_name || customer?.email || customer?.phone || undefined}
       status={
-        customer?.portal_linked
-          ? { label: t("customers.portalAccount"), tone: "success" }
-          : customer?.credit_enabled
-            ? { label: t("listFilters.khataOn"), tone: "success" }
-            : { label: t("listFilters.khataOff"), tone: "info" }
+        customer?.credit_enabled
+          ? { label: t("listFilters.khataOn"), tone: "success" }
+          : { label: t("listFilters.khataOff"), tone: "info" }
       }
       loading={loading}
       error={error}
@@ -121,36 +123,32 @@ export default function CustomerDetailPage() {
       {customer ? (
         <>
           <DetailSection title={t("common.profile")}>
-            {customer.portal_linked ? (
-              <div className="mb-4 space-y-2">
-                <ProfilePicEditor
-                  url={customer.profile_pic_url}
-                  name={customer.name}
-                  uploadPath={`/customers/${customer.id}/profile-pic`}
-                  urlFromResponse={(body) =>
-                    (body as { data?: Customer })?.data?.profile_pic_url
-                  }
-                  onChange={() => undefined}
-                  label={t("customers.portalAccount")}
-                  readOnly
-                />
-                <p className="text-sm text-body">{t("customers.portalManagedHint")}</p>
-              </div>
-            ) : (
-              <div className="mb-4">
-                <ProfilePicEditor
-                  url={customer.profile_pic_url}
-                  name={customer.name}
-                  uploadPath={`/customers/${customer.id}/profile-pic`}
-                  urlFromResponse={(body) =>
-                    (body as { data?: Customer })?.data?.profile_pic_url
-                  }
-                  onChange={(next) =>
-                    setCustomer((c) => (c ? { ...c, profile_pic_url: next } : c))
-                  }
-                />
-              </div>
-            )}
+            <div className="mb-4">
+              <ProfilePicEditor
+                url={customer.profile_pic_url}
+                name={customer.name}
+                uploadPath={`/customers/${customer.id}/profile-pic`}
+                urlFromResponse={(body) =>
+                  (body as { data?: Customer })?.data?.profile_pic_url
+                }
+                onChange={(next) =>
+                  queryClient.setQueryData(
+                    customerKeys.detail(id),
+                    (prev: {
+                      customer: Customer & { balance?: string };
+                      ledger: LedgerEntry[];
+                      openInvoices: OpenArInvoice[];
+                    } | undefined) =>
+                      prev
+                        ? {
+                            ...prev,
+                            customer: { ...prev.customer, profile_pic_url: next },
+                          }
+                        : prev
+                  )
+                }
+              />
+            </div>
             <DetailFieldGrid
               fields={[
                 { label: t("customers.phone"), value: customer.phone || "—" },

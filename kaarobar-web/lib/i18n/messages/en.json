@@ -607,7 +607,9 @@
     "processing": "Processing…",
     "scanPlaceholder": "Scan barcode or search SKU / name",
     "productsCount": "{count} products",
-    "lastInvoice": "Last"
+    "lastInvoice": "Last",
+    "loyaltyDiscount": "Loyalty points",
+    "redeemRatePerPoint": "Rs {rate} / point"
   },
   "returns": {
     "eyebrow": "Returns",

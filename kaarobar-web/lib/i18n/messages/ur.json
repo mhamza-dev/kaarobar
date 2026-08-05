@@ -607,7 +607,9 @@
     "processing": "پروسیسنگ…",
     "scanPlaceholder": "بار کوڈ اسکین یا SKU / نام تلاش…",
     "productsCount": "{count} مصنوعات",
-    "lastInvoice": "آخری"
+    "lastInvoice": "آخری",
+    "loyaltyDiscount": "لائلٹی پوائنٹس",
+    "redeemRatePerPoint": "Rs {rate} / پوائنٹ"
   },
   "returns": {
     "eyebrow": "واپسی",

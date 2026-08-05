@@ -24,7 +24,6 @@ type CustomerFormModalProps = {
   isOpen: boolean;
   busy: boolean;
   editing: Customer | null;
-  /** Overrides values derived from `editing` when provided. */
   initialValues?: CustomerForm;
   t: Translate;
   onClose: () => void;
@@ -72,7 +71,7 @@ export function CustomerFormModal({
           await onSubmit(next);
         }}
       >
-        {({ values: formValues }) => (
+        {() => (
           <div className={formGridClass}>
             {CUSTOMER_FORM_FIELDS.map((f) => {
               if (f.type === "checkbox") {
@@ -104,18 +103,9 @@ export function CustomerFormModal({
                   name={f.key}
                   label={t(f.labelKey)}
                   type={f.key === "credit_limit" ? "number" : f.type || "text"}
-                  required={
-                    f.required ||
-                    (f.key === "portal_password" &&
-                      formValues.portal_enabled &&
-                      !editing?.portal_enabled)
-                  }
+                  required={f.required}
                   placeholder={
-                    f.key === "portal_password" && editing?.portal_enabled
-                      ? t("customers.portalPasswordHint")
-                      : f.placeholderKey
-                        ? t(f.placeholderKey)
-                        : undefined
+                    f.placeholderKey ? t(f.placeholderKey) : undefined
                   }
                   hint={f.hintKey ? t(f.hintKey) : undefined}
                 />

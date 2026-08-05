@@ -75,7 +75,6 @@ export function customerPayload(form: CustomerForm) {
     ntn: form.ntn.trim() || null,
     company_name: form.company_name.trim() || null,
     credit_limit: form.credit_limit.trim() || null,
-    user_id: form.user_id.trim() || null,
     credit_enabled: form.credit_enabled,
   };
 }
@@ -98,7 +97,6 @@ export const CUSTOMER_FORM_FIELDS: {
   { key: "ntn", labelKey: "customers.ntn" },
   { key: "address", labelKey: "customers.address" },
   { key: "credit_limit", labelKey: "customers.creditLimit" },
-  { key: "user_id", labelKey: "customers.userId" },
   { key: "notes", labelKey: "customers.notes", type: "textarea" },
   { key: "credit_enabled", labelKey: "customers.khataEnabled", type: "checkbox" },
 ];

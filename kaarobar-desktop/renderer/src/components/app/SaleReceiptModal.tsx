@@ -1,6 +1,7 @@
+"use client";
+
 import KaarobarLogo from "@/components/brand/KaarobarLogo";
 import Button from "@/components/ui/Button";
-import { formatDecimal } from "@/lib/decimal";
 import { useT } from "@/lib/i18n";
 import { paymentMethodLabel } from "@/lib/paymentLabels";
 
@@ -30,6 +31,12 @@ type Props = {
   onClose: () => void;
 };
 
+function formatQty(q: string) {
+  const n = Number(q);
+  if (!Number.isFinite(n)) return q;
+  return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.?0+$/, "");
+}
+
 export default function SaleReceiptModal({
   sale,
   businessName = "Kaarobar",
@@ -44,92 +51,107 @@ export default function SaleReceiptModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 print:static print:bg-transparent print:p-0">
-      <div className="max-h-[90vh] w-full max-w-md overflow-auto rounded-md bg-white p-6 shadow-xl print:max-h-none print:shadow-none">
-        <div id="kaarobar-receipt" className="space-y-3 text-sm text-slate-900">
-          <div className="text-center">
-            <div className="mb-2 flex justify-center">
-              <KaarobarLogo size={40} className="rounded-md" />
+    <div className="kaarobar-receipt-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 print:static print:bg-transparent print:p-0">
+      <div className="kaarobar-receipt-sheet max-h-[90vh] w-full max-w-[20rem] overflow-auto rounded-md bg-white p-4 shadow-xl print:max-h-none print:max-w-none print:rounded-none print:p-0 print:shadow-none">
+        <div id="kaarobar-receipt" className="kaarobar-thermal-receipt mx-auto w-full max-w-[80mm]">
+          <div className="thermal-center">
+            <div className="mb-1 flex justify-center">
+              <KaarobarLogo size={28} className="rounded-sm" />
             </div>
-            <p className="text-lg font-bold">{businessName}</p>
-            {branchName ? <p className="text-slate-600">{branchName}</p> : null}
-            <p className="mt-2 font-semibold">Invoice {sale.invoice_number}</p>
+            <p className="thermal-shop">{businessName}</p>
+            {branchName ? <p className="thermal-muted">{branchName}</p> : null}
+            <p className="thermal-rule" aria-hidden>
+              --------------------------------
+            </p>
+            <p className="thermal-strong">INV {sale.invoice_number}</p>
             {sale.inserted_at ? (
-              <p className="text-xs text-slate-500">
+              <p className="thermal-muted">
                 {new Date(sale.inserted_at).toLocaleString()}
               </p>
             ) : null}
             {sale.customer_name ? (
-              <p className="mt-1 text-slate-700">Customer: {sale.customer_name}</p>
+              <p className="thermal-line">Cust: {sale.customer_name}</p>
             ) : null}
+            <p className="thermal-rule" aria-hidden>
+              --------------------------------
+            </p>
           </div>
 
-          <table className="w-full text-left text-xs">
+          <table className="thermal-table">
             <thead>
-              <tr className="border-b border-slate-200">
-                <th className="py-1">Item</th>
-                <th className="py-1 text-right">Qty</th>
-                <th className="py-1 text-right">Amt</th>
+              <tr>
+                <th className="text-start">Item</th>
+                <th className="text-end">Qty</th>
+                <th className="text-end">Amt</th>
               </tr>
             </thead>
             <tbody>
               {sale.items.map((item, idx) => (
-                <tr key={`${item.name}-${idx}`} className="border-b border-slate-100">
-                  <td className="py-1.5 pr-2">{item.name}</td>
-                  <td className="py-1.5 text-right">{item.quantity}</td>
-                  <td className="py-1.5 text-right">{formatDecimal(item.line_total)}</td>
+                <tr key={`${item.name}-${idx}`}>
+                  <td className="text-start">{item.name}</td>
+                  <td className="text-end">{formatQty(item.quantity)}</td>
+                  <td className="text-end">{item.line_total}</td>
                 </tr>
               ))}
             </tbody>
           </table>
 
-          <div className="space-y-1 text-xs">
-            <div className="flex justify-between">
+          <p className="thermal-rule" aria-hidden>
+            --------------------------------
+          </p>
+
+          <div className="thermal-totals">
+            <div className="thermal-row">
               <span>Subtotal</span>
-              <span>{formatDecimal(sale.subtotal)}</span>
+              <span>{sale.subtotal}</span>
             </div>
-            <div className="flex justify-between">
+            <div className="thermal-row">
               <span>Tax</span>
-              <span>{formatDecimal(sale.tax_amount)}</span>
+              <span>{sale.tax_amount}</span>
             </div>
             {sale.discount_amount && Number(sale.discount_amount) > 0 ? (
-              <div className="flex justify-between">
+              <div className="thermal-row">
                 <span>Discount</span>
-                <span>{formatDecimal(sale.discount_amount)}</span>
+                <span>{sale.discount_amount}</span>
               </div>
             ) : null}
-            <div className="flex justify-between text-base font-bold">
-              <span>Total</span>
-              <span>Rs {formatDecimal(sale.total_amount)}</span>
+            <div className="thermal-row thermal-total">
+              <span>TOTAL</span>
+              <span>Rs {sale.total_amount}</span>
             </div>
           </div>
 
-          <div className="border-t border-slate-200 pt-2 text-xs">
-            <p className="font-semibold">Payments</p>
+          <p className="thermal-rule" aria-hidden>
+            --------------------------------
+          </p>
+
+          <div className="thermal-totals">
+            <p className="thermal-strong">Payments</p>
             {sale.payments.map((p, i) => (
-              <div key={`${p.method}-${i}`} className="flex justify-between">
+              <div key={`${p.method}-${i}`} className="thermal-row">
                 <span>{paymentMethodLabel(p.method, t)}</span>
-                <span>{formatDecimal(p.amount)}</span>
+                <span>{p.amount}</span>
               </div>
             ))}
           </div>
 
           {sale.fbr_qr_payload ? (
-            <p className="break-all text-center text-[10px] text-slate-500">
-              FBR: {sale.fbr_qr_payload}
-            </p>
+            <p className="thermal-fbr">FBR: {sale.fbr_qr_payload}</p>
           ) : null}
 
-          <div className="border-t border-slate-200 pt-3 text-center">
-            <p className="text-xs text-slate-500">Thank you</p>
-            <p className="mt-2 text-[11px] font-semibold text-slate-700">Powered by Kaarobar</p>
-            <p className="text-[10px] text-slate-500">A product of 2ndHub Solutions</p>
+          <p className="thermal-rule" aria-hidden>
+            --------------------------------
+          </p>
+          <div className="thermal-center">
+            <p className="thermal-muted">Thank you</p>
+            <p className="thermal-strong">Powered by Kaarobar</p>
+            <p className="thermal-muted">2ndHub Solutions</p>
           </div>
         </div>
 
-        <div className="mt-5 flex gap-2 print:hidden">
+        <div className="mt-4 flex gap-2 print:hidden">
           <Button className="flex-1" onClick={print}>
-            Print invoice
+            Print receipt
           </Button>
           <Button className="flex-1" variant="secondary" onClick={onClose}>
             Close

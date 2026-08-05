@@ -97,11 +97,9 @@ export default function CustomerDetailPage() {
       title={customer?.name || t("nav.customers")}
       subtitle={customer?.company_name || customer?.email || customer?.phone || undefined}
       status={
-        customer?.portal_linked
-          ? { label: t("customers.portalAccount"), tone: "success" }
-          : customer?.credit_enabled
-            ? { label: t("listFilters.khataOn"), tone: "success" }
-            : { label: t("listFilters.khataOff"), tone: "info" }
+        customer?.credit_enabled
+          ? { label: t("listFilters.khataOn"), tone: "success" }
+          : { label: t("listFilters.khataOff"), tone: "info" }
       }
       loading={loading}
       error={error}
@@ -131,12 +129,7 @@ export default function CustomerDetailPage() {
                 onChange={(next) =>
                   setCustomer((c) => (c ? { ...c, profile_pic_url: next } : c))
                 }
-                label={t("customers.portalAccount")}
-                readOnly={!!customer.portal_linked}
               />
-              {customer.portal_linked ? (
-                <p className="mt-2 text-sm text-body">{t("customers.portalManagedHint")}</p>
-              ) : null}
             </div>
             <DetailFieldGrid
               fields={[

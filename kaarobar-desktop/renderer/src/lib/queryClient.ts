@@ -1,9 +1,6 @@
 import { QueryClient } from "@tanstack/react-query";
 
-/**
- * Default QueryClient for desktop POS.
- * Window-focus refetch is off — Electron focus churn is noisy for tills.
- */
+/** Default QueryClient for the Electron renderer (no window-focus refetch churn). */
 export function makeQueryClient() {
   return new QueryClient({
     defaultOptions: {
@@ -111,4 +108,68 @@ export const settingsKeys = {
     [...settingsKeys.all, "roleSettings", businessId ?? null] as const,
   profile: () => [...settingsKeys.all, "profile"] as const,
   notificationPrefs: () => [...settingsKeys.all, "notificationPrefs"] as const,
+};
+
+/** Customer portal (buyer). */
+export const portalKeys = {
+  all: ["portal"] as const,
+  orders: () => [...portalKeys.all, "orders"] as const,
+  order: (id: string) => [...portalKeys.all, "orders", id] as const,
+  appointments: () => [...portalKeys.all, "appointments"] as const,
+  appointment: (id: string) => [...portalKeys.all, "appointments", id] as const,
+  appointmentSlots: (params: Record<string, string>) =>
+    [...portalKeys.all, "appointmentSlots", params] as const,
+  loyalty: () => [...portalKeys.all, "loyalty"] as const,
+  ar: () => [...portalKeys.all, "ar"] as const,
+};
+
+/** Marketplace / Discover (buyer). */
+export const marketplaceKeys = {
+  all: ["marketplace"] as const,
+  products: (filters: Record<string, unknown>) =>
+    [...marketplaceKeys.all, "products", filters] as const,
+  businesses: (filters?: Record<string, unknown>) =>
+    [...marketplaceKeys.all, "businesses", filters ?? {}] as const,
+  catalog: (storeKey: string) =>
+    [...marketplaceKeys.all, "catalog", storeKey] as const,
+  product: (storeKey: string, productId: string) =>
+    [...marketplaceKeys.all, "product", storeKey, productId] as const,
+};
+
+/** Customers / AR (staff). */
+export const customerKeys = {
+  all: ["customers"] as const,
+  list: (businessId?: string | null) =>
+    [...customerKeys.all, "list", businessId ?? null] as const,
+  detail: (id: string) => [...customerKeys.all, "detail", id] as const,
+  ledger: (id: string) => [...customerKeys.all, "ledger", id] as const,
+  openInvoices: (id: string) =>
+    [...customerKeys.all, "openInvoices", id] as const,
+};
+
+/** Sales history (staff). */
+export const salesKeys = {
+  all: ["sales"] as const,
+  list: (businessId?: string | null, branchId?: string | null, params?: string) =>
+    [...salesKeys.all, "list", businessId ?? null, branchId ?? null, params ?? ""] as const,
+  detail: (id: string) => [...salesKeys.all, "detail", id] as const,
+};
+
+/** POS till / catalog (staff). */
+export const posKeys = {
+  all: ["pos"] as const,
+  products: (businessId?: string | null, branchId?: string | null, page?: number) =>
+    [...posKeys.all, "products", businessId ?? null, branchId ?? null, page ?? 0] as const,
+  till: (branchId?: string | null) =>
+    [...posKeys.all, "till", branchId ?? null] as const,
+  customers: (businessId?: string | null) =>
+    [...posKeys.all, "customers", businessId ?? null] as const,
+};
+
+/** Tenant switcher (businesses / branches). */
+export const tenantKeys = {
+  all: ["tenant"] as const,
+  businesses: () => [...tenantKeys.all, "businesses"] as const,
+  branches: (businessId?: string | null) =>
+    [...tenantKeys.all, "branches", businessId ?? null] as const,
 };
