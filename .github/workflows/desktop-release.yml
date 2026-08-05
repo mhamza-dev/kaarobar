@@ -9,8 +9,25 @@ permissions:
   contents: write
 
 jobs:
-  release:
-    runs-on: ubuntu-latest
+  build:
+    name: Build ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            label: macOS DMG
+            builder_args: --mac dmg
+            artifact_glob: "kaarobar-desktop/release/*.dmg"
+          - os: windows-latest
+            label: Windows EXE
+            builder_args: --win nsis
+            artifact_glob: "kaarobar-desktop/release/*.exe"
+          - os: ubuntu-latest
+            label: Linux DEB
+            builder_args: --linux deb
+            artifact_glob: "kaarobar-desktop/release/*.deb"
 
     steps:
       - name: Checkout
@@ -27,22 +44,55 @@ jobs:
         run: npm ci
         working-directory: kaarobar-desktop
 
-      - name: Build desktop renderer bundle
+      - name: Build renderer (Vite)
         run: npm run build
         working-directory: kaarobar-desktop
 
-      - name: Prepare release archive
-        run: |
-          mkdir -p artifacts
-          archive_name="kaarobar-desktop-${GITHUB_SHA::7}.zip"
-          cd kaarobar-desktop
-          zip -r "../artifacts/${archive_name}" dist src package.json package-lock.json
-          echo "ARCHIVE_NAME=${archive_name}" >> "$GITHUB_ENV"
+      - name: Package installer
+        env:
+          # Unsigned CI builds (no Apple/Windows code-signing certs yet)
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: npx electron-builder ${{ matrix.builder_args }} --publish never
+        working-directory: kaarobar-desktop
 
-      - name: Create GitHub release
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.os }}
+          path: ${{ matrix.artifact_glob }}
+          if-no-files-found: error
+
+  release:
+    name: Publish installers to GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all installers
+        uses: actions/download-artifact@v4
+        with:
+          path: installers
+          pattern: desktop-*
+          merge-multiple: true
+
+      - name: List release files
+        run: ls -la installers
+
+      - name: Create GitHub release (binaries only)
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "desktop-${{ github.sha }}"
-          name: "Desktop Build ${{ github.sha }}"
-          body: "Automated desktop build for commit `${{ github.sha }}`."
-          files: "artifacts/${{ env.ARCHIVE_NAME }}"
+          name: "Desktop ${{ github.sha }}"
+          body: |
+            Kaarobar desktop installers for commit `${{ github.sha }}`.
+
+            - **macOS:** `.dmg`
+            - **Windows:** `.exe` (NSIS installer)
+            - **Linux:** `.deb`
+
+            Source is not packaged in this release. Installers are unsigned CI builds.
+          files: |
+            installers/*.dmg
+            installers/*.exe
+            installers/*.deb
+          fail_on_unmatched_files: true

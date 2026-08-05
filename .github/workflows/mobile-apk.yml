@@ -1,9 +1,12 @@
-name: Mobile APK Build
+name: Mobile APK Release
 
 on:
   push:
     branches: ["main"]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build-apk:
@@ -15,8 +18,10 @@ jobs:
         include:
           - app_name: kaarobar-mobile
             app_dir: kaarobar-mobile
+            apk_name: Kaarobar-staff.apk
           - app_name: kaarobar-customer
             app_dir: kaarobar-customer
+            apk_name: Kaarobar-customer.apk
 
     steps:
       - name: Checkout
@@ -45,9 +50,50 @@ jobs:
           ./gradlew assembleRelease
         working-directory: ${{ matrix.app_dir }}/android
 
+      - name: Stage APK
+        run: |
+          mkdir -p staged
+          src="${{ matrix.app_dir }}/android/app/build/outputs/apk/release/app-release.apk"
+          if [ ! -f "$src" ]; then
+            src="${{ matrix.app_dir }}/android/app/build/outputs/apk/release/app-release-unsigned.apk"
+          fi
+          cp "$src" "staged/${{ matrix.apk_name }}"
+          ls -la staged
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: "${{ matrix.app_name }}-release-apk"
-          path: "${{ matrix.app_dir }}/android/app/build/outputs/apk/release/app-release.apk"
+          name: "${{ matrix.app_name }}-apk"
+          path: "staged/${{ matrix.apk_name }}"
           if-no-files-found: error
+
+  release:
+    name: Publish APKs to GitHub Release
+    needs: build-apk
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download APKs
+        uses: actions/download-artifact@v4
+        with:
+          path: apks
+          pattern: "*-apk"
+          merge-multiple: true
+
+      - name: List release files
+        run: ls -la apks
+
+      - name: Create GitHub release (APKs only)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "android-${{ github.sha }}"
+          name: "Android ${{ github.sha }}"
+          body: |
+            Kaarobar Android APKs for commit `${{ github.sha }}`.
+
+            - **Kaarobar-staff.apk** — staff app
+            - **Kaarobar-customer.apk** — customer app
+
+            Source is not packaged in this release. APKs use the project debug keystore until a release keystore is configured.
+          files: apks/*.apk
+          fail_on_unmatched_files: true

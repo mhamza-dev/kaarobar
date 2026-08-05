@@ -2,13 +2,19 @@
   "name": "kaarobar-desktop",
   "version": "0.1.0",
   "private": true,
+  "description": "Kaarobar POS desktop client",
+  "author": "2ndHub Solutions",
   "main": "src/main.js",
   "scripts": {
     "dev": "concurrently -k \"vite\" \"wait-on http://127.0.0.1:5173 && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .\"",
     "build": "vite build",
     "start": "npm run build && electron .",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "dist": "npm run build && electron-builder",
+    "dist:mac": "npm run build && electron-builder --mac dmg",
+    "dist:win": "npm run build && electron-builder --win nsis",
+    "dist:linux": "npm run build && electron-builder --linux deb"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.4",
@@ -33,6 +39,7 @@
     "concurrently": "^9.1.2",
     "cross-env": "^7.0.3",
     "electron": "^33.0.0",
+    "electron-builder": "^25.1.8",
     "jest": "^30.1.3",
     "jest-environment-jsdom": "^30.1.2",
     "tailwindcss": "^4",
@@ -41,5 +48,47 @@
     "vite": "^6.3.5",
     "vitest": "^2.1.9",
     "wait-on": "^8.0.3"
+  },
+  "build": {
+    "appId": "com.kaarobar.desktop",
+    "productName": "Kaarobar",
+    "copyright": "Copyright © 2ndHub Solutions",
+    "directories": {
+      "output": "release",
+      "buildResources": "assets"
+    },
+    "files": [
+      "dist/**/*",
+      "src/main.js",
+      "src/preload.js",
+      "assets/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "mac": {
+      "target": ["dmg"],
+      "category": "public.app-category.business",
+      "icon": "assets/icon.png",
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false
+    },
+    "dmg": {
+      "artifactName": "Kaarobar-${version}-mac-${arch}.${ext}"
+    },
+    "win": {
+      "target": ["nsis"],
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "Kaarobar-${version}-win-${arch}.${ext}"
+    },
+    "linux": {
+      "target": ["deb"],
+      "category": "Office",
+      "icon": "assets/icon.png",
+      "artifactName": "Kaarobar-${version}-linux-${arch}.${ext}"
+    }
   }
 }

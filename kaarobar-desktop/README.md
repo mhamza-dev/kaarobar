@@ -14,6 +14,16 @@ npm run dev    # Vite + Electron (hot reload)
 npm start      # production build then Electron
 ```
 
+### Installers (no source upload)
+
+```bash
+npm run dist:mac    # → release/*.dmg
+npm run dist:win    # → release/*.exe  (run on Windows or CI)
+npm run dist:linux  # → release/*.deb  (run on Linux or CI)
+```
+
+CI publishes only these binaries to GitHub Releases (see `.github/workflows/desktop-release.yml`).
+
 API base URL: `VITE_API_URL` (default `http://localhost:4000/api/v1`).
 
 Demo login after seed: `owner@kaarobar.local` / `Password@123`

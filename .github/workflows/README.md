@@ -38,8 +38,13 @@ Do **not** paste shell prompts into Build/Start (no `kaarobar-BE/ $ …`). Root 
 4. Point web/mobile/desktop `*_API_URL` at `https://<your-service>.onrender.com/api/v1`.
 
 ## Notes
-- Mobile workflow builds release APK artifacts for:
-  - `kaarobar-mobile`
-  - `kaarobar-customer`
-- Desktop workflow creates a GitHub Release per commit and uploads a build archive.
+- **Mobile** (`mobile-apk.yml`) publishes **APKs only** to a GitHub Release (`android-<sha>`):
+  - `Kaarobar-staff.apk`
+  - `Kaarobar-customer.apk`
+- **Desktop** (`desktop-release.yml`) publishes **installers only** to a GitHub Release (`desktop-<sha>`):
+  - macOS `.dmg`
+  - Windows `.exe` (NSIS)
+  - Linux `.deb`
+- We do **not** upload `src/` or source zips. GitHub may still show auto-generated “Source code” links for the tag on public repos — keep the repo private if you need those hidden.
+- Installers/APKs are unsigned CI builds until you add Apple/Windows/Android signing secrets.
 - Optional Blueprint: repo-root `render.yaml`.
