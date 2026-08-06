@@ -10,11 +10,11 @@ export function replacePath(
     return;
   }
   if (path === "/login" || path === "Login") {
-    navigation.navigate("Login" as never);
+    navigation.reset({ index: 0, routes: [{ name: "Login" }] });
     return;
   }
   if (path === "/signup" || path === "Signup") {
-    navigation.navigate("Signup" as never);
+    navigation.reset({ index: 0, routes: [{ name: "Signup" }] });
     return;
   }
   if (
@@ -33,97 +33,107 @@ export function pushPath(
   params?: Record<string, unknown>
 ) {
   if (path === "/app/dashboard") {
-    navigation.navigate("Settings" as never, {
+    navigation.navigate("Settings", {
       screen: "Workspace",
-    } as never);
+      ...(params && { params }),
+    });
     return;
   }
   if (path === "/app/ess" || path === "/app/attendance") {
-    navigation.navigate("Settings" as never, {
+    navigation.navigate("Settings", {
       screen: "Attendance",
-      params,
-    } as never);
+      ...(params && { params }),
+    });
     return;
   }
   if (path === "/app/leave") {
-    navigation.navigate("Settings" as never, {
+    navigation.navigate("Settings", {
       screen: "Leave",
-    } as never);
+      ...(params && { params }),
+    });
     return;
   }
   if (path === "/app/notifications") {
-    navigation.navigate("Settings" as never, {
+    navigation.navigate("Settings", {
       screen: "Notifications",
-    } as never);
+      ...(params && { params }),
+    });
     return;
   }
   if (path === "/app/settings") {
-    navigation.navigate("Settings" as never, {
+    navigation.navigate("Settings", {
       screen: "SettingsHome",
-      params,
-    } as never);
+      ...(params && { params }),
+    });
     return;
   }
   if (path === "/app/businesses") {
-    navigation.navigate("Settings" as never, {
+    navigation.navigate("Settings", {
       screen: "Businesses",
-    } as never);
+      ...(params && { params }),
+    });
     return;
   }
   if (path.startsWith("/app/businesses/")) {
     const id = path.split("/").pop();
-    navigation.navigate("Settings" as never, {
-      screen: "BusinessDetail",
-      params: { id },
-    } as never);
+    if (id) {
+      navigation.navigate("Settings", {
+        screen: "BusinessDetail",
+        params: { id, ...params },
+      });
+    }
     return;
   }
   if (path === "/app/marketing") {
-    navigation.navigate("Settings" as never, {
+    navigation.navigate("Settings", {
       screen: "Marketing",
-      params,
-    } as never);
+      ...(params && { params }),
+    });
     return;
   }
   if (path.startsWith("/app/marketing/templates/")) {
     const id = path.split("/").pop();
-    navigation.navigate("Settings" as never, {
-      screen: "TemplateDetail",
-      params: { id },
-    } as never);
+    if (id) {
+      navigation.navigate("Settings", {
+        screen: "TemplateDetail",
+        params: { id, ...params },
+      });
+    }
     return;
   }
   if (path === "/app/returns") {
-    navigation.navigate("Settings" as never, {
+    navigation.navigate("Settings", {
       screen: "Returns",
-    } as never);
+      ...(params && { params }),
+    });
     return;
   }
   if (path === "/app/pos") {
-    navigation.navigate("Pos" as never);
+    navigation.navigate("Pos", params as any);
     return;
   }
   if (path === "/app/sales") {
-    navigation.navigate("Sales" as never);
+    navigation.navigate("Sales", params as any);
     return;
   }
   if (path === "/app/inventory" || path === "/app/products") {
-    navigation.navigate("Products" as never, params as never);
+    navigation.navigate("Products", params as any);
     return;
   }
   if (path === "/app/customers") {
-    navigation.navigate("Customers" as never);
+    navigation.navigate("Customers", params as any);
     return;
   }
-  if (path === "/landing") {
+  if (path === "/landing" || path === "Landing") {
     replacePath(navigation, path);
     return;
   }
-  if (path === "/login") {
-    navigation.navigate("Login" as never);
+  if (path === "/login" || path === "Login") {
+    navigation.navigate("Login", params as any);
     return;
   }
-  if (path === "/signup") {
-    navigation.navigate("Signup" as never);
+  if (path === "/signup" || path === "Signup") {
+    navigation.navigate("Signup", params as any);
+    return;
   }
 }

@@ -15,8 +15,8 @@ import {
   consumeSessionTimedOut,
   colors,
   hydrateSessionContext,
-  setSession,
 } from "../lib/api";
+import { useSession } from "../lib/SessionContext";
 import { t } from "../lib/i18n";
 import KaarobarLogo from "../components/KaarobarLogo";
 import CustomForm from "../components/ui/CustomForm";
@@ -33,6 +33,7 @@ const loginInitial: LoginFormValues = {
 
 /** Business / staff sign-in only (CUS portal lives in kaarobar-customer). */
 export default function LoginScreen() {
+  const { setSession } = useSession();
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const palette = useBrandPalette();
   const styles = useMemo(() => createStyles(palette), [palette]);
@@ -77,8 +78,10 @@ export default function LoginScreen() {
         refresh_token: result.refresh_token,
         user: result.user,
       });
-      await setSession(hydrated);
-      replacePath(navigation, "/app/dashboard");
+      console.log("hydrated", hydrated);
+      const next = await setSession(hydrated);
+      console.log("next -->", next);
+      navigation.navigate("Main");
     } catch (err) {
       setError(err instanceof Error ? err.message : t("common.error"));
     } finally {

@@ -124,7 +124,7 @@ defmodule KaarobarWeb.V1.AuthController do
     totp_code = params["totp_code"]
     remember_me = remember_me?(params)
 
-    case Accounts.authenticate(email, password) do
+    case Accounts.authenticate(email, password) |> dbg() do
       {:ok, user} ->
         cond do
           Accounts.mfa_enabled?(user) and is_binary(totp_code) and totp_code != "" ->
@@ -144,7 +144,7 @@ defmodule KaarobarWeb.V1.AuthController do
             })
 
           user.mfa_required and not Accounts.mfa_enabled?(user) ->
-            issue_login(conn, user, mfa_setup_required: true, remember_me: remember_me)
+            issue_login(conn, user, mfa_setup_required: true, remember_me: remember_me) |> dbg()
 
           true ->
             issue_login(conn, user, remember_me: remember_me)

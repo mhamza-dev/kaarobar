@@ -14,9 +14,9 @@ import {
   getSession,
   hydrateSessionContext,
   logoutSession,
-  setSession,
   type Session,
 } from "../lib/api";
+import { useSession } from "../lib/SessionContext";
 import { canAccess } from "../lib/rbac";
 import { formatDecimal } from "../lib/decimal";
 import { getLocale, loadLocale, setLocale, t, type Locale } from "../lib/i18n";
@@ -82,11 +82,13 @@ function fillSalesDays(rows: SalesDayRow[], from: string, to: string): ChartPoin
 }
 
 export default function DashboardScreen() {
+  console.log("DashboardScreen");
+  const { setSession } = useSession();
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const toast = useToast();
   const { palette, refreshStaffBrand } = useBrandTheme();
   const styles = useMemo(() => createStyles(palette), [palette]);
-  const [session, setLocal] = useState<Session | null>(null);
+  const [localSession, setLocalSession] = useState<Session | null>(null);
   const [dash, setDash] = useState<Dashboard | null>(null);
   const [salesDays, setSalesDays] = useState<SalesDayRow[]>([]);
   const [from, setFrom] = useState(defaultFrom);
@@ -140,7 +142,7 @@ export default function DashboardScreen() {
 
     next = await hydrateSessionContext(next);
     await setSession(next);
-    setLocal(next);
+    setLocalSession(next);
     refreshStaffBrand();
 
     if (canAccess(next, "reports")) {
@@ -176,7 +178,7 @@ export default function DashboardScreen() {
         replacePath(navigation, "/landing");
         return;
       }
-      setLocal(s);
+      setLocalSession(s);
       try {
         await hydrate(s);
       } catch (err) {
@@ -186,10 +188,10 @@ export default function DashboardScreen() {
   }, []);
 
   async function selectBusiness(business_id: string) {
-    if (!session) return;
-    const next = { ...session, business_id, branch_id: undefined };
+    if (!localSession) return;
+    const next = { ...localSession, business_id, branch_id: undefined };
     await setSession(next);
-    setLocal(next);
+    setLocalSession(next);
     refreshStaffBrand();
     try {
       const br = await api<{ data: Branch[] }>(
@@ -201,7 +203,7 @@ export default function DashboardScreen() {
       if (br.data?.[0]) {
         const withBranch = { ...next, branch_id: br.data[0].id };
         await setSession(withBranch);
-        setLocal(withBranch);
+        setLocalSession(withBranch);
         if (canAccess(withBranch, "reports")) {
           try {
             const res = await api<{ data: Dashboard }>(
@@ -225,10 +227,10 @@ export default function DashboardScreen() {
   }
 
   async function selectBranch(branch_id: string) {
-    if (!session) return;
-    const next = { ...session, branch_id };
+    if (!localSession) return;
+    const next = { ...localSession, branch_id };
     await setSession(next);
-    setLocal(next);
+    setLocalSession(next);
     if (!canAccess(next, "reports")) {
       setDash(null);
       setSalesDays([]);
@@ -260,7 +262,7 @@ export default function DashboardScreen() {
     }
   }
 
-  if (!session) {
+  if (!localSession) {
     return (
       <View style={styles.center}>
         <ActivityIndicator color={palette.brand} />
@@ -291,18 +293,18 @@ export default function DashboardScreen() {
     { href: "/app/settings", title: t("nav.settings"), subtitle: t("pages.settingsDesc") },
     { href: "/app/businesses", title: t("nav.businesses"), subtitle: t("pages.businessesDesc") },
   ].filter((item) => {
-    if (item.href === "/app/pos" || item.href === "/app/returns") return canAccess(session, "pos");
-    if (item.href === "/app/customers") return canAccess(session, "customers");
-    if (item.href === "/app/marketing") return canAccess(session, "marketing");
-    if (item.href === "/app/inventory") return canAccess(session, "inventory");
-    if (item.href === "/app/leave") return canAccess(session, "leave_approve");
-    if (item.href === "/app/ess") return canAccess(session, "employee_self");
-    if (item.href === "/app/businesses") return canAccess(session, "owner_manage");
+    if (item.href === "/app/pos" || item.href === "/app/returns") return canAccess(localSession, "pos");
+    if (item.href === "/app/customers") return canAccess(localSession, "customers");
+    if (item.href === "/app/marketing") return canAccess(localSession, "marketing");
+    if (item.href === "/app/inventory") return canAccess(localSession, "inventory");
+    if (item.href === "/app/leave") return canAccess(localSession, "leave_approve");
+    if (item.href === "/app/ess") return canAccess(localSession, "employee_self");
+    if (item.href === "/app/businesses") return canAccess(localSession, "owner_manage");
     return true;
   });
 
   const chartPoints = useMemo(() => fillSalesDays(salesDays, from, to), [from, salesDays, to]);
-  const canCharts = canAccess(session, "reports");
+  const canCharts = canAccess(localSession, "reports");
   const maxRevenue = Math.max(...chartPoints.map((p) => p.total), 1);
   const maxOrders = Math.max(...chartPoints.map((p) => p.count), 1);
   const rangeRevenue = chartPoints.reduce((s, p) => s + p.total, 0);
@@ -319,7 +321,7 @@ export default function DashboardScreen() {
           <Text style={styles.brandSub}>{t("common.pointOfSale")}</Text>
         </View>
       </View>
-      <Text style={styles.hello}>{session.user.name}</Text>
+      <Text style={styles.hello}>{localSession.user.name}</Text>
       <Text style={styles.hint}>
         {t("pages.dashboardDesc")}
       </Text>
@@ -331,7 +333,7 @@ export default function DashboardScreen() {
               key={b.id}
               style={[
                 styles.chip,
-                session.business_id === b.id && {
+                localSession.business_id === b.id && {
                   backgroundColor: palette.brand,
                   borderColor: palette.brand,
                 },
@@ -341,7 +343,7 @@ export default function DashboardScreen() {
               <Text
                 style={[
                   styles.chipText,
-                  session.business_id === b.id && { color: palette.brandForeground },
+                  localSession.business_id === b.id && { color: palette.brandForeground },
                 ]}
               >
                 {b.name}
@@ -359,7 +361,7 @@ export default function DashboardScreen() {
               key={b.id}
               style={[
                 styles.chip,
-                session.branch_id === b.id && {
+                localSession.branch_id === b.id && {
                   backgroundColor: palette.brand,
                   borderColor: palette.brand,
                 },
@@ -369,7 +371,7 @@ export default function DashboardScreen() {
               <Text
                 style={[
                   styles.chipText,
-                  session.branch_id === b.id && { color: palette.brandForeground },
+                  localSession.branch_id === b.id && { color: palette.brandForeground },
                 ]}
               >
                 {b.name}
@@ -403,7 +405,7 @@ export default function DashboardScreen() {
               <TextInput
                 value={from}
                 onChangeText={setFrom}
-                onEndEditing={() => session && loadCharts(session, from, to)}
+                onEndEditing={() => localSession && loadCharts(localSession, from, to)}
                 placeholder="2026-01-01"
                 placeholderTextColor={colors.muted}
                 autoCapitalize="none"
@@ -415,7 +417,7 @@ export default function DashboardScreen() {
               <TextInput
                 value={to}
                 onChangeText={setTo}
-                onEndEditing={() => session && loadCharts(session, from, to)}
+                onEndEditing={() => localSession && loadCharts(localSession, from, to)}
                 placeholder="2026-01-31"
                 placeholderTextColor={colors.muted}
                 autoCapitalize="none"
@@ -425,7 +427,7 @@ export default function DashboardScreen() {
           </View>
           <Pressable
             style={[styles.applyBtn, { backgroundColor: palette.brand }]}
-            onPress={() => session && loadCharts(session, from, to)}
+            onPress={() => localSession && loadCharts(localSession, from, to)}
           >
             <Text style={[styles.applyText, { color: palette.brandForeground }]}>
               {t("listFilters.apply")}
@@ -577,136 +579,136 @@ export default function DashboardScreen() {
 
 function createStyles(palette: import("../lib/brandTheme").BrandPalette) {
   return StyleSheet.create({
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.bgPrimary,
-  },
-  container: { flex: 1, padding: 24, backgroundColor: colors.bgPrimary },
-  eyebrow: {
-    fontWeight: "700",
-    fontSize: 11,
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-    marginBottom: 10,
-  },
-  brandRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 6 },
-  brandTitle: { fontSize: 18, fontWeight: "800", color: colors.heading },
-  brandSub: { fontSize: 12, color: colors.muted, marginTop: 2 },
-  hello: { fontSize: 26, fontWeight: "800", color: colors.heading },
-  hint: { marginBottom: 16, color: colors.body, lineHeight: 22 },
-  error: { color: colors.danger, marginBottom: 12 },
-  section: {
-    marginTop: 8,
-    marginBottom: 8,
-    fontSize: 12,
-    fontWeight: "700",
-    color: colors.muted,
-    textTransform: "uppercase",
-  },
-  chips: { flexDirection: "row", gap: 8, marginBottom: 8 },
-  chip: {
-    borderWidth: 1,
-    borderColor: colors.glassBorder,
-    borderRadius: colors.radiusLg,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: colors.glass,
-  },
-  chipActive: { backgroundColor: palette.brand, borderColor: palette.brand },
-  chipText: { color: colors.heading, fontWeight: "600" },
-  chipTextActive: { color: colors.white },
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 12 },
-  card: {
-    width: "47%",
-    backgroundColor: colors.glass,
-    borderColor: colors.glassBorder,
-    borderWidth: 1,
-    borderRadius: colors.radiusLg,
-    padding: 14,
-  },
-  cardLabel: { color: colors.body, fontSize: 13 },
-  cardValue: {
-    marginTop: 6,
-    fontSize: 22,
-    fontWeight: "700",
-    color: colors.heading,
-  },
-  chartBlock: { marginTop: 8 },
-  chartHint: { color: colors.body, fontSize: 13, lineHeight: 18, marginBottom: 8 },
-  dateRow: { flexDirection: "row", gap: 8 },
-  dateField: { flex: 1 },
-  dateLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: colors.muted,
-    textTransform: "uppercase",
-    marginBottom: 4,
-  },
-  dateInput: {
-    borderWidth: 1,
-    borderColor: colors.glassBorder,
-    borderRadius: colors.radiusLg,
-    backgroundColor: colors.glass,
-    color: colors.heading,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    fontSize: 14,
-  },
-  applyBtn: {
-    marginTop: 10,
-    borderRadius: colors.radiusLg,
-    paddingVertical: 10,
-    alignItems: "center",
-  },
-  applyText: { fontWeight: "700", fontSize: 14 },
-  summaryRow: { flexDirection: "row", gap: 12, marginTop: 12 },
-  summaryCard: {
-    flex: 1,
-    backgroundColor: colors.glass,
-    borderColor: colors.glassBorder,
-    borderWidth: 1,
-    borderRadius: colors.radiusLg,
-    padding: 12,
-  },
-  selectedHint: {
-    marginTop: 10,
-    color: colors.heading,
-    fontWeight: "600",
-    fontSize: 13,
-  },
-  chartTitle: {
-    marginTop: 12,
-    marginBottom: 8,
-    fontSize: 15,
-    fontWeight: "700",
-    color: colors.heading,
-  },
-  emptyChart: { color: colors.muted, fontSize: 13, paddingVertical: 16 },
-  bars: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 4,
-    minHeight: 120,
-    paddingTop: 8,
-  },
-  barCol: { alignItems: "center", justifyContent: "flex-end" },
-  bar: { width: "100%", borderTopLeftRadius: 4, borderTopRightRadius: 4 },
-  barLabel: { marginTop: 4, fontSize: 8, color: colors.muted, width: 22, textAlign: "center" },
-  navCard: {
-    marginTop: 12,
-    borderRadius: colors.radiusLg,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-  },
-  navCardPressed: {
-    transform: [{ scale: 0.98 }],
-    opacity: 0.92,
-  },
-  navTitle: { fontWeight: "800", fontSize: 16 },
-  navSub: { marginTop: 2, fontSize: 13 },
-  logout: { marginTop: 16, paddingVertical: 12 },
-  logoutText: { textAlign: "center", fontWeight: "600" },
-});
+    center: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.bgPrimary,
+    },
+    container: { flex: 1, padding: 24, backgroundColor: colors.bgPrimary },
+    eyebrow: {
+      fontWeight: "700",
+      fontSize: 11,
+      letterSpacing: 1.2,
+      textTransform: "uppercase",
+      marginBottom: 10,
+    },
+    brandRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 6 },
+    brandTitle: { fontSize: 18, fontWeight: "800", color: colors.heading },
+    brandSub: { fontSize: 12, color: colors.muted, marginTop: 2 },
+    hello: { fontSize: 26, fontWeight: "800", color: colors.heading },
+    hint: { marginBottom: 16, color: colors.body, lineHeight: 22 },
+    error: { color: colors.danger, marginBottom: 12 },
+    section: {
+      marginTop: 8,
+      marginBottom: 8,
+      fontSize: 12,
+      fontWeight: "700",
+      color: colors.muted,
+      textTransform: "uppercase",
+    },
+    chips: { flexDirection: "row", gap: 8, marginBottom: 8 },
+    chip: {
+      borderWidth: 1,
+      borderColor: colors.glassBorder,
+      borderRadius: colors.radiusLg,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      backgroundColor: colors.glass,
+    },
+    chipActive: { backgroundColor: palette.brand, borderColor: palette.brand },
+    chipText: { color: colors.heading, fontWeight: "600" },
+    chipTextActive: { color: colors.white },
+    grid: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 12 },
+    card: {
+      width: "47%",
+      backgroundColor: colors.glass,
+      borderColor: colors.glassBorder,
+      borderWidth: 1,
+      borderRadius: colors.radiusLg,
+      padding: 14,
+    },
+    cardLabel: { color: colors.body, fontSize: 13 },
+    cardValue: {
+      marginTop: 6,
+      fontSize: 22,
+      fontWeight: "700",
+      color: colors.heading,
+    },
+    chartBlock: { marginTop: 8 },
+    chartHint: { color: colors.body, fontSize: 13, lineHeight: 18, marginBottom: 8 },
+    dateRow: { flexDirection: "row", gap: 8 },
+    dateField: { flex: 1 },
+    dateLabel: {
+      fontSize: 11,
+      fontWeight: "700",
+      color: colors.muted,
+      textTransform: "uppercase",
+      marginBottom: 4,
+    },
+    dateInput: {
+      borderWidth: 1,
+      borderColor: colors.glassBorder,
+      borderRadius: colors.radiusLg,
+      backgroundColor: colors.glass,
+      color: colors.heading,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      fontSize: 14,
+    },
+    applyBtn: {
+      marginTop: 10,
+      borderRadius: colors.radiusLg,
+      paddingVertical: 10,
+      alignItems: "center",
+    },
+    applyText: { fontWeight: "700", fontSize: 14 },
+    summaryRow: { flexDirection: "row", gap: 12, marginTop: 12 },
+    summaryCard: {
+      flex: 1,
+      backgroundColor: colors.glass,
+      borderColor: colors.glassBorder,
+      borderWidth: 1,
+      borderRadius: colors.radiusLg,
+      padding: 12,
+    },
+    selectedHint: {
+      marginTop: 10,
+      color: colors.heading,
+      fontWeight: "600",
+      fontSize: 13,
+    },
+    chartTitle: {
+      marginTop: 12,
+      marginBottom: 8,
+      fontSize: 15,
+      fontWeight: "700",
+      color: colors.heading,
+    },
+    emptyChart: { color: colors.muted, fontSize: 13, paddingVertical: 16 },
+    bars: {
+      flexDirection: "row",
+      alignItems: "flex-end",
+      gap: 4,
+      minHeight: 120,
+      paddingTop: 8,
+    },
+    barCol: { alignItems: "center", justifyContent: "flex-end" },
+    bar: { width: "100%", borderTopLeftRadius: 4, borderTopRightRadius: 4 },
+    barLabel: { marginTop: 4, fontSize: 8, color: colors.muted, width: 22, textAlign: "center" },
+    navCard: {
+      marginTop: 12,
+      borderRadius: colors.radiusLg,
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+    },
+    navCardPressed: {
+      transform: [{ scale: 0.98 }],
+      opacity: 0.92,
+    },
+    navTitle: { fontWeight: "800", fontSize: 16 },
+    navSub: { marginTop: 2, fontSize: 13 },
+    logout: { marginTop: 16, paddingVertical: 12 },
+    logoutText: { textAlign: "center", fontWeight: "600" },
+  });
 }
