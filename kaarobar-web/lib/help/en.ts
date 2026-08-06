@@ -781,14 +781,33 @@ const en: HelpCatalog = {
   "page.appointments": {
     title: "Appointments",
     summary: "Staff day schedule for service bookings.",
-    what: "Lists appointments for the selected date (and optional staff). Complete or cancel bookings; completion can link a POS sale stub (SCH-FR-005).",
+    what: "Lists appointments for the selected date (and optional staff), including assigned rooms/chairs. Book new visits, complete or cancel; completion can link a POS sale stub (SCH-FR-005 / FUT-FR-081).",
     how: [
       "Pick a date and optionally filter by staff.",
-      "Search or filter by status.",
+      "Tap Book to schedule a service with staff and optional resource.",
+      "Search or filter by status; review resource names on each row.",
       "Tap Complete to advance a visit, or Cancel for Booked rows.",
     ],
     when: "On salon / appointments-enabled businesses during the service day.",
-    tips: ["Customers book from the marketplace Book flow; staff manage the day here."],
+    tips: [
+      "Resource conflicts show a toast when the chair or room is already busy (including buffers).",
+      "Customers book from the marketplace Book flow; staff manage the day here.",
+    ],
+  },
+  "page.resources": {
+    title: "Bookable resources",
+    summary: "Rooms, chairs, and equipment used when booking salon appointments.",
+    what: "Manage branch-scoped resources that appointments can reserve alongside staff. Overlaps with buffers are blocked (FUT-FR-081).",
+    how: [
+      "Open Resources from the cashier nav on appointments-enabled businesses.",
+      "Add a room, chair, or equipment and keep it active.",
+      "Set service buffer and deposit fields on products when needed.",
+      "Book appointments — the system auto-assigns a free resource when none is chosen.",
+    ],
+    when: "Salon / spa businesses with appointments enabled.",
+    tips: [
+      "Buffers on services expand the busy window for both staff and resources.",
+    ],
   },
 };
 

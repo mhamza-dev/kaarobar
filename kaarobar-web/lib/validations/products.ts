@@ -9,6 +9,11 @@ export const productFormSchema = yup.object({
   unit: yup.string().trim().required("Unit is required"),
   product_kind: yup.string().trim().required("Kind is required"),
   duration_minutes: yup.string().trim().default(""),
+  buffer_before_minutes: yup.string().trim().default("0"),
+  buffer_after_minutes: yup.string().trim().default("0"),
+  deposit_amount: yup.string().trim().default(""),
+  no_show_fee_amount: yup.string().trim().default(""),
+  resource_kind: yup.string().trim().default(""),
   category: yup.string().trim().default(""),
   category_id: yup.string().trim().default(""),
 });

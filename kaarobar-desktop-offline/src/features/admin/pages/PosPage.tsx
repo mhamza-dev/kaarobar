@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Minus, Plus, Search, ShoppingCart, Trash2, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useFormatMoney } from '../../../lib/useFormatMoney'
-import { Button, Card, EmptyState, TextField, AssetImage, useToast } from '../../../components/ui'
+import { Button, Card, EmptyState, TextField, AssetImage, SearchSelectField, useToast } from '../../../components/ui'
 import { PageHeader } from '../../../components/layout'
 import { useBarcodeScanner } from '../../pos/useBarcodeScanner'
 import { useIdleLock } from '../../pos/useIdleLock'
@@ -16,7 +16,14 @@ import {
 } from '../../../lib/businessNature'
 import { looksLikeInvoiceBarcode } from '../../../../shared/invoice'
 import { CreateSaleModal } from '../modals/CreateSaleModal'
-import type { DiningTable, Product, SessionUser } from '../../../../shared/types/api'
+import { SplitBillModal } from '../modals/SplitBillModal'
+import type {
+  DiningTable,
+  DeliveryStatus,
+  PosTicketItem,
+  Product,
+  SessionUser,
+} from '../../../../shared/types/api'
 import type { AdminData } from '../hooks/useAdminData'
 import { cn } from '../../../lib/cn'
 
@@ -25,6 +32,11 @@ type CartItem = {
   name: string
   qty: number
   unitPrice: number
+  ticketItemId?: string
+  seatNo?: number | null
+  kitchenStatus?: string
+  priceRuleId?: string | null
+  billedQty?: number
 }
 
 type Props = {
@@ -51,6 +63,10 @@ export function PosPage({ user, data, onOpenSale }: Props) {
   const [tables, setTables] = useState<DiningTable[]>([])
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null)
   const [activeTableId, setActiveTableId] = useState<string | null>(null)
+  const [ticketItems, setTicketItems] = useState<PosTicketItem[]>([])
+  const [splitOpen, setSplitOpen] = useState(false)
+  const [riderUserId, setRiderUserId] = useState<string | null>(null)
+  const [deliveryStatus, setDeliveryStatus] = useState<DeliveryStatus | null>(null)
   const {
     activeBusinessId,
     businesses,
@@ -95,12 +111,28 @@ export function PosPage({ user, data, onOpenSale }: Props) {
     return product.stockQty
   }
 
-  function addToCart(productId: string, name: string, unitPrice: number) {
+  async function addToCart(productId: string, name: string, fallbackPrice: number) {
     const product = productById.get(productId)
     const cap = stockCap(product)
+    let unitPrice = fallbackPrice
+    let priceRuleId: string | null = null
+    if (activeBusinessId) {
+      try {
+        const resolved = await window.api.happyHour.resolvePrice({
+          businessId: activeBusinessId,
+          productId,
+        })
+        unitPrice = resolved.unitPrice
+        priceRuleId = resolved.priceRuleId
+      } catch {
+        // fall back to catalog price
+      }
+    }
     setCartRevealed(true)
     setCartItems((prev) => {
-      const existing = prev.find((item) => item.productId === productId)
+      const existing = prev.find(
+        (item) => item.productId === productId && (item.priceRuleId ?? null) === priceRuleId,
+      )
       const nextQty = (existing?.qty ?? 0) + 1
       if (cap != null && nextQty > cap) {
         toast.error(t('pos.stockCapReached', { name, stock: cap }))
@@ -108,35 +140,38 @@ export function PosPage({ user, data, onOpenSale }: Props) {
       }
       if (existing) {
         return prev.map((item) =>
-          item.productId === productId ? { ...item, qty: nextQty } : item,
+          item.productId === productId && (item.priceRuleId ?? null) === priceRuleId
+            ? { ...item, qty: nextQty }
+            : item,
         )
       }
-      return [...prev, { productId, name, qty: 1, unitPrice }]
+      return [...prev, { productId, name, qty: 1, unitPrice, priceRuleId }]
     })
   }
 
-  function updateQty(productId: string, qty: number) {
+  function updateQty(productId: string, qty: number, priceRuleId?: string | null) {
     const product = productById.get(productId)
     const cap = stockCap(product)
     setCartItems((prev) => {
-      if (qty <= 0) return prev.filter((item) => item.productId !== productId)
+      const match = (item: CartItem) =>
+        item.productId === productId &&
+        (priceRuleId === undefined || (item.priceRuleId ?? null) === (priceRuleId ?? null))
+      if (qty <= 0) return prev.filter((item) => !match(item))
       if (cap != null && qty > cap) {
         toast.error(t('pos.stockCapReached', { name: product?.name ?? '', stock: cap }))
-        return prev.map((item) =>
-          item.productId === productId ? { ...item, qty: cap } : item,
-        )
+        return prev.map((item) => (match(item) ? { ...item, qty: cap } : item))
       }
-      return prev.map((item) => (item.productId === productId ? { ...item, qty } : item))
+      return prev.map((item) => (match(item) ? { ...item, qty } : item))
     })
   }
 
-  function setQtyFromInput(productId: string, raw: string) {
+  function setQtyFromInput(productId: string, raw: string, priceRuleId?: string | null) {
     const parsed = Number.parseInt(raw, 10)
     if (Number.isNaN(parsed)) {
-      updateQty(productId, 1)
+      updateQty(productId, 1, priceRuleId)
       return
     }
-    updateQty(productId, Math.max(1, Math.min(9999, parsed)))
+    updateQty(productId, Math.max(1, Math.min(9999, parsed)), priceRuleId)
   }
 
   useBarcodeScanner({
@@ -200,13 +235,49 @@ export function PosPage({ user, data, onOpenSale }: Props) {
 
   async function persistTicketItems(ticketId: string, items: CartItem[]) {
     try {
-      await window.api.tickets.setItems({
+      const ticket = await window.api.tickets.setItems({
         ticketId,
         items: items.map((item) => ({
+          id: item.ticketItemId,
           productId: item.productId,
           qty: item.qty,
           unitPrice: item.unitPrice,
+          seatNo: item.seatNo ?? null,
+          priceRuleId: item.priceRuleId ?? null,
         })),
+      })
+      setTicketItems(ticket.items)
+      setCartItems((prev) => {
+        let changed = false
+        const next = prev.map((item) => {
+          const match =
+            (item.ticketItemId
+              ? ticket.items.find((ti) => ti.id === item.ticketItemId)
+              : undefined) ??
+            ticket.items.find(
+              (ti) =>
+                ti.productId === item.productId &&
+                ti.unitPrice === item.unitPrice &&
+                Math.abs(ti.qty - item.qty) < 1e-9,
+            )
+          if (!match) return item
+          if (
+            item.ticketItemId === match.id &&
+            item.kitchenStatus === match.kitchenStatus &&
+            item.billedQty === match.billedQty
+          ) {
+            return item
+          }
+          changed = true
+          return {
+            ...item,
+            ticketItemId: match.id,
+            kitchenStatus: match.kitchenStatus,
+            billedQty: match.billedQty,
+            seatNo: match.seatNo,
+          }
+        })
+        return changed ? next : prev
       })
       await refreshTables()
     } catch (e) {
@@ -231,12 +302,20 @@ export function PosPage({ user, data, onOpenSale }: Props) {
         setActiveTicketId(ticket.id)
         setActiveTableId(table.id)
         setServiceMode('dine_in')
+        setTicketItems(ticket.items)
+        setRiderUserId(ticket.riderUserId)
+        setDeliveryStatus(ticket.deliveryStatus)
         setCartItems(
           ticket.items.map((item) => ({
             productId: item.productId,
             name: item.productName,
             qty: item.qty,
             unitPrice: item.unitPrice,
+            ticketItemId: item.id,
+            seatNo: item.seatNo,
+            kitchenStatus: item.kitchenStatus,
+            priceRuleId: item.priceRuleId,
+            billedQty: item.billedQty,
           })),
         )
         setCartRevealed(true)
@@ -251,6 +330,9 @@ export function PosPage({ user, data, onOpenSale }: Props) {
       setActiveTicketId(ticket.id)
       setActiveTableId(table.id)
       setServiceMode('dine_in')
+      setTicketItems([])
+      setRiderUserId(null)
+      setDeliveryStatus(null)
       setCartItems([])
       setCartRevealed(true)
       await refreshTables()
@@ -264,16 +346,65 @@ export function PosPage({ user, data, onOpenSale }: Props) {
       setServiceMode('dine_in')
       setActiveTicketId(null)
       setActiveTableId(null)
+      setTicketItems([])
+      setRiderUserId(null)
+      setDeliveryStatus(null)
       setCartItems([])
       setCartRevealed(false)
       await refreshTables()
       return
     }
-    setServiceMode(mode)
-    setActiveTicketId(null)
-    setActiveTableId(null)
-    setCartItems([])
-    setCartRevealed(true)
+    if (!activeBusinessId || !mainBranch) return
+    try {
+      const ticket = await window.api.tickets.open({
+        businessId: activeBusinessId,
+        branchId: mainBranch.id,
+        serviceMode: mode,
+      })
+      setServiceMode(mode)
+      setActiveTicketId(ticket.id)
+      setActiveTableId(null)
+      setTicketItems([])
+      setRiderUserId(ticket.riderUserId)
+      setDeliveryStatus(ticket.deliveryStatus ?? 'pending')
+      setCartItems([])
+      setCartRevealed(true)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t('toast.actionFailed'))
+    }
+  }
+
+  async function fireHeldToKitchen() {
+    if (!activeTicketId) return
+    const heldIds = ticketItems
+      .filter((item) => item.kitchenStatus === 'held')
+      .map((item) => item.id)
+    if (!heldIds.length) {
+      toast.error(t('pos.nothingToFire'))
+      return
+    }
+    try {
+      const ticket = await window.api.tickets.fireItems({ ticketId: activeTicketId, itemIds: heldIds })
+      setTicketItems(ticket.items)
+      toast.success(t('pos.sentToKitchen'))
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t('toast.actionFailed'))
+    }
+  }
+
+  async function saveRider(nextRiderId: string | null, nextStatus?: DeliveryStatus | null) {
+    if (!activeTicketId) return
+    try {
+      const ticket = await window.api.tickets.assignRider({
+        ticketId: activeTicketId,
+        riderUserId: nextRiderId,
+        deliveryStatus: nextStatus ?? deliveryStatus,
+      })
+      setRiderUserId(ticket.riderUserId)
+      setDeliveryStatus(ticket.deliveryStatus)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t('toast.actionFailed'))
+    }
   }
 
   if (!actions.canCheckout) return null
@@ -469,7 +600,7 @@ export function PosPage({ user, data, onOpenSale }: Props) {
                             : 'border-line/90',
                           outOfStock ? 'border-danger/50 bg-danger-soft/40' : null,
                         )}
-                        onClick={() => addToCart(product.id, product.name, product.price)}
+                        onClick={() => void addToCart(product.id, product.name, product.price)}
                       >
                         {inCartQty > 0 ? (
                           <span className="absolute end-2.5 top-2.5 z-10 grid min-w-6 place-items-center rounded-full bg-brand-primary px-1.5 py-0.5 text-[11px] font-bold tabular-nums text-brand-on-primary shadow-soft">
@@ -570,9 +701,10 @@ export function PosPage({ user, data, onOpenSale }: Props) {
                           const product = productById.get(item.productId)
                           const over =
                             product?.tracksStock && item.qty > product.stockQty
+                          const rowKey = item.ticketItemId ?? `${item.productId}-${item.unitPrice}-${index}`
                           return (
                             <motion.div
-                              key={item.productId}
+                              key={rowKey}
                               layout
                               initial={{ opacity: 0, y: 6 }}
                               animate={{ opacity: 1, y: 0 }}
@@ -591,13 +723,16 @@ export function PosPage({ user, data, onOpenSale }: Props) {
                                   </p>
                                   <p className="mt-0.5 text-xs text-ink-muted tabular-nums">
                                     {formatMoney(item.unitPrice)} × {item.qty}
+                                    {item.kitchenStatus && item.kitchenStatus !== 'held'
+                                      ? ` · ${t(`kitchen.status.${item.kitchenStatus}`)}`
+                                      : ''}
                                   </p>
                                   {over ? (
                                     <p className="mt-1 text-xs text-danger">{t('pos.overstockLine')}</p>
                                   ) : null}
                                 </div>
                                 <p className="shrink-0 text-sm font-bold tabular-nums text-ink">
-                                  {formatMoney((item.qty * item.unitPrice))}
+                                  {formatMoney(item.qty * item.unitPrice)}
                                 </p>
                               </div>
 
@@ -610,7 +745,9 @@ export function PosPage({ user, data, onOpenSale }: Props) {
                                     className="h-9 min-w-9 rounded-none px-2"
                                     disabled={locked}
                                     aria-label="Decrease quantity"
-                                    onClick={() => updateQty(item.productId, item.qty - 1)}
+                                    onClick={() =>
+                                      updateQty(item.productId, item.qty - 1, item.priceRuleId)
+                                    }
                                   >
                                     <Minus className="size-3.5" />
                                   </Button>
@@ -626,12 +763,14 @@ export function PosPage({ user, data, onOpenSale }: Props) {
                                     onFocus={() => setFieldFocused(true)}
                                     onBlur={(e) => {
                                       setFieldFocused(false)
-                                      if (!e.target.value.trim()) updateQty(item.productId, 1)
+                                      if (!e.target.value.trim()) {
+                                        updateQty(item.productId, 1, item.priceRuleId)
+                                      }
                                     }}
                                     onChange={(e) => {
                                       const raw = e.target.value
                                       if (raw === '') return
-                                      setQtyFromInput(item.productId, raw)
+                                      setQtyFromInput(item.productId, raw, item.priceRuleId)
                                     }}
                                   />
                                   <Button
@@ -646,7 +785,9 @@ export function PosPage({ user, data, onOpenSale }: Props) {
                                         item.qty >= product.stockQty)
                                     }
                                     aria-label="Increase quantity"
-                                    onClick={() => updateQty(item.productId, item.qty + 1)}
+                                    onClick={() =>
+                                      updateQty(item.productId, item.qty + 1, item.priceRuleId)
+                                    }
                                   >
                                     <Plus className="size-3.5" />
                                   </Button>
@@ -658,7 +799,7 @@ export function PosPage({ user, data, onOpenSale }: Props) {
                                   className="text-ink-muted hover:text-danger"
                                   disabled={locked}
                                   aria-label={t('common.remove')}
-                                  onClick={() => updateQty(item.productId, 0)}
+                                  onClick={() => updateQty(item.productId, 0, item.priceRuleId)}
                                 >
                                   <Trash2 className="size-4" />
                                 </Button>
@@ -671,6 +812,47 @@ export function PosPage({ user, data, onOpenSale }: Props) {
                   </div>
 
                   <div className="shrink-0 space-y-3 border-t border-line/80 bg-gradient-to-t from-brand-tint/40 to-transparent p-4 sm:p-5">
+                    {foodMode &&
+                    activeTicketId &&
+                    (serviceMode === 'takeaway' || serviceMode === 'delivery') ? (
+                      <div className="space-y-2">
+                        <SearchSelectField
+                          label={t('pos.rider')}
+                          value={riderUserId ?? ''}
+                          onChange={(value) => {
+                            const next = value || null
+                            setRiderUserId(next)
+                            void saveRider(next)
+                          }}
+                          options={[
+                            { value: '', label: t('pos.riderNone') },
+                            ...staff
+                              .filter((s) => s.isActive)
+                              .map((s) => ({ value: s.id, label: s.name })),
+                          ]}
+                          placeholder={t('pos.riderPlaceholder')}
+                        />
+                        <SearchSelectField
+                          label={t('pos.deliveryStatus')}
+                          value={deliveryStatus ?? 'pending'}
+                          onChange={(value) => {
+                            const next = (value || 'pending') as DeliveryStatus
+                            setDeliveryStatus(next)
+                            void saveRider(riderUserId, next)
+                          }}
+                          options={[
+                            { value: 'pending', label: t('deliveryStatus.pending') },
+                            { value: 'assigned', label: t('deliveryStatus.assigned') },
+                            {
+                              value: 'out_for_delivery',
+                              label: t('deliveryStatus.out_for_delivery'),
+                            },
+                            { value: 'delivered', label: t('deliveryStatus.delivered') },
+                            { value: 'cancelled', label: t('deliveryStatus.cancelled') },
+                          ]}
+                        />
+                      </div>
+                    ) : null}
                     <div className="flex items-center justify-between gap-3 rounded-lg bg-brand-primary px-4 py-3 shadow-glow">
                       <span className="text-sm font-semibold text-brand-on-primary/90">
                         {t('pos.total')}
@@ -679,6 +861,26 @@ export function PosPage({ user, data, onOpenSale }: Props) {
                         {formatMoney(cartTotal)}
                       </span>
                     </div>
+                    {foodMode && activeTicketId ? (
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          disabled={locked || cartItems.length === 0}
+                          onClick={() => void fireHeldToKitchen()}
+                        >
+                          {t('pos.sendToKitchen')}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          disabled={locked || ticketItems.every((i) => i.billedQty >= i.qty)}
+                          onClick={() => setSplitOpen(true)}
+                        >
+                          {t('pos.splitBill')}
+                        </Button>
+                      </div>
+                    ) : null}
                     <Button
                       className="w-full"
                       size="lg"
@@ -689,7 +891,7 @@ export function PosPage({ user, data, onOpenSale }: Props) {
                         cartItems.length === 0 ||
                         hasOverstock ||
                         (foodMode && !serviceMode) ||
-                        (serviceMode === 'dine_in' && !activeTicketId)
+                        (foodMode && !activeTicketId)
                       }
                       onClick={() => {
                         if (hasOverstock) {
@@ -713,7 +915,14 @@ export function PosPage({ user, data, onOpenSale }: Props) {
         <CreateSaleModal
           open={checkoutOpen}
           onClose={() => setCheckoutOpen(false)}
-          cartItems={cartItems}
+          cartItems={cartItems.map((item) => ({
+            productId: item.productId,
+            name: item.name,
+            qty: item.qty,
+            unitPrice: item.unitPrice,
+            ticketItemId: item.ticketItemId,
+            priceRuleId: item.priceRuleId,
+          }))}
           customers={customers}
           staff={staff}
           businessId={activeBusinessId}
@@ -724,12 +933,63 @@ export function PosPage({ user, data, onOpenSale }: Props) {
           tableId={serviceMode === 'dine_in' ? activeTableId : null}
           ticketId={activeTicketId}
           hasOverstock={hasOverstock}
+          riderUserId={riderUserId}
           onCompleted={async () => {
             setCartItems([])
             setCartRevealed(false)
             setActiveTicketId(null)
             setActiveTableId(null)
+            setTicketItems([])
+            setRiderUserId(null)
+            setDeliveryStatus(null)
             if (foodMode) setServiceMode(null)
+            await refreshScopedData(activeBusinessId)
+            await refreshTables()
+          }}
+        />
+      ) : null}
+
+      {activeBusinessId && mainBranch && activeTicketId && serviceMode ? (
+        <SplitBillModal
+          open={splitOpen}
+          onClose={() => setSplitOpen(false)}
+          ticketId={activeTicketId}
+          items={ticketItems}
+          customers={customers}
+          staff={staff}
+          businessId={activeBusinessId}
+          branchId={mainBranch.id}
+          businessNature={nature}
+          canPrint={actions.canPrint}
+          serviceMode={serviceMode}
+          tableId={activeTableId}
+          onCompleted={async () => {
+            const ticket = await window.api.tickets.get(activeTicketId)
+            if (ticket.status !== 'open') {
+              setCartItems([])
+              setActiveTicketId(null)
+              setActiveTableId(null)
+              setTicketItems([])
+              setServiceMode(null)
+              setCartRevealed(false)
+            } else {
+              setTicketItems(ticket.items)
+              setCartItems(
+                ticket.items
+                  .filter((item) => item.billedQty < item.qty)
+                  .map((item) => ({
+                    productId: item.productId,
+                    name: item.productName,
+                    qty: item.qty - item.billedQty,
+                    unitPrice: item.unitPrice,
+                    ticketItemId: item.id,
+                    seatNo: item.seatNo,
+                    kitchenStatus: item.kitchenStatus,
+                    priceRuleId: item.priceRuleId,
+                    billedQty: item.billedQty,
+                  })),
+              )
+            }
             await refreshScopedData(activeBusinessId)
             await refreshTables()
           }}

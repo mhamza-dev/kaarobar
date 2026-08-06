@@ -3,7 +3,9 @@ import { AnimatePresence, LayoutGroup, motion } from 'framer-motion'
 import {
   Bell,
   ClipboardList,
+  Clock,
   ContactRound,
+  CookingPot,
   HardDrive,
   LayoutDashboard,
   Menu,
@@ -68,9 +70,11 @@ function getRemainingParts(expiresAt: string | null, nowMs: number): RemainingPa
 const NAV_ICONS: Record<NavRouteId, typeof LayoutDashboard> = {
   dashboard: LayoutDashboard,
   pos: ShoppingCart,
+  kitchen: CookingPot,
   sales: WalletCards,
   customers: ContactRound,
   products: Package,
+  happyHour: Clock,
   tables: UtensilsCrossed,
   suppliers: Truck,
   purchaseOrders: ClipboardList,

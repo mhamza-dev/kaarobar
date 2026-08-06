@@ -43,6 +43,7 @@ type Product = {
   category_ref?: { id: string; name: string; slug?: string } | null;
   product_kind?: string | null;
   duration_minutes?: number | null;
+  deposit_amount?: string | null;
 };
 
 type StaffMember = { id: string; name: string };

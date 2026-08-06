@@ -11,9 +11,11 @@ export type NavItem = {
 const NAV_LABEL_KEYS: Record<NavRouteId, string> = {
   dashboard: 'dashboard.overview',
   pos: 'dashboard.pos',
+  kitchen: 'dashboard.kitchen',
   sales: 'dashboard.sales',
   customers: 'dashboard.customers',
   products: 'dashboard.products',
+  happyHour: 'dashboard.happyHour',
   tables: 'dashboard.tables',
   suppliers: 'dashboard.suppliers',
   purchaseOrders: 'dashboard.purchaseOrders',
@@ -28,7 +30,10 @@ export function getVisibleNavItems(
 ): NavItem[] {
   const nature = businessNature ?? 'retail'
   return visibleNavRoutes(user)
-    .filter((id) => (id === 'tables' ? showsTables(nature) : true))
+    .filter((id) => {
+      if (id === 'tables' || id === 'kitchen') return showsTables(nature)
+      return true
+    })
     .map((id) => ({
       id,
       labelKey: NAV_LABEL_KEYS[id],
@@ -50,9 +55,13 @@ export function resolveNavRoute(
   businessNature?: BusinessNature | null,
 ): NavRouteId {
   const nature = businessNature ?? 'retail'
-  if (requested === 'tables' && !showsTables(nature)) return defaultNavRoute(user, nature)
+  if ((requested === 'tables' || requested === 'kitchen') && !showsTables(nature)) {
+    return defaultNavRoute(user, nature)
+  }
   if (canAccessRoute(user, requested as NavRouteId)) {
-    if (requested === 'tables' && !showsTables(nature)) return defaultNavRoute(user, nature)
+    if ((requested === 'tables' || requested === 'kitchen') && !showsTables(nature)) {
+      return defaultNavRoute(user, nature)
+    }
     return requested as NavRouteId
   }
   return defaultNavRoute(user, nature)

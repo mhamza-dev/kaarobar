@@ -307,6 +307,96 @@ const MIGRATIONS: Migration[] = [
       `)
     },
   },
+  {
+    name: '012_kot_split_rider_happy_hour',
+    up: (db) => {
+      const productCols = db.prepare(`PRAGMA table_info(products)`).all() as Array<{ name: string }>
+      if (!productCols.some((c) => c.name === 'kitchen_station')) {
+        db.exec(`ALTER TABLE products ADD COLUMN kitchen_station TEXT NOT NULL DEFAULT 'main'`)
+      }
+
+      const saleCols = db.prepare(`PRAGMA table_info(sales)`).all() as Array<{ name: string }>
+      const saleNames = new Set(saleCols.map((c) => c.name))
+      if (!saleNames.has('rider_user_id')) {
+        db.exec(`ALTER TABLE sales ADD COLUMN rider_user_id TEXT`)
+      }
+      if (!saleNames.has('delivery_status')) {
+        db.exec(`ALTER TABLE sales ADD COLUMN delivery_status TEXT`)
+      }
+      if (!saleNames.has('delivery_notes')) {
+        db.exec(`ALTER TABLE sales ADD COLUMN delivery_notes TEXT`)
+      }
+
+      const ticketCols = db.prepare(`PRAGMA table_info(pos_tickets)`).all() as Array<{ name: string }>
+      const ticketNames = new Set(ticketCols.map((c) => c.name))
+      if (!ticketNames.has('rider_user_id')) {
+        db.exec(`ALTER TABLE pos_tickets ADD COLUMN rider_user_id TEXT`)
+      }
+      if (!ticketNames.has('delivery_status')) {
+        db.exec(`ALTER TABLE pos_tickets ADD COLUMN delivery_status TEXT`)
+      }
+      if (!ticketNames.has('delivery_notes')) {
+        db.exec(`ALTER TABLE pos_tickets ADD COLUMN delivery_notes TEXT`)
+      }
+
+      const itemCols = db.prepare(`PRAGMA table_info(pos_ticket_items)`).all() as Array<{ name: string }>
+      const itemNames = new Set(itemCols.map((c) => c.name))
+      if (!itemNames.has('seat_no')) {
+        db.exec(`ALTER TABLE pos_ticket_items ADD COLUMN seat_no INTEGER`)
+      }
+      if (!itemNames.has('kitchen_status')) {
+        db.exec(
+          `ALTER TABLE pos_ticket_items ADD COLUMN kitchen_status TEXT NOT NULL DEFAULT 'held'`,
+        )
+      }
+      if (!itemNames.has('fired_at')) {
+        db.exec(`ALTER TABLE pos_ticket_items ADD COLUMN fired_at TEXT`)
+      }
+      if (!itemNames.has('bumped_at')) {
+        db.exec(`ALTER TABLE pos_ticket_items ADD COLUMN bumped_at TEXT`)
+      }
+      if (!itemNames.has('billed_qty')) {
+        db.exec(`ALTER TABLE pos_ticket_items ADD COLUMN billed_qty REAL NOT NULL DEFAULT 0`)
+      }
+      if (!itemNames.has('price_rule_id')) {
+        db.exec(`ALTER TABLE pos_ticket_items ADD COLUMN price_rule_id TEXT`)
+      }
+
+      const saleItemCols = db.prepare(`PRAGMA table_info(sale_items)`).all() as Array<{ name: string }>
+      if (!saleItemCols.some((c) => c.name === 'price_rule_id')) {
+        db.exec(`ALTER TABLE sale_items ADD COLUMN price_rule_id TEXT`)
+      }
+
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS happy_hour_price_rules (
+          id TEXT PRIMARY KEY,
+          business_id TEXT NOT NULL REFERENCES businesses(id) ON DELETE RESTRICT,
+          name TEXT NOT NULL,
+          product_id TEXT REFERENCES products(id) ON DELETE CASCADE,
+          category_id TEXT REFERENCES categories(id) ON DELETE CASCADE,
+          override_price REAL CHECK (override_price IS NULL OR override_price >= 0),
+          percent_off REAL CHECK (percent_off IS NULL OR (percent_off >= 0 AND percent_off <= 100)),
+          weekdays_mask INTEGER NOT NULL,
+          start_time TEXT NOT NULL,
+          end_time TEXT NOT NULL,
+          priority INTEGER NOT NULL DEFAULT 0,
+          is_active INTEGER NOT NULL DEFAULT 1,
+          valid_from TEXT,
+          valid_to TEXT,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          CHECK (
+            (override_price IS NOT NULL AND percent_off IS NULL)
+            OR (override_price IS NULL AND percent_off IS NOT NULL)
+          ),
+          CHECK (product_id IS NULL OR category_id IS NULL)
+        );
+        CREATE INDEX IF NOT EXISTS idx_hh_rules_business_active
+          ON happy_hour_price_rules(business_id, is_active, priority DESC);
+        CREATE INDEX IF NOT EXISTS idx_pos_ticket_items_kitchen ON pos_ticket_items(kitchen_status);
+      `)
+    },
+  },
 ]
 
 export function runMigrations(db: Database.Database): void {

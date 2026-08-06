@@ -770,14 +770,33 @@ const catalog: HelpCatalog = {
   "page.appointments": {
     title: "Termine",
     summary: "Tagesplan des Teams für gebuchte Dienstleistungen.",
-    what: "Zeigt Termine für das ausgewählte Datum und optional eine bestimmte Fachkraft. Buchungen können abgeschlossen oder storniert werden; beim Abschluss kann ein verknüpfter POS-Verkauf vorbereitet werden (SCH-FR-005).",
+    what: "Zeigt Termine für Datum und optional Personal inkl. Raum/Stuhl. Neue Buchungen, Abschließen oder Stornieren; Abschluss kann einen POS-Verkauf vorbereiten (SCH-FR-005 / FUT-FR-081).",
     how: [
-      "Wählen Sie ein Datum und filtern Sie bei Bedarf nach Fachkraft.",
-      "Suchen oder filtern Sie nach Status.",
-      "Tippen Sie auf „Abschließen“, um einen Termin fertigzustellen, oder bei gebuchten Terminen auf „Stornieren“.",
+      "Datum wählen und optional nach Fachkraft filtern.",
+      "Über „Buchen“ Service, Personal und optionale Ressource planen.",
+      "Suchen oder nach Status filtern; Ressourcennamen in der Liste prüfen.",
+      "„Abschließen“ für den Besuch oder „Stornieren“ bei gebuchten Terminen.",
     ],
-    when: "Während des Betriebstags in Salons und anderen Unternehmen mit aktivierter Terminbuchung.",
-    tips: ["Kunden buchen über „Buchen“ im Marktplatz; das Team verwaltet hier den Tagesablauf."],
+    when: "Während des Betriebstags in Salons mit aktiver Terminbuchung.",
+    tips: [
+      "Ressourcenkonflikte erscheinen als Toast, wenn Stuhl/Raum (inkl. Puffer) belegt ist.",
+      "Kunden buchen im Marktplatz; das Team verwaltet hier den Tag.",
+    ],
+  },
+  "page.resources": {
+    title: "Buchbare Ressourcen",
+    summary: "Räume, Stühle und Geräte für Salontermine.",
+    what: "Verwalten Sie filialbezogene Ressourcen, die zusammen mit Personal reserviert werden. Überlappungen mit Puffern werden blockiert (FUT-FR-081).",
+    how: [
+      "Öffnen Sie Ressourcen in der Kassen-Navigation bei aktivierter Terminbuchung.",
+      "Fügen Sie Raum, Stuhl oder Gerät hinzu und halten Sie es aktiv.",
+      "Setzen Sie bei Bedarf Puffer und Anzahlung an Services.",
+      "Buchen Sie Termine — freie Ressourcen werden automatisch zugewiesen.",
+    ],
+    when: "Salon-/Spa-Betriebe mit aktivierter Terminbuchung.",
+    tips: [
+      "Service-Puffer erweitern die Belegungszeit für Personal und Ressourcen.",
+    ],
   },
 };
 

@@ -104,6 +104,7 @@ const api: KaarobarApi = {
     createRefundRequest: (payload) => ipcRenderer.invoke(IPC_CHANNELS.SALES_REFUND_REQUEST, payload),
     reviewRefundRequest: (payload) => ipcRenderer.invoke(IPC_CHANNELS.SALES_REFUND_REVIEW, payload),
     printReceipt: (saleId) => ipcRenderer.invoke(IPC_CHANNELS.SALES_PRINT, saleId),
+    updateDelivery: (payload) => ipcRenderer.invoke(IPC_CHANNELS.SALES_UPDATE_DELIVERY, payload),
   },
   tables: {
     list: (businessId) => ipcRenderer.invoke(IPC_CHANNELS.TABLE_LIST, businessId),
@@ -116,6 +117,20 @@ const api: KaarobarApi = {
     open: (payload) => ipcRenderer.invoke(IPC_CHANNELS.TICKET_OPEN, payload),
     setItems: (payload) => ipcRenderer.invoke(IPC_CHANNELS.TICKET_SET_ITEMS, payload),
     cancel: (ticketId) => ipcRenderer.invoke(IPC_CHANNELS.TICKET_CANCEL, ticketId),
+    fireItems: (payload) => ipcRenderer.invoke(IPC_CHANNELS.TICKET_FIRE_ITEMS, payload),
+    assignRider: (payload) => ipcRenderer.invoke(IPC_CHANNELS.TICKET_ASSIGN_RIDER, payload),
+  },
+  kitchen: {
+    listActive: (businessId) => ipcRenderer.invoke(IPC_CHANNELS.KITCHEN_LIST_ACTIVE, businessId),
+    bump: (payload) => ipcRenderer.invoke(IPC_CHANNELS.KITCHEN_BUMP, payload),
+    recall: (payload) => ipcRenderer.invoke(IPC_CHANNELS.KITCHEN_RECALL, payload),
+  },
+  happyHour: {
+    list: (businessId) => ipcRenderer.invoke(IPC_CHANNELS.HAPPY_HOUR_LIST, businessId),
+    create: (payload) => ipcRenderer.invoke(IPC_CHANNELS.HAPPY_HOUR_CREATE, payload),
+    update: (payload) => ipcRenderer.invoke(IPC_CHANNELS.HAPPY_HOUR_UPDATE, payload),
+    setActive: (payload) => ipcRenderer.invoke(IPC_CHANNELS.HAPPY_HOUR_SET_ACTIVE, payload),
+    resolvePrice: (payload) => ipcRenderer.invoke(IPC_CHANNELS.HAPPY_HOUR_RESOLVE_PRICE, payload),
   },
   activity: {
     list: (payload) => ipcRenderer.invoke(IPC_CHANNELS.ACTIVITY_LIST, payload),

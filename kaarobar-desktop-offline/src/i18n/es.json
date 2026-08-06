@@ -26,7 +26,8 @@
     "edit": "Editar",
     "view": "Ver",
     "add": "Agregar",
-    "delete": "Eliminar"
+    "delete": "Eliminar",
+    "refresh": "Refresh"
   },
   "money": {
     "thousand": "K",
@@ -252,7 +253,13 @@
     "tooltipShare": "Participación",
     "noTopProducts": "Aún no hay ventas de productos",
     "noTopProductsDesc": "Complete ventas en el POS para ver productos principales aquí.",
-    "qtySold": "Cant vendida: {{count}}"
+    "qtySold": "Cant vendida: {{count}}",
+    "kitchen": "Kitchen",
+    "kitchenDesc": "Bump and recall fired ticket items by station.",
+    "eyebrowKitchen": "Kitchen display",
+    "happyHour": "Happy hour",
+    "happyHourDesc": "Schedule time-based price overrides for the catalog.",
+    "eyebrowHappyHour": "Pricing"
   },
   "forms": {
     "createBusiness": "Crear negocio",
@@ -495,7 +502,16 @@
     "cancelTicket": "Cancelar pedido",
     "stockCapReached": "{{name}} solo tiene {{stock}} en inventario",
     "overstockBlocked": "El carrito tiene más que el inventario disponible. Reduzca cantidades para continuar.",
-    "overstockLine": "La cantidad excede el inventario"
+    "overstockLine": "La cantidad excede el inventario",
+    "sendToKitchen": "Send to kitchen",
+    "splitBill": "Split bill",
+    "nothingToFire": "No held items to send",
+    "sentToKitchen": "Sent to kitchen",
+    "rider": "Rider",
+    "riderNone": "No rider",
+    "riderPlaceholder": "Assign rider…",
+    "deliveryStatus": "Delivery status",
+    "serviceModeLabel": "Modo de servicio"
   },
   "natures": {
     "retail": {
@@ -667,5 +683,74 @@
     "crimson": "Carmesí",
     "slate": "Pizarra",
     "indigo": "Índigo"
+  },
+  "kitchen": {
+    "emptyTitle": "Kitchen is clear",
+    "emptyDesc": "Fired items from open tickets will appear here.",
+    "station": "Station: {{name}}",
+    "table": "Table {{name}}",
+    "seat": "Seat {{n}}",
+    "bump": "Bump",
+    "recall": "Recall",
+    "elapsedMins": "{{mins}}m",
+    "status": {
+      "held": "Held",
+      "fired": "Fired",
+      "ready": "Ready",
+      "bumped": "Bumped"
+    }
+  },
+  "split": {
+    "title": "Split bill",
+    "mode": "Split by",
+    "modeItems": "Selected items",
+    "modeSeat": "Seat",
+    "modeEqual": "Equal parts",
+    "equalParts": "Number of parts",
+    "seat": "Seat",
+    "selectItems": "Select at least one item",
+    "seatRequired": "Choose a seat",
+    "seatEmpty": "No unbilled items for that seat",
+    "nothingToBill": "Nothing left to bill",
+    "continuePay": "Continue to payment",
+    "unbilledTotal": "Unbilled total: {{amount}}"
+  },
+  "deliveryStatus": {
+    "pending": "Pending",
+    "assigned": "Assigned",
+    "out_for_delivery": "Out for delivery",
+    "delivered": "Delivered",
+    "cancelled": "Cancelled"
+  },
+  "happyHour": {
+    "add": "Add rule",
+    "edit": "Edit rule",
+    "name": "Rule name",
+    "nameRequired": "Name is required",
+    "productRequired": "Select a product",
+    "scope": "Applies to",
+    "scopeAll": "All products",
+    "scopeProduct": "One product",
+    "pricing": "Pricing",
+    "pricingPercent": "Percent off",
+    "pricingOverride": "Override price",
+    "overridePrice": "Override price",
+    "percent": "Percent off",
+    "percentOff": "{{n}}% off",
+    "priority": "Priority",
+    "window": "Window",
+    "startTime": "Start (HH:MM)",
+    "endTime": "End (HH:MM)",
+    "emptyTitle": "No happy-hour rules",
+    "emptyDesc": "Create a weekday/time rule to override catalog prices at POS.",
+    "day": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    }
   }
 }

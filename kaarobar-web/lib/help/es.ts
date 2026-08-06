@@ -769,15 +769,34 @@ const catalog: HelpCatalog = {
   },
   "page.appointments": {
     title: "Citas",
-    summary: "Agenda diaria del personal para reservas de servicios.",
-    what: "Muestra las citas de la fecha seleccionada y, opcionalmente, de un profesional. Permite completar o cancelar reservas; al completarlas se puede preparar una venta POS vinculada (SCH-FR-005).",
+    summary: "Agenda diaria del personal para servicios.",
+    what: "Lista citas de la fecha (y personal opcional), incluidas salas/sillas. Reserve, complete o cancele; al completar puede vincularse una venta POS (SCH-FR-005 / FUT-FR-081).",
     how: [
-      "Elige una fecha y, si lo necesitas, filtra por profesional.",
-      "Busca o filtra por estado.",
-      "Pulsa Completar para finalizar una visita o Cancelar en las citas reservadas.",
+      "Elija la fecha y filtre por personal si lo desea.",
+      "Toque Reservar para programar servicio, personal y recurso opcional.",
+      "Busque o filtre por estado; revise los nombres de recursos en la lista.",
+      "Toque Completar para avanzar la visita, o Cancelar en filas Reservadas.",
     ],
-    when: "Durante la jornada en salones y otros negocios con citas habilitadas.",
-    tips: ["Los clientes reservan desde Reservar en el marketplace; el personal gestiona aquí la agenda del día."],
+    when: "En salones / negocios con citas activadas durante el día de servicio.",
+    tips: [
+      "Los conflictos de recurso muestran un aviso si la silla/sala ya está ocupada (incluidos buffers).",
+      "Los clientes reservan en el flujo Book del marketplace; el personal gestiona el día aquí.",
+    ],
+  },
+  "page.resources": {
+    title: "Recursos reservables",
+    summary: "Salas, sillas y equipos usados al reservar citas de salón.",
+    what: "Gestione recursos de sucursal que las citas reservan junto con el personal. Los solapes con buffers se bloquean (FUT-FR-081).",
+    how: [
+      "Abra Recursos en la navegación de caja en negocios con citas activadas.",
+      "Añada una sala, silla o equipo y manténgalo activo.",
+      "Configure buffer y depósito en productos de servicio cuando haga falta.",
+      "Reserve citas: el sistema asigna un recurso libre si no se elige uno.",
+    ],
+    when: "Salones / spas con citas activadas.",
+    tips: [
+      "Los buffers del servicio amplían la ventana ocupada de personal y recursos.",
+    ],
   },
 };
 

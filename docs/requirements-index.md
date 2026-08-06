@@ -17,7 +17,7 @@ Publisher: **2ndHub Solutions**. Product family: **Kaarobar** — **Cloud** (sub
 | TEN-FR | Tenancy, Identity & Access | §5.1 | Must; industry presets; `marketing` role |
 | POS-FR | POS & Sales | §5.2 | Must incl. khata + loyalty points; coupons Should |
 | INV-FR | Inventory & Procurement | §5.3 | Must; recipes Should |
-| SCH-FR | Scheduling & Appointments | §5.4 | **Should** (Phase B); backend promoted for salon — see [`docs/appointments.md`](appointments.md) |
+| SCH-FR | Scheduling & Appointments | §5.4 | **Should** (Phase B); salon backend + Cloud `FUT-FR-081` resources — see [`docs/appointments.md`](appointments.md) |
 | ACC-FR | Accounting & Finance | §5.5 | Must; configurable tax per jurisdiction; FBR production adapter Should |
 | HR-FR | HR & Payroll | §5.6 | Must; ESS + employee portal login; jurisdiction statutory packs |
 | RPT-FR | Reporting & Analytics | §5.7 | Must core; BI Should |
@@ -30,7 +30,7 @@ Publisher: **2ndHub Solutions**. Product family: **Kaarobar** — **Cloud** (sub
 | FBR-FR | Pakistan FBR fiscal pack | §8.3.4 | Hooks + pack interface Must; production adapter Should; non-PK packs = §14 |
 | OFF-FR | Cloud Desktop Offline & Sync | §10.5 | Cloud Desktop Must; web/mobile online |
 | ODE-FR | Offline Desktop Edition | §10.6 | Must — single shop, SQLite, license-then-offline |
-| FUT-FR | Possible upcoming features | §14 | Could — exploratory until Product promotes; expanded catalogue (hospitality, retail, tax, HR, CRM, platform, Offline, payments, verticals, AI, security) |
+| FUT-FR | Possible upcoming features | §14 | Could until Product promotes. **Promoted Must:** Offline `FUT-FR-001/002/004/008`; Cloud `FUT-FR-081`. `FUT-FR-030` remains Could. |
 
 ## Non-functional (ISO/IEC 25010)
 

@@ -189,6 +189,17 @@ export function SaleDetailPage({ user, data, saleId, onBack }: Props) {
               {detail.sale.tableName ? (
                 <span>{t('tables.name')}: <span className="font-medium text-ink">{detail.sale.tableName}</span></span>
               ) : null}
+              {detail.sale.riderName ? (
+                <span>{t('pos.rider')}: <span className="font-medium text-ink">{detail.sale.riderName}</span></span>
+              ) : null}
+              {detail.sale.deliveryStatus ? (
+                <span>
+                  {t('pos.deliveryStatus')}:{' '}
+                  <span className="font-medium text-ink">
+                    {t(`deliveryStatus.${detail.sale.deliveryStatus}`)}
+                  </span>
+                </span>
+              ) : null}
             </div>
           </div>
 

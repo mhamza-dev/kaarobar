@@ -53,7 +53,8 @@
     "markRead": "Mark read",
     "read": "read",
     "dismiss": "Dismiss",
-    "enterField": "Enter {field}"
+    "enterField": "Enter {field}",
+    "select": "Select…"
   },
   "table": {
     "export": "Export",
@@ -129,7 +130,8 @@
     "products": "Products",
     "orders": "Orders",
     "loyalty": "Loyalty",
-    "account": "Accounts"
+    "account": "Accounts",
+    "resources": "Resources"
   },
   "auth": {
     "signInTitle": "Sign in",
@@ -215,7 +217,9 @@
     "productDetailTitle": "Product",
     "buyerAccountTitle": "Accounts",
     "buyerAccountDesc": "Balance, loyalty, and alerts for your marketplace profile.",
-    "appointmentDetailTitle": "Appointment"
+    "appointmentDetailTitle": "Appointment",
+    "resourcesTitle": "Bookable resources",
+    "resourcesDesc": "Rooms, chairs, and equipment for salon bookings."
   },
   "marketplace": {
     "eyebrow": "Marketplace",
@@ -392,7 +396,28 @@
     "emptyScheduleTitle": "No appointments this day",
     "emptyScheduleBody": "Change the date or wait for customer bookings.",
     "disabledTitle": "Appointments not enabled",
-    "disabledBody": "Enable appointments for salon or service businesses to see the schedule here."
+    "disabledBody": "Enable appointments for salon or service businesses to see the schedule here.",
+    "bookTitle": "Book appointment",
+    "bookDesc": "Schedule a service with staff and optional room or chair.",
+    "bookNew": "Book",
+    "walkIn": "Walk-in (no customer)",
+    "startTime": "Start time",
+    "resource": "Resource",
+    "autoAssignResource": "Auto-assign free resource",
+    "resourceConflict": "That resource is already booked for this time.",
+    "staffConflict": "That staff member is already booked for this time.",
+    "bufferBefore": "Buffer before (minutes)",
+    "bufferAfter": "Buffer after (minutes)",
+    "depositAmount": "Deposit amount",
+    "noShowFee": "No-show fee",
+    "depositNote": "Deposit Rs {amount} due at booking",
+    "payDeposit": "Pay deposit",
+    "depositPaid": "Deposit marked paid",
+    "depositFailed": "Could not mark deposit paid",
+    "requiredResource": "Required resource",
+    "noResourceRequired": "None",
+    "selectOption": "Select…",
+    "startTimeRequired": "Start time is required"
   },
   "dashboard": {
     "salesToday": "Sales today",
@@ -1113,5 +1138,31 @@
   },
   "sales": {
     "searchInvoice": "Search invoice or customer…"
+  },
+  "resources": {
+    "add": "Add resource",
+    "edit": "Edit resource",
+    "name": "Name",
+    "kindLabel": "Kind",
+    "kind": "Kind",
+    "capacity": "Capacity",
+    "notes": "Notes",
+    "emptyTitle": "No resources yet",
+    "emptyBody": "Add chairs, rooms, or equipment for appointment booking.",
+    "loadFailed": "Could not load resources",
+    "new": "Add resource",
+    "create": "Create resource",
+    "updated": "Resource updated",
+    "created": "Resource created",
+    "deactivated": "Resource deactivated",
+    "saveFailed": "Could not save resource",
+    "formDesc": "Branch-scoped room, chair, or equipment.",
+    "searchPlaceholder": "Search resources…",
+    "deactivate": "Deactivate",
+    "active": "Active",
+    "inactive": "Inactive",
+    "kindRoom": "Room",
+    "kindChair": "Chair",
+    "kindEquipment": "Equipment"
   }
 }

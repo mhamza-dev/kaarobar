@@ -208,6 +208,14 @@ defmodule KaarobarWeb.Router do
     patch "/appointments/:id", AppointmentController, :update
     post "/appointments/:id/cancel", AppointmentController, :cancel
     post "/appointments/:id/complete", AppointmentController, :complete
+    post "/appointments/:id/no-show", AppointmentController, :mark_no_show
+    post "/appointments/:id/deposit/pay", AppointmentController, :pay_deposit
+
+    get "/bookable-resources", BookableResourceController, :index
+    post "/bookable-resources", BookableResourceController, :create
+    get "/bookable-resources/:id", BookableResourceController, :show
+    patch "/bookable-resources/:id", BookableResourceController, :update
+    delete "/bookable-resources/:id", BookableResourceController, :delete
 
     get "/sync/catalog", SyncController, :catalog
     get "/sync/inventory", SyncController, :inventory

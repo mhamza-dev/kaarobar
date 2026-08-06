@@ -53,7 +53,8 @@
     "markRead": "Marquer comme lu",
     "read": "lire",
     "dismiss": "Fermer",
-    "enterField": "Saisir {field}"
+    "enterField": "Saisir {field}",
+    "select": "Select…"
   },
   "table": {
     "export": "Exporter",
@@ -129,7 +130,8 @@
     "products": "Produits",
     "orders": "Commandes",
     "loyalty": "Fidélité",
-    "account": "Account"
+    "account": "Account",
+    "resources": "Ressources"
   },
   "auth": {
     "signInTitle": "Se connecter",
@@ -215,7 +217,9 @@
     "productDetailTitle": "Produit",
     "buyerAccountTitle": "Account",
     "buyerAccountDesc": "Solde, fidélité et alertes de votre profil marketplace.",
-    "appointmentDetailTitle": "Rendez-vous"
+    "appointmentDetailTitle": "Rendez-vous",
+    "resourcesTitle": "Ressources réservables",
+    "resourcesDesc": "Salles, fauteuils et équipements pour les rendez-vous salon."
   },
   "marketplace": {
     "eyebrow": "Marché",
@@ -386,13 +390,34 @@
     "staffFilter": "Personnel",
     "allStaff": "Tout le personnel",
     "time": "Heure",
-    "customer": "Client",
+    "customer": "Customer",
     "searchPlaceholder": "Recherche de client, de service, de personnel…",
     "loadFailed": "ÉChec du chargement des rendez-vous",
     "emptyScheduleTitle": "Pas de rendez-vous ce jour",
     "emptyScheduleBody": "Modifiez la date ou attendez les réservations des clients.",
     "disabledTitle": "Rendez-vous non activés",
-    "disabledBody": "Activez les rendez-vous pour les salons ou les entreprises de services pour voir le calendrier ici."
+    "disabledBody": "Activez les rendez-vous pour les salons ou les entreprises de services pour voir le calendrier ici.",
+    "bookTitle": "Réserver un rendez-vous",
+    "bookDesc": "Planifier un service avec le personnel et une salle/fauteuil optionnel.",
+    "walkIn": "Sans rendez-vous (pas de client)",
+    "startTime": "Heure de début",
+    "resource": "Ressource",
+    "autoAssignResource": "Attribuer automatiquement une ressource libre",
+    "resourceConflict": "Cette ressource est déjà réservée à cette heure.",
+    "staffConflict": "Ce collaborateur est déjà réservé à cette heure.",
+    "bufferBefore": "Buffer avant (minutes)",
+    "bufferAfter": "Buffer après (minutes)",
+    "depositAmount": "Montant de l'acompte",
+    "noShowFee": "Frais de no-show",
+    "depositNote": "Un acompte de {amount} est dû pour ce service.",
+    "selectOption": "Sélectionner…",
+    "bookNew": "Réserver",
+    "startTimeRequired": "L’heure de début est obligatoire",
+    "payDeposit": "Encaisser l'acompte",
+    "depositPaid": "Acompte marqué comme payé",
+    "depositFailed": "Impossible d'encaisser l'acompte",
+    "requiredResource": "Ressource requise",
+    "noResourceRequired": "Aucune"
   },
   "dashboard": {
     "salesToday": "Ventes aujourd'hui",
@@ -1113,5 +1138,31 @@
   },
   "sales": {
     "searchInvoice": "Rechercher facture ou client…"
+  },
+  "resources": {
+    "add": "Ajouter une ressource",
+    "edit": "Modifier la ressource",
+    "name": "Nom",
+    "kindLabel": "Type",
+    "kind": "Type",
+    "capacity": "Capacité",
+    "notes": "Notes",
+    "emptyTitle": "Aucune ressource pour l'instant",
+    "emptyBody": "Ajoutez des fauteuils, salles ou équipements pour les réservations.",
+    "loadFailed": "Impossible de charger les ressources",
+    "new": "Ajouter une ressource",
+    "create": "Créer la ressource",
+    "updated": "Ressource mise à jour",
+    "created": "Ressource créée",
+    "deactivated": "Ressource désactivée",
+    "saveFailed": "Impossible d'enregistrer la ressource",
+    "formDesc": "Salle, fauteuil ou équipement de la succursale.",
+    "searchPlaceholder": "Rechercher des ressources…",
+    "deactivate": "Désactiver",
+    "active": "Actif",
+    "inactive": "Inactif",
+    "kindRoom": "Salle",
+    "kindChair": "Fauteuil",
+    "kindEquipment": "Équipement"
   }
 }

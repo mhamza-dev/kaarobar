@@ -167,6 +167,14 @@ export type StaffUser = {
   isActive: boolean
 }
 
+export type KitchenStatus = 'held' | 'fired' | 'ready' | 'bumped'
+export type DeliveryStatus =
+  | 'pending'
+  | 'assigned'
+  | 'out_for_delivery'
+  | 'delivered'
+  | 'cancelled'
+
 export type Product = {
   id: string
   businessId: string
@@ -178,8 +186,54 @@ export type Product = {
   stockQty: number
   kind: ProductKind
   tracksStock: boolean
+  kitchenStation: string
   imagePath: string | null
   isActive: boolean
+  /** Resolved unit price at “now” when list includes happy-hour (optional). */
+  resolvedPrice?: number
+  activePriceRuleId?: string | null
+  activePriceRuleName?: string | null
+}
+
+export type HappyHourPriceRule = {
+  id: string
+  businessId: string
+  name: string
+  productId: string | null
+  categoryId: string | null
+  overridePrice: number | null
+  percentOff: number | null
+  weekdaysMask: number
+  startTime: string
+  endTime: string
+  priority: number
+  isActive: boolean
+  validFrom: string | null
+  validTo: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type ResolvedUnitPrice = {
+  unitPrice: number
+  listPrice: number
+  priceRuleId: string | null
+  priceRuleName: string | null
+}
+
+export type KitchenTicketLine = {
+  itemId: string
+  ticketId: string
+  tableName: string | null
+  serviceMode: ServiceMode
+  productName: string
+  qty: number
+  seatNo: number | null
+  kitchenStatus: KitchenStatus
+  kitchenStation: string
+  firedAt: string | null
+  bumpedAt: string | null
+  createdAt: string
 }
 
 export type DiningTable = {
@@ -201,6 +255,12 @@ export type PosTicketItem = {
   qty: number
   unitPrice: number
   lineTotal: number
+  seatNo: number | null
+  kitchenStatus: KitchenStatus
+  firedAt: string | null
+  bumpedAt: string | null
+  billedQty: number
+  priceRuleId: string | null
 }
 
 export type PosTicket = {
@@ -212,8 +272,13 @@ export type PosTicket = {
   status: 'open' | 'billed' | 'cancelled'
   openedBy: string
   notes: string | null
+  riderUserId: string | null
+  riderName: string | null
+  deliveryStatus: DeliveryStatus | null
+  deliveryNotes: string | null
   items: PosTicketItem[]
   total: number
+  unbilledTotal: number
   createdAt: string
   updatedAt: string
 }
@@ -341,6 +406,10 @@ export type Sale = {
   serviceMode: ServiceMode | null
   tableId: string | null
   tableName: string | null
+  riderUserId: string | null
+  riderName: string | null
+  deliveryStatus: DeliveryStatus | null
+  deliveryNotes: string | null
 }
 
 export type SaleItem = {
@@ -353,6 +422,8 @@ export type SaleItem = {
   lineTotal: number
   refundedQty: number
   refundableQty: number
+  priceRuleId: string | null
+  priceRuleName: string | null
 }
 
 export type SalePayment = {
@@ -644,13 +715,24 @@ export type KaarobarApi = {
       businessId: string
       branchId: string
       customerId: string | null
-      items: Array<{ productId: string; qty: number; unitPrice: number }>
+      items: Array<{
+        productId: string
+        qty: number
+        unitPrice: number
+        ticketItemId?: string
+        priceRuleId?: string | null
+      }>
       discount?: number
       payments: Array<{ method: 'cash' | 'card' | 'credit'; amount: number }>
       servedByUserId?: string | null
       serviceMode?: ServiceMode | null
       tableId?: string | null
       ticketId?: string | null
+      riderUserId?: string | null
+      deliveryStatus?: DeliveryStatus | null
+      deliveryNotes?: string | null
+      /** When true with ticketId, only bill listed ticket item qtys; leave ticket open if unbilled remain. */
+      partialTicketBill?: boolean
     }) => Promise<Sale>
     createRefundRequest: (payload: {
       saleId: string
@@ -663,6 +745,12 @@ export type KaarobarApi = {
       note?: string
     }) => Promise<RefundRequest>
     printReceipt: (saleId: string) => Promise<{ ok: true }>
+    updateDelivery: (payload: {
+      saleId: string
+      riderUserId?: string | null
+      deliveryStatus?: DeliveryStatus | null
+      deliveryNotes?: string | null
+    }) => Promise<Sale>
   }
   tables: {
     list: (businessId: string) => Promise<DiningTable[]>
@@ -692,9 +780,67 @@ export type KaarobarApi = {
     }) => Promise<PosTicket>
     setItems: (payload: {
       ticketId: string
-      items: Array<{ productId: string; qty: number; unitPrice: number }>
+      items: Array<{
+        id?: string
+        productId: string
+        qty: number
+        unitPrice: number
+        seatNo?: number | null
+        priceRuleId?: string | null
+      }>
     }) => Promise<PosTicket>
     cancel: (ticketId: string) => Promise<{ ok: true }>
+    fireItems: (payload: { ticketId: string; itemIds: string[] }) => Promise<PosTicket>
+    assignRider: (payload: {
+      ticketId: string
+      riderUserId: string | null
+      deliveryStatus?: DeliveryStatus | null
+      deliveryNotes?: string | null
+    }) => Promise<PosTicket>
+  }
+  kitchen: {
+    listActive: (businessId: string) => Promise<KitchenTicketLine[]>
+    bump: (payload: { itemIds: string[] }) => Promise<{ ok: true }>
+    recall: (payload: { itemIds: string[] }) => Promise<{ ok: true }>
+  }
+  happyHour: {
+    list: (businessId: string) => Promise<HappyHourPriceRule[]>
+    create: (payload: {
+      businessId: string
+      name: string
+      productId?: string | null
+      categoryId?: string | null
+      overridePrice?: number | null
+      percentOff?: number | null
+      weekdaysMask: number
+      startTime: string
+      endTime: string
+      priority?: number
+      isActive?: boolean
+      validFrom?: string | null
+      validTo?: string | null
+    }) => Promise<HappyHourPriceRule>
+    update: (payload: {
+      id: string
+      name: string
+      productId?: string | null
+      categoryId?: string | null
+      overridePrice?: number | null
+      percentOff?: number | null
+      weekdaysMask: number
+      startTime: string
+      endTime: string
+      priority?: number
+      isActive?: boolean
+      validFrom?: string | null
+      validTo?: string | null
+    }) => Promise<HappyHourPriceRule>
+    setActive: (payload: { id: string; isActive: boolean }) => Promise<HappyHourPriceRule>
+    resolvePrice: (payload: {
+      businessId: string
+      productId: string
+      at?: string
+    }) => Promise<ResolvedUnitPrice>
   }
   activity: {
     list: (payload: { entityType: string; entityId: string }) => Promise<ActivityEntry[]>
@@ -817,6 +963,17 @@ export const IPC_CHANNELS = {
   TICKET_OPEN: 'ticket:open',
   TICKET_SET_ITEMS: 'ticket:setItems',
   TICKET_CANCEL: 'ticket:cancel',
+  TICKET_FIRE_ITEMS: 'ticket:fireItems',
+  TICKET_ASSIGN_RIDER: 'ticket:assignRider',
+  KITCHEN_LIST_ACTIVE: 'kitchen:listActive',
+  KITCHEN_BUMP: 'kitchen:bump',
+  KITCHEN_RECALL: 'kitchen:recall',
+  HAPPY_HOUR_LIST: 'happyHour:list',
+  HAPPY_HOUR_CREATE: 'happyHour:create',
+  HAPPY_HOUR_UPDATE: 'happyHour:update',
+  HAPPY_HOUR_SET_ACTIVE: 'happyHour:setActive',
+  HAPPY_HOUR_RESOLVE_PRICE: 'happyHour:resolvePrice',
+  SALES_UPDATE_DELIVERY: 'sales:updateDelivery',
   ACTIVITY_LIST: 'activity:list',
   ANALYTICS_SUMMARY: 'analytics:summary',
   ASSETS_PICK_AND_SAVE: 'assets:pickAndSave',

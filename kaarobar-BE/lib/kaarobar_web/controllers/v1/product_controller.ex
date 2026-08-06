@@ -1,7 +1,7 @@
 defmodule KaarobarWeb.V1.ProductController do
   use KaarobarWeb, :controller
 
-  alias Kaarobar.{Catalog, Inventory, Guardian, Repo}
+  alias Kaarobar.{Catalog, Inventory, Guardian, Repo, Appointments}
   alias Kaarobar.Schemas.InventoryRecord
   alias KaarobarWeb.Controllers.Helpers.ListFilters
 
@@ -97,7 +97,8 @@ defmodule KaarobarWeb.V1.ProductController do
                business_id,
                params["opening_qty"] || default_opening(product)
              ),
-           {:ok, product} <- maybe_upload(conn, product, owner_id, params) do
+           {:ok, product} <- maybe_upload(conn, product, owner_id, params),
+           :ok <- maybe_sync_resources(product, params) do
         product = Catalog.get_product(product.id, business_id, owner_id)
 
         conn
@@ -123,7 +124,8 @@ defmodule KaarobarWeb.V1.ProductController do
       product ->
         with {:ok, updated} <- Catalog.update_product(product, params),
              :ok <- maybe_price(updated, branch_id, owner_id, business_id, params["price"]),
-             {:ok, updated} <- maybe_upload(conn, updated, owner_id, params) do
+             {:ok, updated} <- maybe_upload(conn, updated, owner_id, params),
+             :ok <- maybe_sync_resources(updated, params) do
           updated = Catalog.get_product(updated.id, business_id, owner_id)
           json(conn, %{data: Catalog.serialize_product(updated, branch_id)})
         else
@@ -411,4 +413,41 @@ defmodule KaarobarWeb.V1.ProductController do
       {:error, _} = err -> err
     end
   end
+
+  defp maybe_sync_resources(product, params) do
+    raw = params["resource_requirements"] || params["resource_kind"] || params[:resource_requirements]
+
+    cond do
+      is_nil(raw) or raw == "" ->
+        :ok
+
+      is_binary(raw) and String.trim(raw) != "" and not String.starts_with?(String.trim(raw), "[") and
+          not String.starts_with?(String.trim(raw), "{") ->
+        # Single kind string from FormData
+        case Appointments.sync_product_resources(product.id, [%{"resource_kind" => String.trim(raw)}]) do
+          {:ok, _} -> :ok
+          {:error, reason} -> {:error, reason}
+        end
+
+      true ->
+        requirements = parse_resource_requirements(raw)
+
+        case Appointments.sync_product_resources(product.id, requirements) do
+          {:ok, _} -> :ok
+          {:error, reason} -> {:error, reason}
+        end
+    end
+  end
+
+  defp parse_resource_requirements(raw) when is_list(raw), do: raw
+
+  defp parse_resource_requirements(raw) when is_binary(raw) do
+    case Jason.decode(raw) do
+      {:ok, list} when is_list(list) -> list
+      {:ok, map} when is_map(map) -> [map]
+      _ -> []
+    end
+  end
+
+  defp parse_resource_requirements(_), do: []
 end

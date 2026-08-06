@@ -18,6 +18,8 @@ import { SupplierDetailPage } from './pages/SupplierDetailPage'
 import { PoDetailPage } from './pages/PoDetailPage'
 import { PosPage } from './pages/PosPage'
 import { TablesPage } from './pages/TablesPage'
+import { KitchenDisplayPage } from './pages/KitchenDisplayPage'
+import { HappyHourPage } from './pages/HappyHourPage'
 import { SalesPage } from './pages/SalesPage'
 import { CustomersPage } from './pages/CustomersPage'
 import { CustomerDetailPage } from './pages/CustomerDetailPage'
@@ -89,6 +91,8 @@ export function AdminDashboard({ user, onLogout, onLicenseLocked }: Props) {
           {route === 'users' ? <UsersPage user={user} data={data} /> : null}
           {route === 'products' ? <ProductsPage user={user} data={data} /> : null}
           {route === 'tables' ? <TablesPage user={user} data={data} /> : null}
+          {route === 'kitchen' ? <KitchenDisplayPage user={user} data={data} /> : null}
+          {route === 'happyHour' ? <HappyHourPage user={user} data={data} /> : null}
           {route === 'suppliers' && supplierDetailId ? (
             <SupplierDetailPage
               user={user}

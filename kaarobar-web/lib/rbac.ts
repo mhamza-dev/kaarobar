@@ -56,6 +56,7 @@ const ROUTE_BUNDLES: Record<string, Bundle> = {
   "/app/pos": "pos",
   "/app/sales": "pos",
   "/app/appointments": "pos",
+  "/app/resources": "pos",
   "/app/returns": "pos",
   "/app/customers": "customers",
   "/app/inventory": "inventory",

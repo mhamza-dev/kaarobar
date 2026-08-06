@@ -769,15 +769,34 @@ const catalog: HelpCatalog = {
   },
   "page.appointments": {
     title: "Agendamentos",
-    summary: "Agenda diária da equipe para serviços reservados.",
-    what: "Mostra os agendamentos da data selecionada e, opcionalmente, de um profissional específico. É possível concluir ou cancelar reservas; a conclusão pode preparar uma venda POS vinculada (SCH-FR-005).",
+    summary: "Agenda diária da equipe para serviços.",
+    what: "Lista agendamentos da data (e equipe opcional), incluindo salas/cadeiras. Agende, conclua ou cancele; a conclusão pode vincular uma venda no PDV (SCH-FR-005 / FUT-FR-081).",
     how: [
-      "Escolha uma data e, se necessário, filtre por profissional.",
-      "Pesquise ou filtre por status.",
-      "Toque em Concluir para finalizar uma visita ou em Cancelar nos horários reservados.",
+      "Escolha a data e filtre pela equipe se quiser.",
+      "Toque em Agendar para marcar serviço, equipe e recurso opcional.",
+      "Pesquise ou filtre por status; veja os nomes dos recursos na lista.",
+      "Toque em Concluir para avançar a visita, ou Cancelar em linhas Agendadas.",
     ],
-    when: "Durante o expediente em salões e outros estabelecimentos com agendamentos habilitados.",
-    tips: ["Os clientes agendam pela opção Agendar no marketplace; a equipe gerencia aqui a agenda do dia."],
+    when: "Em salões / negócios com agendamento ativado durante o dia de serviço.",
+    tips: [
+      "Conflitos de recurso mostram um aviso quando a cadeira/sala já está ocupada (incluindo intervalos).",
+      "Clientes agendam no fluxo Book do marketplace; a equipe gerencia o dia aqui.",
+    ],
+  },
+  "page.resources": {
+    title: "Recursos reserváveis",
+    summary: "Salas, cadeiras e equipamentos usados em agendamentos de salão.",
+    what: "Gerencie recursos da filial que os agendamentos reservam junto com a equipe. Sobreposições com intervalos são bloqueadas (FUT-FR-081).",
+    how: [
+      "Abra Recursos na navegação do caixa em negócios com agendamento.",
+      "Adicione sala, cadeira ou equipamento e mantenha ativo.",
+      "Defina intervalo e depósito nos produtos de serviço quando necessário.",
+      "Agende — o sistema atribui um recurso livre se nenhum for escolhido.",
+    ],
+    when: "Salões / spas com agendamento ativado.",
+    tips: [
+      "Intervalos nos serviços ampliam a janela ocupada de equipe e recursos.",
+    ],
   },
 };
 

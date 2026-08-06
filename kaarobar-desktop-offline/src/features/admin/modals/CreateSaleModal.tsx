@@ -10,6 +10,8 @@ export type CartLine = {
   name: string
   qty: number
   unitPrice: number
+  ticketItemId?: string
+  priceRuleId?: string | null
 }
 
 type Props = {
@@ -26,6 +28,8 @@ type Props = {
   tableId?: string | null
   ticketId?: string | null
   hasOverstock?: boolean
+  partialTicketBill?: boolean
+  riderUserId?: string | null
   onCompleted: (saleId: string) => Promise<void>
 }
 
@@ -45,6 +49,8 @@ export function CreateSaleModal({
   tableId = null,
   ticketId = null,
   hasOverstock = false,
+  partialTicketBill = false,
+  riderUserId = null,
   onCompleted,
 }: Props) {
   const { t } = useTranslation()
@@ -108,6 +114,8 @@ export function CreateSaleModal({
           productId: item.productId,
           qty: item.qty,
           unitPrice: item.unitPrice,
+          ticketItemId: item.ticketItemId,
+          priceRuleId: item.priceRuleId,
         })),
         discount: safeDiscount,
         payments: [{ method: paymentMethod, amount: total }],
@@ -115,6 +123,8 @@ export function CreateSaleModal({
         serviceMode: serviceMode ?? undefined,
         tableId: tableId ?? undefined,
         ticketId: ticketId ?? undefined,
+        partialTicketBill: partialTicketBill || undefined,
+        riderUserId: riderUserId ?? undefined,
       })
       toast.success(t('toast.saleCompleted'), sale.invoiceNo)
       if (canPrint) {
@@ -174,7 +184,7 @@ export function CreateSaleModal({
           <div className="max-h-40 space-y-1 overflow-y-auto pe-1">
             {cartItems.map((item) => (
               <div
-                key={item.productId}
+                key={item.ticketItemId ?? `${item.productId}-${item.unitPrice}`}
                 className="flex items-center justify-between rounded-lg border border-line/70 px-3 py-2 text-sm"
               >
                 <span className="truncate pe-3">

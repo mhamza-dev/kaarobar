@@ -669,6 +669,16 @@ defmodule Kaarobar.Pos do
   end
 
   defp validate_discount_limit(branch, discount_amount, attrs) do
+    # Appointment deposit / no-show fee sales (FUT-FR-081) may discount a priced service
+    # line down to the fee amount without cashier discount approval.
+    if attrs[:internal_fee_sale] == true or attrs["internal_fee_sale"] == true do
+      :ok
+    else
+      validate_discount_limit_cashier(branch, discount_amount, attrs)
+    end
+  end
+
+  defp validate_discount_limit_cashier(branch, discount_amount, attrs) do
     limit = branch.discount_auto_approve_limit || Decimal.new("0")
     force_pending? = attrs[:requires_discount_approval] == true
 

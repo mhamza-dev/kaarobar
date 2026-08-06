@@ -10,11 +10,14 @@ import { createBackup, pickBackupFile, restoreBackup } from '../backup/service'
 import { getRestockAlertsForBusiness } from '../inventory/restockAlerts'
 import { maybeRunDailyReminders } from '../reminders/dailyReminders'
 import {
+  assignTicketRider,
+  bumpKitchenItems,
   cancelPosTicket,
   createBranch,
   createBusiness,
   createCustomer,
   createDiningTable,
+  createHappyHourRule,
   createProduct,
   createPurchaseOrder,
   createRefundRequest,
@@ -22,6 +25,7 @@ import {
   createSupplier,
   createUser,
   deleteProduct,
+  fireTicketItems,
   generateProductBarcode,
   findSaleByInvoice,
   getCustomerDetail,
@@ -31,11 +35,13 @@ import {
   getSupplierDetail,
   linkSupplierProduct,
   getAnalyticsSummary,
+  listActiveKitchen,
   listActivity,
   listBranches,
   listBusinesses,
   listCustomers,
   listDiningTables,
+  listHappyHourRules,
   listOpenTickets,
   listProductSuppliers,
   listProducts,
@@ -48,9 +54,12 @@ import {
   printPurchaseOrder,
   printSaleReceipt,
   printCustomerLedger,
+  recallKitchenItems,
   recordCustomerPayment,
+  resolveUnitPrice,
   reviewRefundRequest,
   setActiveBusiness,
+  setHappyHourRuleActive,
   setPosTicketItems,
   setProductActive,
   setUserActive,
@@ -59,6 +68,8 @@ import {
   updateBusiness,
   updateCustomer,
   updateDiningTable,
+  updateHappyHourRule,
+  updateSaleDelivery,
   updateSelfUserProfile,
   updateLinkedSupplierProduct,
   updateProduct,
@@ -212,6 +223,23 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.TICKET_OPEN, async (_event, payload) => openPosTicket(payload))
   ipcMain.handle(IPC_CHANNELS.TICKET_SET_ITEMS, async (_event, payload) => setPosTicketItems(payload))
   ipcMain.handle(IPC_CHANNELS.TICKET_CANCEL, async (_event, ticketId: string) => cancelPosTicket(ticketId))
+  ipcMain.handle(IPC_CHANNELS.TICKET_FIRE_ITEMS, async (_event, payload) => fireTicketItems(payload))
+  ipcMain.handle(IPC_CHANNELS.TICKET_ASSIGN_RIDER, async (_event, payload) => assignTicketRider(payload))
+  ipcMain.handle(IPC_CHANNELS.KITCHEN_LIST_ACTIVE, async (_event, businessId: string) =>
+    listActiveKitchen(businessId),
+  )
+  ipcMain.handle(IPC_CHANNELS.KITCHEN_BUMP, async (_event, payload) => bumpKitchenItems(payload))
+  ipcMain.handle(IPC_CHANNELS.KITCHEN_RECALL, async (_event, payload) => recallKitchenItems(payload))
+  ipcMain.handle(IPC_CHANNELS.HAPPY_HOUR_LIST, async (_event, businessId: string) =>
+    listHappyHourRules(businessId),
+  )
+  ipcMain.handle(IPC_CHANNELS.HAPPY_HOUR_CREATE, async (_event, payload) => createHappyHourRule(payload))
+  ipcMain.handle(IPC_CHANNELS.HAPPY_HOUR_UPDATE, async (_event, payload) => updateHappyHourRule(payload))
+  ipcMain.handle(IPC_CHANNELS.HAPPY_HOUR_SET_ACTIVE, async (_event, payload) =>
+    setHappyHourRuleActive(payload),
+  )
+  ipcMain.handle(IPC_CHANNELS.HAPPY_HOUR_RESOLVE_PRICE, async (_event, payload) => resolveUnitPrice(payload))
+  ipcMain.handle(IPC_CHANNELS.SALES_UPDATE_DELIVERY, async (_event, payload) => updateSaleDelivery(payload))
 
   ipcMain.handle(IPC_CHANNELS.ACTIVITY_LIST, async (_event, payload: { entityType: string; entityId: string }) =>
     listActivity(payload.entityType, payload.entityId),

@@ -769,15 +769,34 @@ const catalog: HelpCatalog = {
   },
   "page.appointments": {
     title: "Rendez-vous",
-    summary: "Planning quotidien du personnel pour les prestations réservées.",
-    what: "Affiche les rendez-vous de la date sélectionnée et, si besoin, d’un professionnel précis. Les réservations peuvent être terminées ou annulées ; leur achèvement peut préparer une vente POS liée (SCH-FR-005).",
+    summary: "Planning quotidien de l’équipe pour les services.",
+    what: "Liste les rendez-vous du jour (et du personnel optionnel), y compris salles/fauteuils. Réservez, terminez ou annulez ; la fin peut lier une vente PDV (SCH-FR-005 / FUT-FR-081).",
     how: [
-      "Choisissez une date et filtrez éventuellement par professionnel.",
-      "Recherchez ou filtrez par statut.",
-      "Appuyez sur Terminer pour clôturer une visite, ou sur Annuler pour un rendez-vous réservé.",
+      "Choisissez une date et filtrez éventuellement par collaborateur.",
+      "Appuyez sur Réserver pour planifier service, personnel et ressource optionnelle.",
+      "Recherchez ou filtrez par statut ; consultez les noms de ressources dans la liste.",
+      "Appuyez sur Terminer pour avancer la visite, ou Annuler pour les lignes Réservées.",
     ],
-    when: "Pendant la journée de service dans les salons et autres établissements où les rendez-vous sont activés.",
-    tips: ["Les clients réservent via Réserver sur la place de marché ; le personnel gère ici le planning du jour."],
+    when: "Dans les salons / commerces avec rendez-vous activés pendant la journée de service.",
+    tips: [
+      "Les conflits de ressource affichent un toast si le fauteuil/salle est déjà occupé (buffers inclus).",
+      "Les clients réservent via Book sur la place de marché ; l’équipe gère la journée ici.",
+    ],
+  },
+  "page.resources": {
+    title: "Ressources réservables",
+    summary: "Salles, fauteuils et équipements utilisés pour les rendez-vous salon.",
+    what: "Gérez les ressources de l’agence réservées avec le personnel. Les chevauchements avec buffers sont bloqués (FUT-FR-081).",
+    how: [
+      "Ouvrez Ressources dans la navigation caisse sur les commerces avec rendez-vous.",
+      "Ajoutez une salle, un fauteuil ou un équipement et gardez-le actif.",
+      "Définissez buffer et acompte sur les produits de service si besoin.",
+      "Réservez — le système attribue une ressource libre si aucune n’est choisie.",
+    ],
+    when: "Salons / spas avec rendez-vous activés.",
+    tips: [
+      "Les buffers des services élargissent la fenêtre occupée du personnel et des ressources.",
+    ],
   },
 };
 

@@ -199,11 +199,46 @@ defmodule KaarobarWeb.V1.AppointmentController do
     end
   end
 
+  def mark_no_show(conn, %{"id" => id}) do
+    user = Guardian.Plug.current_resource(conn)
+    owner_id = conn.assigns[:owner_id] || user.id
+
+    case Appointments.get_appointment(id, owner_id) do
+      nil ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      appt ->
+        case Appointments.transition(appt, "NoShow") do
+          {:ok, updated} -> json(conn, %{data: Appointments.serialize(updated)})
+          {:error, reason} -> error_response(conn, reason)
+        end
+    end
+  end
+
+  def pay_deposit(conn, %{"id" => id}) do
+    user = Guardian.Plug.current_resource(conn)
+    owner_id = conn.assigns[:owner_id] || user.id
+
+    case Appointments.get_appointment(id, owner_id) do
+      nil ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      appt ->
+        case Appointments.mark_deposit_paid(appt) do
+          {:ok, updated} -> json(conn, %{data: Appointments.serialize(updated)})
+          {:error, reason} -> error_response(conn, reason)
+        end
+    end
+  end
+
   defp error_response(conn, :appointments_disabled),
     do: conn |> put_status(:forbidden) |> json(%{error: "appointments_disabled"})
 
   defp error_response(conn, :conflict),
     do: conn |> put_status(:conflict) |> json(%{error: "staff_conflict"})
+
+  defp error_response(conn, :resource_conflict),
+    do: conn |> put_status(:conflict) |> json(%{error: "resource_conflict"})
 
   defp error_response(conn, :invalid_transition),
     do: conn |> put_status(:unprocessable_entity) |> json(%{error: "invalid_transition"})
@@ -231,6 +266,18 @@ defmodule KaarobarWeb.V1.AppointmentController do
 
   defp error_response(conn, :invalid_datetime),
     do: conn |> put_status(:bad_request) |> json(%{error: "invalid_datetime"})
+
+  defp error_response(conn, :invalid_deposit_status),
+    do: conn |> put_status(:unprocessable_entity) |> json(%{error: "invalid_deposit_status"})
+
+  defp error_response(conn, :no_deposit_due),
+    do: conn |> put_status(:unprocessable_entity) |> json(%{error: "no_deposit_due"})
+
+  defp error_response(conn, :package_not_found),
+    do: conn |> put_status(:not_found) |> json(%{error: "package_not_found"})
+
+  defp error_response(conn, :package_exhausted),
+    do: conn |> put_status(:unprocessable_entity) |> json(%{error: "package_exhausted"})
 
   defp error_response(conn, %Ecto.Changeset{} = cs),
     do: conn |> put_status(:unprocessable_entity) |> json(%{error: inspect(cs.errors)})

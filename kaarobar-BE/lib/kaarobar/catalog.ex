@@ -176,6 +176,7 @@ defmodule Kaarobar.Catalog do
       :images,
       :variants,
       :product_category,
+      :product_resources,
       product_modifier_groups: [modifier_group: :modifiers]
     ])
     |> Repo.one()
@@ -519,6 +520,25 @@ defmodule Kaarobar.Catalog do
       product_kind: product.product_kind,
       track_inventory: product.track_inventory,
       duration_minutes: product.duration_minutes,
+      buffer_before_minutes: product.buffer_before_minutes || 0,
+      buffer_after_minutes: product.buffer_after_minutes || 0,
+      deposit_amount: decimal_str(product.deposit_amount),
+      no_show_fee_amount: decimal_str(product.no_show_fee_amount),
+      resource_requirements:
+        case Map.get(product, :product_resources) do
+          list when is_list(list) ->
+            Enum.map(list, fn pr ->
+              %{
+                id: pr.id,
+                product_id: pr.product_id,
+                bookable_resource_id: pr.bookable_resource_id,
+                resource_kind: pr.resource_kind
+              }
+            end)
+
+          _ ->
+            []
+        end,
       attributes: product.attributes || %{},
       tax_rate: decimal_str(product.tax_rate || Decimal.new("0.18")),
       is_active: product.is_active,
@@ -554,6 +574,10 @@ defmodule Kaarobar.Catalog do
       "product_kind",
       "track_inventory",
       "duration_minutes",
+      "buffer_before_minutes",
+      "buffer_after_minutes",
+      "deposit_amount",
+      "no_show_fee_amount",
       "attributes",
       "tax_rate",
       "is_active",

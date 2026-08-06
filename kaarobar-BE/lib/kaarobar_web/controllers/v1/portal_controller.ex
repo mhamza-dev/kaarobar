@@ -289,6 +289,9 @@ defmodule KaarobarWeb.V1.PortalController do
   defp portal_appt_error(conn, :conflict),
     do: conn |> put_status(:conflict) |> json(%{error: "staff_conflict"})
 
+  defp portal_appt_error(conn, :resource_conflict),
+    do: conn |> put_status(:conflict) |> json(%{error: "resource_conflict"})
+
   defp portal_appt_error(conn, :invalid_transition),
     do: conn |> put_status(:unprocessable_entity) |> json(%{error: "invalid_transition"})
 

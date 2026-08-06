@@ -25,6 +25,8 @@ export type NavRouteId =
   | 'customers'
   | 'products'
   | 'tables'
+  | 'kitchen'
+  | 'happyHour'
   | 'suppliers'
   | 'purchaseOrders'
   | 'users'
@@ -35,9 +37,11 @@ export type NavRouteId =
 export const NAV_ROUTE_ORDER: NavRouteId[] = [
   'dashboard',
   'pos',
+  'kitchen',
   'sales',
   'customers',
   'products',
+  'happyHour',
   'tables',
   'suppliers',
   'purchaseOrders',
@@ -117,9 +121,11 @@ const ROLE_PERMISSIONS: Record<SessionUser['role'], PermissionAction[]> = {
 export const NAV_ROUTE_PERMISSION: Record<NavRouteId, PermissionAction | null> = {
   dashboard: 'business:view',
   pos: 'sales:checkout',
+  kitchen: 'sales:checkout',
   sales: null,
   customers: 'customers:edit',
   products: 'products:view',
+  happyHour: 'products:view',
   tables: 'tables:edit',
   suppliers: 'suppliers:edit',
   purchaseOrders: 'purchaseOrders:edit',

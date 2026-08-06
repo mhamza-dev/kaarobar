@@ -18,7 +18,11 @@ import type {
   BusinessNature,
   Customer,
   CustomerDetail,
+  DeliveryStatus,
   DiningTable,
+  HappyHourPriceRule,
+  KitchenStatus,
+  KitchenTicketLine,
   LedgerEntry,
   PosTicket,
   PosTicketItem,
@@ -28,6 +32,7 @@ import type {
   PurchaseOrder,
   PurchaseOrderDetail,
   RefundRequest,
+  ResolvedUnitPrice,
   Sale,
   SaleDetail,
   SaleItem,
@@ -118,6 +123,7 @@ function mapProductRow(row: {
   stock_qty: number
   kind?: string | null
   tracks_stock?: number | null
+  kitchen_station?: string | null
   image_path: string | null
   is_active: number
 }): Product {
@@ -133,6 +139,7 @@ function mapProductRow(row: {
     stockQty: row.stock_qty,
     kind,
     tracksStock: row.tracks_stock == null ? defaultTracksStock(kind) : Boolean(row.tracks_stock),
+    kitchenStation: row.kitchen_station?.trim() || 'main',
     imagePath: row.image_path,
     isActive: Boolean(row.is_active),
   }
@@ -768,7 +775,8 @@ export function listProducts(businessId: string): Product[] {
   assertBusinessAccess(businessId)
   const rows = db()
     .prepare(
-      `SELECT id, business_id, branch_id, name, barcode, price, cost_price, stock_qty, kind, tracks_stock, image_path, is_active
+      `SELECT id, business_id, branch_id, name, barcode, price, cost_price, stock_qty, kind, tracks_stock,
+              kitchen_station, image_path, is_active
        FROM products WHERE business_id = ? ORDER BY created_at DESC`,
     )
     .all(businessId) as Array<Parameters<typeof mapProductRow>[0]>
@@ -848,6 +856,7 @@ export function createProduct(payload: {
     stockQty,
     kind,
     tracksStock,
+    kitchenStation: 'main',
     imagePath,
     isActive: payload.isActive !== false,
   }
@@ -933,6 +942,7 @@ export function updateProduct(payload: {
     stockQty,
     kind,
     tracksStock,
+    kitchenStation: 'main',
     imagePath,
     isActive: Boolean(isActive),
   }
@@ -1904,13 +1914,23 @@ export function createSale(payload: {
   businessId: string
   branchId: string
   customerId: string | null
-  items: Array<{ productId: string; qty: number; unitPrice: number }>
+  items: Array<{
+    productId: string
+    qty: number
+    unitPrice: number
+    ticketItemId?: string
+    priceRuleId?: string | null
+  }>
   discount?: number
   payments: Array<{ method: 'cash' | 'card' | 'credit'; amount: number }>
   servedByUserId?: string | null
   serviceMode?: ServiceMode | null
   tableId?: string | null
   ticketId?: string | null
+  riderUserId?: string | null
+  deliveryStatus?: DeliveryStatus | null
+  deliveryNotes?: string | null
+  partialTicketBill?: boolean
 }): Sale {
   requireValidLicense()
   requirePermission('sales:checkout')
@@ -1924,6 +1944,10 @@ export function createSale(payload: {
   let serviceMode: ServiceMode | null = payload.serviceMode ?? null
   let tableId: string | null = payload.tableId?.trim() || null
   const ticketId = payload.ticketId?.trim() || null
+  let riderUserId: string | null = payload.riderUserId?.trim() || null
+  let deliveryStatus: DeliveryStatus | null = payload.deliveryStatus ?? null
+  const deliveryNotes = payload.deliveryNotes?.trim() || null
+  const partialTicketBill = Boolean(payload.partialTicketBill)
 
   if (showsServedBy(nature)) {
     if (!servedByUserId) throw new Error('Served by staff is required')
@@ -1964,16 +1988,45 @@ export function createSale(payload: {
     if (!showsTables(nature)) throw new Error('Tickets are only available for food businesses')
     const ticket = db()
       .prepare(
-        `SELECT id, status, table_id, service_mode FROM pos_tickets
-         WHERE id = ? AND business_id = ?`,
+        `SELECT id, status, table_id, service_mode, rider_user_id, delivery_status, delivery_notes
+         FROM pos_tickets WHERE id = ? AND business_id = ?`,
       )
       .get(ticketId, payload.businessId) as
-      | { id: string; status: string; table_id: string | null; service_mode: ServiceMode }
+      | {
+          id: string
+          status: string
+          table_id: string | null
+          service_mode: ServiceMode
+          rider_user_id: string | null
+          delivery_status: DeliveryStatus | null
+          delivery_notes: string | null
+        }
       | undefined
     if (!ticket) throw new Error('Ticket not found')
     if (ticket.status !== 'open') throw new Error('Ticket is no longer open')
     serviceMode = ticket.service_mode
     tableId = ticket.table_id
+    if (!riderUserId) riderUserId = ticket.rider_user_id
+    if (!deliveryStatus) deliveryStatus = ticket.delivery_status
+  }
+
+  if (serviceMode === 'takeaway' || serviceMode === 'delivery') {
+    if (riderUserId) {
+      const rider = db()
+        .prepare(
+          `SELECT id FROM users
+           WHERE id = ? AND is_active = 1
+             AND (business_id = ? OR id = (SELECT owner_id FROM businesses WHERE id = ?))`,
+        )
+        .get(riderUserId, payload.businessId, payload.businessId) as { id: string } | undefined
+      if (!rider) throw new Error('Rider not found')
+      if (!deliveryStatus) deliveryStatus = 'assigned'
+    } else if (!deliveryStatus && serviceMode === 'delivery') {
+      deliveryStatus = 'pending'
+    }
+  } else {
+    riderUserId = null
+    deliveryStatus = null
   }
 
   const id = uuidv4()
@@ -2000,6 +2053,22 @@ export function createSale(payload: {
       if (product.tracks_stock && item.qty > product.stock_qty) {
         throw new Error(`Insufficient stock for ${product.name}`)
       }
+
+      if (ticketId && item.ticketItemId) {
+        const ticketItem = db()
+          .prepare(
+            `SELECT id, product_id, qty, billed_qty FROM pos_ticket_items WHERE id = ? AND ticket_id = ?`,
+          )
+          .get(item.ticketItemId, ticketId) as
+          | { id: string; product_id: string; qty: number; billed_qty: number }
+          | undefined
+        if (!ticketItem) throw new Error('Ticket line not found')
+        if (ticketItem.product_id !== item.productId) throw new Error('Ticket line product mismatch')
+        const remaining = ticketItem.qty - (ticketItem.billed_qty || 0)
+        if (item.qty > remaining + 1e-9) {
+          throw new Error(`Cannot bill more than remaining qty for ${product.name}`)
+        }
+      }
     }
 
     db()
@@ -2007,8 +2076,8 @@ export function createSale(payload: {
         `INSERT INTO sales (
            id, business_id, branch_id, invoice_no, customer_id, cashier_id,
            subtotal, discount, tax, total, amount_paid, change_due, status,
-           served_by_user_id, service_mode, table_id, created_at
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, 0, 'completed', ?, ?, ?, ?)`,
+           served_by_user_id, service_mode, table_id, rider_user_id, delivery_status, delivery_notes, created_at
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, 0, 'completed', ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         id,
@@ -2024,30 +2093,53 @@ export function createSale(payload: {
         servedByUserId,
         serviceMode,
         tableId,
+        riderUserId,
+        deliveryStatus,
+        deliveryNotes,
         at,
       )
 
     const insertSaleItem = db().prepare(
-      `INSERT INTO sale_items (id, sale_id, product_id, product_name_snapshot, qty, unit_price, discount, line_total, refunded_qty)
-       SELECT ?, ?, p.id, p.name, ?, ?, 0, ?, 0
+      `INSERT INTO sale_items (id, sale_id, product_id, product_name_snapshot, qty, unit_price, discount, line_total, refunded_qty, price_rule_id)
+       SELECT ?, ?, p.id, p.name, ?, ?, 0, ?, 0, ?
        FROM products p WHERE p.id = ?`,
     )
     const updateStock = db().prepare(
       'UPDATE products SET stock_qty = stock_qty - ? WHERE id = ? AND tracks_stock = 1',
     )
+    const bumpBilled = db().prepare(
+      `UPDATE pos_ticket_items SET billed_qty = billed_qty + ? WHERE id = ? AND ticket_id = ?`,
+    )
     for (const item of payload.items) {
-      insertSaleItem.run(uuidv4(), id, item.qty, item.unitPrice, item.qty * item.unitPrice, item.productId)
+      insertSaleItem.run(
+        uuidv4(),
+        id,
+        item.qty,
+        item.unitPrice,
+        item.qty * item.unitPrice,
+        item.priceRuleId ?? null,
+        item.productId,
+      )
       updateStock.run(item.qty, item.productId)
+      if (ticketId && item.ticketItemId) {
+        bumpBilled.run(item.qty, item.ticketItemId, ticketId)
+      }
     }
 
-    const insertPayment = db().prepare('INSERT INTO payments (id, sale_id, method, amount, created_at) VALUES (?, ?, ?, ?, ?)')
+    const insertPayment = db().prepare(
+      'INSERT INTO payments (id, sale_id, method, amount, created_at) VALUES (?, ?, ?, ?, ?)',
+    )
     for (const payment of payload.payments) {
       insertPayment.run(uuidv4(), id, payment.method, payment.amount, at)
     }
 
-    const creditAmount = payload.payments.filter((p) => p.method === 'credit').reduce((acc, p) => acc + p.amount, 0)
+    const creditAmount = payload.payments
+      .filter((p) => p.method === 'credit')
+      .reduce((acc, p) => acc + p.amount, 0)
     if (payload.customerId && creditAmount > 0) {
-      const customer = db().prepare('SELECT current_balance FROM customers WHERE id = ?').get(payload.customerId) as { current_balance: number }
+      const customer = db()
+        .prepare('SELECT current_balance FROM customers WHERE id = ?')
+        .get(payload.customerId) as { current_balance: number }
       const newBalance = customer.current_balance + creditAmount
       db().prepare('UPDATE customers SET current_balance = ? WHERE id = ?').run(newBalance, payload.customerId)
       db()
@@ -2055,13 +2147,44 @@ export function createSale(payload: {
           `INSERT INTO ledger_entries (id, customer_id, business_id, branch_id, type, amount, balance_after, reference_sale_id, note, created_by, created_at)
            VALUES (?, ?, ?, ?, 'sale', ?, ?, ?, 'Sale on credit', ?, ?)`,
         )
-        .run(uuidv4(), payload.customerId, payload.businessId, payload.branchId, creditAmount, newBalance, id, session.id, at)
+        .run(
+          uuidv4(),
+          payload.customerId,
+          payload.businessId,
+          payload.branchId,
+          creditAmount,
+          newBalance,
+          id,
+          session.id,
+          at,
+        )
     }
 
     if (ticketId) {
-      db()
-        .prepare(`UPDATE pos_tickets SET status = 'billed', updated_at = ? WHERE id = ? AND status = 'open'`)
-        .run(at, ticketId)
+      if (partialTicketBill) {
+        const remaining = db()
+          .prepare(
+            `SELECT COUNT(*) as c FROM pos_ticket_items
+             WHERE ticket_id = ? AND billed_qty + 0.000001 < qty`,
+          )
+          .get(ticketId) as { c: number }
+        if (remaining.c === 0) {
+          db()
+            .prepare(`UPDATE pos_tickets SET status = 'billed', updated_at = ? WHERE id = ? AND status = 'open'`)
+            .run(at, ticketId)
+        } else {
+          db().prepare(`UPDATE pos_tickets SET updated_at = ? WHERE id = ?`).run(at, ticketId)
+        }
+      } else {
+        db()
+          .prepare(
+            `UPDATE pos_ticket_items SET billed_qty = qty WHERE ticket_id = ?`,
+          )
+          .run(ticketId)
+        db()
+          .prepare(`UPDATE pos_tickets SET status = 'billed', updated_at = ? WHERE id = ? AND status = 'open'`)
+          .run(at, ticketId)
+      }
     }
   })()
 
@@ -2075,61 +2198,33 @@ export function createSale(payload: {
     payload: { total, itemCount: payload.items.length },
   })
 
-  return {
-    id,
-    businessId: payload.businessId,
-    branchId: payload.branchId,
-    invoiceNo,
-    customerId: payload.customerId,
-    cashierId: session.id,
-    subtotal,
-    discount,
-    total,
-    amountPaid,
-    status: 'completed',
-    createdAt: at,
-    servedByUserId,
-    servedByName: null,
-    serviceMode,
-    tableId,
-    tableName: null,
-  }
+  return getSaleById(id)
 }
 
-export function listSales(businessId: string): Sale[] {
-  requireValidLicense()
-  assertBusinessAccess(businessId)
-  const rows = db()
-    .prepare(
-      `SELECT s.id, s.business_id, s.branch_id, s.invoice_no, s.customer_id, s.cashier_id,
-              s.subtotal, s.discount, s.total, s.amount_paid, s.status, s.created_at,
-              s.served_by_user_id, u.name as served_by_name, s.service_mode, s.table_id, t.name as table_name
-       FROM sales s
-       LEFT JOIN users u ON u.id = s.served_by_user_id
-       LEFT JOIN dining_tables t ON t.id = s.table_id
-       WHERE s.business_id = ?
-       ORDER BY s.created_at DESC`,
-    )
-    .all(businessId) as Array<{
-      id: string
-      business_id: string
-      branch_id: string
-      invoice_no: string
-      customer_id: string | null
-      cashier_id: string
-      subtotal: number
-      discount: number
-      total: number
-      amount_paid: number
-      status: Sale['status']
-      created_at: string
-      served_by_user_id: string | null
-      served_by_name: string | null
-      service_mode: ServiceMode | null
-      table_id: string | null
-      table_name: string | null
-    }>
-  return rows.map((row) => ({
+function mapSaleRow(row: {
+  id: string
+  business_id: string
+  branch_id: string
+  invoice_no: string
+  customer_id: string | null
+  cashier_id: string
+  subtotal: number
+  discount: number
+  total: number
+  amount_paid: number
+  status: Sale['status']
+  created_at: string
+  served_by_user_id: string | null
+  served_by_name: string | null
+  service_mode: ServiceMode | null
+  table_id: string | null
+  table_name: string | null
+  rider_user_id?: string | null
+  rider_name?: string | null
+  delivery_status?: DeliveryStatus | null
+  delivery_notes?: string | null
+}): Sale {
+  return {
     id: row.id,
     businessId: row.business_id,
     branchId: row.branch_id,
@@ -2147,7 +2242,49 @@ export function listSales(businessId: string): Sale[] {
     serviceMode: row.service_mode,
     tableId: row.table_id,
     tableName: row.table_name,
-  }))
+    riderUserId: row.rider_user_id ?? null,
+    riderName: row.rider_name ?? null,
+    deliveryStatus: row.delivery_status ?? null,
+    deliveryNotes: row.delivery_notes ?? null,
+  }
+}
+
+function getSaleById(saleId: string): Sale {
+  const row = db()
+    .prepare(
+      `SELECT s.id, s.business_id, s.branch_id, s.invoice_no, s.customer_id, s.cashier_id,
+              s.subtotal, s.discount, s.total, s.amount_paid, s.status, s.created_at,
+              s.served_by_user_id, u.name as served_by_name, s.service_mode, s.table_id, t.name as table_name,
+              s.rider_user_id, r.name as rider_name, s.delivery_status, s.delivery_notes
+       FROM sales s
+       LEFT JOIN users u ON u.id = s.served_by_user_id
+       LEFT JOIN users r ON r.id = s.rider_user_id
+       LEFT JOIN dining_tables t ON t.id = s.table_id
+       WHERE s.id = ?`,
+    )
+    .get(saleId) as Parameters<typeof mapSaleRow>[0] | undefined
+  if (!row) throw new Error('Sale not found')
+  return mapSaleRow(row)
+}
+
+export function listSales(businessId: string): Sale[] {
+  requireValidLicense()
+  assertBusinessAccess(businessId)
+  const rows = db()
+    .prepare(
+      `SELECT s.id, s.business_id, s.branch_id, s.invoice_no, s.customer_id, s.cashier_id,
+              s.subtotal, s.discount, s.total, s.amount_paid, s.status, s.created_at,
+              s.served_by_user_id, u.name as served_by_name, s.service_mode, s.table_id, t.name as table_name,
+              s.rider_user_id, r.name as rider_name, s.delivery_status, s.delivery_notes
+       FROM sales s
+       LEFT JOIN users u ON u.id = s.served_by_user_id
+       LEFT JOIN users r ON r.id = s.rider_user_id
+       LEFT JOIN dining_tables t ON t.id = s.table_id
+       WHERE s.business_id = ?
+       ORDER BY s.created_at DESC`,
+    )
+    .all(businessId) as Array<Parameters<typeof mapSaleRow>[0]>
+  return rows.map(mapSaleRow)
 }
 
 export function voidRefundSale(payload: { saleId: string; reason: string }): { ok: true } {
@@ -2428,44 +2565,16 @@ export function reviewRefundRequest(payload: {
 export function getSaleDetail(saleId: string): SaleDetail {
   requireValidLicense()
   requireSession()
-  const saleRow = db()
-    .prepare(
-      `SELECT s.id, s.business_id, s.branch_id, s.invoice_no, s.customer_id, s.cashier_id,
-              s.subtotal, s.discount, s.total, s.amount_paid, s.status, s.created_at,
-              s.served_by_user_id, u.name as served_by_name, s.service_mode, s.table_id, t.name as table_name
-       FROM sales s
-       LEFT JOIN users u ON u.id = s.served_by_user_id
-       LEFT JOIN dining_tables t ON t.id = s.table_id
-       WHERE s.id = ?`,
-    )
-    .get(saleId) as
-    | {
-      id: string
-      business_id: string
-      branch_id: string
-      invoice_no: string
-      customer_id: string | null
-      cashier_id: string
-      subtotal: number
-      discount: number
-      total: number
-      amount_paid: number
-      status: Sale['status']
-      created_at: string
-      served_by_user_id: string | null
-      served_by_name: string | null
-      service_mode: ServiceMode | null
-      table_id: string | null
-      table_name: string | null
-    }
-    | undefined
-  if (!saleRow) throw new Error('Sale not found')
-  assertBusinessAccess(saleRow.business_id)
+  const sale = getSaleById(saleId)
+  assertBusinessAccess(sale.businessId)
 
   const itemRows = db()
     .prepare(
-      `SELECT id, sale_id, product_id, product_name_snapshot, qty, unit_price, line_total, refunded_qty
-       FROM sale_items WHERE sale_id = ?`,
+      `SELECT si.id, si.sale_id, si.product_id, si.product_name_snapshot, si.qty, si.unit_price, si.line_total,
+              si.refunded_qty, si.price_rule_id, r.name as price_rule_name
+       FROM sale_items si
+       LEFT JOIN happy_hour_price_rules r ON r.id = si.price_rule_id
+       WHERE si.sale_id = ?`,
     )
     .all(saleId) as Array<{
       id: string
@@ -2476,6 +2585,8 @@ export function getSaleDetail(saleId: string): SaleDetail {
       unit_price: number
       line_total: number
       refunded_qty: number
+      price_rule_id: string | null
+      price_rule_name: string | null
     }>
 
   const paymentRows = db()
@@ -2487,25 +2598,7 @@ export function getSaleDetail(saleId: string): SaleDetail {
     .all(saleId) as Array<{ id: string }>
 
   return {
-    sale: {
-      id: saleRow.id,
-      businessId: saleRow.business_id,
-      branchId: saleRow.branch_id,
-      invoiceNo: saleRow.invoice_no,
-      customerId: saleRow.customer_id,
-      cashierId: saleRow.cashier_id,
-      subtotal: saleRow.subtotal,
-      discount: saleRow.discount,
-      total: saleRow.total,
-      amountPaid: saleRow.amount_paid,
-      status: saleRow.status,
-      createdAt: saleRow.created_at,
-      servedByUserId: saleRow.served_by_user_id,
-      servedByName: saleRow.served_by_name,
-      serviceMode: saleRow.service_mode,
-      tableId: saleRow.table_id,
-      tableName: saleRow.table_name,
-    },
+    sale,
     items: itemRows.map(
       (row): SaleItem => ({
         id: row.id,
@@ -2517,6 +2610,8 @@ export function getSaleDetail(saleId: string): SaleDetail {
         lineTotal: row.line_total,
         refundedQty: row.refunded_qty || 0,
         refundableQty: row.qty - (row.refunded_qty || 0),
+        priceRuleId: row.price_rule_id,
+        priceRuleName: row.price_rule_name,
       }),
     ),
     payments: paymentRows.map((row) => ({
@@ -2536,57 +2631,62 @@ export function findSaleByInvoice(businessId: string, invoiceNo: string): Sale |
   const code = invoiceNo.trim()
   if (!code) return null
   const row = db()
-    .prepare(
-      `SELECT s.id, s.business_id, s.branch_id, s.invoice_no, s.customer_id, s.cashier_id,
-              s.subtotal, s.discount, s.total, s.amount_paid, s.status, s.created_at,
-              s.served_by_user_id, u.name as served_by_name, s.service_mode, s.table_id, t.name as table_name
-       FROM sales s
-       LEFT JOIN users u ON u.id = s.served_by_user_id
-       LEFT JOIN dining_tables t ON t.id = s.table_id
-       WHERE s.business_id = ? AND s.invoice_no = ?
-       LIMIT 1`,
-    )
-    .get(businessId, code) as
-    | {
-        id: string
-        business_id: string
-        branch_id: string
-        invoice_no: string
-        customer_id: string | null
-        cashier_id: string
-        subtotal: number
-        discount: number
-        total: number
-        amount_paid: number
-        status: Sale['status']
-        created_at: string
-        served_by_user_id: string | null
-        served_by_name: string | null
-        service_mode: ServiceMode | null
-        table_id: string | null
-        table_name: string | null
-      }
-    | undefined
+    .prepare(`SELECT id FROM sales WHERE business_id = ? AND invoice_no = ? LIMIT 1`)
+    .get(businessId, code) as { id: string } | undefined
   if (!row) return null
-  return {
-    id: row.id,
-    businessId: row.business_id,
-    branchId: row.branch_id,
-    invoiceNo: row.invoice_no,
-    customerId: row.customer_id,
-    cashierId: row.cashier_id,
-    subtotal: row.subtotal,
-    discount: row.discount,
-    total: row.total,
-    amountPaid: row.amount_paid,
-    status: row.status,
-    createdAt: row.created_at,
-    servedByUserId: row.served_by_user_id,
-    servedByName: row.served_by_name,
-    serviceMode: row.service_mode,
-    tableId: row.table_id,
-    tableName: row.table_name,
+  return getSaleById(row.id)
+}
+
+export function updateSaleDelivery(payload: {
+  saleId: string
+  riderUserId?: string | null
+  deliveryStatus?: DeliveryStatus | null
+  deliveryNotes?: string | null
+}): Sale {
+  requireValidLicense()
+  requirePermission('sales:checkout')
+  const session = requireSession()
+  const sale = getSaleById(payload.saleId)
+  assertBusinessAccess(sale.businessId)
+  if (sale.serviceMode !== 'takeaway' && sale.serviceMode !== 'delivery') {
+    throw new Error('Delivery tracking is only for takeaway or delivery sales')
   }
+  let riderUserId =
+    payload.riderUserId === undefined ? sale.riderUserId : payload.riderUserId?.trim() || null
+  let deliveryStatus =
+    payload.deliveryStatus === undefined ? sale.deliveryStatus : payload.deliveryStatus
+  const deliveryNotes =
+    payload.deliveryNotes === undefined
+      ? sale.deliveryNotes
+      : payload.deliveryNotes?.trim() || null
+
+  if (riderUserId) {
+    const rider = db()
+      .prepare(
+        `SELECT id FROM users
+         WHERE id = ? AND is_active = 1
+           AND (business_id = ? OR id = (SELECT owner_id FROM businesses WHERE id = ?))`,
+      )
+      .get(riderUserId, sale.businessId, sale.businessId) as { id: string } | undefined
+    if (!rider) throw new Error('Rider not found')
+    if (!deliveryStatus || deliveryStatus === 'pending') deliveryStatus = 'assigned'
+  }
+
+  db()
+    .prepare(
+      `UPDATE sales SET rider_user_id = ?, delivery_status = ?, delivery_notes = ? WHERE id = ?`,
+    )
+    .run(riderUserId, deliveryStatus, deliveryNotes, payload.saleId)
+
+  writeActivity({
+    businessId: sale.businessId,
+    actorUserId: session.id,
+    entityType: 'sale',
+    entityId: payload.saleId,
+    action: 'delivery_updated',
+    summary: `Delivery status ${deliveryStatus ?? 'cleared'}`,
+  })
+  return getSaleById(payload.saleId)
 }
 
 export async function printSaleReceipt(saleId: string): Promise<{ ok: true }> {
@@ -2924,6 +3024,12 @@ function mapPosTicketItem(row: {
   qty: number
   unit_price: number
   line_total: number
+  seat_no?: number | null
+  kitchen_status?: string | null
+  fired_at?: string | null
+  bumped_at?: string | null
+  billed_qty?: number | null
+  price_rule_id?: string | null
 }): PosTicketItem {
   return {
     id: row.id,
@@ -2932,14 +3038,24 @@ function mapPosTicketItem(row: {
     qty: row.qty,
     unitPrice: row.unit_price,
     lineTotal: row.line_total,
+    seatNo: row.seat_no ?? null,
+    kitchenStatus: (row.kitchen_status as KitchenStatus) || 'held',
+    firedAt: row.fired_at ?? null,
+    bumpedAt: row.bumped_at ?? null,
+    billedQty: row.billed_qty || 0,
+    priceRuleId: row.price_rule_id ?? null,
   }
 }
 
 function loadPosTicket(ticketId: string): PosTicket {
   const row = db()
     .prepare(
-      `SELECT id, business_id, branch_id, table_id, service_mode, status, opened_by, notes, created_at, updated_at
-       FROM pos_tickets WHERE id = ?`,
+      `SELECT t.id, t.business_id, t.branch_id, t.table_id, t.service_mode, t.status, t.opened_by, t.notes,
+              t.rider_user_id, u.name as rider_name, t.delivery_status, t.delivery_notes,
+              t.created_at, t.updated_at
+       FROM pos_tickets t
+       LEFT JOIN users u ON u.id = t.rider_user_id
+       WHERE t.id = ?`,
     )
     .get(ticketId) as
     | {
@@ -2951,6 +3067,10 @@ function loadPosTicket(ticketId: string): PosTicket {
       status: PosTicket['status']
       opened_by: string
       notes: string | null
+      rider_user_id: string | null
+      rider_name: string | null
+      delivery_status: DeliveryStatus | null
+      delivery_notes: string | null
       created_at: string
       updated_at: string
     }
@@ -2958,11 +3078,16 @@ function loadPosTicket(ticketId: string): PosTicket {
   if (!row) throw new Error('Ticket not found')
   const items = db()
     .prepare(
-      `SELECT id, product_id, product_name_snapshot, qty, unit_price, line_total
+      `SELECT id, product_id, product_name_snapshot, qty, unit_price, line_total,
+              seat_no, kitchen_status, fired_at, bumped_at, billed_qty, price_rule_id
        FROM pos_ticket_items WHERE ticket_id = ? ORDER BY rowid ASC`,
     )
     .all(ticketId) as Array<Parameters<typeof mapPosTicketItem>[0]>
   const mappedItems = items.map(mapPosTicketItem)
+  const unbilledTotal = mappedItems.reduce((acc, item) => {
+    const remaining = Math.max(0, item.qty - item.billedQty)
+    return acc + remaining * item.unitPrice
+  }, 0)
   return {
     id: row.id,
     businessId: row.business_id,
@@ -2972,8 +3097,13 @@ function loadPosTicket(ticketId: string): PosTicket {
     status: row.status,
     openedBy: row.opened_by,
     notes: row.notes,
+    riderUserId: row.rider_user_id,
+    riderName: row.rider_name,
+    deliveryStatus: row.delivery_status,
+    deliveryNotes: row.delivery_notes,
     items: mappedItems,
     total: mappedItems.reduce((acc, item) => acc + item.lineTotal, 0),
+    unbilledTotal,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -3157,10 +3287,15 @@ export function openPosTicket(payload: {
 
   const id = uuidv4()
   const at = nowIso()
+  const deliveryStatus =
+    payload.serviceMode === 'takeaway' || payload.serviceMode === 'delivery' ? 'pending' : null
   db()
     .prepare(
-      `INSERT INTO pos_tickets (id, business_id, branch_id, table_id, service_mode, status, opened_by, notes, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, 'open', ?, ?, ?, ?)`,
+      `INSERT INTO pos_tickets (
+         id, business_id, branch_id, table_id, service_mode, status, opened_by, notes,
+         rider_user_id, delivery_status, delivery_notes, created_at, updated_at
+       )
+       VALUES (?, ?, ?, ?, ?, 'open', ?, ?, NULL, ?, NULL, ?, ?)`,
     )
     .run(
       id,
@@ -3170,6 +3305,7 @@ export function openPosTicket(payload: {
       payload.serviceMode,
       session.id,
       payload.notes?.trim() || null,
+      deliveryStatus,
       at,
       at,
     )
@@ -3186,7 +3322,14 @@ export function openPosTicket(payload: {
 
 export function setPosTicketItems(payload: {
   ticketId: string
-  items: Array<{ productId: string; qty: number; unitPrice: number }>
+  items: Array<{
+    id?: string
+    productId: string
+    qty: number
+    unitPrice: number
+    seatNo?: number | null
+    priceRuleId?: string | null
+  }>
 }): PosTicket {
   requireValidLicense()
   requirePermission('sales:checkout')
@@ -3199,10 +3342,26 @@ export function setPosTicketItems(payload: {
 
   const at = nowIso()
   db().transaction(() => {
+    const previous = db()
+      .prepare(
+        `SELECT id, kitchen_status, fired_at, bumped_at, billed_qty FROM pos_ticket_items WHERE ticket_id = ?`,
+      )
+      .all(payload.ticketId) as Array<{
+        id: string
+        kitchen_status: string
+        fired_at: string | null
+        bumped_at: string | null
+        billed_qty: number
+      }>
+    const prevById = new Map(previous.map((p) => [p.id, p]))
+
     db().prepare('DELETE FROM pos_ticket_items WHERE ticket_id = ?').run(payload.ticketId)
     const insert = db().prepare(
-      `INSERT INTO pos_ticket_items (id, ticket_id, product_id, product_name_snapshot, qty, unit_price, line_total)
-       SELECT ?, ?, p.id, p.name, ?, ?, ?
+      `INSERT INTO pos_ticket_items (
+         id, ticket_id, product_id, product_name_snapshot, qty, unit_price, line_total,
+         seat_no, kitchen_status, fired_at, bumped_at, billed_qty, price_rule_id
+       )
+       SELECT ?, ?, p.id, p.name, ?, ?, ?, ?, ?, ?, ?, ?, ?
        FROM products p WHERE p.id = ? AND p.business_id = ? AND p.is_active = 1`,
     )
     for (const item of payload.items) {
@@ -3218,12 +3377,21 @@ export function setPosTicketItems(payload: {
       if (product.tracks_stock && item.qty > product.stock_qty) {
         throw new Error(`Insufficient stock for ${product.name}`)
       }
+      const keepId = item.id && prevById.has(item.id) ? item.id : uuidv4()
+      const prev = item.id ? prevById.get(item.id) : undefined
+      const billedQty = Math.min(prev?.billed_qty || 0, item.qty)
       const result = insert.run(
-        uuidv4(),
+        keepId,
         payload.ticketId,
         item.qty,
         item.unitPrice,
         item.qty * item.unitPrice,
+        item.seatNo ?? null,
+        prev?.kitchen_status || 'held',
+        prev?.fired_at ?? null,
+        prev?.bumped_at ?? null,
+        billedQty,
+        item.priceRuleId ?? null,
         item.productId,
         existing.business_id,
       )
@@ -3257,5 +3425,512 @@ export function cancelPosTicket(ticketId: string): { ok: true } {
     summary: 'Cancelled open ticket',
   })
   return { ok: true }
+}
+
+export function fireTicketItems(payload: { ticketId: string; itemIds: string[] }): PosTicket {
+  requireValidLicense()
+  requirePermission('sales:checkout')
+  const session = requireSession()
+  const ticket = loadPosTicket(payload.ticketId)
+  assertBusinessAccess(ticket.businessId)
+  if (ticket.status !== 'open') throw new Error('Ticket is no longer open')
+  if (!payload.itemIds.length) throw new Error('Select items to send to kitchen')
+  const at = nowIso()
+  const update = db().prepare(
+    `UPDATE pos_ticket_items
+     SET kitchen_status = 'fired', fired_at = COALESCE(fired_at, ?)
+     WHERE id = ? AND ticket_id = ? AND kitchen_status = 'held'`,
+  )
+  db().transaction(() => {
+    for (const itemId of payload.itemIds) {
+      update.run(at, itemId, payload.ticketId)
+    }
+    db().prepare(`UPDATE pos_tickets SET updated_at = ? WHERE id = ?`).run(at, payload.ticketId)
+  })()
+  writeActivity({
+    businessId: ticket.businessId,
+    actorUserId: session.id,
+    entityType: 'pos_ticket',
+    entityId: payload.ticketId,
+    action: 'kitchen_fired',
+    summary: `Fired ${payload.itemIds.length} item(s) to kitchen`,
+  })
+  return loadPosTicket(payload.ticketId)
+}
+
+export function assignTicketRider(payload: {
+  ticketId: string
+  riderUserId: string | null
+  deliveryStatus?: DeliveryStatus | null
+  deliveryNotes?: string | null
+}): PosTicket {
+  requireValidLicense()
+  requirePermission('sales:checkout')
+  const session = requireSession()
+  const ticket = loadPosTicket(payload.ticketId)
+  assertBusinessAccess(ticket.businessId)
+  if (ticket.status !== 'open') throw new Error('Ticket is no longer open')
+  if (ticket.serviceMode !== 'takeaway' && ticket.serviceMode !== 'delivery') {
+    throw new Error('Rider assignment is only for takeaway or delivery')
+  }
+  const riderUserId = payload.riderUserId?.trim() || null
+  let deliveryStatus = payload.deliveryStatus ?? ticket.deliveryStatus
+  const deliveryNotes =
+    payload.deliveryNotes === undefined
+      ? ticket.deliveryNotes
+      : payload.deliveryNotes?.trim() || null
+  if (riderUserId) {
+    const rider = db()
+      .prepare(
+        `SELECT id FROM users
+         WHERE id = ? AND is_active = 1
+           AND (business_id = ? OR id = (SELECT owner_id FROM businesses WHERE id = ?))`,
+      )
+      .get(riderUserId, ticket.businessId, ticket.businessId) as { id: string } | undefined
+    if (!rider) throw new Error('Rider not found')
+    if (!deliveryStatus || deliveryStatus === 'pending') deliveryStatus = 'assigned'
+  }
+  db()
+    .prepare(
+      `UPDATE pos_tickets
+       SET rider_user_id = ?, delivery_status = ?, delivery_notes = ?, updated_at = ?
+       WHERE id = ?`,
+    )
+    .run(riderUserId, deliveryStatus, deliveryNotes, nowIso(), payload.ticketId)
+  writeActivity({
+    businessId: ticket.businessId,
+    actorUserId: session.id,
+    entityType: 'pos_ticket',
+    entityId: payload.ticketId,
+    action: 'rider_assigned',
+    summary: riderUserId ? 'Rider assigned' : 'Rider cleared',
+  })
+  return loadPosTicket(payload.ticketId)
+}
+
+export function listActiveKitchen(businessId: string): KitchenTicketLine[] {
+  requireValidLicense()
+  requirePermission('sales:checkout')
+  assertBusinessAccess(businessId)
+  if (!showsTables(getBusinessNature(businessId))) {
+    throw new Error('Kitchen display is only available for food businesses')
+  }
+  const rows = db()
+    .prepare(
+      `SELECT ti.id as item_id, ti.ticket_id, dt.name as table_name, t.service_mode,
+              ti.product_name_snapshot, ti.qty, ti.seat_no, ti.kitchen_status,
+              COALESCE(p.kitchen_station, 'main') as kitchen_station,
+              ti.fired_at, ti.bumped_at, t.created_at
+       FROM pos_ticket_items ti
+       JOIN pos_tickets t ON t.id = ti.ticket_id
+       LEFT JOIN dining_tables dt ON dt.id = t.table_id
+       LEFT JOIN products p ON p.id = ti.product_id
+       WHERE t.business_id = ?
+         AND t.status = 'open'
+         AND ti.kitchen_status IN ('fired', 'ready')
+         AND ti.billed_qty + 0.000001 < ti.qty
+       ORDER BY ti.fired_at ASC, t.created_at ASC`,
+    )
+    .all(businessId) as Array<{
+      item_id: string
+      ticket_id: string
+      table_name: string | null
+      service_mode: ServiceMode
+      product_name_snapshot: string
+      qty: number
+      seat_no: number | null
+      kitchen_status: KitchenStatus
+      kitchen_station: string
+      fired_at: string | null
+      bumped_at: string | null
+      created_at: string
+    }>
+  return rows.map((row) => ({
+    itemId: row.item_id,
+    ticketId: row.ticket_id,
+    tableName: row.table_name,
+    serviceMode: row.service_mode,
+    productName: row.product_name_snapshot,
+    qty: row.qty,
+    seatNo: row.seat_no,
+    kitchenStatus: row.kitchen_status,
+    kitchenStation: row.kitchen_station,
+    firedAt: row.fired_at,
+    bumpedAt: row.bumped_at,
+    createdAt: row.created_at,
+  }))
+}
+
+export function bumpKitchenItems(payload: { itemIds: string[] }): { ok: true } {
+  requireValidLicense()
+  requirePermission('sales:checkout')
+  requireSession()
+  if (!payload.itemIds.length) throw new Error('Select items to bump')
+  const at = nowIso()
+  const update = db().prepare(
+    `UPDATE pos_ticket_items
+     SET kitchen_status = 'bumped', bumped_at = ?
+     WHERE id = ? AND kitchen_status IN ('fired', 'ready')`,
+  )
+  db().transaction(() => {
+    for (const id of payload.itemIds) update.run(at, id)
+  })()
+  return { ok: true }
+}
+
+export function recallKitchenItems(payload: { itemIds: string[] }): { ok: true } {
+  requireValidLicense()
+  requirePermission('sales:checkout')
+  requireSession()
+  if (!payload.itemIds.length) throw new Error('Select items to recall')
+  const update = db().prepare(
+    `UPDATE pos_ticket_items
+     SET kitchen_status = 'fired', bumped_at = NULL
+     WHERE id = ? AND kitchen_status = 'bumped'`,
+  )
+  db().transaction(() => {
+    for (const id of payload.itemIds) update.run(id)
+  })()
+  return { ok: true }
+}
+
+function mapHappyHourRule(row: {
+  id: string
+  business_id: string
+  name: string
+  product_id: string | null
+  category_id: string | null
+  override_price: number | null
+  percent_off: number | null
+  weekdays_mask: number
+  start_time: string
+  end_time: string
+  priority: number
+  is_active: number
+  valid_from: string | null
+  valid_to: string | null
+  created_at: string
+  updated_at: string
+}): HappyHourPriceRule {
+  return {
+    id: row.id,
+    businessId: row.business_id,
+    name: row.name,
+    productId: row.product_id,
+    categoryId: row.category_id,
+    overridePrice: row.override_price,
+    percentOff: row.percent_off,
+    weekdaysMask: row.weekdays_mask,
+    startTime: row.start_time,
+    endTime: row.end_time,
+    priority: row.priority,
+    isActive: Boolean(row.is_active),
+    validFrom: row.valid_from,
+    validTo: row.valid_to,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
+
+function assertHappyHourPricing(payload: {
+  overridePrice?: number | null
+  percentOff?: number | null
+  productId?: string | null
+  categoryId?: string | null
+  weekdaysMask: number
+  startTime: string
+  endTime: string
+}): { overridePrice: number | null; percentOff: number | null; productId: string | null; categoryId: string | null } {
+  const overridePrice =
+    payload.overridePrice == null || payload.overridePrice === ('' as unknown)
+      ? null
+      : Number(payload.overridePrice)
+  const percentOff =
+    payload.percentOff == null || payload.percentOff === ('' as unknown)
+      ? null
+      : Number(payload.percentOff)
+  const hasOverride = overridePrice != null && Number.isFinite(overridePrice)
+  const hasPercent = percentOff != null && Number.isFinite(percentOff)
+  if (hasOverride === hasPercent) {
+    throw new Error('Set either an override price or a percent off, not both')
+  }
+  if (hasOverride && overridePrice! < 0) throw new Error('Override price must be >= 0')
+  if (hasPercent && (percentOff! < 0 || percentOff! > 100)) {
+    throw new Error('Percent off must be between 0 and 100')
+  }
+  const productId = payload.productId?.trim() || null
+  const categoryId = payload.categoryId?.trim() || null
+  if (productId && categoryId) throw new Error('Rule cannot target both a product and a category')
+  if (!Number.isInteger(payload.weekdaysMask) || payload.weekdaysMask < 0 || payload.weekdaysMask > 127) {
+    throw new Error('Invalid weekdays mask')
+  }
+  const timeRe = /^([01]\d|2[0-3]):[0-5]\d$/
+  if (!timeRe.test(payload.startTime) || !timeRe.test(payload.endTime)) {
+    throw new Error('Start and end time must be HH:MM')
+  }
+  return {
+    overridePrice: hasOverride ? overridePrice : null,
+    percentOff: hasPercent ? percentOff : null,
+    productId,
+    categoryId,
+  }
+}
+
+function localParts(atIso?: string): { date: string; weekdayBit: number; hm: string } {
+  const d = atIso ? new Date(atIso) : new Date()
+  // Local wall clock for happy hour windows
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  // JS: 0=Sun … 6=Sat; mask bit0=Mon … bit6=Sun
+  const jsDay = d.getDay()
+  const weekdayBit = jsDay === 0 ? 1 << 6 : 1 << (jsDay - 1)
+  return { date: `${y}-${m}-${day}`, weekdayBit, hm: `${hh}:${mm}` }
+}
+
+function timeInWindow(hm: string, start: string, end: string): boolean {
+  if (start === end) return true
+  if (start < end) return hm >= start && hm < end
+  // overnight
+  return hm >= start || hm < end
+}
+
+export function resolveUnitPrice(payload: {
+  businessId: string
+  productId: string
+  at?: string
+}): ResolvedUnitPrice {
+  requireValidLicense()
+  assertBusinessAccess(payload.businessId)
+  const product = db()
+    .prepare(
+      `SELECT id, price, category_id FROM products WHERE id = ? AND business_id = ? AND is_active = 1`,
+    )
+    .get(payload.productId, payload.businessId) as
+    | { id: string; price: number; category_id: string | null }
+    | undefined
+  if (!product) throw new Error('Product not found')
+  const { date, weekdayBit, hm } = localParts(payload.at)
+  const rules = db()
+    .prepare(
+      `SELECT id, name, product_id, category_id, override_price, percent_off, weekdays_mask,
+              start_time, end_time, priority, valid_from, valid_to
+       FROM happy_hour_price_rules
+       WHERE business_id = ? AND is_active = 1
+       ORDER BY priority DESC, created_at DESC`,
+    )
+    .all(payload.businessId) as Array<{
+      id: string
+      name: string
+      product_id: string | null
+      category_id: string | null
+      override_price: number | null
+      percent_off: number | null
+      weekdays_mask: number
+      start_time: string
+      end_time: string
+      priority: number
+      valid_from: string | null
+      valid_to: string | null
+    }>
+
+  type Candidate = { id: string; name: string; unitPrice: number; scope: number }
+  const candidates: Candidate[] = []
+  for (const rule of rules) {
+    if ((rule.weekdays_mask & weekdayBit) === 0) continue
+    if (!timeInWindow(hm, rule.start_time, rule.end_time)) continue
+    if (rule.valid_from && date < rule.valid_from.slice(0, 10)) continue
+    if (rule.valid_to && date > rule.valid_to.slice(0, 10)) continue
+    let scope = 0
+    if (rule.product_id) {
+      if (rule.product_id !== product.id) continue
+      scope = 2
+    } else if (rule.category_id) {
+      if (!product.category_id || rule.category_id !== product.category_id) continue
+      scope = 1
+    } else {
+      scope = 0
+    }
+    const unitPrice =
+      rule.override_price != null
+        ? rule.override_price
+        : Math.max(0, product.price * (1 - (rule.percent_off || 0) / 100))
+    candidates.push({ id: rule.id, name: rule.name, unitPrice, scope })
+  }
+  candidates.sort((a, b) => b.scope - a.scope)
+  const best = candidates[0]
+  if (!best) {
+    return { unitPrice: product.price, listPrice: product.price, priceRuleId: null, priceRuleName: null }
+  }
+  return {
+    unitPrice: best.unitPrice,
+    listPrice: product.price,
+    priceRuleId: best.id,
+    priceRuleName: best.name,
+  }
+}
+
+export function listHappyHourRules(businessId: string): HappyHourPriceRule[] {
+  requireValidLicense()
+  requirePermission('products:view')
+  assertBusinessAccess(businessId)
+  const rows = db()
+    .prepare(
+      `SELECT id, business_id, name, product_id, category_id, override_price, percent_off,
+              weekdays_mask, start_time, end_time, priority, is_active, valid_from, valid_to,
+              created_at, updated_at
+       FROM happy_hour_price_rules WHERE business_id = ?
+       ORDER BY priority DESC, name ASC`,
+    )
+    .all(businessId) as Array<Parameters<typeof mapHappyHourRule>[0]>
+  return rows.map(mapHappyHourRule)
+}
+
+export function createHappyHourRule(payload: {
+  businessId: string
+  name: string
+  productId?: string | null
+  categoryId?: string | null
+  overridePrice?: number | null
+  percentOff?: number | null
+  weekdaysMask: number
+  startTime: string
+  endTime: string
+  priority?: number
+  isActive?: boolean
+  validFrom?: string | null
+  validTo?: string | null
+}): HappyHourPriceRule {
+  requireValidLicense()
+  requirePermission('products:edit')
+  assertBusinessAccess(payload.businessId)
+  const session = requireSession()
+  const name = payload.name.trim()
+  if (!name) throw new Error('Rule name is required')
+  const pricing = assertHappyHourPricing(payload)
+  const id = uuidv4()
+  const at = nowIso()
+  db()
+    .prepare(
+      `INSERT INTO happy_hour_price_rules (
+         id, business_id, name, product_id, category_id, override_price, percent_off,
+         weekdays_mask, start_time, end_time, priority, is_active, valid_from, valid_to,
+         created_at, updated_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      id,
+      payload.businessId,
+      name,
+      pricing.productId,
+      pricing.categoryId,
+      pricing.overridePrice,
+      pricing.percentOff,
+      payload.weekdaysMask,
+      payload.startTime,
+      payload.endTime,
+      payload.priority ?? 0,
+      payload.isActive === false ? 0 : 1,
+      payload.validFrom?.trim() || null,
+      payload.validTo?.trim() || null,
+      at,
+      at,
+    )
+  writeActivity({
+    businessId: payload.businessId,
+    actorUserId: session.id,
+    entityType: 'happy_hour_rule',
+    entityId: id,
+    action: 'created',
+    summary: `Created happy hour rule ${name}`,
+  })
+  return listHappyHourRules(payload.businessId).find((r) => r.id === id)!
+}
+
+export function updateHappyHourRule(payload: {
+  id: string
+  name: string
+  productId?: string | null
+  categoryId?: string | null
+  overridePrice?: number | null
+  percentOff?: number | null
+  weekdaysMask: number
+  startTime: string
+  endTime: string
+  priority?: number
+  isActive?: boolean
+  validFrom?: string | null
+  validTo?: string | null
+}): HappyHourPriceRule {
+  requireValidLicense()
+  requirePermission('products:edit')
+  const session = requireSession()
+  const existing = db()
+    .prepare('SELECT business_id FROM happy_hour_price_rules WHERE id = ?')
+    .get(payload.id) as { business_id: string } | undefined
+  if (!existing) throw new Error('Rule not found')
+  assertBusinessAccess(existing.business_id)
+  const name = payload.name.trim()
+  if (!name) throw new Error('Rule name is required')
+  const pricing = assertHappyHourPricing(payload)
+  const at = nowIso()
+  db()
+    .prepare(
+      `UPDATE happy_hour_price_rules SET
+         name = ?, product_id = ?, category_id = ?, override_price = ?, percent_off = ?,
+         weekdays_mask = ?, start_time = ?, end_time = ?, priority = ?, is_active = ?,
+         valid_from = ?, valid_to = ?, updated_at = ?
+       WHERE id = ?`,
+    )
+    .run(
+      name,
+      pricing.productId,
+      pricing.categoryId,
+      pricing.overridePrice,
+      pricing.percentOff,
+      payload.weekdaysMask,
+      payload.startTime,
+      payload.endTime,
+      payload.priority ?? 0,
+      payload.isActive === false ? 0 : 1,
+      payload.validFrom?.trim() || null,
+      payload.validTo?.trim() || null,
+      at,
+      payload.id,
+    )
+  writeActivity({
+    businessId: existing.business_id,
+    actorUserId: session.id,
+    entityType: 'happy_hour_rule',
+    entityId: payload.id,
+    action: 'updated',
+    summary: `Updated happy hour rule ${name}`,
+  })
+  return listHappyHourRules(existing.business_id).find((r) => r.id === payload.id)!
+}
+
+export function setHappyHourRuleActive(payload: { id: string; isActive: boolean }): HappyHourPriceRule {
+  requireValidLicense()
+  requirePermission('products:edit')
+  const session = requireSession()
+  const existing = db()
+    .prepare('SELECT business_id, name FROM happy_hour_price_rules WHERE id = ?')
+    .get(payload.id) as { business_id: string; name: string } | undefined
+  if (!existing) throw new Error('Rule not found')
+  assertBusinessAccess(existing.business_id)
+  db()
+    .prepare(`UPDATE happy_hour_price_rules SET is_active = ?, updated_at = ? WHERE id = ?`)
+    .run(payload.isActive ? 1 : 0, nowIso(), payload.id)
+  writeActivity({
+    businessId: existing.business_id,
+    actorUserId: session.id,
+    entityType: 'happy_hour_rule',
+    entityId: payload.id,
+    action: payload.isActive ? 'activated' : 'deactivated',
+    summary: `${payload.isActive ? 'Activated' : 'Deactivated'} happy hour rule ${existing.name}`,
+  })
+  return listHappyHourRules(existing.business_id).find((r) => r.id === payload.id)!
 }
 

@@ -241,10 +241,10 @@ To set clear expectations:
 - **Not** multi-branch cloud sync across many shops in one login (single shop per install).  
 - **Not** a browser SaaS — it is a **desktop** app with local data.  
 - **Not** a free-form brand color picker — curated brand presets keep contrast readable.  
-- **Not** kitchen display / KOT, delivery rider tracking, or split-bill (later enterprise).  
 - Business **nature** is set at setup (not edited daily in Business Settings).  
 - Auto-backup runs **while Kaarobar is open** on that PC (not a background Windows/Mac service).  
 - Day-to-day selling does **not** require constant internet after license activation.
+- Food hospitality **in scope** (Must): kitchen display / KOT (`FUT-FR-001`), split bill (`FUT-FR-002`), delivery rider status (`FUT-FR-004`), happy-hour pricing (`FUT-FR-008`).
 
 ---
 

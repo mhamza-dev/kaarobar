@@ -44,6 +44,14 @@ export type ProductFormProduct = {
   unit?: string | null;
   product_kind?: string | null;
   duration_minutes?: number | null;
+  buffer_before_minutes?: number | null;
+  buffer_after_minutes?: number | null;
+  deposit_amount?: string | null;
+  no_show_fee_amount?: string | null;
+  resource_requirements?: Array<{
+    resource_kind?: string | null;
+    bookable_resource_id?: string | null;
+  }>;
   category?: string | null;
   category_id?: string | null;
 };
@@ -57,12 +65,18 @@ const emptyForm: ProductFormValues = {
   unit: "pcs",
   product_kind: "goods",
   duration_minutes: "",
+  buffer_before_minutes: "0",
+  buffer_after_minutes: "0",
+  deposit_amount: "",
+  no_show_fee_amount: "",
+  resource_kind: "",
   category: "",
   category_id: "",
 };
 
 function toFormState(product?: ProductFormProduct | null): ProductFormValues {
   if (!product) return emptyForm;
+  const req = product.resource_requirements?.[0];
   return {
     sku: product.sku || "",
     name: product.name || "",
@@ -73,6 +87,17 @@ function toFormState(product?: ProductFormProduct | null): ProductFormValues {
     product_kind: product.product_kind || "goods",
     duration_minutes:
       product.duration_minutes != null ? String(product.duration_minutes) : "",
+    buffer_before_minutes:
+      product.buffer_before_minutes != null
+        ? String(product.buffer_before_minutes)
+        : "0",
+    buffer_after_minutes:
+      product.buffer_after_minutes != null
+        ? String(product.buffer_after_minutes)
+        : "0",
+    deposit_amount: product.deposit_amount || "",
+    no_show_fee_amount: product.no_show_fee_amount || "",
+    resource_kind: req?.resource_kind || "",
     category: product.category || "",
     category_id: product.category_id || "",
   };
@@ -151,8 +176,18 @@ export default function ProductFormModal({
       };
       const fd = new FormData();
       Object.entries(payload).forEach(([k, v]) => {
-        if (v) fd.append(k, String(v));
+        if (k === "resource_kind") return;
+        if (v !== "" && v != null) fd.append(k, String(v));
       });
+      if (
+        values.product_kind === "service" ||
+        values.product_kind === "combo"
+      ) {
+        const reqs = values.resource_kind
+          ? [{ resource_kind: values.resource_kind }]
+          : [];
+        fd.append("resource_requirements", JSON.stringify(reqs));
+      }
       if (image) fd.append("image", image);
 
       const res = editing
@@ -274,12 +309,50 @@ export default function ProductFormModal({
                 ]}
               />
             </div>
-            {values.product_kind === "service" ? (
-              <FormikTextField
-                name="duration_minutes"
-                label="Duration (minutes)"
-                placeholder="e.g. 45"
-              />
+            {values.product_kind === "service" ||
+            values.product_kind === "combo" ? (
+              <>
+                <FormikTextField
+                  name="duration_minutes"
+                  label="Duration (minutes)"
+                  placeholder="e.g. 45"
+                />
+                <div className={formGridClass}>
+                  <FormikTextField
+                    name="buffer_before_minutes"
+                    label={t("appointments.bufferBefore")}
+                    placeholder="0"
+                  />
+                  <FormikTextField
+                    name="buffer_after_minutes"
+                    label={t("appointments.bufferAfter")}
+                    placeholder="0"
+                  />
+                </div>
+                <div className={formGridClass}>
+                  <FormikDecimalField
+                    name="deposit_amount"
+                    label={t("appointments.depositAmount")}
+                  />
+                  <FormikDecimalField
+                    name="no_show_fee_amount"
+                    label={t("appointments.noShowFee")}
+                  />
+                </div>
+                <FormikSelectField
+                  name="resource_kind"
+                  label={t("appointments.requiredResource")}
+                  options={[
+                    { value: "", label: t("appointments.noResourceRequired") },
+                    { value: "chair", label: t("resources.kind.chair") },
+                    { value: "room", label: t("resources.kind.room") },
+                    {
+                      value: "equipment",
+                      label: t("resources.kind.equipment"),
+                    },
+                  ]}
+                />
+              </>
             ) : null}
             <Field label="Product image">
               <input

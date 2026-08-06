@@ -74,6 +74,7 @@ CREATE TABLE IF NOT EXISTS products (
   kind TEXT NOT NULL DEFAULT 'item' CHECK (kind IN ('item','service','package','deal')),
   tracks_stock INTEGER NOT NULL DEFAULT 1 CHECK (tracks_stock IN (0, 1)),
   unit TEXT DEFAULT 'pcs',
+  kitchen_station TEXT NOT NULL DEFAULT 'main',
   image_path TEXT,
   is_active INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL,
@@ -150,6 +151,9 @@ CREATE TABLE IF NOT EXISTS sales (
   served_by_user_id TEXT REFERENCES users(id) ON DELETE RESTRICT,
   service_mode TEXT CHECK (service_mode IS NULL OR service_mode IN ('dine_in','takeaway','delivery')),
   table_id TEXT REFERENCES dining_tables(id) ON DELETE RESTRICT,
+  rider_user_id TEXT REFERENCES users(id) ON DELETE RESTRICT,
+  delivery_status TEXT CHECK (delivery_status IS NULL OR delivery_status IN ('pending','assigned','out_for_delivery','delivered','cancelled')),
+  delivery_notes TEXT,
   created_at TEXT NOT NULL
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_sales_invoice ON sales(business_id, invoice_no);
@@ -165,6 +169,9 @@ CREATE TABLE IF NOT EXISTS pos_tickets (
   status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','billed','cancelled')),
   opened_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   notes TEXT,
+  rider_user_id TEXT REFERENCES users(id) ON DELETE RESTRICT,
+  delivery_status TEXT CHECK (delivery_status IS NULL OR delivery_status IN ('pending','assigned','out_for_delivery','delivered','cancelled')),
+  delivery_notes TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -178,9 +185,16 @@ CREATE TABLE IF NOT EXISTS pos_ticket_items (
   product_name_snapshot TEXT NOT NULL,
   qty REAL NOT NULL CHECK (qty > 0),
   unit_price REAL NOT NULL CHECK (unit_price >= 0),
-  line_total REAL NOT NULL CHECK (line_total >= 0)
+  line_total REAL NOT NULL CHECK (line_total >= 0),
+  seat_no INTEGER,
+  kitchen_status TEXT NOT NULL DEFAULT 'held' CHECK (kitchen_status IN ('held','fired','ready','bumped')),
+  fired_at TEXT,
+  bumped_at TEXT,
+  billed_qty REAL NOT NULL DEFAULT 0 CHECK (billed_qty >= 0),
+  price_rule_id TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_pos_ticket_items_ticket ON pos_ticket_items(ticket_id);
+CREATE INDEX IF NOT EXISTS idx_pos_ticket_items_kitchen ON pos_ticket_items(kitchen_status);
 
 CREATE TABLE IF NOT EXISTS sale_items (
   id TEXT PRIMARY KEY,
@@ -191,7 +205,8 @@ CREATE TABLE IF NOT EXISTS sale_items (
   unit_price REAL NOT NULL CHECK (unit_price >= 0),
   discount REAL NOT NULL DEFAULT 0 CHECK (discount >= 0),
   line_total REAL NOT NULL CHECK (line_total >= 0),
-  refunded_qty REAL NOT NULL DEFAULT 0 CHECK (refunded_qty >= 0)
+  refunded_qty REAL NOT NULL DEFAULT 0 CHECK (refunded_qty >= 0),
+  price_rule_id TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_sale_items_sale ON sale_items(sale_id);
 
@@ -296,6 +311,32 @@ CREATE TABLE IF NOT EXISTS supplier_ledger_entries (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_supplier_ledger_supplier ON supplier_ledger_entries(supplier_id);
+
+CREATE TABLE IF NOT EXISTS happy_hour_price_rules (
+  id TEXT PRIMARY KEY,
+  business_id TEXT NOT NULL REFERENCES businesses(id) ON DELETE RESTRICT,
+  name TEXT NOT NULL,
+  product_id TEXT REFERENCES products(id) ON DELETE CASCADE,
+  category_id TEXT REFERENCES categories(id) ON DELETE CASCADE,
+  override_price REAL CHECK (override_price IS NULL OR override_price >= 0),
+  percent_off REAL CHECK (percent_off IS NULL OR (percent_off >= 0 AND percent_off <= 100)),
+  weekdays_mask INTEGER NOT NULL,
+  start_time TEXT NOT NULL,
+  end_time TEXT NOT NULL,
+  priority INTEGER NOT NULL DEFAULT 0,
+  is_active INTEGER NOT NULL DEFAULT 1,
+  valid_from TEXT,
+  valid_to TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  CHECK (
+    (override_price IS NOT NULL AND percent_off IS NULL)
+    OR (override_price IS NULL AND percent_off IS NOT NULL)
+  ),
+  CHECK (product_id IS NULL OR category_id IS NULL)
+);
+CREATE INDEX IF NOT EXISTS idx_hh_rules_business_active
+  ON happy_hour_price_rules(business_id, is_active, priority DESC);
 
 CREATE TABLE IF NOT EXISTS settings (
   business_id TEXT NOT NULL DEFAULT '',

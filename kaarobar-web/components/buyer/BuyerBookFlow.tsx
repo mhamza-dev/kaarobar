@@ -22,6 +22,7 @@ export type BookableService = {
   price?: string | null;
   description?: string | null;
   duration_minutes?: number | null;
+  deposit_amount?: string | null;
   image_url?: string | null;
   category?: string | null;
   category_ref?: { id: string; name: string } | null;
@@ -40,6 +41,7 @@ type Slot = {
   product_id: string;
   branch_id: string;
   duration_minutes: number;
+  deposit_amount?: string | null;
 };
 
 type Step = "service" | "staff" | "slot" | "confirm";
@@ -210,7 +212,13 @@ export default function BuyerBookFlow({
       toast.success(t("appointments.booked"));
       router.push("/app/sales");
     } catch (err) {
-      const msg = err instanceof Error ? err.message : t("appointments.bookFailed");
+      const code = err instanceof Error ? err.message : "";
+      const msg =
+        code === "resource_conflict"
+          ? t("appointments.resourceConflict")
+          : code === "staff_conflict"
+            ? t("appointments.staffConflict")
+            : code || t("appointments.bookFailed");
       setError(msg);
       toast.error(msg);
     }
@@ -280,6 +288,13 @@ export default function BuyerBookFlow({
                 <p className="mt-1 flex items-center gap-1 text-xs text-muted">
                   <Clock className="h-3.5 w-3.5" />
                   {t("appointments.minutes", { count: s.duration_minutes })}
+                </p>
+              ) : null}
+              {s.deposit_amount && Number(s.deposit_amount) > 0 ? (
+                <p className="mt-1 text-xs font-medium text-brand">
+                  {t("appointments.depositNote", {
+                    amount: formatDecimal(s.deposit_amount),
+                  })}
                 </p>
               ) : null}
               <p className="mt-auto pt-3 text-lg font-bold text-heading">
@@ -431,6 +446,13 @@ export default function BuyerBookFlow({
               {" · "}
               Rs {formatDecimal(service.price)}
             </p>
+            {service.deposit_amount && Number(service.deposit_amount) > 0 ? (
+              <Alert tone="info">
+                {t("appointments.depositNote", {
+                  amount: formatDecimal(service.deposit_amount),
+                })}
+              </Alert>
+            ) : null}
             <CustomForm
               initialValues={{ notes: "" }}
               validationSchema={appointmentNotesSchema}

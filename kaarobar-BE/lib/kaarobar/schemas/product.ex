@@ -19,6 +19,10 @@ defmodule Kaarobar.Schemas.Product do
     field :product_kind, :string, default: "goods"
     field :track_inventory, :boolean, default: true
     field :duration_minutes, :integer
+    field :buffer_before_minutes, :integer, default: 0
+    field :buffer_after_minutes, :integer, default: 0
+    field :deposit_amount, :decimal
+    field :no_show_fee_amount, :decimal
     field :attributes, :map, default: %{}
     field :tax_rate, :decimal
     field :is_active, :boolean, default: true
@@ -34,6 +38,7 @@ defmodule Kaarobar.Schemas.Product do
     has_many :batches, Kaarobar.Schemas.ProductBatch
     has_many :product_modifier_groups, Kaarobar.Schemas.ProductModifierGroup
     has_many :product_suppliers, Kaarobar.Schemas.ProductSupplier
+    has_many :product_resources, Kaarobar.Schemas.ProductResource
 
     many_to_many :suppliers, Kaarobar.Schemas.Supplier,
       join_through: Kaarobar.Schemas.ProductSupplier
@@ -57,6 +62,10 @@ defmodule Kaarobar.Schemas.Product do
       :product_kind,
       :track_inventory,
       :duration_minutes,
+      :buffer_before_minutes,
+      :buffer_after_minutes,
+      :deposit_amount,
+      :no_show_fee_amount,
       :attributes,
       :tax_rate,
       :is_active,

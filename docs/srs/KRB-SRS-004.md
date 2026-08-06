@@ -32,6 +32,7 @@ This document is the authoritative engineering contract for **Kaarobar** (Cloud 
 | 3.2 | 2026-08-01 | Hamza AI | Two editions (Cloud subscription vs Offline Desktop one-time). |
 | 4.0 | 2026-08-06 | Hamza AI | Whole-product monorepo SRS. Documents all packages (`kaarobar-BE`, web, mobiles, Cloud Desktop, Offline Desktop). Confirms normative stack **Elixir/Phoenix + PostgreSQL + Oban** (NestJS wording retired). Adds §14 Possible Upcoming Features. Retires KRB-SRS-002 / KRB-SRS-003 as separate documents. |
 | **4.1** | **2026-08-06** | **Hamza AI** | **Multi-market scope.** Removes Pakistan-only product framing. Launch markets: **Pakistan, United Kingdom, Germany, France**, plus further markets as Product enables. Reframes **G4** as jurisdiction-ready tax/fiscal integrations. Positions **FBR-FR-*** as the **Pakistan fiscal e-reporting pack** under a pluggable adapter model (hooks Must; production adapter Should). Expands staff locale Must-set and regional tax roadmap (UK VAT, DE/FR packs). **§14 feature detailing:** each `FUT-FR-*` has a full **Description** plus short **Notes**. **Expanded §14 catalogue:** hospitality floor/waitlist/pricing; stocktake/labels/supplier portal; bank feeds/expenses/budgets; HR docs/reviews/LMS; NPS/B2B/wallet/omnichannel; SSO/report builder/API sandbox; Offline bridge/scale; payments & wallets; vertical packs; AI; security/GDPR/DR. |
+| **4.2** | **2026-08-06** | **Hamza AI** | Promotes **FUT-FR-001 / 002 / 004 / 008** to **Must** on Offline Desktop (`kaarobar-desktop-offline`: KOT, split bill, rider, happy-hour pricing). Promotes **FUT-FR-081** to **Must** on Cloud (BE + web: salon resource & room booking). Leaves **FUT-FR-030** biometric as Could. |
 
 ### Monorepo packages (v4.1 — normative)
 
@@ -219,11 +220,9 @@ The SRS is the authoritative engineering contract. It is prepared in accordance 
 
 - Multi-branch / multi-business **cloud** sync in one Offline install
 - Browser SaaS for the Offline SKU
-- Kitchen display / KOT
-- Delivery rider tracking
-- Split-bill at checkout
 - Free-form brand color picker (curated presets only)
 - OS-level background backup service (auto-backup runs while the app is open)
+- Live courier GPS ETA maps (coarse rider status via FUT-FR-004 is in scope)
 
 #### 1.4.5 Assumptions and Dependencies
 
@@ -1464,7 +1463,7 @@ Product feature doc: [`docs/offline-desktop.md`](../offline-desktop.md). Publish
 | ODE-FR-013 | License expiry within 7 days (or already expired) shall surface in reminders; **expired licenses shall lock POS, products, and sales** (including mid-session); **lifetime** licenses shall never lock. Restock reminders from sales velocity shall be available. | Must |
 | ODE-FR-014 | Client installers shall be available for **macOS DMG**, **Windows Setup/Portable**, and **Linux AppImage**. | Must |
 
-**Out of scope for ODE** (also §1.4.4): multi-branch cloud sync; browser SaaS; KOT/kitchen display; delivery rider tracking; split-bill; free-form brand color picker; OS background backup service.
+**Out of scope for ODE** (also §1.4.4): multi-branch cloud sync; browser SaaS; free-form brand color picker; OS background backup service. (**Promoted into Offline Must:** KOT/kitchen display `FUT-FR-001`, split-bill `FUT-FR-002`, delivery rider `FUT-FR-004`, happy-hour pricing `FUT-FR-008`.)
 
 ---
 
@@ -1623,14 +1622,14 @@ Each feature below includes a **Description** (behaviour, actors, scope) in addi
 
 | ID | Feature | MoSCoW |
 |----|---------|--------|
-| FUT-FR-001 | Kitchen Display / KOT | Could |
-| FUT-FR-002 | Split bill / share check | Could |
+| FUT-FR-001 | Kitchen Display / KOT | **Must** (Offline Desktop) |
+| FUT-FR-002 | Split bill / share check | **Must** (Offline Desktop) |
 | FUT-FR-003 | Course / fire timing | Could |
-| FUT-FR-004 | Delivery rider assignment | Could |
+| FUT-FR-004 | Delivery rider assignment | **Must** (Offline Desktop) |
 | FUT-FR-005 | Online ordering aggregator connectors | Could |
 | FUT-FR-006 | Table / floor-plan management | Could |
 | FUT-FR-007 | Waitlist & queue management | Could |
-| FUT-FR-008 | Time-based / happy-hour pricing | Could |
+| FUT-FR-008 | Time-based / happy-hour pricing | **Must** (Offline Desktop) |
 | FUT-FR-010 | Serial / IMEI tracking | Could |
 | FUT-FR-011 | Lot recall workflows | Could |
 | FUT-FR-012 | Gift cards / store credit | Could |
@@ -1692,7 +1691,7 @@ Each feature below includes a **Description** (behaviour, actors, scope) in addi
 | FUT-FR-073 | Open Banking / payout rails (UK/EU) | Could |
 | FUT-FR-074 | Digital receipt share (WhatsApp/SMS/email) | Could |
 | FUT-FR-080 | Pharmacy dispense & controlled-drug log | Could |
-| FUT-FR-081 | Salon / spa resource & room booking | Could |
+| FUT-FR-081 | Salon / spa resource & room booking | **Must** (Cloud BE + web) |
 | FUT-FR-082 | Supermarket weigh-scale & PLU | Could |
 | FUT-FR-083 | Agrochemical batch / compliance pack | Could |
 | FUT-FR-084 | Wholesale van-sales / route accounting | Could |
@@ -1714,17 +1713,17 @@ Each feature below includes a **Description** (behaviour, actors, scope) in addi
 
 | | |
 |--|--|
-| **MoSCoW** | Could |
+| **MoSCoW** | **Must** (Offline Desktop — `kaarobar-desktop-offline`) |
 | **Description** | Route prepared ticket / sale-line items from POS (and online orders when present) to one or more kitchen display screens or printers by station (e.g. grill, bar, dessert). Kitchen staff shall bump (mark done), recall, and re-fire items. Tickets shall show modifiers, course, table/order identity, and elapsed time. Voided or modified lines shall update or cancel on the kitchen side without blocking POS checkout. |
-| **Notes** | Restaurant / café vertical; optional hardware; Cloud Desktop + Offline paths TBD on promote. |
+| **Notes** | Shipped Offline in-app Kitchen route + fire/bump/recall on ticket lines. Cloud port TBD. |
 
 #### FUT-FR-002 — Split bill / share check
 
 | | |
 |--|--|
-| **MoSCoW** | Could |
+| **MoSCoW** | **Must** (Offline Desktop — `kaarobar-desktop-offline`) |
 | **Description** | Before final tender, cashiers shall split an open check by seat, by selected items, or into equal parts. Each resulting sub-check shall accept its own payment mix (cash, card, khata, loyalty) and produce its own receipt / invoice number. Stock and journals shall post once per original sale semantics (no double decrement). Partial pays on the parent check shall remain visible until fully settled. |
-| **Notes** | Explicitly out of scope for Offline Desktop baseline today. |
+| **Notes** | Shipped Offline via partial ticket billing (`billed_qty`) + Split Bill modal. |
 
 #### FUT-FR-003 — Course / fire timing
 
@@ -1738,9 +1737,9 @@ Each feature below includes a **Description** (behaviour, actors, scope) in addi
 
 | | |
 |--|--|
-| **MoSCoW** | Could |
+| **MoSCoW** | **Must** (Offline Desktop — `kaarobar-desktop-offline`) |
 | **Description** | For takeaway/delivery orders, staff shall assign a rider (internal staff or external), track status (assigned → picked up → delivered / failed), and optionally capture proof-of-delivery notes. Customers (portal) may see coarse status when Portal is live. This is **not** a courier network or live map ETA product. |
-| **Notes** | No live GPS ETA maps (still out of scope unless Product reverses). |
+| **Notes** | Shipped Offline using staff users as riders + delivery status on tickets/sales. No live GPS ETA maps. |
 
 #### FUT-FR-005 — Online ordering aggregator connectors
 
@@ -1770,9 +1769,9 @@ Each feature below includes a **Description** (behaviour, actors, scope) in addi
 
 | | |
 |--|--|
-| **MoSCoW** | Could |
+| **MoSCoW** | **Must** (Offline Desktop — `kaarobar-desktop-offline`) |
 | **Description** | Catalog prices shall support scheduled overrides by weekday/time window (happy hour, lunch specials, seasonal menus). POS shall resolve the active price at cart time and show the applied rule on the receipt. Conflicts between overlapping windows shall use explicit priority. |
-| **Notes** | Distinct from coupons and customer price lists (FUT-FR-013). |
+| **Notes** | Shipped Offline `happy_hour_price_rules` + POS resolve at add-to-cart. Distinct from coupons / customer price lists (FUT-FR-013). |
 
 ### 14.2 Retail / inventory depth
 
@@ -2282,9 +2281,9 @@ Each feature below includes a **Description** (behaviour, actors, scope) in addi
 
 | | |
 |--|--|
-| **MoSCoW** | Could |
+| **MoSCoW** | **Must** (Cloud — `kaarobar-BE` + `kaarobar-web`) |
 | **Description** | Extend appointments with bookable resources (rooms, chairs, equipment), buffer times, deposit/no-show fees, and package sessions. Staff calendars show resource conflicts. |
-| **Notes** | Extends SCH-FR; Portal self-booking when CUS-FR live. |
+| **Notes** | Extends SCH-FR; Portal auto-assigns resources. Offline Desktop resource booking remains out of scope. |
 
 #### FUT-FR-082 — Supermarket weigh-scale & PLU
 

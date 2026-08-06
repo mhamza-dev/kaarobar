@@ -11,13 +11,16 @@ alias Kaarobar.{
 
 alias Kaarobar.Schemas.{
   Appointment,
+  AppointmentResource,
   AttendanceRecord,
+  BookableResource,
   CampaignPayment,
   CampaignSegment,
   Coupon,
   CrmCampaign,
   Customer,
   CustomerAccount,
+  CustomerPackagePurchase,
   Employee,
   InventoryRecord,
   LeaveRequest,
@@ -26,7 +29,9 @@ alias Kaarobar.Schemas.{
   Product,
   ProductBranchPrice,
   ProductImage,
+  ProductResource,
   ProductSupplier,
+  ServicePackage,
   SubscriptionPlan,
   Supplier,
   User
@@ -3462,6 +3467,9 @@ seed_salon_appointments = fn owner, business, branches, products, employees ->
               status: status,
               booked_by: if(customer, do: "customer", else: "staff"),
               notes: "Demo appointment",
+              buffer_before_minutes: service.buffer_before_minutes || 0,
+              buffer_after_minutes: service.buffer_after_minutes || 0,
+              deposit_status: "none",
               inserted_at: seed_now,
               updated_at: seed_now
             }
@@ -3490,6 +3498,182 @@ seed_salon_appointments = fn owner, business, branches, products, employees ->
   end
 end
 
+seed_salon_resources = fn owner, business, branches, products, customers ->
+  if business.industry != "salon" or branches == [] or products == [] do
+    :ok
+  else
+    branch = List.first(branches)
+
+    existing =
+      from(r in BookableResource, where: r.business_id == ^business.id, select: count(r.id))
+      |> Repo.one()
+
+    if existing > 0 do
+      :ok
+    else
+      resource_rows = [
+        %{
+          owner_id: owner.id,
+          business_id: business.id,
+          branch_id: branch.id,
+          name: "Chair 1",
+          kind: "chair",
+          capacity: 1,
+          is_active: true,
+          notes: "Front station",
+          inserted_at: seed_now,
+          updated_at: seed_now
+        },
+        %{
+          owner_id: owner.id,
+          business_id: business.id,
+          branch_id: branch.id,
+          name: "Chair 2",
+          kind: "chair",
+          capacity: 1,
+          is_active: true,
+          notes: "Window station",
+          inserted_at: seed_now,
+          updated_at: seed_now
+        },
+        %{
+          owner_id: owner.id,
+          business_id: business.id,
+          branch_id: branch.id,
+          name: "Treatment Room",
+          kind: "room",
+          capacity: 1,
+          is_active: true,
+          notes: "Private facial room",
+          inserted_at: seed_now,
+          updated_at: seed_now
+        },
+        %{
+          owner_id: owner.id,
+          business_id: business.id,
+          branch_id: branch.id,
+          name: "Steamer",
+          kind: "equipment",
+          capacity: 1,
+          is_active: true,
+          notes: nil,
+          inserted_at: seed_now,
+          updated_at: seed_now
+        }
+      ]
+
+      _ = bulk_insert!.(BookableResource, resource_rows, [])
+
+      chairs =
+        from(r in BookableResource,
+          where: r.business_id == ^business.id and r.kind == "chair",
+          order_by: [asc: r.name]
+        )
+        |> Repo.all()
+
+      services =
+        Enum.filter(products, &(&1.product_kind in ["service", "combo"] and &1.is_active != false))
+
+      # Buffers / deposit / no-show on first two services
+      Enum.each(Enum.take(services, 2), fn service ->
+        service
+        |> change(%{
+          buffer_before_minutes: 5,
+          buffer_after_minutes: 10,
+          deposit_amount: Decimal.new("200"),
+          no_show_fee_amount: Decimal.new("150")
+        })
+        |> Repo.update!()
+      end)
+
+      # Require a chair for service products
+      pr_rows =
+        for {service, idx} <- Enum.with_index(services) do
+          chair = Enum.at(chairs, rem(idx, max(length(chairs), 1)))
+
+          %{
+            product_id: service.id,
+            bookable_resource_id: nil,
+            resource_kind: "chair",
+            inserted_at: seed_now,
+            updated_at: seed_now
+          }
+          |> then(fn row ->
+            if chair && rem(idx, 3) == 0,
+              do: %{row | bookable_resource_id: chair.id, resource_kind: nil},
+              else: row
+          end)
+        end
+
+      if pr_rows != [], do: _ = bulk_insert!.(ProductResource, pr_rows, [])
+
+      # Demo package on first service
+      if services != [] do
+        service = List.first(services)
+
+        pkg =
+          %ServicePackage{}
+          |> ServicePackage.changeset(%{
+            owner_id: owner.id,
+            business_id: business.id,
+            product_id: service.id,
+            name: "5-session #{service.name} pack",
+            session_count: 5,
+            price: Decimal.new("2000"),
+            is_active: true
+          })
+          |> Repo.insert!()
+
+        customer = List.first(customers || [])
+
+        if customer do
+          _ =
+            %CustomerPackagePurchase{}
+            |> CustomerPackagePurchase.changeset(%{
+              owner_id: owner.id,
+              business_id: business.id,
+              customer_id: customer.id,
+              package_id: pkg.id,
+              remaining_sessions: 5,
+              used_sessions: 0,
+              status: "active"
+            })
+            |> Repo.insert!()
+        end
+
+        IO.puts("    · seeded salon resources + package for #{business.name}")
+      end
+
+      # Link first few appointments to Chair 1 when present
+      chair1 = List.first(chairs)
+
+      if chair1 do
+        appts =
+          from(a in Appointment,
+            where: a.business_id == ^business.id,
+            order_by: [asc: a.starts_at],
+            limit: 5
+          )
+          |> Repo.all()
+
+        ar_rows =
+          for appt <- appts do
+            %{
+              appointment_id: appt.id,
+              bookable_resource_id: chair1.id,
+              inserted_at: seed_now,
+              updated_at: seed_now
+            }
+          end
+
+        if ar_rows != [], do: _ = bulk_insert!.(AppointmentResource, ar_rows, [])
+      end
+
+      :ok
+    end
+  end
+end
+
 Enum.each(owner_summaries, fn %{owner: owner, email: email, businesses: businesses} ->
   if email == "owner@kaarobar.local" do
     # Enrich every industry vertical for the primary owner
@@ -3498,6 +3682,11 @@ Enum.each(owner_summaries, fn %{owner: owner, email: email, businesses: business
       when branches != [] ->
         seed_crm_and_finance.(owner, business, branches, products)
         seed_salon_appointments.(owner, business, branches, products, employees)
+
+        customers =
+          from(c in Customer, where: c.business_id == ^business.id, limit: 5) |> Repo.all()
+
+        seed_salon_resources.(owner, business, branches, products, customers)
         IO.puts("  + enriched #{business.name} (CRM / AR-AP / PO / portal / appointments)")
 
       _ ->

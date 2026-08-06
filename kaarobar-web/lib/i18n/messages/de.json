@@ -53,7 +53,8 @@
     "markRead": "Als gelesen markieren",
     "read": "gelesen",
     "dismiss": "Ausblenden",
-    "enterField": "{field} eingeben"
+    "enterField": "{field} eingeben",
+    "select": "Select…"
   },
   "table": {
     "export": "Exportieren",
@@ -129,7 +130,8 @@
     "products": "Produkte",
     "orders": "Bestellungen",
     "loyalty": "Treue",
-    "account": "Account"
+    "account": "Account",
+    "resources": "Ressourcen"
   },
   "auth": {
     "signInTitle": "Anmelden",
@@ -215,7 +217,9 @@
     "productDetailTitle": "Produkt",
     "buyerAccountTitle": "Account",
     "buyerAccountDesc": "Saldo, Treue und Hinweise für Ihr Marktplatz-Profil.",
-    "appointmentDetailTitle": "Termin"
+    "appointmentDetailTitle": "Termin",
+    "resourcesTitle": "Buchbare Ressourcen",
+    "resourcesDesc": "Räume, Stühle und Geräte für Salon-Termine."
   },
   "marketplace": {
     "eyebrow": "Marktplatz",
@@ -386,13 +390,34 @@
     "staffFilter": "Mitarbeiter",
     "allStaff": "Alle Mitarbeiter",
     "time": "Zeit",
-    "customer": "Kunde",
+    "customer": "Customer",
     "searchPlaceholder": "Suchen Sie nach Kunden, Dienstleistungen, Mitarbeitern ...",
     "loadFailed": "Termine konnten nicht geladen werden",
     "emptyScheduleTitle": "An diesem Tag sind keine Termine vorhanden",
     "emptyScheduleBody": "Ändern Sie das Datum oder warten Sie auf Kundenbuchungen.",
     "disabledTitle": "Termine nicht aktiviert",
-    "disabledBody": "Aktivieren Sie hier Termine für Salon- oder Dienstleistungsunternehmen, um den Zeitplan anzuzeigen."
+    "disabledBody": "Aktivieren Sie hier Termine für Salon- oder Dienstleistungsunternehmen, um den Zeitplan anzuzeigen.",
+    "bookTitle": "Termin buchen",
+    "bookDesc": "Service mit Personal und optional Raum/Stuhl planen.",
+    "walkIn": "Walk-in (kein Kunde)",
+    "startTime": "Startzeit",
+    "resource": "Ressource",
+    "autoAssignResource": "Freie Ressource automatisch zuweisen",
+    "resourceConflict": "Diese Ressource ist zu dieser Zeit bereits gebucht.",
+    "staffConflict": "Dieser Mitarbeiter ist zu dieser Zeit bereits gebucht.",
+    "bufferBefore": "Puffer vorher (Minuten)",
+    "bufferAfter": "Puffer nachher (Minuten)",
+    "depositAmount": "Anzahlung",
+    "noShowFee": "No-Show-Gebühr",
+    "depositNote": "Für diesen Service ist eine Anzahlung von {amount} fällig.",
+    "selectOption": "Auswählen…",
+    "bookNew": "Buchen",
+    "startTimeRequired": "Startzeit ist erforderlich",
+    "payDeposit": "Anzahlung nehmen",
+    "depositPaid": "Anzahlung als bezahlt markiert",
+    "depositFailed": "Anzahlung fehlgeschlagen",
+    "requiredResource": "Erforderliche Ressource",
+    "noResourceRequired": "Keine"
   },
   "dashboard": {
     "salesToday": "Vertrieb heute",
@@ -1113,5 +1138,31 @@
   },
   "sales": {
     "searchInvoice": "Rechnung oder Kunde suchen…"
+  },
+  "resources": {
+    "add": "Ressource hinzufügen",
+    "edit": "Ressource bearbeiten",
+    "name": "Name",
+    "kindLabel": "Art",
+    "kind": "Art",
+    "capacity": "Kapazität",
+    "notes": "Notizen",
+    "emptyTitle": "Noch keine Ressourcen",
+    "emptyBody": "Stühle, Räume oder Geräte für Terminbuchungen hinzufügen.",
+    "loadFailed": "Ressourcen konnten nicht geladen werden",
+    "new": "Ressource hinzufügen",
+    "create": "Ressource erstellen",
+    "updated": "Ressource aktualisiert",
+    "created": "Ressource erstellt",
+    "deactivated": "Ressource deaktiviert",
+    "saveFailed": "Ressource konnte nicht gespeichert werden",
+    "formDesc": "Filialbezogene Räume, Stühle oder Geräte.",
+    "searchPlaceholder": "Ressourcen suchen…",
+    "deactivate": "Deaktivieren",
+    "active": "Aktiv",
+    "inactive": "Inaktiv",
+    "kindRoom": "Raum",
+    "kindChair": "Stuhl",
+    "kindEquipment": "Gerät"
   }
 }

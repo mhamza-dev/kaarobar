@@ -53,7 +53,8 @@
     "markRead": "وضع علامة كمقروء",
     "read": "اقرأ",
     "dismiss": "استبعاد",
-    "enterField": "أدخل {field}"
+    "enterField": "أدخل {field}",
+    "select": "Select…"
   },
   "table": {
     "export": "تصدير",
@@ -129,7 +130,8 @@
     "products": "المنتجات",
     "orders": "الطلبات",
     "loyalty": "الولاء",
-    "account": "Account"
+    "account": "Account",
+    "resources": "الموارد"
   },
   "auth": {
     "signInTitle": "تسجيل الدخول",
@@ -215,7 +217,9 @@
     "productDetailTitle": "منتج",
     "buyerAccountTitle": "Account",
     "buyerAccountDesc": "الرصيد والولاء والتنبيهات لملف السوق الخاص بك.",
-    "appointmentDetailTitle": "موعد"
+    "appointmentDetailTitle": "موعد",
+    "resourcesTitle": "موارد قابلة للحجز",
+    "resourcesDesc": "غرف وكراسي ومعدات لحجوزات الصالون."
   },
   "marketplace": {
     "eyebrow": "السوق",
@@ -386,13 +390,34 @@
     "staffFilter": "طاقم العمل",
     "allStaff": "جميع الموظفين",
     "time": "الوقت",
-    "customer": "العميل",
+    "customer": "Customer",
     "searchPlaceholder": "البحث عن العملاء والخدمة والموظفين...",
     "loadFailed": "فشل تحميل المواعيد",
     "emptyScheduleTitle": "لا توجد مواعيد هذا اليوم",
     "emptyScheduleBody": "قم بتغيير التاريخ أو انتظر حجوزات العملاء.",
     "disabledTitle": "المواعيد غير ممكّنة",
-    "disabledBody": "قم بتمكين المواعيد الخاصة بالصالونات أو شركات الخدمات لرؤية الجدول الزمني هنا."
+    "disabledBody": "قم بتمكين المواعيد الخاصة بالصالونات أو شركات الخدمات لرؤية الجدول الزمني هنا.",
+    "bookTitle": "حجز موعد",
+    "bookDesc": "جدولة خدمة مع الموظف وغرفة/كرسي اختياري.",
+    "walkIn": "بدون عميل مسجل",
+    "startTime": "وقت البدء",
+    "resource": "المورد",
+    "autoAssignResource": "تعيين مورد متاح تلقائيًا",
+    "resourceConflict": "هذا المورد محجوز في هذا الوقت.",
+    "staffConflict": "هذا الموظف محجوز في هذا الوقت.",
+    "bufferBefore": "هامش قبل (دقائق)",
+    "bufferAfter": "هامش بعد (دقائق)",
+    "depositAmount": "مبلغ العربون",
+    "noShowFee": "رسوم عدم الحضور",
+    "depositNote": "مطلوب عربون بمبلغ {amount} لهذه الخدمة.",
+    "selectOption": "اختر…",
+    "bookNew": "حجز",
+    "startTimeRequired": "وقت البدء مطلوب",
+    "payDeposit": "تحصيل العربون",
+    "depositPaid": "تم تسجيل دفع العربون",
+    "depositFailed": "تعذر تحصيل العربون",
+    "requiredResource": "المورد المطلوب",
+    "noResourceRequired": "لا يوجد"
   },
   "dashboard": {
     "salesToday": "المبيعات اليوم",
@@ -1113,5 +1138,31 @@
   },
   "sales": {
     "searchInvoice": "ابحث عن فاتورة أو عميل…"
+  },
+  "resources": {
+    "add": "إضافة مورد",
+    "edit": "تعديل المورد",
+    "name": "الاسم",
+    "kindLabel": "النوع",
+    "kind": "النوع",
+    "capacity": "السعة",
+    "notes": "ملاحظات",
+    "emptyTitle": "لا موارد بعد",
+    "emptyBody": "أضف كراسي أو غرفًا أو معدات لحجز المواعيد.",
+    "loadFailed": "تعذر تحميل الموارد",
+    "new": "إضافة مورد",
+    "create": "إنشاء مورد",
+    "updated": "تم تحديث المورد",
+    "created": "تم إنشاء المورد",
+    "deactivated": "تم تعطيل المورد",
+    "saveFailed": "تعذر حفظ المورد",
+    "formDesc": "غرفة أو كرسي أو معدات للفرع.",
+    "searchPlaceholder": "بحث في الموارد…",
+    "deactivate": "تعطيل",
+    "active": "نشط",
+    "inactive": "غير نشط",
+    "kindRoom": "غرفة",
+    "kindChair": "كرسي",
+    "kindEquipment": "معدة"
   }
 }

@@ -53,7 +53,8 @@
     "markRead": "پڑھا نشان لگائیں",
     "read": "پڑھا",
     "dismiss": "بند کریں",
-    "enterField": "{field} درج کریں"
+    "enterField": "{field} درج کریں",
+    "select": "Select…"
   },
   "table": {
     "export": "ایکسپورٹ",
@@ -129,7 +130,8 @@
     "products": "مصنوعات",
     "orders": "آرڈرز",
     "loyalty": "لائلٹی",
-    "account": "اکاؤنٹس"
+    "account": "اکاؤنٹس",
+    "resources": "وسائل"
   },
   "auth": {
     "signInTitle": "سائن ان",
@@ -215,7 +217,9 @@
     "productDetailTitle": "مصنوعہ",
     "buyerAccountTitle": "اکاؤنٹس",
     "buyerAccountDesc": "آپ کے مارکیٹ پلیس پروفائل کا بیلنس، لائلٹی اور الرٹس۔",
-    "appointmentDetailTitle": "اپائنٹمنٹ"
+    "appointmentDetailTitle": "اپائنٹمنٹ",
+    "resourcesTitle": "بک ایبل وسائل",
+    "resourcesDesc": "سیلون اپائنٹمنٹ کے لیے کمرے، کرسیاں اور آلات۔"
   },
   "marketplace": {
     "eyebrow": "مارکیٹ پلیس",
@@ -386,13 +390,34 @@
     "staffFilter": "اسٹاف",
     "allStaff": "تمام اسٹاف",
     "time": "وقت",
-    "customer": "گاہک",
+    "customer": "Customer",
     "searchPlaceholder": "گاہک، سروس، اسٹاف تلاش…",
     "loadFailed": "اپائنٹمنٹس لوڈ نہیں ہو سکیں",
     "emptyScheduleTitle": "اس دن کوئی اپائنٹمنٹ نہیں",
     "emptyScheduleBody": "تاریخ بدلیں یا گاہک بکنگ کا انتظار کریں۔",
     "disabledTitle": "اپائنٹمنٹس فعال نہیں",
-    "disabledBody": "سیلون یا سروس بزنس کے لیے اپائنٹمنٹس فعال کریں تاکہ شیڈول یہاں نظر آئے۔"
+    "disabledBody": "سیلون یا سروس بزنس کے لیے اپائنٹمنٹس فعال کریں تاکہ شیڈول یہاں نظر آئے۔",
+    "bookTitle": "اپائنٹمنٹ بک کریں",
+    "bookDesc": "سروس، اسٹاف اور اختیاری کمرہ/کرسی۔",
+    "walkIn": "واک اِن (بغیر کسٹمر)",
+    "startTime": "شروع کا وقت",
+    "resource": "وسیلہ",
+    "autoAssignResource": "خالی وسیلہ خودکار تفویض",
+    "resourceConflict": "یہ وسیلہ اس وقت پہلے سے بک ہے۔",
+    "staffConflict": "یہ اسٹاف اس وقت پہلے سے بک ہے۔",
+    "bufferBefore": "پہلے بفر (منٹ)",
+    "bufferAfter": "بعد بفر (منٹ)",
+    "depositAmount": "ڈپازٹ رقم",
+    "noShowFee": "نو شو فیس",
+    "depositNote": "اس سروس کے لیے {amount} ڈپازٹ واجب ہے۔",
+    "selectOption": "منتخب کریں…",
+    "bookNew": "بک",
+    "startTimeRequired": "شروع کا وقت ضروری ہے",
+    "payDeposit": "ڈپازٹ لیں",
+    "depositPaid": "ڈپازٹ ادا شدہ",
+    "depositFailed": "ڈپازٹ نہیں لیا جا سکا",
+    "requiredResource": "مطلوبہ وسیلہ",
+    "noResourceRequired": "کوئی نہیں"
   },
   "dashboard": {
     "salesToday": "آج کی سیلز",
@@ -1113,5 +1138,31 @@
   },
   "sales": {
     "searchInvoice": "انوائس یا گاہک تلاش…"
+  },
+  "resources": {
+    "add": "وسیلہ شامل کریں",
+    "edit": "وسیلہ ترمیم",
+    "name": "نام",
+    "kindLabel": "قسم",
+    "kind": "قسم",
+    "capacity": "گنجائش",
+    "notes": "نوٹس",
+    "emptyTitle": "ابھی کوئی وسیلہ نہیں",
+    "emptyBody": "اپائنٹمنٹ بکنگ کے لیے کرسی، کمرہ یا آلات شامل کریں۔",
+    "loadFailed": "وسائل لوڈ نہیں ہوئے",
+    "new": "وسیلہ شامل کریں",
+    "create": "وسیلہ بنائیں",
+    "updated": "وسیلہ اپڈیٹ ہوا",
+    "created": "وسیلہ بن گیا",
+    "deactivated": "وسیلہ غیر فعال",
+    "saveFailed": "وسیلہ محفوظ نہیں ہوا",
+    "formDesc": "برانچ کے کمرے، کرسی یا آلات۔",
+    "searchPlaceholder": "وسائل تلاش…",
+    "deactivate": "غیر فعال",
+    "active": "فعال",
+    "inactive": "غیر فعال",
+    "kindRoom": "کمرہ",
+    "kindChair": "کرسی",
+    "kindEquipment": "سامان"
   }
 }

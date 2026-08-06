@@ -26,7 +26,8 @@
     "edit": "ترمیم",
     "view": "دیکھیں",
     "add": "شامل کریں",
-    "delete": "حذف کریں"
+    "delete": "حذف کریں",
+    "refresh": "Refresh"
   },
   "money": {
     "thousand": "K",
@@ -253,7 +254,13 @@
     "noTopProductsDesc": "ٹاپ پروڈکٹس دیکھنے کے لیے پی او ایس پر سیل مکمل کریں۔",
     "qtySold": "فروخت شدہ مقدار: {{count}}",
     "tables": "میزیں",
-    "tablesDesc": "ڈائننگ میزوں کا انتظام کریں اور دیکھیں کون سی خالی یا مصروف ہیں۔"
+    "tablesDesc": "ڈائننگ میزوں کا انتظام کریں اور دیکھیں کون سی خالی یا مصروف ہیں۔",
+    "kitchen": "Kitchen",
+    "kitchenDesc": "Bump and recall fired ticket items by station.",
+    "eyebrowKitchen": "Kitchen display",
+    "happyHour": "Happy hour",
+    "happyHourDesc": "Schedule time-based price overrides for the catalog.",
+    "eyebrowHappyHour": "Pricing"
   },
   "forms": {
     "createBusiness": "کاروبار بنائیں",
@@ -512,12 +519,21 @@
     "servedBy": "سروس دی",
     "servedByPlaceholder": "عملے کا رکن منتخب کریں…",
     "servedByRequired": "منتخب کریں کس نے سروس دی",
-    "serviceMode": "سروس موڈ",
+    "serviceMode": "Service mode",
     "pickTable": "خالی میز منتخب کریں یا مصروف میز دوبارہ کھولیں۔",
     "cancelTicket": "ٹکٹ منسوخ کریں",
     "stockCapReached": "{{name}} کے پاس صرف {{stock}} اسٹاک ہے",
     "overstockBlocked": "کارٹ میں دستیاب اسٹاک سے زیادہ ہے۔ جاری رکھنے کے لیے مقدار کم کریں۔",
-    "overstockLine": "مقدار اسٹاک سے زیادہ ہے"
+    "overstockLine": "مقدار اسٹاک سے زیادہ ہے",
+    "sendToKitchen": "Send to kitchen",
+    "splitBill": "Split bill",
+    "nothingToFire": "No held items to send",
+    "sentToKitchen": "Sent to kitchen",
+    "rider": "Rider",
+    "riderNone": "No rider",
+    "riderPlaceholder": "Assign rider…",
+    "deliveryStatus": "Delivery status",
+    "serviceModeLabel": "Service mode"
   },
   "payment": {
     "cash": "نقد",
@@ -692,5 +708,74 @@
     "openTicket": "کھلا ٹکٹ",
     "readyToSeat": "بیٹھانے کے لیے تیار",
     "hiddenFromPos": "پی او ایس سے پوشیدہ"
+  },
+  "kitchen": {
+    "emptyTitle": "Kitchen is clear",
+    "emptyDesc": "Fired items from open tickets will appear here.",
+    "station": "Station: {{name}}",
+    "table": "Table {{name}}",
+    "seat": "Seat {{n}}",
+    "bump": "Bump",
+    "recall": "Recall",
+    "elapsedMins": "{{mins}}m",
+    "status": {
+      "held": "Held",
+      "fired": "Fired",
+      "ready": "Ready",
+      "bumped": "Bumped"
+    }
+  },
+  "split": {
+    "title": "Split bill",
+    "mode": "Split by",
+    "modeItems": "Selected items",
+    "modeSeat": "Seat",
+    "modeEqual": "Equal parts",
+    "equalParts": "Number of parts",
+    "seat": "Seat",
+    "selectItems": "Select at least one item",
+    "seatRequired": "Choose a seat",
+    "seatEmpty": "No unbilled items for that seat",
+    "nothingToBill": "Nothing left to bill",
+    "continuePay": "Continue to payment",
+    "unbilledTotal": "Unbilled total: {{amount}}"
+  },
+  "deliveryStatus": {
+    "pending": "Pending",
+    "assigned": "Assigned",
+    "out_for_delivery": "Out for delivery",
+    "delivered": "Delivered",
+    "cancelled": "Cancelled"
+  },
+  "happyHour": {
+    "add": "Add rule",
+    "edit": "Edit rule",
+    "name": "Rule name",
+    "nameRequired": "Name is required",
+    "productRequired": "Select a product",
+    "scope": "Applies to",
+    "scopeAll": "All products",
+    "scopeProduct": "One product",
+    "pricing": "Pricing",
+    "pricingPercent": "Percent off",
+    "pricingOverride": "Override price",
+    "overridePrice": "Override price",
+    "percent": "Percent off",
+    "percentOff": "{{n}}% off",
+    "priority": "Priority",
+    "window": "Window",
+    "startTime": "Start (HH:MM)",
+    "endTime": "End (HH:MM)",
+    "emptyTitle": "No happy-hour rules",
+    "emptyDesc": "Create a weekday/time rule to override catalog prices at POS.",
+    "day": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    }
   }
 }

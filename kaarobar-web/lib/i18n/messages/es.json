@@ -53,7 +53,8 @@
     "markRead": "Marcar como leído",
     "read": "leer",
     "dismiss": "Descartar",
-    "enterField": "Introduzca {field}"
+    "enterField": "Introduzca {field}",
+    "select": "Select…"
   },
   "table": {
     "export": "Exportar",
@@ -129,7 +130,8 @@
     "products": "Productos",
     "orders": "Pedidos",
     "loyalty": "Fidelidad",
-    "account": "Account"
+    "account": "Account",
+    "resources": "Recursos"
   },
   "auth": {
     "signInTitle": "Iniciar sesión",
@@ -215,7 +217,9 @@
     "productDetailTitle": "Producto",
     "buyerAccountTitle": "Account",
     "buyerAccountDesc": "Saldo, fidelidad y alertas de tu perfil del marketplace.",
-    "appointmentDetailTitle": "Cita"
+    "appointmentDetailTitle": "Cita",
+    "resourcesTitle": "Recursos reservables",
+    "resourcesDesc": "Salas, sillas y equipos para citas de salón."
   },
   "marketplace": {
     "eyebrow": "Mercado",
@@ -386,13 +390,34 @@
     "staffFilter": "Personal",
     "allStaff": "Todo el personal",
     "time": "Hora",
-    "customer": "Cliente",
+    "customer": "Customer",
     "searchPlaceholder": "Búsqueda de clientes, servicios, personal...",
     "loadFailed": "No se pudieron cargar las citas",
     "emptyScheduleTitle": "No hay citas este día",
     "emptyScheduleBody": "Cambie la fecha o espere las reservas de los clientes.",
     "disabledTitle": "Citas no habilitadas",
-    "disabledBody": "Habilite citas para salones o empresas de servicios para ver el calendario aquí."
+    "disabledBody": "Habilite citas para salones o empresas de servicios para ver el calendario aquí.",
+    "bookTitle": "Reservar cita",
+    "bookDesc": "Programa un servicio con personal y sala/silla opcional.",
+    "walkIn": "Walk-in (sin cliente)",
+    "startTime": "Hora de inicio",
+    "resource": "Recurso",
+    "autoAssignResource": "Asignar recurso libre automáticamente",
+    "resourceConflict": "Ese recurso ya está reservado en este horario.",
+    "staffConflict": "Ese profesional ya está reservado en este horario.",
+    "bufferBefore": "Buffer antes (minutos)",
+    "bufferAfter": "Buffer después (minutos)",
+    "depositAmount": "Importe del depósito",
+    "noShowFee": "Cargo por ausencia",
+    "depositNote": "Se debe un depósito de {amount} para este servicio.",
+    "selectOption": "Seleccionar…",
+    "bookNew": "Reservar",
+    "startTimeRequired": "La hora de inicio es obligatoria",
+    "payDeposit": "Cobrar depósito",
+    "depositPaid": "Depósito marcado como pagado",
+    "depositFailed": "No se pudo cobrar el depósito",
+    "requiredResource": "Recurso requerido",
+    "noResourceRequired": "Ninguno"
   },
   "dashboard": {
     "salesToday": "Ventas hoy",
@@ -1113,5 +1138,31 @@
   },
   "sales": {
     "searchInvoice": "Buscar factura o cliente…"
+  },
+  "resources": {
+    "add": "Añadir recurso",
+    "edit": "Editar recurso",
+    "name": "Nombre",
+    "kindLabel": "Tipo",
+    "kind": "Tipo",
+    "capacity": "Capacidad",
+    "notes": "Notas",
+    "emptyTitle": "Aún no hay recursos",
+    "emptyBody": "Añade sillas, salas o equipos para las citas.",
+    "loadFailed": "No se pudieron cargar los recursos",
+    "new": "Añadir recurso",
+    "create": "Crear recurso",
+    "updated": "Recurso actualizado",
+    "created": "Recurso creado",
+    "deactivated": "Recurso desactivado",
+    "saveFailed": "No se pudo guardar el recurso",
+    "formDesc": "Sala, silla o equipo de la sucursal.",
+    "searchPlaceholder": "Buscar recursos…",
+    "deactivate": "Desactivar",
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "kindRoom": "Sala",
+    "kindChair": "Silla",
+    "kindEquipment": "Equipo"
   }
 }

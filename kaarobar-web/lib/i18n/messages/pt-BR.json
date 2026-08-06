@@ -53,7 +53,8 @@
     "markRead": "Marcar como lido",
     "read": "leia",
     "dismiss": "Dispensar",
-    "enterField": "Digite {field}"
+    "enterField": "Digite {field}",
+    "select": "Select…"
   },
   "table": {
     "export": "Exportar",
@@ -129,7 +130,8 @@
     "products": "Produtos",
     "orders": "Pedidos",
     "loyalty": "Fidelidade",
-    "account": "Account"
+    "account": "Account",
+    "resources": "Recursos"
   },
   "auth": {
     "signInTitle": "Entrar",
@@ -215,7 +217,9 @@
     "productDetailTitle": "Produto",
     "buyerAccountTitle": "Account",
     "buyerAccountDesc": "Saldo, fidelidade e alertas do seu perfil no marketplace.",
-    "appointmentDetailTitle": "Agendamento"
+    "appointmentDetailTitle": "Agendamento",
+    "resourcesTitle": "Recursos reserváveis",
+    "resourcesDesc": "Salas, cadeiras e equipamentos para agendamentos de salão."
   },
   "marketplace": {
     "eyebrow": "Mercado",
@@ -386,13 +390,34 @@
     "staffFilter": "Equipe",
     "allStaff": "Todos os funcionários",
     "time": "Tempo",
-    "customer": "Cliente",
+    "customer": "Customer",
     "searchPlaceholder": "Pesquise clientes, serviços, funcionários…",
     "loadFailed": "Falha ao carregar compromissos",
     "emptyScheduleTitle": "Sem compromissos neste dia",
     "emptyScheduleBody": "Altere a data ou aguarde as reservas dos clientes.",
     "disabledTitle": "Compromissos não ativados",
-    "disabledBody": "Ative agendamentos para salões ou empresas de serviços para ver a programação aqui."
+    "disabledBody": "Ative agendamentos para salões ou empresas de serviços para ver a programação aqui.",
+    "bookTitle": "Agendar horário",
+    "bookDesc": "Agende um serviço com equipe e sala/cadeira opcional.",
+    "walkIn": "Walk-in (sem cliente)",
+    "startTime": "Horário de início",
+    "resource": "Recurso",
+    "autoAssignResource": "Atribuir recurso livre automaticamente",
+    "resourceConflict": "Esse recurso já está reservado neste horário.",
+    "staffConflict": "Esse profissional já está reservado neste horário.",
+    "bufferBefore": "Buffer antes (minutos)",
+    "bufferAfter": "Buffer depois (minutos)",
+    "depositAmount": "Valor do depósito",
+    "noShowFee": "Taxa de falta",
+    "depositNote": "Um depósito de {amount} é devido para este serviço.",
+    "selectOption": "Selecionar…",
+    "bookNew": "Agendar",
+    "startTimeRequired": "Horário de início é obrigatório",
+    "payDeposit": "Receber depósito",
+    "depositPaid": "Depósito marcado como pago",
+    "depositFailed": "Não foi possível receber o depósito",
+    "requiredResource": "Recurso obrigatório",
+    "noResourceRequired": "Nenhum"
   },
   "dashboard": {
     "salesToday": "Vendas hoje",
@@ -1113,5 +1138,31 @@
   },
   "sales": {
     "searchInvoice": "Pesquisar fatura ou cliente…"
+  },
+  "resources": {
+    "add": "Adicionar recurso",
+    "edit": "Editar recurso",
+    "name": "Nome",
+    "kindLabel": "Tipo",
+    "kind": "Tipo",
+    "capacity": "Capacidade",
+    "notes": "Notas",
+    "emptyTitle": "Nenhum recurso ainda",
+    "emptyBody": "Adicione cadeiras, salas ou equipamentos para agendamentos.",
+    "loadFailed": "Não foi possível carregar recursos",
+    "new": "Adicionar recurso",
+    "create": "Criar recurso",
+    "updated": "Recurso atualizado",
+    "created": "Recurso criado",
+    "deactivated": "Recurso desativado",
+    "saveFailed": "Não foi possível salvar o recurso",
+    "formDesc": "Sala, cadeira ou equipamento da filial.",
+    "searchPlaceholder": "Buscar recursos…",
+    "deactivate": "Desativar",
+    "active": "Ativo",
+    "inactive": "Inativo",
+    "kindRoom": "Sala",
+    "kindChair": "Cadeira",
+    "kindEquipment": "Equipamento"
   }
 }
