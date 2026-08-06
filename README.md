@@ -2,7 +2,7 @@
 
 POS, accounting, and payroll. A product of **2ndHub Solutions**.
 
-Internal planning reference: **[KRB-SRS-004](docs/srs/KRB-SRS-004.md)** v4.0 Whole Product Family (ISO/IEC/IEEE 29148:2018; supersedes retired KRB-SRS-003/002). Stack: Elixir/Phoenix + PostgreSQL + Oban.
+Internal planning reference: **[KRB-SRS-004](docs/srs/KRB-SRS-004.md)** v4.1 Whole Product Family — Multi-Market (ISO/IEC/IEEE 29148:2018; supersedes retired KRB-SRS-003/002 and v4.0). Stack: Elixir/Phoenix + PostgreSQL + Oban. Launch markets include Pakistan, UK, Germany, France, and further markets as Product enables.
 
 Company marketing site (product landing, about, etc.) is a separate **2ndHub Solutions** repo. **kaarobar-web** opens on the login page (`/` → `/login`).
 
@@ -21,8 +21,8 @@ Offline Desktop feature list: [`docs/offline-desktop.md`](docs/offline-desktop.m
 2. **Accounting** — Real double-entry books under the POS (not a cash notebook)
 3. **HR & Payroll** — Attendance, leave, payroll, ESS
 4. **CRM (baseline)** — Email/in-app campaigns, audience filters, loyalty points
-5. **Platform** — Plan limits, Safepay billing (PK), FBR hooks, push/email, en/ur
-6. **Roadmap** — Helpdesk · Public API · BI · appointments · production FBR adapter · full billing portal
+5. **Platform** — Plan limits, Safepay billing (PK path), Pakistan FBR fiscal pack hooks, push/email, launch-market locales
+6. **Roadmap** — Helpdesk · Public API · BI · appointments · production FBR adapter · UK/DE/FR tax packs · full billing portal
 
 ## Goals
 
@@ -31,7 +31,7 @@ Offline Desktop feature list: [`docs/offline-desktop.md`](docs/offline-desktop.m
 | G1 | Less hustle for the owner — one view of sales, cash, stock, and staff |
 | G2 | Real accounting — sales, purchases, and payroll post balanced journals |
 | G3 | Branches that can work alone, with the owner still in control (including offline POS) |
-| G4 | Pakistan-ready (FBR Tier-1 + configurable tax) |
+| G4 | Jurisdiction-ready tax & fiscal integrations (configurable tax; Pakistan FBR pack first; UK/DE/FR roadmap) |
 | G5 | Keep early operating cost low (shared DB, modular monolith) |
 | G6 | Customer engagement & retention |
 | G7 | Platform extensibility via API |
@@ -43,21 +43,21 @@ Offline Desktop feature list: [`docs/offline-desktop.md`](docs/offline-desktop.m
 - POS: sales, discounts, returns, tills/shifts, receipts (web + offline desktop), **khata**, **loyalty points**
 - Inventory: catalog, branch stock, transfers, purchase orders, goods receipts
 - Accounting: chart of accounts, journals (auto + manual), GL, trial balance, P&L, balance sheet, AR/AP
-- Pakistan sales tax defaults + FBR Tier-1 **hooks** (async/mock; production adapter later)
+- Configurable tax per jurisdiction + Pakistan FBR Tier-1 **fiscal pack hooks** (async/mock; production adapter later; not required for UK/DE/FR businesses)
 - HR: employees, attendance (POS/mobile), leave, payroll into the ledger, ESS
 - Owner dashboards, RBAC-filtered navigation, and reports
-- Platform subscription plan limits + Safepay webhook/checkout (Pakistan)
+- Platform subscription plan limits + Safepay webhook/checkout (Pakistan Cloud path)
 - CRM campaigns as-built (email/in-app; audiences all/khata/min_points)
-- Push + in-app + email notifications; English + Urdu
+- Push + in-app + email notifications; launch locales (en/ur/de/fr/es/pt-BR/ar)
 - **Customer Portal** — customer login (separate from staff), orders, loyalty, khata/AR
 
 ## Roadmap (Should — not Must-complete)
 
-Helpdesk · Public API/webhooks · BI · appointments · production FBR adapter · full billing portal
+Helpdesk · Public API/webhooks · BI · appointments · production FBR adapter · UK/DE/FR tax packs · full billing portal · other-market Cloud billing
 
 ## Not in the first release
 
-Customer-facing e-commerce storefront, full manufacturing/MRP, biometric clocks, multi-currency group consolidation, non-Pakistan payroll e-filing automation, fixed-asset management.
+Customer-facing e-commerce storefront, full manufacturing/MRP, biometric clocks, multi-currency group consolidation, automated statutory e-filing outside enabled jurisdiction packs, fixed-asset management.
 
 ## Actors (SRS §2.3)
 

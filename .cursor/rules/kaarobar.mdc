@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Kaarobar — always apply
 
-Before implementing, read **[`AGENTS.md`](AGENTS.md)** and the authoritative SRS **[`docs/srs/KRB-SRS-004.md`](docs/srs/KRB-SRS-004.md) v4.0**. Requirement index: [`docs/requirements-index.md`](docs/requirements-index.md).
+Before implementing, read **[`AGENTS.md`](AGENTS.md)** and the authoritative SRS **[`docs/srs/KRB-SRS-004.md`](docs/srs/KRB-SRS-004.md) v4.1**. Requirement index: [`docs/requirements-index.md`](docs/requirements-index.md).
 
 ## Non-negotiables
 

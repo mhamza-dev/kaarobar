@@ -6,14 +6,14 @@ Instructions for Cursor (and any coding agent) working in this repository.
 
 | Document | Role |
 |----------|------|
-| [`docs/srs/KRB-SRS-004.md`](docs/srs/KRB-SRS-004.md) | **Authoritative SRS v4.0** — whole product family (Cloud + Offline Desktop) |
+| [`docs/srs/KRB-SRS-004.md`](docs/srs/KRB-SRS-004.md) | **Authoritative SRS v4.1** — whole product family (Cloud + Offline Desktop); multi-market |
 | [`docs/requirements-index.md`](docs/requirements-index.md) | Stable requirement ID prefixes (incl. `FUT-FR` upcoming) |
 | [`docs/architecture.md`](docs/architecture.md), [`docs/adr/`](docs/adr/) | How this repo implements the SRS |
 | Module docs under [`docs/`](docs/) | Tenancy, POS, accounting, HR, platform, CRM status |
 | [`docs/offline-desktop.md`](docs/offline-desktop.md) | Offline Desktop Edition feature doc (`ODE-FR`) |
 | [`docs/architecture/client-cache-standards.md`](docs/architecture/client-cache-standards.md) | TanStack Query defaults for Cloud clients |
 
-**v4.0 rule:** MoSCoW **Must** = production baseline (shipped). Two commercial editions: **Kaarobar Cloud** (subscription) and **Kaarobar Offline Desktop** (one-time). Portal / Helpdesk / Public API / coupons / appointments are **Should** until Product promotes them. §14 upcoming features (`FUT-FR-*`) are **Could** until promoted. When **code and SRS disagree**, stop and ask the human.
+**v4.1 rule:** MoSCoW **Must** = production baseline (shipped). Two commercial editions: **Kaarobar Cloud** (subscription) and **Kaarobar Offline Desktop** (one-time). Launch markets include Pakistan, UK, Germany, France, and further markets as Product enables — FBR is the Pakistan fiscal pack, not product-wide geography. Portal / Helpdesk / Public API / coupons / appointments are **Should** until Product promotes them. §14 upcoming features (`FUT-FR-*`) are **Could** until promoted. When **code and SRS disagree**, stop and ask the human.
 
 Requirement language follows **RFC 2119** (`shall` / `should` / `may`) and **MoSCoW** (Must / Should / Could). Cite IDs (e.g. `POS-FR-005`, `SEC-NFR-001`, `ODE-FR-001`) in PRs, commits when asked, and tests.
 
@@ -39,13 +39,13 @@ Pillars (Cloud):
 5. Customer Portal (Phase A)
 6. Helpdesk, Public API/Webhooks, BI (Phase B)
 
-Goals: **G1–G7** (see SRS §1.4.2 / README). Pakistan-first (FBR Tier-1); English + Urdu UI.
+Goals: **G1–G7** (see SRS §1.4.2 / README). Multi-market (Pakistan, UK, Germany, France, …); Pakistan FBR Tier-1 as first fiscal pack; launch-market locales (en/ur/de/fr/es/pt-BR/ar).
 
 **Phased delivery (SRS Document Control):**
 
 | Phase | Ship |
 |-------|------|
-| **Production baseline (Must)** | TEN/POS/INV/ACC/HR/RPT, CRM campaigns as-built, khata, loyalty points, push, desktop offline, FBR hooks, Safepay webhook/checkout |
+| **Production baseline (Must)** | TEN/POS/INV/ACC/HR/RPT, CRM campaigns as-built, khata, loyalty points, push, desktop offline, Pakistan FBR pack hooks, Safepay webhook/checkout (PK Cloud path) |
 | **A remaining (Should)** | Customer Portal, coupons, loyalty tiers, consent, named segments |
 | **B (Should)** | Helpdesk, Public API/webhooks, BI, production FBR adapter, appointments |
 
@@ -83,7 +83,7 @@ Do **not** introduce NestJS, MongoDB, or BullMQ. Map SRS modules to Phoenix cont
 | Customer Portal (Phase A) | CUS |
 | Helpdesk (Phase B) | SUP |
 | Public API (Phase B) | API |
-| FBR / Notifications / Offline | FBR, NOT, OFF (Cloud Desktop sync) |
+| FBR / Notifications / Offline | FBR (Pakistan fiscal pack), NOT, OFF (Cloud Desktop sync) |
 | Offline Desktop Edition | ODE (package `kaarobar-desktop-offline`; see [`docs/offline-desktop.md`](docs/offline-desktop.md)) |
 
 Clients are independently deployable (no shared npm packages). Theme tokens are duplicated per app.

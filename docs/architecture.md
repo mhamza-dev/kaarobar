@@ -1,6 +1,6 @@
 # Architecture overview
 
-Aligned to Kaarobar SRS **[KRB-SRS-004](srs/KRB-SRS-004.md)** §3 (ISO/IEC/IEEE 42010 viewpoints). This repository’s normative stack: **PostgreSQL** (not MongoDB), **Elixir/Phoenix + Oban** (not NestJS/BullMQ).
+Aligned to Kaarobar SRS **[KRB-SRS-004](srs/KRB-SRS-004.md) v4.1** §3 (ISO/IEC/IEEE 42010 viewpoints). This repository’s normative stack: **PostgreSQL** (not MongoDB), **Elixir/Phoenix + Oban** (not NestJS/BullMQ). Multi-market product (Pakistan, UK, Germany, France, …); fiscal e-reporting is pack-based.
 
 ## Logical / deployment view
 
@@ -19,8 +19,8 @@ Aligned to Kaarobar SRS **[KRB-SRS-004](srs/KRB-SRS-004.md)** §3 (ISO/IEC/IEEE 
 ┌────────────────────────────▼─────────────────────────────────────┐
 │ Application — Kaarobar Phoenix modular monolith (`kaarobar-BE`)  │
 │  Auth & RBAC · Tenancy · POS · Inventory · Accounting            │
-│  HR & Payroll · Reporting · Billing · FBR · Notifications · CRM  │
-│  Oban workers (sale journal, payroll journal, FBR, notify)       │
+│  HR & Payroll · Reporting · Billing · Fiscal packs (FBR PK) · Notifications · CRM  │
+│  Oban workers (sale journal, payroll journal, fiscal packs, notify)       │
 └──────────────┬───────────────────────────────┬───────────────────┘
                │                               │
                ▼                               ▼
@@ -70,8 +70,8 @@ Cloud clients share TanStack Query defaults — see [`architecture/client-cache-
 
 ## Integration points (SRS §3.4 / §8.3)
 
-- FBR POS adapter (async, never blocks sale)
+- Jurisdiction fiscal packs — Pakistan **FBR** POS adapter first (async, never blocks sale; opt-in per business); UK/DE/FR packs roadmap (`FUT-FR-023`)
 - Payment gateway adapter (customer → owner; tokenized; no raw PAN)
-- Safepay (owner → Kaarobar Cloud subscription, Pakistan)
+- Safepay (owner → Kaarobar Cloud subscription, Pakistan path; other-market providers Should)
 - Offline Desktop license activation (ADM-FR-007; package-local / Supabase during setup)
 - Notifications: email first; SMS / WhatsApp later
