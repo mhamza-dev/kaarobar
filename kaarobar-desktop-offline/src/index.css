@@ -1,0 +1,165 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Default brand — Kaarobar blue (#2d6df6) */
+  --brand-primary: 45 109 246;
+  --brand-primary-hover: 10 79 230;
+  --brand-primary-active: 9 71 206;
+  --brand-tint: 230 237 254;
+  --brand-on-primary: 255 255 255;
+
+  --surface: 246 248 251;
+  --surface-raised: 255 255 255;
+  --surface-muted: 241 245 249;
+  --surface-sunken: 226 232 240;
+
+  --ink: 15 23 42;
+  --ink-muted: 71 85 105;
+  --ink-subtle: 148 163 184;
+  --ink-inverse: 255 255 255;
+
+  --line: 226 232 240;
+  --line-strong: 203 213 225;
+
+  --danger: 185 28 28;
+  --danger-soft: 254 226 226;
+  --danger-on: 255 255 255;
+
+  --success: 21 128 61;
+  --success-soft: 220 252 231;
+
+  --warning: 180 83 9;
+  --warning-soft: 254 243 199;
+
+  --radius-card: 0.5rem;
+  --space-page: 1.5rem;
+
+  color-scheme: light;
+  font-family: 'Poppins', ui-sans-serif, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.dark {
+  --surface: 15 23 42;
+  --surface-raised: 30 41 59;
+  --surface-muted: 51 65 85;
+  --surface-sunken: 15 23 42;
+
+  --ink: 241 245 249;
+  --ink-muted: 148 163 184;
+  --ink-subtle: 100 116 139;
+  --ink-inverse: 15 23 42;
+
+  --line: 51 65 85;
+  --line-strong: 71 85 105;
+
+  --danger: 248 113 113;
+  --danger-soft: 127 29 29;
+  --danger-on: 15 23 42;
+
+  --success: 74 222 128;
+  --success-soft: 20 83 45;
+
+  --warning: 251 191 36;
+  --warning-soft: 120 53 15;
+
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: rgb(var(--surface));
+  color: rgb(var(--ink));
+}
+
+html[lang='ur'] body,
+html[lang='ar'] body {
+  font-family: 'Noto Sans Arabic', 'Noto Naskh Arabic', ui-sans-serif, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+@layer base {
+  table {
+    display: table;
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tbody {
+    display: table-row-group;
+  }
+
+  tr {
+    display: table-row;
+  }
+
+  th,
+  td {
+    display: table-cell;
+  }
+}
+
+@layer utilities {
+  .page-grid {
+    @apply grid gap-4 sm:gap-6 lg:grid-cols-2;
+  }
+
+  .app-ambient {
+    background-image:
+      radial-gradient(ellipse 80% 50% at 0% -10%, rgb(var(--brand-tint) / 0.85), transparent 55%),
+      radial-gradient(ellipse 60% 40% at 100% 0%, rgb(var(--brand-tint) / 0.45), transparent 50%),
+      linear-gradient(180deg, rgb(var(--surface)) 0%, rgb(var(--surface-muted) / 0.55) 100%);
+  }
+
+  .dashboard-bento {
+    @apply grid gap-4 sm:gap-5;
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 1024px) {
+    .dashboard-bento {
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+    }
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --space-page: 1rem;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--line-strong));
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+:focus-visible {
+  outline: 1px solid rgb(var(--brand-primary));
+  outline-offset: 1px;
+}

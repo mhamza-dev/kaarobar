@@ -1,13 +1,23 @@
 import { QueryClient } from "@tanstack/react-query";
 
+const CACHE_STALE_TIME_MS = 45_000;
+const CACHE_GC_TIME_MS = 10 * 60_000;
+
 /** Default QueryClient for the Electron renderer (no window-focus refetch churn). */
 export function makeQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: {
-        staleTime: 45_000,
+        staleTime: CACHE_STALE_TIME_MS,
+        gcTime: CACHE_GC_TIME_MS,
         retry: 1,
+        networkMode: "offlineFirst",
+        refetchOnReconnect: true,
         refetchOnWindowFocus: false,
+      },
+      mutations: {
+        retry: 1,
+        networkMode: "offlineFirst",
       },
     },
   });
