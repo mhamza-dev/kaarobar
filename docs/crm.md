@@ -1,11 +1,11 @@
 # CRM & Customer Portal (Phase A remaining)
 
-Implementation notes for KRB-SRS-003 Phase A Should items shipped in code.
+Implementation notes for KRB-SRS-004 Phase A Should items shipped in code.
 
 ## Authority
 
-- SRS: [`docs/srs/KRB-SRS-003.md`](srs/KRB-SRS-003.md) (Phase A remaining)
-- Do not use archived KRB-SRS-002 for new work
+- SRS: [`docs/srs/KRB-SRS-004.md`](srs/KRB-SRS-004.md) (Phase A remaining)
+- Prefer module docs + requirement index for day-to-day work; do not invent Out-of-Scope features
 
 ## Backend (`kaarobar-BE`)
 

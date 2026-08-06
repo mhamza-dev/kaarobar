@@ -2,7 +2,7 @@
 
 POS, accounting, and payroll. A product of **2ndHub Solutions**.
 
-Internal planning reference: **[KRB-SRS-003](docs/srs/KRB-SRS-003.md)** v3.2 Two Editions (ISO/IEC/IEEE 29148:2018; supersedes KRB-SRS-002). Stack: Elixir/Phoenix + PostgreSQL + Oban.
+Internal planning reference: **[KRB-SRS-004](docs/srs/KRB-SRS-004.md)** v4.0 Whole Product Family (ISO/IEC/IEEE 29148:2018; supersedes retired KRB-SRS-003/002). Stack: Elixir/Phoenix + PostgreSQL + Oban.
 
 Company marketing site (product landing, about, etc.) is a separate **2ndHub Solutions** repo. **kaarobar-web** opens on the login page (`/` → `/login`).
 
@@ -68,16 +68,22 @@ Business Owner · Admin · Branch Manager · Cashier · Inventory Manager · Acc
 
 ```
 POS/
-├── kaarobar-web/       # Next.js — marketing + authenticated dashboard / browser POS
-├── kaarobar-mobile/    # React Native CLI — staff (POS, sales, products, customers, settings/ESS)
-├── kaarobar-customer/  # React Native CLI — consumer marketplace
-├── kaarobar-desktop/   # Electron — offline-capable branch POS terminal
-├── kaarobar-BE/        # Elixir/Phoenix API + PostgreSQL (modular monolith)
-├── docs/               # ADRs and architecture notes
-└── docker-compose.yml  # Postgres + Redis for local development
+├── kaarobar-web/                 # Next.js — authenticated dashboard / browser POS / buyer market
+├── kaarobar-mobile/              # React Native CLI — staff (POS, sales, products, customers, ESS)
+├── kaarobar-customer/            # React Native CLI — consumer marketplace
+├── kaarobar-desktop/             # Electron — Cloud Desktop POS (SQLite outbox → sync)
+├── kaarobar-desktop-offline/     # Electron — Offline Desktop Edition (local SQLite, one-time license)
+├── kaarobar-BE/                  # Elixir/Phoenix API + PostgreSQL (modular monolith)
+├── docs/                         # SRS, ADRs, module docs, architecture notes
+└── docker-compose.yml            # Postgres + Redis for local development
 ```
 
 Clients are independently deployable (no shared npm packages). Theme tokens are duplicated per app so branding stays consistent without coupling releases.
+
+| Desktop package | Edition | Data | Cloud API |
+|-----------------|---------|------|-----------|
+| `kaarobar-desktop` | Kaarobar Cloud | Local cache + outbox | Syncs to `kaarobar-BE` (`OFF-FR-*`) |
+| `kaarobar-desktop-offline` | Kaarobar Offline Desktop | Local SQLite only | License activation only (`ODE-FR-*`) |
 
 ## Architecture (SRS §3 — adapted)
 
@@ -87,17 +93,19 @@ Clients are independently deployable (no shared npm packages). Theme tokens are 
 | MongoDB Atlas | **PostgreSQL** shared database, app-enforced tenant isolation |
 | BullMQ + Redis | **Oban** (Postgres-backed job queue) |
 | React web | **Next.js** web |
-| Electron POS + SQLite outbox | **Electron** + SQLite sync (offline) |
+| Electron POS + SQLite outbox | **Electron** Cloud Desktop (`kaarobar-desktop`) + Offline Desktop SKU (`kaarobar-desktop-offline`) |
 | React Native | **React Native CLI** (`kaarobar-mobile` staff + `kaarobar-customer`) |
 
 ```
-Clients (Web / Mobile / Desktop)
+Cloud clients (Web / Mobile / Cloud Desktop)
         │  HTTPS REST /api/v1  (+ WebSocket later)
         ▼
 Phoenix API — Auth/RBAC · Tenancy · POS · Inventory · Accounting · HR · Reporting · Billing · FBR · Notifications
         │
         ▼
 PostgreSQL (owner_id / business_id / branch_id) · Oban · Cloudflare R2 (later)
+
+Offline Desktop (kaarobar-desktop-offline) — local SQLite; no day-to-day API dependency after license
 ```
 
 ### Multi-tenancy (SRS §3.2.2 / SEC-NFR-001)
@@ -131,7 +139,8 @@ Shared cluster, tenant-isolated by ID. Every tenant-scoped table carries `owner_
 | Web | Next.js 16, React 19, Tailwind CSS 4 |
 | Mobile (staff) | React Native CLI (`kaarobar-mobile`) |
 | Mobile (customer) | React Native CLI (`kaarobar-customer`) |
-| Desktop | Electron |
+| Desktop (Cloud) | Electron (`kaarobar-desktop`) |
+| Desktop (Offline Edition) | Electron + SQLite (`kaarobar-desktop-offline`) |
 | API | Elixir, Phoenix, Ecto, Guardian, Oban, Argon2 |
 | Database | PostgreSQL 16 |
 | Object storage | Cloudflare R2 (planned) |
@@ -168,8 +177,11 @@ cd kaarobar-mobile && npm install && npm start
 # Customer mobile
 cd kaarobar-customer && npm install && npm start
 
-# Desktop POS
+# Cloud Desktop POS (syncs to API)
 cd kaarobar-desktop && npm install && npm start
+
+# Offline Desktop Edition (local SQLite; see package README for Node/env)
+cd kaarobar-desktop-offline && npm install && npm run dev
 ```
 
 Demo seed user: `owner@kaarobar.local` / `Password@123`  
@@ -220,7 +232,7 @@ Staff can attach a customer to a buyer account (invite email → `/login?as=cons
 
 More detail: [docs/crm.md](docs/crm.md).
 
-Module docs: [Tenancy](docs/tenancy.md) · [POS](docs/pos.md) · [Returns / tills / procurement](docs/returns-tills-procurement.md) · [Accounting](docs/accounting.md) · [HR & payroll](docs/hr-payroll.md) · [Platform / reporting / integrations](docs/platform.md) · [CRM & Customer Portal](docs/crm.md) — web, mobile, and desktop share `/api/v1`; accounting on web + API; HR includes web + mobile ESS; platform covers reports, billing, FBR, notifications, and offline sync.
+Module docs: [Tenancy](docs/tenancy.md) · [POS](docs/pos.md) · [Returns / tills / procurement](docs/returns-tills-procurement.md) · [Accounting](docs/accounting.md) · [HR & payroll](docs/hr-payroll.md) · [Platform / reporting / integrations](docs/platform.md) · [CRM & Customer Portal](docs/crm.md) · [Offline Desktop](docs/offline-desktop.md) · [Client cache standards](docs/architecture/client-cache-standards.md) — Cloud web/mobile/desktop share `/api/v1`; Offline Desktop is local-first (`ODE-FR`).
 
 ## Non-functional highlights (SRS §9)
 
@@ -234,9 +246,11 @@ Module docs: [Tenancy](docs/tenancy.md) · [POS](docs/pos.md) · [Returns / till
 
 - [AGENTS.md](AGENTS.md) — Cursor/agent instructions (SRS authority + ISO engineering rules)
 - [Brand assets](docs/brand/) — Kaarobar modular-K SVG / PNG
-- [KRB-SRS-003 — Software Requirements Specification v3.1 Production Baseline](docs/srs/KRB-SRS-003.md) ([v2.0 archive](docs/srs/KRB-SRS-002.md))
+- [KRB-SRS-004 — Software Requirements Specification v4.0 Whole Product Family](docs/srs/KRB-SRS-004.md)
 - [ADR 001 — PostgreSQL multi-tenancy](docs/adr/001-postgres-multi-tenancy.md)
 - [Architecture & module map](docs/architecture.md)
+- [Client cache standards](docs/architecture/client-cache-standards.md)
+- [Offline Desktop Edition](docs/offline-desktop.md) (`ODE-FR-*`; package: `kaarobar-desktop-offline`)
 - [Requirement ID index](docs/requirements-index.md)
 - [Tenancy](docs/tenancy.md) · [POS](docs/pos.md) · [Returns / tills / procurement](docs/returns-tills-procurement.md) · [Accounting](docs/accounting.md) · [HR & payroll](docs/hr-payroll.md) · [Platform](docs/platform.md) · [CRM & Customer Portal](docs/crm.md)
 

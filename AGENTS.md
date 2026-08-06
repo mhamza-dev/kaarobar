@@ -6,14 +6,14 @@ Instructions for Cursor (and any coding agent) working in this repository.
 
 | Document | Role |
 |----------|------|
-| [`docs/srs/KRB-SRS-003.md`](docs/srs/KRB-SRS-003.md) | **Authoritative SRS v3.2 Two Editions** — what to build |
-| [`docs/srs/KRB-SRS-002.md`](docs/srs/KRB-SRS-002.md) | Archived SRS v2.0 (traceability only — do not use for new work) |
-| [`docs/requirements-index.md`](docs/requirements-index.md) | Stable requirement ID prefixes |
+| [`docs/srs/KRB-SRS-004.md`](docs/srs/KRB-SRS-004.md) | **Authoritative SRS v4.0** — whole product family (Cloud + Offline Desktop) |
+| [`docs/requirements-index.md`](docs/requirements-index.md) | Stable requirement ID prefixes (incl. `FUT-FR` upcoming) |
 | [`docs/architecture.md`](docs/architecture.md), [`docs/adr/`](docs/adr/) | How this repo implements the SRS |
-| Module docs under [`docs/`](docs/) | Tenancy, POS, accounting, HR, platform status |
+| Module docs under [`docs/`](docs/) | Tenancy, POS, accounting, HR, platform, CRM status |
 | [`docs/offline-desktop.md`](docs/offline-desktop.md) | Offline Desktop Edition feature doc (`ODE-FR`) |
+| [`docs/architecture/client-cache-standards.md`](docs/architecture/client-cache-standards.md) | TanStack Query defaults for Cloud clients |
 
-**v3.2 rule:** MoSCoW **Must** = production baseline (shipped). Two commercial editions: **Kaarobar Cloud** (subscription) and **Kaarobar Offline Desktop** (one-time). Portal / Helpdesk / Public API / coupons / appointments are **Should** (roadmap) until Product promotes them. When **code and SRS disagree**, stop and ask the human.
+**v4.0 rule:** MoSCoW **Must** = production baseline (shipped). Two commercial editions: **Kaarobar Cloud** (subscription) and **Kaarobar Offline Desktop** (one-time). Portal / Helpdesk / Public API / coupons / appointments are **Should** until Product promotes them. §14 upcoming features (`FUT-FR-*`) are **Could** until promoted. When **code and SRS disagree**, stop and ask the human.
 
 Requirement language follows **RFC 2119** (`shall` / `should` / `may`) and **MoSCoW** (Must / Should / Could). Cite IDs (e.g. `POS-FR-005`, `SEC-NFR-001`, `ODE-FR-001`) in PRs, commits when asked, and tests.
 
@@ -65,7 +65,8 @@ The SRS describes **logical modules**. This repo implements them as:
 | Web | **Next.js** (`kaarobar-web`) |
 | Mobile (staff) | **React Native CLI** (`kaarobar-mobile`) |
 | Mobile (customer) | **React Native CLI** (`kaarobar-customer`) |
-| Desktop POS | **Electron** + SQLite outbox (`kaarobar-desktop`) |
+| Desktop POS (Cloud) | **Electron** + SQLite outbox (`kaarobar-desktop`) — syncs to API (`OFF-FR`) |
+| Desktop POS (Offline Edition) | **Electron** + local SQLite (`kaarobar-desktop-offline`) — one-time license (`ODE-FR`); no NestJS/Phoenix day-to-day dependency |
 
 Do **not** introduce NestJS, MongoDB, or BullMQ. Map SRS modules to Phoenix contexts:
 
@@ -82,7 +83,8 @@ Do **not** introduce NestJS, MongoDB, or BullMQ. Map SRS modules to Phoenix cont
 | Customer Portal (Phase A) | CUS |
 | Helpdesk (Phase B) | SUP |
 | Public API (Phase B) | API |
-| FBR / Notifications / Offline | FBR, NOT, OFF |
+| FBR / Notifications / Offline | FBR, NOT, OFF (Cloud Desktop sync) |
+| Offline Desktop Edition | ODE (package `kaarobar-desktop-offline`; see [`docs/offline-desktop.md`](docs/offline-desktop.md)) |
 
 Clients are independently deployable (no shared npm packages). Theme tokens are duplicated per app.
 
@@ -104,7 +106,7 @@ Clients are independently deployable (no shared npm packages). Theme tokens are 
 
 ### ISO/IEC/IEEE 29148 — Requirements engineering
 
-- Treat KRB-SRS-003 as the contract for behavior.
+- Treat KRB-SRS-004 as the contract for behavior.
 - Keep requirement IDs **stable**; do not renumber casually.
 - Implement **Must** before Should/Could unless the user says otherwise.
 - Do not expand Out-of-Scope items (e-commerce storefront, fixed assets, biometrics, multi-currency consolidation, etc.) without an explicit product decision.
@@ -158,7 +160,7 @@ Honor NFRs in SRS §9, including:
 - Skip tenant or customer isolation “for a quick demo.”
 - Mutate posted `journal_entries` / `journal_lines` in place.
 - Ship e-commerce storefront, fixed-asset management, or biometric hardware in MVP.
-- Paste the entire SRS into chat or duplicate it into new docs — **link** to KRB-SRS-003.
+- Paste the entire SRS into chat or duplicate it into new docs — **link** to KRB-SRS-004.
 - Invent new business verticals as schema forks; use `business_types` configuration.
 
 ---
@@ -167,13 +169,14 @@ Honor NFRs in SRS §9, including:
 
 ```
 POS/
-├── AGENTS.md                 # this file
-├── kaarobar-BE/              # Phoenix API
-├── kaarobar-web/             # Next.js
-├── kaarobar-mobile/          # React Native CLI — staff
-├── kaarobar-customer/        # React Native CLI — consumers
-├── kaarobar-desktop/         # Electron POS
-├── docs/srs/KRB-SRS-003.md   # authoritative requirements
+├── AGENTS.md                      # this file
+├── kaarobar-BE/                   # Phoenix API (Elixir)
+├── kaarobar-web/                  # Next.js
+├── kaarobar-mobile/               # React Native CLI — staff
+├── kaarobar-customer/             # React Native CLI — consumers
+├── kaarobar-desktop/              # Electron Cloud POS (sync)
+├── kaarobar-desktop-offline/      # Electron Offline Desktop Edition
+├── docs/srs/KRB-SRS-004.md        # authoritative requirements
 └── docs/requirements-index.md
 ```
 

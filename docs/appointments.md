@@ -1,10 +1,10 @@
 # Appointments & scheduling (SCH-FR)
 
-Status of the appointments module relative to KRB-SRS-003.
+Status of the appointments module relative to KRB-SRS-004.
 
 ## Authority
 
-- SRS: [`docs/srs/KRB-SRS-003.md`](srs/KRB-SRS-003.md) §5.4 (`SCH-FR-001`–`006`) and `CUS-FR-005`
+- SRS: [`docs/srs/KRB-SRS-004.md`](srs/KRB-SRS-004.md) §5.4 (`SCH-FR-001`–`006`) and `CUS-FR-005`
 - Requirement index: [`docs/requirements-index.md`](requirements-index.md)
 
 ## MoSCoW / phase

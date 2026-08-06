@@ -1,8 +1,10 @@
 # Kaarobar Web (`kaarobar-web`)
 
-Next.js client for Kaarobar (SRS **KRB-SRS-003**). Product of **2ndHub Solutions**.
+Next.js **Cloud** client for Kaarobar (SRS **KRB-SRS-004**). Talks to Elixir/Phoenix `kaarobar-BE` at `/api/v1`. Product of **2ndHub Solutions**.
 
 Public marketing (company site, product pages) lives in the separate **2ndHub Solutions** repo. This app starts at sign-in.
+
+Offline Desktop Edition is a separate Electron package: [`kaarobar-desktop-offline`](../kaarobar-desktop-offline/) — see [`docs/offline-desktop.md`](../docs/offline-desktop.md).
 
 ## Surfaces
 
@@ -24,4 +26,4 @@ With API + web running:
 
 Demo seeds (after `mix ecto.setup` / `mix ecto.reset` in `kaarobar-BE`): see root README.
 
-See also [docs/crm.md](../docs/crm.md).
+See also [docs/crm.md](../docs/crm.md) · [client cache standards](../docs/architecture/client-cache-standards.md).

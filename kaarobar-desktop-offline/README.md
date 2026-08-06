@@ -2,6 +2,8 @@
 
 Offline-first desktop Point of Sale for a **single shop** (one business / tenant per install). Built with Electron, React, TypeScript, SQLite (`better-sqlite3`), Tailwind, and Formik + Yup.
 
+This package is the **Kaarobar Offline Desktop** commercial edition in the monorepo (`ODE-FR-*`). Product feature doc: [`docs/offline-desktop.md`](../docs/offline-desktop.md). It is **not** Cloud Desktop sync ([`kaarobar-desktop`](../kaarobar-desktop/) / `OFF-FR-*`).
+
 License activation uses Supabase during setup; day-to-day sales and inventory run fully offline after activation.
 
 ## Current stage
@@ -119,6 +121,7 @@ IPC is exposed only through the preload `window.api` bridge (`contextIsolation: 
 
 | File | Purpose |
 |---|---|
+| [`docs/offline-desktop.md`](../docs/offline-desktop.md) | Edition feature list + SRS `ODE-FR` map |
 | [FEATURES.md](./FEATURES.md) | Feature list and how each helps shop users |
 | [PHASE_GATES.md](./PHASE_GATES.md) | Regression / release checklist for the current stage |
 | [WINDOWS_RELEASE_SMOKE_TEST.md](./WINDOWS_RELEASE_SMOKE_TEST.md) | Clean Windows VM install + offline smoke test |

@@ -28,5 +28,6 @@ Demo consumer: `ayesha.customer@kaarobar-demo.pk` / `Password@123`
 ## Stack
 
 - React Native 0.76 + React Navigation
-- Same Phoenix `/api/v1` base URL pattern as other clients
+- Same Phoenix `/api/v1` base URL pattern as other Cloud clients
 - Theme/i18n duplicated locally (no new shared package)
+- TanStack Query — see [`docs/architecture/client-cache-standards.md`](../docs/architecture/client-cache-standards.md)

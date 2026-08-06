@@ -1,6 +1,6 @@
 # HR & payroll
 
-Status against KRB-SRS-001 HR Must items:
+Status against KRB-SRS-004 HR Must items:
 
 | ID | Status | Notes |
 |----|--------|-------|

@@ -6,19 +6,19 @@
 
 | Field | Value |
 |-------|-------|
-| Document No. | **KRB-SRS-003** |
-| Version | **3.2** (Production Baseline — Two Editions) |
-| Date | August 1, 2026 |
-| Supersedes | KRB-SRS-003 v3.1; KRB-SRS-003 v3.0 (Draft for Review); KRB-SRS-002 v2.0 (archived) |
+| Document No. | **KRB-SRS-004** |
+| Version | **4.0** (Whole Product Family — Monorepo + Roadmap) |
+| Date | August 6, 2026 |
+| Supersedes | KRB-SRS-003 v3.2; KRB-SRS-002 v2.0; KRB-SRS-001 v1.0 (all retired) |
 | Classification | Confidential — Internal Planning Document |
 | Prepared By | Hamza AI — Founder & Lead Engineer |
 | Publisher | **2ndHub Solutions** (Kaarobar is a product of 2ndHub Solutions) |
 | Standards | ISO/IEC/IEEE 29148:2018, ISO/IEC 25010:2011, ISO/IEC/IEEE 42010:2011 |
-| Status | **Production baseline for engineering** — living document; Phase A remaining / Phase B roadmap retained |
+| Status | **Authoritative engineering contract** for the whole Kaarobar product family in this monorepo |
 
-This document is the authoritative engineering contract for Kaarobar. "Kaarobar" is the product name; the publisher / vendor is **2ndHub Solutions**. Requirement language follows RFC 2119 (`shall` / `must` / `should` / `may`) and MoSCoW prioritization (**Must** / **Should** / **Could** / Won't).
+This document is the authoritative engineering contract for **Kaarobar** (Cloud + Offline Desktop) across all packages in the POS monorepo. "Kaarobar" is the product name; the publisher / vendor is **2ndHub Solutions**. Requirement language follows RFC 2119 (`shall` / `must` / `should` / `may`) and MoSCoW prioritization (**Must** / **Should** / **Could** / Won't).
 
-> **v3.2 rule:** MoSCoW **Must** = production baseline (shipped or accepted Partial with stated criteria). Two commercial editions are normative: **Kaarobar Cloud** (subscription) and **Kaarobar Offline Desktop** (one-time license). Enterprise roadmap items remain as **Should** / Phase A–B until Product promotes them.
+> **v4.0 rule:** MoSCoW **Must** = production baseline (shipped or accepted Partial with stated criteria). Two commercial editions remain normative: **Kaarobar Cloud** (subscription) and **Kaarobar Offline Desktop** (one-time license). Requirement IDs from KRB-SRS-003 are **stable** and carried forward. Phase A remaining / Phase B are **Should**. §14 lists **possible upcoming features** (Could / exploratory) that Product may promote later — they are **not** Must until explicitly promoted.
 
 ---
 
@@ -28,13 +28,24 @@ This document is the authoritative engineering contract for Kaarobar. "Kaarobar"
 
 | Version | Date | Author | Description |
 |---------|------|--------|-------------|
-| 1.0 | 2026-07-03 | Hamza AI | First complete draft. MongoDB Atlas architecture; NestJS modular monolith; core POS, Accounting, HR. |
-| 2.0 | 2026-07-20 | Hamza AI | PostgreSQL migration (shared DB + RLS); multi-vertical catalog; scheduling; FBR Tier-1; offline sync hardening. |
-| 3.0 | 2026-07-22 | Hamza AI | CRM & Marketing/Campaigns; Customer Portal login; role-scoped employee dashboards; Helpdesk; Public API & Webhooks; BI/analytics (RFM, campaign ROI, sales trends). Reverses v2.0 out-of-scope decisions on "native loyalty/CRM marketing automation" and "staff-initiated appointment booking only." |
-| **3.1** | **2026-07-22** | **Hamza AI** | **Production Baseline.** Aligns Musts with the shipped Kaarobar codebase (Elixir/Phoenix + PostgreSQL + Oban): khata tender, loyalty points, industry presets, CRM campaigns as-built, push notifications, ESS employee portal login, desktop offline sync, en/ur i18n, branding. Rewrites CRM Must to shipped behavior; moves coupons/tiers/consent CRM, Customer Portal, Helpdesk, Public API, appointments, production FBR adapter, and full billing portal to Should / Phase A–B. Roles aligned to code (`marketing`, `admin`). |
-| **3.2** | **2026-08-01** | **Hamza AI** | **Two editions.** Publisher **2ndHub Solutions**. Normative commercial split: **Kaarobar Cloud** (Web + syncing Desktop + Mobile; Safepay subscription) vs **Kaarobar Offline Desktop** (single shop, local SQLite, one-time license; `ODE-FR-*`). Cloud billing primary = **Safepay** (ADM-FR-003); Offline one-time purchase / license lockout = **ADM-FR-007**. Keeps `OFF-FR-*` as Cloud desktop sync only. Product feature doc: [`docs/offline-desktop.md`](../offline-desktop.md). |
+| 1.0–3.1 | 2026-07 | Hamza AI | Historical drafts through production baseline (see git history / retired KRB-SRS-003). |
+| 3.2 | 2026-08-01 | Hamza AI | Two editions (Cloud subscription vs Offline Desktop one-time). |
+| **4.0** | **2026-08-06** | **Hamza AI** | **Whole-product monorepo SRS.** Documents all packages (`kaarobar-BE`, web, mobiles, Cloud Desktop, Offline Desktop). Confirms normative stack **Elixir/Phoenix + PostgreSQL + Oban** (NestJS wording retired). Adds §14 Possible Upcoming Features. Retires KRB-SRS-002 / KRB-SRS-003 as separate documents. |
 
-### Commercial editions (v3.2 — normative)
+### Monorepo packages (v4.0 — normative)
+
+| Package | Edition | Role |
+|---------|---------|------|
+| `kaarobar-BE` | Cloud | Elixir/Phoenix API + PostgreSQL + Oban |
+| `kaarobar-web` | Cloud | Next.js staff dashboard + browser POS + buyer market |
+| `kaarobar-mobile` | Cloud | React Native CLI — staff |
+| `kaarobar-customer` | Cloud | React Native CLI — consumers |
+| `kaarobar-desktop` | Cloud | Electron POS with local outbox sync (`OFF-FR-*`) |
+| `kaarobar-desktop-offline` | Offline Desktop | Electron + local SQLite; license-then-offline (`ODE-FR-*`) |
+
+Clients are independently deployable (no shared npm packages). Theme tokens are duplicated per app.
+
+### Commercial editions (normative)
 
 | Edition | Who | Platforms | Commercial |
 |---------|-----|-----------|------------|
@@ -45,14 +56,14 @@ Cloud Desktop ≠ Offline Desktop SKU. Offline Edition **shall not** require clo
 
 ### Why PostgreSQL Was Chosen (carried forward from v2.0)
 
-KRB-SRS-002 replaced MongoDB Atlas with **PostgreSQL 16** as the system of record because:
+A prior SRS revision replaced MongoDB Atlas with **PostgreSQL 16** as the system of record because:
 
 1. **Financial integrity** — deferred constraint triggers, ACID transactions, and immutability grants are native fits for double-entry journals and till reconciliation.
 2. **Row-Level Security (RLS)** — defense-in-depth tenant isolation via session variables (`app.owner_id`) in addition to application-layer scoping.
 3. **Cost at early scale (G5)** — shared-database multi-tenancy avoids per-tenant cluster cost.
 4. **Job queue affinity** — PostgreSQL-backed queues (BullMQ/Redis or Oban) keep transactional outbox patterns simple.
 
-See also ADR 001 in the repository and KRB-SRS-002 §3.2.2 / Document Control.
+See also ADR 001 in the repository. Historical PostgreSQL rationale originated in prior SRS revisions (retired).
 
 ### Why These Modules Were Added (v3.0) — still valid; delivery honesty in v3.1
 
@@ -67,13 +78,14 @@ Customer engagement remains strategic. v3.1 does **not** remove the enterprise r
 | **Helpdesk inside the tenant** | Phase B Should. |
 | **Explicit reversals of v2.0 §1.4.4** | CRM marketing automation is **in scope** (baseline = campaigns as-built; full suite = Phase A remaining). Customer self-booking remains **roadmap** with appointments module. |
 
-**Phased delivery (v3.1 — normative for prioritization)**
+**Phased delivery (normative for prioritization)**
 
 | Phase | Scope | MoSCoW |
 |-------|-------|--------|
 | **Production baseline (Release 1.0 Must)** | TEN, POS (incl. khata + loyalty points), INV core, ACC, HR/ESS, RPT core, ADM plan limits + **Safepay** webhook/checkout (Cloud), NOT (in-app/email/push), OFF Cloud desktop sync, CRM campaigns as-built, FBR hooks (mock/non-blocking); **Offline Desktop Edition** (`ODE-FR-*`) + ADM-FR-007 license lockout | **Must** |
 | **Phase A remaining** | Customer Portal (`CUS-FR`), coupons, loyalty tiers, marketing consent engine, named segments, SMS/WhatsApp campaigns, role-dashboard polish | **Should** until promoted |
 | **Phase B** | Helpdesk (`SUP-FR`), Public API/Webhooks (`API-FR`), BI RFM/ROI, production FBR adapter, full self-serve billing portal, appointments/recipes/agrochemical polish | **Should** until promoted |
+| **Phase C / exploratory** | Possible upcoming features in §14 (KOT, gift cards, fixed assets, multi-currency consolidation, Offline multi-device sync, regional tax packs, etc.) | **Could** until promoted |
 
 ---
 
@@ -92,6 +104,7 @@ Customer engagement remains strategic. v3.1 does **not** remove the enterprise r
 11. [Requirement Traceability Matrix](#11-requirement-traceability-matrix)
 12. [Risk Register](#12-risk-register)
 13. [Appendices](#13-appendices)
+14. [Possible Upcoming Features](#14-possible-upcoming-features) (Phase C / Could)
 
 ---
 
@@ -275,7 +288,7 @@ The SRS is the authoritative engineering contract. It is prepared in accordance 
 4. RFC 2119 — Key words for use in RFCs to Indicate Requirement Levels
 5. Federal Board of Revenue, Government of Pakistan — Sales Tax Rules / POS Integration guidance
 6. PostgreSQL 16 Documentation — Row Security Policies
-7. KRB-SRS-002 v2.0 — prior SRS (archived at `docs/srs/KRB-SRS-002.md`)
+7. Prior SRS revisions (KRB-SRS-001 / 002 / 003) — retired; use git history for archival comparison
 8. ADR 001 — PostgreSQL multi-tenancy (repository)
 
 ---
@@ -537,7 +550,7 @@ Staff actors interact with POS, Inventory, Accounting, HR, CRM, Helpdesk, and Re
 
 ### 4.3 Use Case Summary Table — Core (All Verticals)
 
-Carried forward from KRB-SRS-002 (UC-01–UC-27):
+Carried forward from prior SRS revisions (UC-01–UC-27):
 
 | ID | Use Case | Actors | Module |
 |----|----------|--------|--------|
@@ -624,7 +637,7 @@ Carried forward from KRB-SRS-002 (UC-01–UC-27):
 | **Alternate flows** | **A1 SLA breach:** Analytics flag for Owner/Manager (SUP-FR-008).<br>**A2 Spam/abuse:** Agent closes with reason; audit retained. |
 | **Postconditions** | Full message history retained; linked sale/customer navigable from staff UI. |
 
-Abbreviated detailed descriptions for UC-01 (sale), UC-17 (payroll), and UC-02 (return) are **unchanged in intent from KRB-SRS-002 §4.5** and remain normative by reference.
+Abbreviated detailed descriptions for UC-01 (sale), UC-17 (payroll), and UC-02 (return) are **unchanged in intent from prior SRS §4.5** and remain normative by reference.
 
 ---
 ## 5 Functional Requirements
@@ -1125,17 +1138,17 @@ Applicable to customer-visible projections of `sales`, `ar_invoices`, `appointme
 
 ### 7.1 Class Diagram
 
-Logical domain classes remain as in KRB-SRS-002 §7.1 (Sale, Item, JournalEntry, Employee, etc.), extended with Campaign, Coupon, LoyaltyTier, CustomerAccount, SupportTicket, ApiKey, WebhookSubscription.
+Logical domain classes remain as in prior SRS §7.1 (Sale, Item, JournalEntry, Employee, etc.), extended with Campaign, Coupon, LoyaltyTier, CustomerAccount, SupportTicket, ApiKey, WebhookSubscription.
 
 ### 7.2 State Diagrams
 
 #### 7.2.1 Sale / Invoice Lifecycle
 
-**Unchanged from KRB-SRS-002 §7.2.1** (Draft/Completed/Returned states as previously specified).
+**Unchanged from prior SRS §7.2.1** (Draft/Completed/Returned states as previously specified).
 
 #### 7.2.2 Payroll Run Lifecycle
 
-**Unchanged from KRB-SRS-002 §7.2.2** (Draft → PendingApproval → Approved/Rejected → Posted).
+**Unchanged from prior SRS §7.2.2** (Draft → PendingApproval → Approved/Rejected → Posted).
 
 #### 7.2.3 Campaign Lifecycle (NEW)
 
@@ -1173,11 +1186,11 @@ stateDiagram-v2
 
 #### 7.3.1 POS Sale Checkout
 
-**Unchanged from KRB-SRS-002 §7.3.1** (cart → stock decrement → async journal → optional FBR enqueue). Coupon validation (POS-FR-019) inserts into the same checkout transaction before stock decrement when a code is present; online path validates live; offline path uses OFF-FR-008.
+**Unchanged from prior SRS §7.3.1** (cart → stock decrement → async journal → optional FBR enqueue). Coupon validation (POS-FR-019) inserts into the same checkout transaction before stock decrement when a code is present; online path validates live; offline path uses OFF-FR-008.
 
 #### 7.3.2 Payroll Processing & Posting
 
-**Unchanged from KRB-SRS-002 §7.3.2**.
+**Unchanged from prior SRS §7.3.2**.
 
 #### 7.3.3 Campaign Send (NEW)
 
@@ -1225,7 +1238,7 @@ sequenceDiagram
 
 ### 7.4 Activity Diagram — Return / Refund Approval Workflow
 
-**Unchanged from KRB-SRS-002 §7.4**.
+**Unchanged from prior SRS §7.4**.
 
 ---
 
@@ -1244,7 +1257,7 @@ sequenceDiagram
 
 ### 8.2 Hardware Interfaces
 
-Thermal ESC/POS printers, cash drawers, barcode/QR scanners, standard A4 printers, label printers — as in KRB-SRS-002. No biometric devices in Release 1.0.
+Thermal ESC/POS printers, cash drawers, barcode/QR scanners, standard A4 printers, label printers — as previously specified. No biometric devices in Release 1.0.
 
 ### 8.3 Software Interfaces
 
@@ -1482,13 +1495,13 @@ Sample traceability rows (not exhaustive — full matrix maintained in engineeri
 | R-10 | **Claiming unbuilt Musts as launch criteria** | High | Severe | v3.1 Production Baseline separates Must (shipped) from Should (roadmap) |
 | R-11 | **Multi-module scope creep from Portal/Helpdesk/API** | High | Moderate | Keep Phase A remaining / Phase B as Should until Product promotes |
 
-Risks R-01–R-06 carried forward from KRB-SRS-002; R-07–R-09 from v3.0; R-10–R-11 refined in v3.1.
+Risks R-01–R-06 carried forward from prior SRS revisions; R-07–R-09 from v3.0; R-10–R-11 refined in v3.1.
 
 ---
 
 ## 13 Appendices
 
-### Appendix A — Requirement Count Summary (v3.2)
+### Appendix A — Requirement Count Summary (v4.0)
 
 | Prefix | Module / Area | Count (approx.) | Must (production baseline) |
 |--------|---------------|-----------------|----------------------------|
@@ -1512,7 +1525,7 @@ Risks R-01–R-06 carried forward from KRB-SRS-002; R-07–R-09 from v3.0; R-10�
 | **Total FR** | | **≈ 185** | **≈ 100 Must** (honest baseline + ODE) |
 | **Grand total FR + NFR** | | **≈ 225+** | **≈ 125 Must** |
 
-> v3.2 adds Offline Desktop Edition Musts (`ODE-FR`, ADM-FR-007) and confirms Safepay as Cloud billing. Exact enumeration is the authoritative tables in §§5, 8.3.4, 9, 10.
+> v4.0 carries forward Offline Desktop Musts (`ODE-FR`, ADM-FR-007), Safepay Cloud billing, and adds §14 Possible Upcoming Features (Could). Exact enumeration of Must/Should remains the authoritative tables in §§5, 8.3.4, 9, 10.
 
 ### Appendix B — Sample Default Chart of Accounts (Pakistan Retail Template)
 
@@ -1558,7 +1571,7 @@ Vertical-specific templates may extend this list (ACC-FR-001).
 6. **Which Phase A vs Phase B modules ship first?** — Recommendation: Phase A = Customer Portal + basic CRM; Phase B = Helpdesk + Public API + BI.
 7. **WhatsApp Business API provider selection** (Meta Cloud API vs BSP aggregators) and template approval ownership.
 
-### Appendix E — Requirement ID Prefix Reference (v3.2)
+### Appendix E — Requirement ID Prefix Reference (v4.0)
 
 | Prefix | Section | Notes |
 |--------|---------|-------|
@@ -1577,10 +1590,109 @@ Vertical-specific templates may extend this list (ACC-FR-001).
 | API-FR | §5.13 | Public API & Webhooks |
 | FBR-FR | §8.3.4 | |
 | OFF-FR | §10.5 | Cloud Desktop sync; includes OFF-FR-008 |
-| **ODE-FR** | **§10.6** | **Offline Desktop Edition (single shop)** |
+| ODE-FR | §10.6 | Offline Desktop Edition (single shop) |
+| FUT-FR | §14 | Possible upcoming features (Could / exploratory IDs) |
 | PERF/COMP/USE/REL/SEC/MNT/PORT/CMP-NFR | §9 | Includes SEC-NFR-010..012, PERF-NFR-006, CMP-NFR-005, USE-NFR-005 |
 
 ---
 
-*End of Document — KRB-SRS-003 v3.2*  
-*Doc. No. KRB-SRS-003 | Version 3.2 Two Editions · Publisher 2ndHub Solutions | August 1, 2026 | Confidential*
+## 14 Possible Upcoming Features
+
+This section records **candidate** product capabilities for future increments. Unless Product promotes an item to **Should** or **Must**, items here are **Could** / exploratory. They **shall not** block production baseline delivery. Stable requirement IDs below (`FUT-FR-*`) are reserved for traceability when promoted; until then, treat them as planning placeholders.
+
+### 14.1 Food / hospitality operations
+
+| ID | Candidate | Notes | MoSCoW |
+|----|-----------|-------|--------|
+| FUT-FR-001 | Kitchen Display / KOT | Route ticket items to kitchen screens; bump / recall | Could |
+| FUT-FR-002 | Split bill / share check | Split by seat, item, or equal parts before tender | Could |
+| FUT-FR-003 | Course / fire timing | Hold courses; fire next course on demand | Could |
+| FUT-FR-004 | Delivery rider assignment | Assign rider, track status for takeaway/delivery | Could |
+| FUT-FR-005 | Online ordering aggregator connectors | Optional connectors to third-party food marketplaces | Could |
+
+### 14.2 Retail / inventory depth
+
+| ID | Candidate | Notes | MoSCoW |
+|----|-----------|-------|--------|
+| FUT-FR-010 | Serial / IMEI tracking | Capture serial on sale and return | Could |
+| FUT-FR-011 | Lot recall workflows | Quarantine and reverse stock by lot/batch | Could |
+| FUT-FR-012 | Gift cards / store credit instruments | Sell, reload, redeem gift balances | Could |
+| FUT-FR-013 | Price lists / customer-specific pricing | B2B price books by customer or segment | Could |
+| FUT-FR-014 | Auto-reorder suggestions | Suggest PO lines from sales velocity + lead time | Could |
+| FUT-FR-015 | Manufacturing / light MRP | BOM explode, work orders, finished-goods receipt | Could |
+| FUT-FR-016 | Recipes / COGS polish | Promote INV recipe features beyond Partial | Could (overlaps Phase B) |
+
+### 14.3 Accounting, tax & compliance
+
+| ID | Candidate | Notes | MoSCoW |
+|----|-----------|-------|--------|
+| FUT-FR-020 | Fixed-asset register | Capex, depreciation schedules, disposal journals | Could |
+| FUT-FR-021 | Multi-currency consolidation | Group FX translation / consolidation reports | Could |
+| FUT-FR-022 | Accounting export packs | Xero / QuickBooks / CSV GL exports | Could |
+| FUT-FR-023 | Regional tax packs | UAE VAT, KSA e-invoicing, other Gulf packs | Could |
+| FUT-FR-024 | Pakistan e-filing automation | Beyond FBR hooks — payroll/tax e-filing assistants | Could |
+| FUT-FR-025 | Production FBR adapter | Promote FBR-FR production adapter (also Phase B Should) | Should (existing) / Could for extras |
+
+### 14.4 HR & workforce
+
+| ID | Candidate | Notes | MoSCoW |
+|----|-----------|-------|--------|
+| FUT-FR-030 | Biometric / face clock | Hardware or camera attendance (privacy review required) | Could |
+| FUT-FR-031 | Tip pooling | Tip allocation rules into payroll | Could |
+| FUT-FR-032 | Shift rostering | Beyond appointments — roster templates and coverage | Could |
+| FUT-FR-033 | Commission schemes UI | Configurable commission plans beyond Partial | Could |
+
+### 14.5 CRM, engagement & commerce
+
+| ID | Candidate | Notes | MoSCoW |
+|----|-----------|-------|--------|
+| FUT-FR-040 | In-app customer chat | Staff↔customer messaging with audit | Could |
+| FUT-FR-041 | Abandoned cart / browse recovery | Buyer marketplace nudges | Could |
+| FUT-FR-042 | Referral programs | Invite codes and reward points | Could |
+| FUT-FR-043 | Seller analytics suite | Deeper marketplace seller dashboards | Could |
+| FUT-FR-044 | Full e-commerce storefront themes | Branded storefronts beyond marketplace listing | Could |
+| FUT-FR-045 | Subscription products for shops | Recurring services billed to end customers | Could |
+
+### 14.6 Platform, API & operations
+
+| ID | Candidate | Notes | MoSCoW |
+|----|-----------|-------|--------|
+| FUT-FR-050 | White-label / reseller console | Partner branding and tenant provisioning | Could |
+| FUT-FR-051 | Franchise packs | Shared catalog policies across franchisees | Could |
+| FUT-FR-052 | Advanced BI / forecasting | Demand forecasting, anomaly alerts (beyond RFM) | Could |
+| FUT-FR-053 | Hardware hub | Customer display, cash drawer open, label printers | Could |
+| FUT-FR-054 | Kiosk / self-checkout mode | Locked POS profile for unattended tills | Could |
+| FUT-FR-055 | Tablet-optimized layouts | Dedicated tablet chrome for floor staff | Could |
+
+### 14.7 Offline Desktop Edition extensions
+
+| ID | Candidate | Notes | MoSCoW |
+|----|-----------|-------|--------|
+| FUT-FR-060 | Multi-device Offline sync | Optional LAN sync between tills in one shop | Could |
+| FUT-FR-061 | Cloud ↔ Offline migration tools | Export Cloud shop → Offline install / reverse import | Could |
+| FUT-FR-062 | Offline accounting pack | Light P&L / cash book without Cloud ledger | Could |
+| FUT-FR-063 | Background OS auto-backup service | Backup while app closed (OS service) | Could |
+| FUT-FR-064 | Additional Offline locales / verticals | Beyond current Offline i18n/vertical set | Could |
+
+### 14.8 Explicit Won't (near-term)
+
+The following remain **Won't** for near-term releases unless Product reverses the decision in Document Control:
+
+- Biometric identity as a **mandatory** clock (privacy / hardware variance) — optional FUT-FR-030 only
+- Full MRP / ERP replacement for manufacturers — FUT-FR-015 stays light/Could
+- Database-per-tenant isolation model (shared DB + ID scoping remains normative)
+- NestJS / MongoDB / BullMQ rewrite of `kaarobar-BE` (stack remains Elixir/Phoenix + PostgreSQL + Oban)
+
+### 14.9 Promotion rule
+
+1. Product selects an ID from §14.
+2. MoSCoW is updated to **Should** or **Must** in Document Control.
+3. Module docs under `docs/` and [`requirements-index.md`](../requirements-index.md) are updated in the same change set.
+4. Implementation cites the ID in tests and PR notes.
+
+Related package docs: [`docs/offline-desktop.md`](../offline-desktop.md) · [`docs/architecture.md`](../architecture.md) · [`docs/crm.md`](../crm.md) · [`docs/appointments.md`](../appointments.md).
+
+---
+
+*End of Document — KRB-SRS-004 v4.0*  
+*Doc. No. KRB-SRS-004 | Version 4.0 Whole Product Family · Publisher 2ndHub Solutions | August 6, 2026 | Confidential*

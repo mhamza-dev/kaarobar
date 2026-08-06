@@ -1,6 +1,8 @@
 # Kaarobar Desktop (`kaarobar-desktop`)
 
-Electron POS terminal for Kaarobar SRS **KRB-SRS-003**.
+Electron **Cloud Desktop** POS terminal for Kaarobar SRS **KRB-SRS-004** (`OFF-FR-*` sync). Queues sales locally and syncs to Phoenix `kaarobar-BE`.
+
+For the **one-time Offline Desktop Edition** (local SQLite, no day-to-day API), use [`kaarobar-desktop-offline`](../kaarobar-desktop-offline/) — see [`docs/offline-desktop.md`](../docs/offline-desktop.md).
 
 The renderer is a **Vite + React + TypeScript + Tailwind** app that reuses the same UI components and page layouts as `kaarobar-web` for visual/UX parity. Electron `main` / `preload` keep offline IPC (`window.kaarobarPos`).
 
@@ -25,6 +27,8 @@ npm run dist:linux  # → release/*.deb  (run on Linux or CI)
 CI publishes only these binaries to GitHub Releases (see `.github/workflows/desktop-release.yml`).
 
 API base URL: `VITE_API_URL` (default `http://localhost:4000/api/v1`).
+
+TanStack Query defaults: [`docs/architecture/client-cache-standards.md`](../docs/architecture/client-cache-standards.md).
 
 Demo login after seed: `owner@kaarobar.local` / `Password@123`
 

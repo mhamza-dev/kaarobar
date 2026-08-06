@@ -1,6 +1,8 @@
 # Platform, reporting & integrations
 
-Status against KRB-SRS-001 Must items for reporting, billing, FBR, notifications, and offline sync.
+Status against KRB-SRS-004 Must items for reporting, billing, FBR, notifications, and **Cloud Desktop** offline sync (`OFF-FR`).
+
+Offline Desktop Edition (`ODE-FR`) is a separate package — see [`offline-desktop.md`](offline-desktop.md) / `kaarobar-desktop-offline`. It does not use these sync endpoints for day-to-day selling.
 
 | ID | Status | Notes |
 |----|--------|-------|

@@ -1,6 +1,6 @@
 # Tenancy, identity & RBAC (TEN-FR)
 
-Status against KRB-SRS-001 Must items:
+Status against KRB-SRS-004 Must items:
 
 | ID | Status | Notes |
 |----|--------|-------|

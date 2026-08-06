@@ -1,6 +1,6 @@
 # POS & inventory stock core
 
-Status against KRB-SRS-001 Must items (POS-FR + INV stock core):
+Status against KRB-SRS-004 Must items (POS-FR + INV stock core):
 
 | ID | Status | Notes |
 |----|--------|-------|

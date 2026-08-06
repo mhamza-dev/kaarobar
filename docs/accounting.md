@@ -1,6 +1,6 @@
 # Accounting depth
 
-Status against KRB-SRS-003 ACC Must items:
+Status against KRB-SRS-004 ACC Must items:
 
 | ID | Status | Notes |
 |----|--------|-------|

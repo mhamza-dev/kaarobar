@@ -4,9 +4,11 @@ Single-shop, fully offline desktop POS after license activation. **One-time purc
 
 Publisher: **2ndHub Solutions**. Product name remains **Kaarobar**.
 
-Authoritative requirements: [`docs/srs/KRB-SRS-003.md`](srs/KRB-SRS-003.md) §10.6 (`ODE-FR-*`) · Index: [`docs/requirements-index.md`](requirements-index.md).
+Authoritative requirements: [`docs/srs/KRB-SRS-004.md`](srs/KRB-SRS-004.md) §10.6 (`ODE-FR-*`) · Index: [`docs/requirements-index.md`](requirements-index.md).
 
-> **Not** the same as Cloud Desktop sync (`OFF-FR-*`). Cloud Desktop queues sales and syncs to the multi-tenant API. Offline Desktop keeps day-to-day data in local SQLite and does **not** require cloud for selling after license activation.
+**Implementation package in this monorepo:** [`kaarobar-desktop-offline/`](../kaarobar-desktop-offline/) (Electron + React + local SQLite). Package README: [`kaarobar-desktop-offline/README.md`](../kaarobar-desktop-offline/README.md).
+
+> **Not** the same as Cloud Desktop sync (`OFF-FR-*`). Cloud Desktop lives in [`kaarobar-desktop/`](../kaarobar-desktop/) — it queues sales and syncs to the multi-tenant Phoenix API. Offline Desktop keeps day-to-day data in local SQLite and does **not** require cloud for selling after license activation.
 
 ---
 
@@ -251,10 +253,11 @@ Shop owners, managers, and cashiers who need a **desktop POS** that:
 
 | Doc | Purpose |
 |---|---|
-| [KRB-SRS-003 §10.6](srs/KRB-SRS-003.md) | Authoritative `ODE-FR-*` requirements |
+| [KRB-SRS-004 §10.6](srs/KRB-SRS-004.md) | Authoritative `ODE-FR-*` requirements |
 | [requirements-index.md](requirements-index.md) | Stable ID prefixes |
 | [README.md](../README.md) | Product snapshot, setup, clients |
-| Cloud offline sync | SRS §10.5 `OFF-FR-*` (Cloud Desktop only) |
+| [`kaarobar-desktop-offline/README.md`](../kaarobar-desktop-offline/README.md) | Dev/build/env for the Offline Desktop package |
+| Cloud Desktop sync | SRS §10.5 `OFF-FR-*` · package [`kaarobar-desktop`](../kaarobar-desktop/) |
 
 ---
 

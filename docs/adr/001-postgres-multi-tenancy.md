@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-The SRS originally specified MongoDB Atlas with `ownerId` / `businessId` / `branchId` scoping (KRB-SRS-001 §3.2.2). Product direction for this repository uses **PostgreSQL** while keeping the same shared-database, application-enforced tenant-isolation model (not database-per-owner), prioritizing cost efficiency at initial scale (goal G5).
+The SRS originally specified MongoDB Atlas with `ownerId` / `businessId` / `branchId` scoping (historical KRB-SRS-001 §3.2.2). Product direction for this repository uses **PostgreSQL** while keeping the same shared-database, application-enforced tenant-isolation model (not database-per-owner), prioritizing cost efficiency at initial scale (goal G5). Normative SRS is now **KRB-SRS-004**.
 
 ## Decision
 

@@ -1,8 +1,8 @@
 # Kaarobar Backend (`kaarobar-BE`)
 
-Elixir/Phoenix modular monolith implementing Kaarobar SRS **KRB-SRS-001** application layer.
+Elixir/Phoenix modular monolith implementing Kaarobar SRS **[KRB-SRS-004](../docs/srs/KRB-SRS-004.md)** application layer (Cloud edition API).
 
-**Stack overrides vs SRS Table 3.1:** Phoenix (not NestJS), PostgreSQL (not MongoDB), Oban (not BullMQ), Guardian JWT + Argon2.
+**Stack (normative in this repo):** Phoenix + PostgreSQL + Oban + Guardian JWT + Argon2. Do **not** introduce NestJS, MongoDB, or BullMQ.
 
 ## Responsibilities (SRS §3 / §5)
 

@@ -1,12 +1,12 @@
 # Requirement ID index
 
-Stable identifiers from Kaarobar SRS **KRB-SRS-003 v3.2 (Two Editions · Production Baseline)**. Use these in PR descriptions and tests for traceability (SRS §11).
+Stable identifiers from Kaarobar SRS **KRB-SRS-004 v4.0 (Whole Product Family)**. Use these in PR descriptions and tests for traceability (SRS §11).
 
-Priority uses MoSCoW: **Must** = production baseline · **Should** = Phase A remaining / Phase B roadmap · **Could** = backlog.
+Priority uses MoSCoW: **Must** = production baseline · **Should** = Phase A remaining / Phase B roadmap · **Could** = backlog / §14 upcoming (`FUT-FR`).
 
-Authoritative SRS: [`docs/srs/KRB-SRS-003.md`](srs/KRB-SRS-003.md) · Archive: [`docs/srs/KRB-SRS-002.md`](srs/KRB-SRS-002.md) (do not use for new work)
+Authoritative SRS: [`docs/srs/KRB-SRS-004.md`](srs/KRB-SRS-004.md)
 
-Publisher: **2ndHub Solutions**. Product family: **Kaarobar** — **Cloud** (subscription) and **Offline Desktop** (one-time). Offline feature doc: [`docs/offline-desktop.md`](offline-desktop.md).
+Publisher: **2ndHub Solutions**. Product family: **Kaarobar** — **Cloud** (subscription; packages `kaarobar-web` / `kaarobar-desktop` / mobile) and **Offline Desktop** (one-time; package [`kaarobar-desktop-offline`](../kaarobar-desktop-offline/)). Offline feature doc: [`docs/offline-desktop.md`](offline-desktop.md).
 
 ## Functional modules
 
@@ -28,6 +28,7 @@ Publisher: **2ndHub Solutions**. Product family: **Kaarobar** — **Cloud** (sub
 | FBR-FR | FBR POS Integration | §8.3.4 | Hooks Must; production adapter Should |
 | OFF-FR | Cloud Desktop Offline & Sync | §10.5 | Cloud Desktop Must; web/mobile online |
 | ODE-FR | Offline Desktop Edition | §10.6 | Must — single shop, SQLite, license-then-offline |
+| FUT-FR | Possible upcoming features | §14 | Could — exploratory until Product promotes |
 
 ## Non-functional (ISO/IEC 25010)
 
