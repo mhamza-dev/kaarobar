@@ -1,4 +1,55 @@
 {
-  "name": "KaarobarMobile",
-  "displayName": "KaarobarMobile"
+  "expo": {
+    "name": "Kaarobar Staff",
+    "slug": "kaarobar-mobile",
+    "scheme": "kaarobar",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "backgroundColor": "#f4f7fb",
+    "primaryColor": "#1d4ed8",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "bundleIdentifier": "com.kaarobarmobile",
+      "buildNumber": "1",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": false,
+          "NSAllowsLocalNetworking": true
+        }
+      }
+    },
+    "android": {
+      "package": "com.kaarobarmobile",
+      "versionCode": 1,
+      "allowBackup": false,
+      "edgeToEdgeEnabled": true,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#2d6df6"
+      },
+      "permissions": ["android.permission.INTERNET"]
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/icon.png",
+          "imageWidth": 180,
+          "resizeMode": "contain",
+          "backgroundColor": "#f4f7fb"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Kaarobar uses your photo library so you can attach product and profile images.",
+          "cameraPermission": "Kaarobar uses the camera so you can capture product and profile images."
+        }
+      ]
+    ]
+  }
 }

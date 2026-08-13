@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Reusable Components First
 
-Before adding new UI in any client app (`kaarobar-web`, `kaarobar-desktop`, `kaarobar-mobile`, `kaarobar-customer`):
+Before adding new UI in any client app (`kaarobar-web`, `kaarobar-desktop`, `kaarobar-mobile`, `mobile-consumer`):
 
 1. **Search first** for an existing component/pattern in app-local `components/` and nearby feature folders.
 2. If a matching component exists, **reuse it** rather than rebuilding similar markup/logic.

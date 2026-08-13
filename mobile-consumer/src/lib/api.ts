@@ -26,8 +26,9 @@ export const colors = {
   radiusLg: 12,
 } as const;
 
+// Only EXPO_PUBLIC_* vars are inlined into the bundle by babel-preset-expo.
 export const API_URL =
-  process.env.API_URL || process.env.EXPO_PUBLIC_API_URL || "http://localhost:4000/api/v1";
+  process.env.EXPO_PUBLIC_API_URL || process.env.API_URL || "http://localhost:4000/api/v1";
 
 export type AuthActor = "business" | "consumer";
 

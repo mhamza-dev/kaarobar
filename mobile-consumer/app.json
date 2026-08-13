@@ -1,4 +1,48 @@
 {
-  "name": "KaarobarCustomer",
-  "displayName": "KaarobarCustomer"
+  "expo": {
+    "name": "Kaarobar",
+    "slug": "kaarobar-customer",
+    "scheme": "kaarobarcustomer",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "backgroundColor": "#f4f7fb",
+    "primaryColor": "#1d4ed8",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "bundleIdentifier": "com.kaarobarcustomer",
+      "buildNumber": "1",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": false,
+          "NSAllowsLocalNetworking": true
+        }
+      }
+    },
+    "android": {
+      "package": "com.kaarobarcustomer",
+      "versionCode": 1,
+      "allowBackup": false,
+      "edgeToEdgeEnabled": true,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#2d6df6"
+      },
+      "permissions": ["android.permission.INTERNET"]
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/icon.png",
+          "imageWidth": 180,
+          "resizeMode": "contain",
+          "backgroundColor": "#f4f7fb"
+        }
+      ]
+    ]
+  }
 }

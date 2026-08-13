@@ -1,0 +1,63 @@
+{
+  "expo": {
+    "name": "Kaarobar Staff",
+    "slug": "staff-mobile",
+    "scheme": "kaarobar",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "./assets/images/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "backgroundColor": "#f6f8fb",
+    "primaryColor": "#1d4ed8",
+    "ios": {
+      "bundleIdentifier": "com.kaarobarmobile",
+      "buildNumber": "1",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": false,
+          "NSAllowsLocalNetworking": true
+        }
+      }
+    },
+    "android": {
+      "package": "com.kaarobarmobile",
+      "versionCode": 1,
+      "allowBackup": false,
+      "predictiveBackGestureEnabled": false,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png",
+        "backgroundColor": "#2d6df6"
+      },
+      "permissions": ["android.permission.INTERNET"]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 160,
+          "resizeMode": "contain",
+          "backgroundColor": "#f6f8fb",
+          "dark": {
+            "backgroundColor": "#070b14"
+          }
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Kaarobar uses your photo library so you can attach product and profile images.",
+          "cameraPermission": "Kaarobar uses the camera so you can capture product and profile images."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

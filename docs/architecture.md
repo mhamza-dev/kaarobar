@@ -64,7 +64,7 @@ Aligned to Kaarobar SRS **[KRB-SRS-004](srs/KRB-SRS-004.md) v4.1** §3 (ISO/IEC/
 | Cloud Desktop | `kaarobar-desktop` | Cashier, Branch Manager | Offline-capable till that syncs (`OFF-FR`) |
 | Offline Desktop | `kaarobar-desktop-offline` | Owner, Admin, Manager, Cashier | Single-shop local POS (`ODE-FR`) |
 | Staff mobile | `kaarobar-mobile` | Owner, Manager, Employee | Oversight, approvals, ESS |
-| Customer mobile | `kaarobar-customer` | Consumer | Marketplace / portal |
+| Customer mobile | `mobile-consumer` | Consumer | Marketplace / portal |
 
 Cloud clients share TanStack Query defaults — see [`architecture/client-cache-standards.md`](architecture/client-cache-standards.md).
 

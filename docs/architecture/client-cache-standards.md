@@ -21,7 +21,7 @@ Shared TanStack Query defaults for **Cloud** clients that talk to `kaarobar-BE` 
 | Web | [`kaarobar-web/lib/queryClient.ts`](../../kaarobar-web/lib/queryClient.ts) |
 | Cloud Desktop | [`kaarobar-desktop/renderer/src/lib/queryClient.ts`](../../kaarobar-desktop/renderer/src/lib/queryClient.ts) |
 | Staff mobile | [`kaarobar-mobile/src/lib/queryClient.ts`](../../kaarobar-mobile/src/lib/queryClient.ts) |
-| Customer mobile | [`kaarobar-customer/src/lib/queryClient.ts`](../../kaarobar-customer/src/lib/queryClient.ts) |
+| Customer mobile | [`mobile-consumer/src/lib/queryClient.ts`](../../mobile-consumer/src/lib/queryClient.ts) |
 
 ## Out of scope
 

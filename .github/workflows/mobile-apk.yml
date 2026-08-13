@@ -20,7 +20,7 @@ jobs:
             app_dir: kaarobar-mobile
             apk_name: Kaarobar-staff.apk
           - app_name: kaarobar-customer
-            app_dir: kaarobar-customer
+            app_dir: mobile-consumer
             apk_name: Kaarobar-customer.apk
 
     steps:
@@ -30,7 +30,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
           cache-dependency-path: "${{ matrix.app_dir }}/package-lock.json"
 
@@ -42,6 +42,17 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+        working-directory: ${{ matrix.app_dir }}
+
+      # android/ is not committed — Expo generates it from app.json (CNG).
+      - name: Generate native Android project
+        run: npx expo prebuild --platform android --no-install
+        working-directory: ${{ matrix.app_dir }}
+
+      # Keep the historical signing identity so released APKs remain
+      # upgrade-compatible with previously installed builds.
+      - name: Restore debug signing keystore
+        run: cp credentials/debug.keystore android/app/debug.keystore
         working-directory: ${{ matrix.app_dir }}
 
       - name: Build release APK
@@ -94,6 +105,8 @@ jobs:
             - **Kaarobar-staff.apk** — staff app
             - **Kaarobar-customer.apk** — customer app
 
-            Source is not packaged in this release. APKs use the project debug keystore until a release keystore is configured.
+            Source is not packaged in this release. APKs are built with
+            `expo prebuild` and use the project debug keystore until a release
+            keystore is configured.
           files: apks/*.apk
           fail_on_unmatched_files: true

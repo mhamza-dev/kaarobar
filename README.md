@@ -67,13 +67,13 @@ Business Owner · Admin · Branch Manager · Cashier · Inventory Manager · Acc
 ## Repository layout
 
 ```
-POS/
+kaarobar/
 ├── kaarobar-web/                 # Next.js — authenticated dashboard / browser POS / buyer market
-├── kaarobar-mobile/              # React Native CLI — staff (POS, sales, products, customers, ESS)
-├── kaarobar-customer/            # React Native CLI — consumer marketplace
+├── kaarobar-mobile/              # Expo (React Native) — staff (POS, sales, products, customers, ESS)
+├── mobile-consumer/              # Expo (React Native) — consumer marketplace
 ├── kaarobar-desktop/             # Electron — Cloud Desktop POS (SQLite outbox → sync)
 ├── kaarobar-desktop-offline/     # Electron — Offline Desktop Edition (local SQLite, one-time license)
-├── kaarobar-BE/                  # Elixir/Phoenix API + PostgreSQL (modular monolith)
+├── kaarobar-backend/             # Elixir/Phoenix API + PostgreSQL (modular monolith)
 ├── docs/                         # SRS, ADRs, module docs, architecture notes
 └── docker-compose.yml            # Postgres + Redis for local development
 ```
@@ -82,7 +82,7 @@ Clients are independently deployable (no shared npm packages). Theme tokens are 
 
 | Desktop package | Edition | Data | Cloud API |
 |-----------------|---------|------|-----------|
-| `kaarobar-desktop` | Kaarobar Cloud | Local cache + outbox | Syncs to `kaarobar-BE` (`OFF-FR-*`) |
+| `kaarobar-desktop` | Kaarobar Cloud | Local cache + outbox | Syncs to `kaarobar-backend` (`OFF-FR-*`) |
 | `kaarobar-desktop-offline` | Kaarobar Offline Desktop | Local SQLite only | License activation only (`ODE-FR-*`) |
 
 ## Architecture (SRS §3 — adapted)
@@ -94,7 +94,7 @@ Clients are independently deployable (no shared npm packages). Theme tokens are 
 | BullMQ + Redis | **Oban** (Postgres-backed job queue) |
 | React web | **Next.js** web |
 | Electron POS + SQLite outbox | **Electron** Cloud Desktop (`kaarobar-desktop`) + Offline Desktop SKU (`kaarobar-desktop-offline`) |
-| React Native | **React Native CLI** (`kaarobar-mobile` staff + `kaarobar-customer`) |
+| React Native | **Expo SDK 57** (`kaarobar-mobile` staff + `mobile-consumer`) |
 
 ```
 Cloud clients (Web / Mobile / Cloud Desktop)
@@ -137,8 +137,8 @@ Shared cluster, tenant-isolated by ID. Every tenant-scoped table carries `owner_
 | Layer | Technology |
 |-------|------------|
 | Web | Next.js 16, React 19, Tailwind CSS 4 |
-| Mobile (staff) | React Native CLI (`kaarobar-mobile`) |
-| Mobile (customer) | React Native CLI (`kaarobar-customer`) |
+| Mobile (staff) | Expo SDK 57 / React Native 0.86 (`kaarobar-mobile`) |
+| Mobile (customer) | Expo SDK 57 / React Native 0.86 (`mobile-consumer`) |
 | Desktop (Cloud) | Electron (`kaarobar-desktop`) |
 | Desktop (Offline Edition) | Electron + SQLite (`kaarobar-desktop-offline`) |
 | API | Elixir, Phoenix, Ecto, Guardian, Oban, Argon2 |
@@ -166,16 +166,16 @@ Brand assets: [`docs/brand/`](docs/brand/) · `KaarobarLogo` in web/desktop · R
 docker compose up -d
 
 # Backend — http://localhost:4000/api/v1
-cd kaarobar-BE && mix deps.get && mix ecto.setup && mix phx.server
+cd kaarobar-backend && mix deps.get && mix ecto.setup && mix phx.server
 
 # Web — http://localhost:3000 (landing when logged out, /app when logged in)
 cd kaarobar-web && npm install && npm run dev
 
-# Staff mobile
+# Staff mobile (Expo — press a/i, or scan the QR with Expo Go)
 cd kaarobar-mobile && npm install && npm start
 
-# Customer mobile
-cd kaarobar-customer && npm install && npm start
+# Customer mobile (Expo)
+cd mobile-consumer && npm install && npm start
 
 # Cloud Desktop POS (syncs to API)
 cd kaarobar-desktop && npm install && npm start
@@ -187,11 +187,11 @@ cd kaarobar-desktop-offline && npm install && npm run dev
 Demo seed user: `owner@kaarobar.local` / `Password@123`  
 Additional owners: `owner2@` (growth), `owner3@` (starter), `owner4@` (trial) — same password.  
 Staff: `manager@` / `cashier@` / `accountant@` / `hr@` / `inventory@kaarobar.local` (and `*2@`, `*3@`, `*4@` per owner).  
-Fresh demo data: `cd kaarobar-BE && mix ecto.reset` (runs migrations, seeds `subscription_plans`, demo businesses/branches, and CRM data). After schema changes that add tables such as `subscription_plans` or `campaign_payments`, use `mix ecto.reset` locally so seeds stay in sync.
+Fresh demo data: `cd kaarobar-backend && mix ecto.reset` (runs migrations, seeds `subscription_plans`, demo businesses/branches, and CRM data). After schema changes that add tables such as `subscription_plans` or `campaign_payments`, use `mix ecto.reset` locally so seeds stay in sync.
 
 ### Billing (Safepay — Pakistan)
 
-Optional env vars in `kaarobar-BE/.env` (see `.env.example`):
+Optional env vars in `kaarobar-backend/.env` (see `.env.example`):
 
 | Variable | Purpose |
 |----------|---------|

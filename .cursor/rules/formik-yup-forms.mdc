@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Formik + Yup forms (required)
 
-When adding or materially editing a **form** in any client (`kaarobar-web`, `kaarobar-desktop`, `kaarobar-mobile`, `kaarobar-customer`):
+When adding or materially editing a **form** in any client (`kaarobar-web`, `kaarobar-desktop`, `kaarobar-mobile`, `mobile-consumer`):
 
 1. Use the app-local **`CustomForm`** (Formik wrapper) — do not introduce new `useState` bags for submit payloads.
 2. Define a **Yup** `validationSchema` under that app’s `lib/validations/` (or equivalent). Prefer typed `ObjectSchema` when practical.
