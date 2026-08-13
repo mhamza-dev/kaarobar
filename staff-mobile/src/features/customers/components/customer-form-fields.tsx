@@ -1,7 +1,7 @@
 import { useField } from "formik";
 import { Text, TextInput, View, type StyleProp, type TextStyle } from "react-native";
 
-import type { CustomerForm } from "@/lib/customers";
+import type { CustomerForm } from "@core/lib/customers";
 import { useTheme } from "@/theme";
 
 

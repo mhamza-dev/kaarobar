@@ -10,8 +10,8 @@ import {
   View,
 } from "react-native";
 import { api, getSession } from "@/lib/api";
-import { loadLocale, t } from "@/lib/i18n";
-import { useToast } from "@/components/toast";
+import { loadLocale, t } from "@shared/i18n";
+import { useToast } from "@shared/ui/toast";
 import { registerForPushNotifications } from "@/lib/push";
 import { replacePath, pushPath } from "@/lib/nav";
 

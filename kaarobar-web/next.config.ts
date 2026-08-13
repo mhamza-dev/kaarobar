@@ -1,6 +1,23 @@
+import path from "node:path";
+
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // `shared/core` lives outside this app, so both bundlers need the alias and
+  // Next needs permission to compile files from outside the project root.
+  outputFileTracingRoot: path.join(__dirname, ".."),
+  turbopack: {
+    resolveAlias: {
+      "@core": path.resolve(__dirname, "../shared/core"),
+    },
+  },
+  webpack(config) {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      "@core": path.resolve(__dirname, "../shared/core"),
+    };
+    return config;
+  },
   images: {
     remotePatterns: [
       {

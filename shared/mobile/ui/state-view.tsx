@@ -1,9 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ActivityIndicator, Text, View } from 'react-native';
 
-import { GlassCard } from '@/components/ui/glass-card';
-import { PressableScale } from '@/components/ui/pressable-scale';
-import { makeStyles, useTheme } from '@/theme';
+import { GlassCard } from '@shared/ui/glass-card';
+import { PressableScale } from '@shared/ui/pressable-scale';
+import { makeStyles, useTheme } from '@shared/theme';
 
 type Tone = 'neutral' | 'danger' | 'warning';
 

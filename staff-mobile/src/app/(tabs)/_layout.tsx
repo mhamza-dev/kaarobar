@@ -4,7 +4,7 @@ import { Tabs } from 'expo-router/js-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GlassTabBar, TAB_BAR_CONTENT_HEIGHT } from '@/components/ui/glass-tab-bar';
-import { t } from '@/lib/i18n';
+import { t } from '@shared/i18n';
 import { useIsStaffAuthed, useSession } from '@/lib/SessionContext';
 import { canAccessRoute } from '@/lib/rbac';
 import { useTheme } from '@/theme';

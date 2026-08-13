@@ -11,9 +11,9 @@ import {
 import { api, getSession, hydrateSessionContext, logoutSession, type Session } from "@/lib/api";
 import { useSession } from "@/lib/SessionContext";
 import { canAccess } from "@/lib/rbac";
-import { formatDecimal } from "@/lib/decimal";
-import { getLocale, loadLocale, setLocale, t, type Locale } from "@/lib/i18n";
-import { useToast } from "@/components/toast";
+import { formatDecimal } from "@core/lib/decimal";
+import { getLocale, loadLocale, setLocale, t, type Locale } from "@shared/i18n";
+import { useToast } from "@shared/ui/toast";
 import KaarobarLogo from "@/components/kaarobar-logo";
 import { type Theme, useTheme, useThemeControls } from "@/theme";
 import { replacePath, pushPath } from "@/lib/nav";
@@ -175,6 +175,10 @@ export default function DashboardScreen() {
         toast.error(err instanceof Error ? err.message : t("common.error"));
       }
     })();
+    // Bootstrap: must run exactly once. `hydrate` closes over the `from`/`to`
+    // report range, so listing it here would re-run the whole session bootstrap
+    // every time the user changes the date filter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function selectBusiness(business_id: string) {

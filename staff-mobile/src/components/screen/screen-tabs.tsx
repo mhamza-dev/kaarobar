@@ -1,4 +1,4 @@
-import SegmentedTabs from "@/components/segmented-tabs";
+import SegmentedTabs from "@shared/ui/segmented-tabs";
 
 type TabOption<T extends string> = {
   id: T;

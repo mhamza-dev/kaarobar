@@ -10,15 +10,15 @@ import {
 import { useField } from "formik";
 import { api, getSession } from "@/lib/api";
 import { canAccessRoute } from "@/lib/rbac";
-import { loadLocale, t } from "@/lib/i18n";
-import { useToast } from "@/components/toast";
+import { loadLocale, t } from "@shared/i18n";
+import { useToast } from "@shared/ui/toast";
 import EntityFormModal from "@/components/screen/entity-form-modal";
-import { FormikTextField } from "@/components/form/form-fields";
+import { FormikTextField } from "@shared/form/form-fields";
 import {
   businessCreateFormSchema,
   emptyBusinessCreateForm,
   type BusinessCreateFormValues,
-} from "@/lib/validations/businesses";
+} from "@core/validations/businesses";
 import { replacePath, pushPath } from "@/lib/nav";
 
 type Business = {

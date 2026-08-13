@@ -6,8 +6,8 @@ import { useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { ToastProvider } from '@/components/toast';
-import { loadLocale } from '@/lib/i18n';
+import { ToastProvider } from '@shared/ui/toast';
+import { loadLocale } from '@shared/i18n';
 import { makeQueryClient } from '@/lib/queryClient';
 import { SessionProvider, useSession } from '@/lib/SessionContext';
 import { ThemeProvider, useTheme } from '@/theme';

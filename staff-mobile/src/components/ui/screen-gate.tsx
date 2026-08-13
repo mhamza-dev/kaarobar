@@ -1,7 +1,7 @@
 import type { GateStatus } from '@/hooks/use-screen-gate';
-import { Screen } from '@/components/ui/screen';
-import { LoadingView, StateView } from '@/components/ui/state-view';
-import { t } from '@/lib/i18n';
+import { Screen } from '@shared/ui/screen';
+import { LoadingView, StateView } from '@shared/ui/state-view';
+import { t } from '@shared/i18n';
 import { pushPath } from '@/lib/nav';
 
 type Props = {

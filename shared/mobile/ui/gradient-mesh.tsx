@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, View } from 'react-native';
 
-import { makeStyles, useTheme } from '@/theme';
+import { makeStyles, useTheme } from '@shared/theme';
 
 /**
  * Ambient brand-tinted mesh painted behind every screen. Three soft blobs on a

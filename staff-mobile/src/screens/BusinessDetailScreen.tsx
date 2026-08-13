@@ -14,11 +14,11 @@ import { pickImageFromLibrary } from "@/lib/imagePicker";
 import { type Theme, useTheme } from "@/theme";
 import { api, getSession } from "@/lib/api";
 import { isOwner } from "@/lib/rbac";
-import { loadLocale, t } from "@/lib/i18n";
-import { useToast } from "@/components/toast";
+import { loadLocale, t } from "@shared/i18n";
+import { useToast } from "@shared/ui/toast";
 import { goBack, replacePath } from "@/lib/nav";
-import CustomForm from "@/components/form/custom-form";
-import { FormikTextField } from "@/components/form/form-fields";
+import CustomForm from "@shared/form/custom-form";
+import { FormikTextField } from "@shared/form/form-fields";
 import {
   branchFormSchema,
   businessDetailFormSchema,
@@ -26,7 +26,7 @@ import {
   emptyBusinessDetailForm,
   type BranchFormValues,
   type BusinessDetailFormValues,
-} from "@/lib/validations/businesses";
+} from "@core/validations/businesses";
 
 type Business = {
   id: string;

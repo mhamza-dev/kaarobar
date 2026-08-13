@@ -6,7 +6,7 @@
  * added on top. Keep in sync with `kaarobar-web/app/globals.css`.
  */
 
-import { alpha, type BrandPalette, type ColorScheme } from '@/theme/palette';
+import { alpha, type BrandPalette, type ColorScheme } from '@core/lib/brand-palette';
 
 export type Elevation = {
   shadowColor: string;

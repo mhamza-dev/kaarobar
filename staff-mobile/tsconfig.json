@@ -3,18 +3,25 @@
   "compilerOptions": {
     "strict": true,
     "paths": {
-      "@/*": [
-        "./src/*"
-      ],
-      "@/assets/*": [
-        "./assets/*"
-      ]
+      "@/*": ["./src/*"],
+      "@/assets/*": ["./assets/*"],
+      "@shared/*": ["../shared/mobile/*"],
+      "@core/*": ["../shared/core/*"],
+      // `shared/` sits outside this project and has no node_modules of its own,
+      // so bare specifiers there cannot be resolved by walking up. Metro is told
+      // the same thing via `resolver.nodeModulesPaths` in metro.config.js.
+      "*": ["./node_modules/*"]
     }
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
+    "../shared/mobile/**/*.ts",
+    "../shared/mobile/**/*.tsx",
+    "../shared/core/**/*.ts",
+    "../shared/core/**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
-  ]
+  ],
+  "exclude": ["node_modules", "android", "ios"]
 }

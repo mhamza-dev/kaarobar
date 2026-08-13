@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Text, View } from 'react-native';
 
-import { PressableScale } from '@/components/ui/pressable-scale';
+import { PressableScale } from '@shared/ui/pressable-scale';
 import { makeStyles, useTheme, useThemeControls, type SchemePreference } from '@/theme';
 
 type Option = {

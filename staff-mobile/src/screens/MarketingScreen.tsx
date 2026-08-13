@@ -13,14 +13,14 @@ import { useField } from "formik";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, getSession } from "@/lib/api";
 import { canAccessRoute, isPlanFeatureLocked } from "@/lib/rbac";
-import { t } from "@/lib/i18n";
-import { useToast } from "@/components/toast";
+import { t } from "@shared/i18n";
+import { useToast } from "@shared/ui/toast";
 import { replacePath, pushPath } from "@/lib/nav";
 import ScreenTabs from "@/components/screen/screen-tabs";
 import EntityFormModal from "@/components/screen/entity-form-modal";
 import ScreenCard from "@/components/screen/screen-card";
-import CustomForm from "@/components/form/custom-form";
-import { FormikTextField } from "@/components/form/form-fields";
+import CustomForm from "@shared/form/custom-form";
+import { FormikTextField } from "@shared/form/form-fields";
 import { useTabParam } from "@/hooks/useTabParam";
 import { crmKeys } from "@/lib/queryClient";
 import {
@@ -30,7 +30,7 @@ import {
   templateFormSchema,
   type CampaignFormValues,
   type TemplateFormValues,
-} from "@/lib/validations/marketing";
+} from "@core/validations/marketing";
 
 type Campaign = {
   id: string;

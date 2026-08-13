@@ -7,7 +7,7 @@ import {
   setLocale,
   t,
   type Locale,
-} from "@/lib/i18n";
+} from "@shared/i18n";
 import { makeStyles } from '@/theme';
 
 type Props = {

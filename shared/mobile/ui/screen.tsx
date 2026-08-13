@@ -7,8 +7,8 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-import { GradientMesh } from '@/components/ui/gradient-mesh';
-import { makeStyles, useTheme } from '@/theme';
+import { GradientMesh } from '@shared/ui/gradient-mesh';
+import { makeStyles, useTheme } from '@shared/theme';
 
 type Props = {
   children?: ReactNode;

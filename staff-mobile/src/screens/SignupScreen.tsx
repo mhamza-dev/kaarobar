@@ -10,9 +10,9 @@ import {
 import { api, hydrateSessionContext, setSession } from "@/lib/api";
 import KaarobarLogo from "@/components/kaarobar-logo";
 import { replacePath, pushPath } from "@/lib/nav";
-import CustomForm from "@/components/form/custom-form";
-import { FormikTextField, FormikSwitchField } from "@/components/form/form-fields";
-import { signupSchema, type SignupFormValues } from "@/lib/validations/auth";
+import CustomForm from "@shared/form/custom-form";
+import { FormikTextField, FormikSwitchField } from "@shared/form/form-fields";
+import { signupSchema, type SignupFormValues } from "@core/validations/auth";
 
 const signupInitial: SignupFormValues = {
   signupMethod: "email",

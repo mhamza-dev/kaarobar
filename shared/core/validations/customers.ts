@@ -1,5 +1,5 @@
 import * as yup from "yup";
-import type { CustomerForm } from "@/lib/customers";
+import type { CustomerForm } from "@core/lib/customers";
 
 export const customerFormSchema: yup.ObjectSchema<CustomerForm> = yup.object({
   name: yup.string().trim().required("Name is required").max(200),

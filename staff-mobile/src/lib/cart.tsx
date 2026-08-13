@@ -232,7 +232,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clear = useCallback(() => setCart(null), []);
 
-  const stores = cart?.stores ?? [];
+  // Memoised because the `?? []` fallback would otherwise be a fresh array on
+  // every render, invalidating every derived memo/callback below.
+  const stores = useMemo(() => cart?.stores ?? [], [cart]);
 
   const itemCount = useMemo(
     () => stores.reduce((s, store) => s + store.lines.reduce((a, l) => a + l.quantity, 0), 0),

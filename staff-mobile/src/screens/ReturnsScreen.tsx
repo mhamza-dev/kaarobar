@@ -6,15 +6,15 @@ import { api } from "@/lib/api";
 import { canAccess } from "@/lib/rbac";
 import { useScreenGate } from "@/hooks/use-screen-gate";
 import { ScreenGateFallback } from "@/components/ui/screen-gate";
-import { formatDecimal } from "@/lib/decimal";
-import CustomForm from "@/components/form/custom-form";
-import { FormikTextField } from "@/components/form/form-fields";
+import { formatDecimal } from "@core/lib/decimal";
+import CustomForm from "@shared/form/custom-form";
+import { FormikTextField } from "@shared/form/form-fields";
 import {
   emptyReturnForm,
   returnFormSchema,
   saleLookupFormSchema,
   type ReturnFormValues,
-} from "@/lib/validations/returns";
+} from "@core/validations/returns";
 
 type SaleItem = {
   product_id: string;
@@ -108,7 +108,7 @@ export default function ReturnsScreen() {
     try {
       const [p, r, tillsRes] = await Promise.all([
         api<{ data: ReturnRow[] }>("/returns/pending"),
-        api<{ data: ReturnRow[] }>("/app/returns"),
+        api<{ data: ReturnRow[] }>("/returns"),
         api<{ data: Till[] }>("/tills"),
       ]);
       setPending(p.data || []);
@@ -153,7 +153,7 @@ export default function ReturnsScreen() {
       .map(([product_id, quantity]) => ({ product_id, quantity }));
     setBusy(true);
     try {
-      const res = await api<{ data: ReturnRow }>("/app/returns", {
+      const res = await api<{ data: ReturnRow }>("/returns", {
         method: "POST",
         body: JSON.stringify({
           sale_id: sale.id,

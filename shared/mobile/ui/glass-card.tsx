@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 import { Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { GlassSurface, type GlassIntensity } from '@/components/ui/glass-surface';
-import { makeStyles, useTheme } from '@/theme';
+import { GlassSurface, type GlassIntensity } from '@shared/ui/glass-surface';
+import { makeStyles, useTheme } from '@shared/theme';
 
 type Props = {
   children?: ReactNode;

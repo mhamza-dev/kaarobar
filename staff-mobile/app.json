@@ -53,6 +53,13 @@
           "photosPermission": "Kaarobar uses your photo library so you can attach product and profile images.",
           "cameraPermission": "Kaarobar uses the camera so you can capture product and profile images."
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Kaarobar uses the camera to scan product barcodes at the till.",
+          "recordAudioAndroid": false
+        }
       ]
     ],
     "experiments": {

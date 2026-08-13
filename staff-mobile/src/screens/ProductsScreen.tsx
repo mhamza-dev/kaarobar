@@ -8,22 +8,22 @@ import { BarcodeScannerModal } from "@/components/barcode-scanner-modal";
 import ScreenTabs from "@/components/screen/screen-tabs";
 import ListToolbar, { emptyStaffFilters } from "@/components/list-toolbar";
 import ScreenCard from "@/components/screen/screen-card";
-import { applyListingFilters } from "@/lib/listingFilters";
+import { applyListingFilters } from "@core/lib/listingFilters";
 import { pickImageFromLibrary } from "@/lib/imagePicker";
 
-import { formatDecimal } from "@/lib/decimal";
-import { generateBarcode } from "@/lib/barcode";
+import { formatDecimal } from "@core/lib/decimal";
+import { generateBarcode } from "@core/lib/barcode";
 import { useScreenGate } from "@/hooks/use-screen-gate";
 import { ScreenGateFallback } from "@/components/ui/screen-gate";
 import { useTabParam } from "@/hooks/useTabParam";
 import { inventoryKeys } from "@/lib/queryClient";
-import { t } from "@/lib/i18n";
-import CustomForm from "@/components/form/custom-form";
+import { t } from "@shared/i18n";
+import CustomForm from "@shared/form/custom-form";
 import {
   FormikTextField,
   FormikSearchSelectField,
   FormikSearchMultiSelectField,
-} from "@/components/form/form-fields";
+} from "@shared/form/form-fields";
 import {
   emptyProductForm,
   emptySupplierForm,
@@ -31,7 +31,7 @@ import {
   supplierFormSchema,
   type ProductFormValues,
   type SupplierFormValues,
-} from "@/lib/validations/products";
+} from "@core/validations/products";
 import {
   adjustStockFormSchema,
   attachProductFormSchema,
@@ -51,7 +51,7 @@ import {
   type GrnFormValues,
   type PurchaseOrderFormValues,
   type TransferFormValues,
-} from "@/lib/validations/inventory";
+} from "@core/validations/inventory";
 
 type Tab = "stock" | "products" | "suppliers" | "pos" | "transfers" | "adjust";
 const PRODUCT_TABS: readonly Tab[] = [
@@ -186,7 +186,9 @@ export default function InventoryScreen() {
     },
     enabled: ready && needSuppliers,
   });
-  const suppliers: Supplier[] = suppliersData ?? [];
+  // Same reason as cart's stores: the `?? []` fallback is a new array each
+  // render, which would re-fire the supplier prefetch effect below every time.
+  const suppliers: Supplier[] = useMemo(() => suppliersData ?? [], [suppliersData]);
 
   const { data: posData } = useQuery({
     queryKey: inventoryKeys.purchaseOrders(businessId),

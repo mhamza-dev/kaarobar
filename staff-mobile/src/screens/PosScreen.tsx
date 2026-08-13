@@ -4,20 +4,22 @@ import {
   ActivityIndicator,
   FlatList,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
 import { api, apiAllPages, getSession, type Session } from "@/lib/api";
-import { uuid } from "@/lib/uuid";
-import { t } from "@/lib/i18n";
+import { uuid } from "@core/lib/uuid";
+import { t } from "@shared/i18n";
 import { canAccessRoute } from "@/lib/rbac";
-import { formatDecimal } from "@/lib/decimal";
+import { formatDecimal } from "@core/lib/decimal";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { BarcodeScannerModal } from "@/components/barcode-scanner-modal";
-import { Screen } from "@/components/ui/screen";
-import { LoadingView, StateView } from "@/components/ui/state-view";
+import { PressableScale } from "@shared/ui/pressable-scale";
+import { SheetModal } from "@shared/ui/sheet-modal";
+import { Screen } from "@shared/ui/screen";
+import { LoadingView, StateView } from "@shared/ui/state-view";
 import { pushPath, replacePath } from "@/lib/nav";
 
 type Product = {
@@ -87,6 +89,10 @@ export default function PosScreen() {
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [tillOpen, setTillOpen] = useState(false);
+  const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
+  const [customerQuery, setCustomerQuery] = useState("");
 
   const loadTill = useCallback(async () => {
     try {
@@ -178,6 +184,13 @@ export default function PosScreen() {
   }, [session, debouncedQ, loadProductPage]);
 
   const filtered = products;
+  const cartCount = cart.reduce((n, l) => n + l.quantity, 0);
+  const selectedCustomer = customers.find((c) => c.id === customerId) ?? null;
+  const customerMatches = customerQuery.trim()
+    ? customers.filter((c) =>
+        c.name.toLowerCase().includes(customerQuery.trim().toLowerCase())
+      )
+    : customers;
 
   async function lookupBarcode(code: string) {
     try {
@@ -306,7 +319,7 @@ export default function PosScreen() {
     setBusy(true);
     setMessage(null);
     try {
-      const res = await api<{ data: Receipt }>("/app/sales", {
+      const res = await api<{ data: Receipt }>("/sales", {
         method: "POST",
         body: JSON.stringify({
           branch_id: session.branch_id,
@@ -363,240 +376,138 @@ export default function PosScreen() {
     );
   }
 
-  return (
+  // Rendered as the list header rather than wrapping the list in a
+  // ScrollView: a FlatList inside a same-orientation ScrollView breaks
+  // windowing (RN warns about it) and would render every product at once.
+  const productHeader = (
     <>
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-      <Text style={styles.eyebrow}>Cashier</Text>
-      <Text style={styles.title}>Point of sale</Text>
-      {message ? <Text style={styles.message}>{message}</Text> : null}
-
-      <Pressable style={styles.scanBtn} onPress={() => setScanOpen(true)}>
-        <Text style={styles.btnText}>Scan barcode</Text>
-      </Pressable>
-
-      <View style={styles.card}>
-        <Text style={styles.section}>Till</Text>
-        {till ? (
-          <>
-            <Text style={styles.body}>Open · float Rs {formatDecimal(till.opening_cash)}</Text>
-            <View style={styles.row}>
-              <TextInput
-                style={[styles.input, { flex: 1, marginBottom: 0 }]}
-                value={closingCash}
-                onChangeText={setClosingCash}
-                placeholder="Closing cash"
-                keyboardType="decimal-pad"
-                placeholderTextColor={theme.muted}
-              />
-              <Pressable style={styles.btnSecondary} onPress={closeTill} disabled={busy}>
-                <Text style={styles.btnSecondaryText}>Close</Text>
-              </Pressable>
-            </View>
-          </>
-        ) : (
-          <View style={styles.row}>
-            <TextInput
-              style={[styles.input, { flex: 1, marginBottom: 0 }]}
-              value={openingCash}
-              onChangeText={setOpeningCash}
-              placeholder="Opening cash"
-              keyboardType="decimal-pad"
-              placeholderTextColor={theme.muted}
-            />
-            <Pressable style={styles.btn} onPress={openTill} disabled={busy}>
-              <Text style={styles.btnText}>Open</Text>
-            </Pressable>
+        <View style={styles.headerRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.eyebrow}>Cashier</Text>
+            <Text style={styles.title}>Point of sale</Text>
           </View>
-        )}
-      </View>
 
-      <TextInput
-        style={styles.input}
-        value={query}
-        onChangeText={setQuery}
-        placeholder="Search SKU / name"
-        placeholderTextColor={theme.muted}
-      />
-      <Text style={styles.count}>
-        {productsLoading
-          ? "Loading…"
-          : `${filtered.length} products${nextCursor ? "+" : ""}`}
-      </Text>
+          <PressableScale
+            haptic
+            onPress={() => setTillOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel={till ? "Close till" : "Open till"}
+            style={[styles.headerBtn, { borderColor: till ? theme.success : theme.border }]}
+          >
+            <Ionicons
+              name={till ? "lock-open-outline" : "lock-closed-outline"}
+              size={20}
+              color={till ? theme.success : theme.muted}
+            />
+          </PressableScale>
 
-      {productsLoading ? (
-        <ActivityIndicator style={{ marginVertical: 24 }} color={theme.brand} />
-      ) : (
-        <FlatList
-          data={filtered}
-          keyExtractor={(p) => p.id}
-          numColumns={2}
-          scrollEnabled
-          style={{ maxHeight: 360 }}
-          columnWrapperStyle={{ gap: 8 }}
-          contentContainerStyle={{ gap: 8, paddingBottom: 8 }}
-          onEndReachedThreshold={0.4}
-          onEndReached={() => {
-            if (nextCursor && !loadingMoreRef.current) {
-              void loadProductPage({ reset: false, cursor: nextCursor, q: debouncedQ });
-            }
-          }}
-          ListFooterComponent={
-            loadingMore ? (
-              <ActivityIndicator style={{ marginVertical: 12 }} color={theme.brand} />
-            ) : null
-          }
-          renderItem={({ item: p }) => {
-            const inCart = cart.find((l) => l.product.id === p.id);
-            return (
-              <Pressable
-                style={[styles.product, inCart ? styles.productActive : null, { flex: 1 }]}
-                onPress={() => addProduct(p)}
-              >
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>
-                    {p.name
-                      .split(" ")
-                      .map((w) => w[0])
-                      .join("")
-                      .slice(0, 2)
-                      .toUpperCase()}
-                  </Text>
-                </View>
-                <Text style={styles.productName}>{p.name}</Text>
-                <Text style={styles.sku}>{p.sku}</Text>
-                <View style={styles.productFooter}>
-                  <Text style={styles.productPrice}>Rs {formatDecimal(p.price)}</Text>
-                  {inCart ? (
-                    <Text style={styles.qtyChip}>×{inCart.quantity}</Text>
-                  ) : null}
-                </View>
-              </Pressable>
-            );
-          }}
-        />
-      )}
-
-      <View style={styles.card}>
-        <Text style={styles.section}>Order detail</Text>
-        {cart.length === 0 ? (
-          <Text style={styles.body}>Cart is empty — tap a product to start.</Text>
-        ) : (
-          cart.map((l) => (
-            <View key={l.product.id} style={styles.cartLine}>
-              <Text style={styles.productName}>{l.product.name}</Text>
-              <View style={styles.row}>
-                <Pressable
-                  style={styles.qtyBtn}
-                  onPress={() => setQty(l.product.id, l.quantity - 1)}
-                >
-                  <Text style={styles.qtyBtnText}>−</Text>
-                </Pressable>
-                <TextInput
-                  style={styles.qtyInput}
-                  value={String(l.quantity)}
-                  keyboardType="number-pad"
-                  selectTextOnFocus
-                  onChangeText={(raw) => {
-                    const digits = raw.replace(/\D/g, "");
-                    if (digits === "") return;
-                    const n = Number.parseInt(digits, 10);
-                    if (Number.isFinite(n) && n > 0) {
-                      setQty(l.product.id, Math.min(n, 99999));
-                    }
-                  }}
-                  onBlur={() => {
-                    if (l.quantity <= 0) setQty(l.product.id, 0);
-                  }}
-                />
-                <Pressable
-                  style={styles.qtyBtn}
-                  onPress={() => setQty(l.product.id, l.quantity + 1)}
-                >
-                  <Text style={styles.qtyBtnText}>+</Text>
-                </Pressable>
-                <Text style={styles.lineTotal}>
-                  {formatDecimal(l.quantity * l.unit_price)}
+          <PressableScale
+            haptic
+            onPress={() => setCartOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel={`Cart, ${cartCount} item${cartCount === 1 ? "" : "s"}`}
+            style={[styles.headerBtn, { borderColor: theme.border }]}
+          >
+            <Ionicons name="cart-outline" size={20} color={theme.brandOn} />
+            {cartCount > 0 ? (
+              <View style={[styles.badge, { backgroundColor: theme.brand }]}>
+                <Text style={[styles.badgeText, { color: theme.brandForeground }]}>
+                  {cartCount > 99 ? "99+" : cartCount}
                 </Text>
               </View>
-            </View>
-          ))
-        )}
-        <View style={styles.totals}>
-          <Text style={styles.body}>{t("common.subtotal")} {formatDecimal(subtotal)}</Text>
-          <Text style={styles.body}>{t("common.tax")} {formatDecimal(tax)}</Text>
-          <View style={styles.row}>
-            <Text style={[styles.body, { width: 88, marginBottom: 0 }]}>{t("pos.discount")}</Text>
-            <TextInput
-              style={[styles.input, { flex: 1, marginBottom: 0 }]}
-              value={discountInput}
-              onChangeText={setDiscountInput}
-              keyboardType="decimal-pad"
-              placeholder="0"
-              placeholderTextColor={theme.muted}
-            />
-          </View>
-          <View style={styles.row}>
-            <Text style={[styles.body, { width: 88, marginBottom: 0 }]}>{t("pos.taxOptional")}</Text>
-            <TextInput
-              style={[styles.input, { flex: 1, marginBottom: 0 }]}
-              value={taxInput}
-              onChangeText={setTaxInput}
-              keyboardType="decimal-pad"
-              placeholder="0"
-              placeholderTextColor={theme.muted}
-            />
-          </View>
-          <Text style={styles.total}>{t("common.total")} Rs {formatDecimal(total)}</Text>
+            ) : null}
+          </PressableScale>
         </View>
 
-        <Text style={styles.payLabel}>Customer</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            {customers.slice(0, 12).map((c) => (
-              <Pressable
-                key={c.id}
-                style={[styles.chip, customerId === c.id && styles.chipOn]}
-                onPress={() => setCustomerId(customerId === c.id ? "" : c.id)}
-              >
-                <Text style={[styles.chipText, customerId === c.id && styles.chipTextOn]}>
-                  {c.name}
-                  {c.credit_enabled ? " ·" + t("pos.khata").slice(0,1) : ""}
+        {message ? <Text style={styles.message}>{message}</Text> : null}
+
+        <View style={styles.searchRow}>
+          <TextInput
+            style={[styles.input, { flex: 1, marginBottom: 0 }]}
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search SKU / name"
+            placeholderTextColor={theme.muted}
+          />
+          <PressableScale
+            haptic
+            onPress={() => setScanOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Scan barcode"
+            style={[styles.scanIconBtn, { backgroundColor: theme.brand }]}
+          >
+            <Ionicons name="barcode-outline" size={22} color={theme.brandForeground} />
+          </PressableScale>
+        </View>
+
+        <Text style={styles.count}>
+          {productsLoading
+            ? "Loading…"
+            : `${filtered.length} products${nextCursor ? "+" : ""}`}
+        </Text>
+    </>
+  );
+
+  return (
+    <>
+    <View style={styles.container}>
+      <FlatList
+        data={productsLoading ? [] : filtered}
+        keyExtractor={(p) => p.id}
+        numColumns={2}
+        columnWrapperStyle={{ gap: 8 }}
+        contentContainerStyle={styles.gridContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={productHeader}
+        ListEmptyComponent={
+          productsLoading ? (
+            <ActivityIndicator style={{ marginVertical: 24 }} color={theme.brandOn} />
+          ) : (
+            <Text style={styles.body}>No products match this search.</Text>
+          )
+        }
+        onEndReachedThreshold={0.4}
+        onEndReached={() => {
+          if (nextCursor && !loadingMoreRef.current) {
+            void loadProductPage({ reset: false, cursor: nextCursor, q: debouncedQ });
+          }
+        }}
+        ListFooterComponent={
+          loadingMore ? (
+            <ActivityIndicator style={{ marginVertical: 12 }} color={theme.brand} />
+          ) : null
+        }
+        renderItem={({ item: p }) => {
+          const inCart = cart.find((l) => l.product.id === p.id);
+          return (
+            <Pressable
+              style={[styles.product, inCart ? styles.productActive : null, { flex: 1 }]}
+              onPress={() => addProduct(p)}
+            >
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>
+                  {p.name
+                    .split(" ")
+                    .map((w) => w[0])
+                    .join("")
+                    .slice(0, 2)
+                    .toUpperCase()}
                 </Text>
-              </Pressable>
-            ))}
-          </View>
-        </ScrollView>
-
-        <Text style={styles.payLabel}>Payment</Text>
-        {(
-          [
-            ["Cash", payCash, setPayCash],
-            ["Card", payCard, setPayCard],
-            ["Wallet", payWallet, setPayWallet],
-            [t("pos.khata"), payKhata, setPayKhata],
-          ] as const
-        ).map(([label, value, setter]) => (
-          <View key={label} style={styles.row}>
-            <Text style={[styles.body, { width: 56, marginBottom: 0 }]}>{label}</Text>
-            <TextInput
-              style={[styles.input, { flex: 1, marginBottom: 0 }]}
-              value={value}
-              onChangeText={setter}
-              keyboardType="decimal-pad"
-              placeholderTextColor={theme.muted}
-            />
-          </View>
-        ))}
-
-        <Pressable
-          style={[styles.btn, styles.charge, cart.length === 0 || busy ? styles.btnDisabled : null]}
-          onPress={checkout}
-          disabled={cart.length === 0 || busy}
-        >
-          <Text style={styles.btnText}>{busy ? t("pos.processing") : `${t("pos.placeOrder")} →`}</Text>
-        </Pressable>
-      </View>
-    </ScrollView>
+              </View>
+              <Text style={styles.productName}>{p.name}</Text>
+              <Text style={styles.sku}>{p.sku}</Text>
+              <View style={styles.productFooter}>
+                <Text style={styles.productPrice}>Rs {formatDecimal(p.price)}</Text>
+                {inCart ? (
+                  <Text style={styles.qtyChip}>×{inCart.quantity}</Text>
+                ) : null}
+              </View>
+            </Pressable>
+          );
+        }}
+      />
+    </View>
     <BarcodeScannerModal
       visible={scanOpen}
       onClose={() => setScanOpen(false)}
@@ -627,6 +538,253 @@ export default function PosScreen() {
         </View>
       </View>
     ) : null}
+
+    <SheetModal
+      visible={cartOpen}
+      onClose={() => setCartOpen(false)}
+      title="Order detail"
+      subtitle={cartCount > 0 ? `${cartCount} item${cartCount === 1 ? "" : "s"}` : "Cart is empty"}
+      footer={
+        <PressableScale
+          haptic
+          onPress={() => {
+            setCartOpen(false);
+            void checkout();
+          }}
+          disabled={cart.length === 0 || busy}
+          accessibilityRole="button"
+          style={[
+            styles.btn,
+            styles.charge,
+            cart.length === 0 || busy ? styles.btnDisabled : null,
+          ]}
+        >
+          <Text style={styles.btnText}>
+            {busy ? t("pos.processing") : `${t("pos.placeOrder")} · Rs ${formatDecimal(total)}`}
+          </Text>
+        </PressableScale>
+      }
+    >
+      {cart.length === 0 ? (
+        <Text style={styles.body}>Cart is empty — tap a product to start.</Text>
+      ) : (
+        cart.map((l) => (
+          <View key={l.product.id} style={styles.cartLine}>
+            <Text style={styles.productName}>{l.product.name}</Text>
+            <View style={styles.row}>
+              <Pressable style={styles.qtyBtn} onPress={() => setQty(l.product.id, l.quantity - 1)}>
+                <Text style={styles.qtyBtnText}>−</Text>
+              </Pressable>
+              <TextInput
+                style={styles.qtyInput}
+                value={String(l.quantity)}
+                keyboardType="number-pad"
+                selectTextOnFocus
+                onChangeText={(raw) => {
+                  const digits = raw.replace(/[^0-9]/g, "");
+                  if (digits === "") return;
+                  const n = Number.parseInt(digits, 10);
+                  if (Number.isFinite(n) && n > 0) setQty(l.product.id, Math.min(n, 99999));
+                }}
+              />
+              <Pressable style={styles.qtyBtn} onPress={() => setQty(l.product.id, l.quantity + 1)}>
+                <Text style={styles.qtyBtnText}>+</Text>
+              </Pressable>
+              <Text style={styles.lineTotal}>{formatDecimal(l.quantity * l.unit_price)}</Text>
+            </View>
+          </View>
+        ))
+      )}
+
+      <View style={styles.totals}>
+        <Text style={styles.body}>{t("common.subtotal")} {formatDecimal(subtotal)}</Text>
+        <View style={styles.row}>
+          <Text style={[styles.body, { width: 88, marginBottom: 0 }]}>{t("pos.discount")}</Text>
+          <TextInput
+            style={[styles.input, { flex: 1, marginBottom: 0 }]}
+            value={discountInput}
+            onChangeText={setDiscountInput}
+            keyboardType="decimal-pad"
+            placeholder="0"
+            placeholderTextColor={theme.muted}
+          />
+        </View>
+        <View style={styles.row}>
+          <Text style={[styles.body, { width: 88, marginBottom: 0 }]}>{t("pos.taxOptional")}</Text>
+          <TextInput
+            style={[styles.input, { flex: 1, marginBottom: 0 }]}
+            value={taxInput}
+            onChangeText={setTaxInput}
+            keyboardType="decimal-pad"
+            placeholder="0"
+            placeholderTextColor={theme.muted}
+          />
+        </View>
+        <Text style={styles.total}>{t("common.total")} Rs {formatDecimal(total)}</Text>
+      </View>
+
+      <Text style={styles.payLabel}>Customer</Text>
+      <PressableScale
+        haptic
+        onPress={() => setCustomerPickerOpen(true)}
+        accessibilityRole="button"
+        style={styles.attachRow}
+      >
+        <Ionicons
+          name={selectedCustomer ? "person-circle-outline" : "person-add-outline"}
+          size={20}
+          color={theme.brandOn}
+        />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.attachLabel}>
+            {selectedCustomer ? selectedCustomer.name : "Attach customer"}
+          </Text>
+          <Text style={styles.attachHint}>
+            {selectedCustomer
+              ? selectedCustomer.credit_enabled
+                ? `${t("pos.khata")} enabled`
+                : "Walk-in account"
+              : "Required for khata payments"}
+          </Text>
+        </View>
+        {selectedCustomer ? (
+          <Pressable
+            hitSlop={10}
+            accessibilityLabel="Detach customer"
+            onPress={() => setCustomerId("")}
+          >
+            <Ionicons name="close-circle" size={20} color={theme.muted} />
+          </Pressable>
+        ) : (
+          <Ionicons name="chevron-forward" size={18} color={theme.muted} />
+        )}
+      </PressableScale>
+
+      <Text style={styles.payLabel}>Payment</Text>
+      {(
+        [
+          ["Cash", payCash, setPayCash],
+          ["Card", payCard, setPayCard],
+          ["Wallet", payWallet, setPayWallet],
+          [t("pos.khata"), payKhata, setPayKhata],
+        ] as const
+      ).map(([label, value, setter]) => (
+        <View key={label} style={styles.row}>
+          <Text style={[styles.body, { width: 56, marginBottom: 0 }]}>{label}</Text>
+          <TextInput
+            style={[styles.input, { flex: 1, marginBottom: 0 }]}
+            value={value}
+            onChangeText={setter}
+            keyboardType="decimal-pad"
+            placeholderTextColor={theme.muted}
+          />
+        </View>
+      ))}
+    </SheetModal>
+
+    <SheetModal
+      visible={customerPickerOpen}
+      onBack={() => setCustomerPickerOpen(false)}
+      onClose={() => setCustomerPickerOpen(false)}
+      title="Attach customer"
+      subtitle="Search by name"
+    >
+      <TextInput
+        style={styles.input}
+        value={customerQuery}
+        onChangeText={setCustomerQuery}
+        placeholder="Search customers"
+        placeholderTextColor={theme.muted}
+        autoCorrect={false}
+      />
+      {customerMatches.length === 0 ? (
+        <Text style={styles.body}>No customers match that search.</Text>
+      ) : (
+        customerMatches.slice(0, 50).map((c) => (
+          <PressableScale
+            key={c.id}
+            haptic
+            scaleTo={0.99}
+            accessibilityRole="button"
+            onPress={() => {
+              setCustomerId(c.id);
+              setCustomerQuery("");
+              setCustomerPickerOpen(false);
+            }}
+            style={[styles.attachRow, customerId === c.id && { borderColor: theme.brandOn }]}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={styles.attachLabel}>{c.name}</Text>
+              {c.credit_enabled ? (
+                <Text style={styles.attachHint}>{t("pos.khata")} enabled</Text>
+              ) : null}
+            </View>
+            {customerId === c.id ? (
+              <Ionicons name="checkmark-circle" size={20} color={theme.success} />
+            ) : null}
+          </PressableScale>
+        ))
+      )}
+    </SheetModal>
+
+    <SheetModal
+      visible={tillOpen}
+      onClose={() => setTillOpen(false)}
+      title={till ? "Close till" : "Open till"}
+      subtitle={
+        till ? `Open · float Rs ${formatDecimal(till.opening_cash)}` : "Start a cash session"
+      }
+    >
+      {till ? (
+        <>
+          <Text style={styles.body}>Count the drawer and enter the closing cash.</Text>
+          <TextInput
+            style={styles.input}
+            value={closingCash}
+            onChangeText={setClosingCash}
+            placeholder="Closing cash"
+            keyboardType="decimal-pad"
+            placeholderTextColor={theme.muted}
+          />
+          <PressableScale
+            haptic
+            disabled={busy}
+            accessibilityRole="button"
+            onPress={() => {
+              setTillOpen(false);
+              void closeTill();
+            }}
+            style={[styles.btn, busy ? styles.btnDisabled : null]}
+          >
+            <Text style={styles.btnText}>Close till</Text>
+          </PressableScale>
+        </>
+      ) : (
+        <>
+          <Text style={styles.body}>Enter the opening float to start selling.</Text>
+          <TextInput
+            style={styles.input}
+            value={openingCash}
+            onChangeText={setOpeningCash}
+            placeholder="Opening cash"
+            keyboardType="decimal-pad"
+            placeholderTextColor={theme.muted}
+          />
+          <PressableScale
+            haptic
+            disabled={busy}
+            accessibilityRole="button"
+            onPress={() => {
+              setTillOpen(false);
+              void openTill();
+            }}
+            style={[styles.btn, busy ? styles.btnDisabled : null]}
+          >
+            <Text style={styles.btnText}>Open till</Text>
+          </PressableScale>
+        </>
+      )}
+    </SheetModal>
     </>
   );
 }
@@ -640,6 +798,51 @@ function createStyles(t: Theme) {
     backgroundColor: t.bgPrimary,
   },
   container: { flex: 1, padding: 16, backgroundColor: t.bgPrimary },
+  headerRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
+  headerBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: t.card,
+  },
+  badge: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: 5,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  badgeText: { fontSize: 11, fontWeight: "800" },
+  searchRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 },
+  scanIconBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  attachRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1,
+    borderColor: t.border,
+    backgroundColor: t.card,
+    borderRadius: t.radius.lg,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 8,
+  },
+  attachLabel: { fontWeight: "700", color: t.heading, fontSize: 15 },
+  attachHint: { fontSize: 12, color: t.muted, marginTop: 2 },
+  gridContent: { gap: 8, paddingBottom: 8 },
   eyebrow: {
     color: t.brand,
     fontWeight: "700",

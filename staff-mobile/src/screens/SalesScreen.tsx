@@ -11,13 +11,13 @@ import { replacePath, pushPath } from "@/lib/nav";
 import { api, getSession } from "@/lib/api";
 import { canAccess } from "@/lib/rbac";
 import { type Theme, useTheme } from "@/theme";
-import { useToast } from "@/components/toast";
+import { useToast } from "@shared/ui/toast";
 import ListToolbar, { emptyStaffFilters } from "@/components/list-toolbar";
 import {
   applyListingFilters,
   type ListingFilterState,
-} from "@/lib/listingFilters";
-import { formatDecimal } from "@/lib/decimal";
+} from "@core/lib/listingFilters";
+import { formatDecimal } from "@core/lib/decimal";
 
 type SaleRow = {
   id: string;

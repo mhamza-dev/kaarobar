@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 
-import { type Theme, useTheme } from "@/theme";
+import { type Theme, useTheme } from "@shared/theme";
 
 export type SearchSelectOption = {
   value: string;

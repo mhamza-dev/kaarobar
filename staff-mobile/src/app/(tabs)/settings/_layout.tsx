@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 
-import { t } from '@/lib/i18n';
+import { t } from '@shared/i18n';
 import { useTheme } from '@/theme';
 
 export default function SettingsLayout() {

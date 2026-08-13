@@ -10,11 +10,11 @@ import {
 } from "react-native";
 
 import { type Theme, useTheme } from "@/theme";
-import { t } from "@/lib/i18n";
+import { t } from "@shared/i18n";
 import {
   emptyListingFilters,
   type ListingFilterState,
-} from "@/lib/listingFilters";
+} from "@core/lib/listingFilters";
 
 export type FilterOption = { value: string; label: string };
 

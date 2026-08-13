@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Modal, Pressable, Text, View } from "react-native";
 
-import { makeStyles, useBrandPalette } from "@/theme";
+import { makeStyles, useTheme } from "@shared/theme";
 
 export function FormModal({
   visible,
@@ -23,7 +23,7 @@ export function FormModal({
   busy?: boolean;
 }) {
   const styles = useStyles();
-  const palette = useBrandPalette();
+  const palette = useTheme();
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>

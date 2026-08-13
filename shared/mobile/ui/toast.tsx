@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { Pressable, Text, View } from "react-native";
-import { makeStyles, type Theme, useTheme } from '@/theme';
+import { makeStyles, type Theme, useTheme } from '@shared/theme';
 
 
 export type ToastType = "info" | "success" | "error" | "warning";

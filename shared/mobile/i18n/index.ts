@@ -1,12 +1,12 @@
 import { I18nManager } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import en from "@/lib/i18n/en.json";
-import ur from "@/lib/i18n/ur.json";
-import de from "@/lib/i18n/de.json";
-import ptBR from "@/lib/i18n/pt-BR.json";
-import es from "@/lib/i18n/es.json";
-import fr from "@/lib/i18n/fr.json";
-import ar from "@/lib/i18n/ar.json";
+import en from "@core/i18n/catalogs/en.json";
+import ur from "@core/i18n/catalogs/ur.json";
+import de from "@core/i18n/catalogs/de.json";
+import ptBR from "@core/i18n/catalogs/pt-BR.json";
+import es from "@core/i18n/catalogs/es.json";
+import fr from "@core/i18n/catalogs/fr.json";
+import ar from "@core/i18n/catalogs/ar.json";
 
 export const LOCALES = ["en", "ur", "de", "pt-BR", "es", "fr", "ar"] as const;
 

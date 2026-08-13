@@ -12,25 +12,25 @@ import {
 } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { pickImageFromLibrary } from "@/lib/imagePicker";
-import SegmentedTabs from "@/components/segmented-tabs";
+import SegmentedTabs from "@shared/ui/segmented-tabs";
 import { type Theme, useTheme } from "@/theme";
 import { api, billingCheckout, getSession, setSession, type Session } from "@/lib/api";
 import { canAccessRoute, isOwner } from "@/lib/rbac";
 import { SettingsSections } from "@/components/settings-sections";
-import { loadLocale, t } from "@/lib/i18n";
+import { loadLocale, t } from "@shared/i18n";
 import LanguageSwitcher from "@/components/language-switcher";
-import { useToast } from "@/components/toast";
+import { useToast } from "@shared/ui/toast";
 import { registerForPushNotifications } from "@/lib/push";
 import { pushPath, replacePath, router } from "@/lib/nav";
 import { settingsKeys } from "@/lib/queryClient";
-import CustomForm from "@/components/form/custom-form";
-import Switch from "@/components/form/switch";
-import { FormikTextField } from "@/components/form/form-fields";
+import CustomForm from "@shared/form/custom-form";
+import Switch from "@shared/form/switch";
+import { FormikTextField } from "@shared/form/form-fields";
 import {
   emptyProfileForm,
   profileFormSchema,
   type ProfileFormValues,
-} from "@/lib/validations/auth";
+} from "@core/validations/auth";
 
 type SettingsTab = "profile" | "notifications" | "subscriptions";
 

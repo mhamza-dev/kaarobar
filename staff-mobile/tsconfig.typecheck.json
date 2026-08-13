@@ -1,0 +1,20 @@
+{
+  // Typecheck-only overlay.
+  //
+  // Metro also reads `paths` from tsconfig.json, so mapping `react` to its
+  // @types there would break runtime resolution (Metro would try to import the
+  // declaration package). These mappings therefore live in a separate config
+  // used by `npm run typecheck`, never by the bundler.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/assets/*": ["./assets/*"],
+      "@shared/*": ["../shared/mobile/*"],
+      "@core/*": ["../shared/core/*"],
+      "react": ["./node_modules/@types/react"],
+      "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime"],
+      "*": ["./node_modules/*"]
+    }
+  }
+}

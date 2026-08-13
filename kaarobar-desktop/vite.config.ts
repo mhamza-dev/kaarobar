@@ -9,6 +9,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "renderer/src"),
+      // Platform-agnostic logic shared with the web and mobile clients.
+      "@core": path.resolve(__dirname, "../shared/core"),
     },
   },
   server: {

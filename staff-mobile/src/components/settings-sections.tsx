@@ -2,8 +2,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Text, View } from 'react-native';
 
 import { AppearanceSwitcher } from '@/components/appearance-switcher';
-import { GlassCard } from '@/components/ui/glass-card';
-import { PressableScale } from '@/components/ui/pressable-scale';
+import { GlassCard } from '@shared/ui/glass-card';
+import { PressableScale } from '@shared/ui/pressable-scale';
 import type { Session } from '@/lib/api';
 import { pushPath } from '@/lib/nav';
 import { canAccess, canAccessRoute, isOwner } from '@/lib/rbac';

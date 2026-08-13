@@ -9,8 +9,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { GlassSurface } from '@/components/ui/glass-surface';
-import { PressableScale } from '@/components/ui/pressable-scale';
+import { GlassSurface } from '@shared/ui/glass-surface';
+import { PressableScale } from '@shared/ui/pressable-scale';
 import { makeStyles, useTheme } from '@/theme';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];

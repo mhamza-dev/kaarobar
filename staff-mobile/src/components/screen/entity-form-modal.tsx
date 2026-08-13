@@ -1,7 +1,7 @@
 import { useRef, type ReactNode } from "react";
 import type { FormikConfig, FormikHelpers, FormikProps, FormikValues } from "formik";
-import { FormModal } from "@/components/form-modal";
-import CustomForm from "@/components/form/custom-form";
+import { FormModal } from "@shared/ui/form-modal";
+import CustomForm from "@shared/form/custom-form";
 
 type BaseProps = {
   visible: boolean;

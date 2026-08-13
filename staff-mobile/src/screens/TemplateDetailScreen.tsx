@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { api, getSession } from "@/lib/api";
-import { t } from "@/lib/i18n";
+import { t } from "@shared/i18n";
 import { type Theme, useTheme } from "@/theme";
 import { pushPath } from "@/lib/nav";
 import { crmKeys } from "@/lib/queryClient";

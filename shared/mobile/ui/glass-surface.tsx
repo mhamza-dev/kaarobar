@@ -2,7 +2,7 @@ import { BlurView } from 'expo-blur';
 import type { ReactNode } from 'react';
 import { Platform, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { useTheme } from '@/theme';
+import { useTheme } from '@shared/theme';
 
 /**
  * Android blur is opt-in via `blurMethod`. `dimezisBlurViewSdk31Plus` uses the

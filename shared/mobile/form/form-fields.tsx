@@ -9,10 +9,10 @@ import {
   type ViewStyle,
 } from "react-native";
 
-import Switch from "@/components/form/switch";
-import DateTimePicker, { type DateTimePickerMode } from "@/components/form/date-time-picker";
-import { SearchSelect, SearchMultiSelect } from "@/components/search-select";
-import { useTheme } from '@/theme';
+import Switch from "@shared/form/switch";
+import DateTimePicker, { type DateTimePickerMode } from "@shared/form/date-time-picker";
+import { SearchSelect, SearchMultiSelect } from "@shared/form/search-select";
+import { useTheme } from '@shared/theme';
 
 type FieldBase = {
   name: string;

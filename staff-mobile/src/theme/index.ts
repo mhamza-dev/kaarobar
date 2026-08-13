@@ -1,26 +1,32 @@
-export { makeStyles, makeThemedStyles } from '@/theme/make-styles';
+/**
+ * App-facing theme barrel: everything shared, plus this app's provider.
+ * Screens import from `@/theme` and never need to know which half is shared.
+ */
 export {
   alpha,
   brandPaletteFromPrimary,
+  buildTheme,
   DEFAULT_BRAND,
+  makeStyles,
+  makeThemedStyles,
   normalizeBrandHex,
   parseHexColor,
-  type BrandPalette,
-  type ColorScheme,
-} from '@/theme/palette';
-export {
-  ThemeProvider,
-  useBrandPalette,
-  useTheme,
-  useThemeControls,
-  type SchemePreference,
-} from '@/theme/theme-provider';
-export {
   blur,
-  buildTheme,
   motion,
   radius,
   spacing,
   typography,
+  useTheme,
+  type BrandPalette,
+  type ColorScheme,
   type Theme,
-} from '@/theme/tokens';
+} from '@shared/theme';
+
+export {
+  ThemeProvider,
+  useThemeControls,
+  type SchemePreference,
+} from '@/theme/theme-provider';
+
+/** Brand-only accessor, mirroring the pre-Expo `useBrandPalette()`. */
+export { useTheme as useBrandPalette } from '@shared/theme';

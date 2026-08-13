@@ -10,8 +10,8 @@ import {
 } from "react-native";
 import { api, getSession } from "@/lib/api";
 import { canAccess } from "@/lib/rbac";
-import { loadLocale, t } from "@/lib/i18n";
-import { useToast } from "@/components/toast";
+import { loadLocale, t } from "@shared/i18n";
+import { useToast } from "@shared/ui/toast";
 import { goBack, replacePath } from "@/lib/nav";
 
 type Leave = {
@@ -44,7 +44,7 @@ export default function LeaveApproveScreen() {
       return;
     }
     try {
-      const res = await api<{ data: Leave[] }>("/app/leave");
+      const res = await api<{ data: Leave[] }>("/leave");
       setItems(res.data || []);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("common.error"));

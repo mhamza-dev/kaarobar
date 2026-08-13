@@ -74,11 +74,12 @@ kaarobar/
 ├── kaarobar-desktop/             # Electron — Cloud Desktop POS (SQLite outbox → sync)
 ├── kaarobar-desktop-offline/     # Electron — Offline Desktop Edition (local SQLite, one-time license)
 ├── kaarobar-backend/             # Elixir/Phoenix API + PostgreSQL (modular monolith)
+├── shared/mobile/                # Source shared by the two Expo apps (@shared/*)
 ├── docs/                         # SRS, ADRs, module docs, architecture notes
 └── docker-compose.yml            # Postgres + Redis for local development
 ```
 
-Clients are independently deployable (no shared npm packages). Theme tokens are duplicated per app so branding stays consistent without coupling releases.
+Clients are independently deployable (no shared npm packages). The two mobile apps share source via `shared/mobile/` ([ADR 002](docs/adr/002-shared-mobile-source-folder.md)); web and desktop duplicate theme tokens so branding stays consistent without coupling releases.
 
 | Desktop package | Edition | Data | Cloud API |
 |-----------------|---------|------|-----------|

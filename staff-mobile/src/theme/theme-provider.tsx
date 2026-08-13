@@ -11,19 +11,16 @@ import {
 import { useColorScheme } from 'react-native';
 
 import { api, getSession, isConsumerSession } from '@/lib/api';
-import {
-  brandPaletteFromPrimary,
-  normalizeBrandHex,
-  type ColorScheme,
-} from '@/theme/palette';
-import { buildTheme, type Theme } from '@/theme/tokens';
+import { ThemeValueProvider } from '@shared/theme/context';
+import { brandPaletteFromPrimary, normalizeBrandHex, type ColorScheme } from '@core/lib/brand-palette';
+import { buildTheme, type Theme } from '@shared/theme/tokens';
 
 /** What the user picked. `system` follows the OS setting. */
 export type SchemePreference = 'system' | 'light' | 'dark';
 
 const SCHEME_KEY = 'kaarobar_scheme';
 
-type ThemeContextValue = {
+type ThemeControls = {
   theme: Theme;
   /** Resolved scheme actually in use. */
   scheme: ColorScheme;
@@ -36,12 +33,14 @@ type ThemeContextValue = {
   refreshStaffBrand: () => void;
 };
 
-const ThemeContext = createContext<ThemeContextValue | null>(null);
+const ControlsContext = createContext<ThemeControls | null>(null);
 
-function fallbackTheme(scheme: ColorScheme): Theme {
-  return buildTheme(scheme, brandPaletteFromPrimary(null, scheme));
-}
-
+/**
+ * Derives the theme for this app and hands it to the shared `ThemeValueProvider`.
+ *
+ * This stays app-side because resolving the brand colour needs this app's API
+ * client and session shape; shared components only ever consume the result.
+ */
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const systemScheme = useColorScheme();
   const [preference, setPreferenceState] = useState<SchemePreference>('system');
@@ -49,7 +48,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [staffPrimary, setStaffPrimary] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
 
-  // Restore the persisted scheme preference once on mount.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -59,7 +57,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           setPreferenceState(stored);
         }
       } catch {
-        // Preference is cosmetic — fall back to `system` rather than surfacing an error.
+        // Preference is cosmetic — fall back to `system`.
       }
     })();
     return () => {
@@ -77,7 +75,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setTick((n) => n + 1);
   }, []);
 
-  // Pull the signed-in business brand colour (TEN — business branding).
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -118,7 +115,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     [scheme, activeHex],
   );
 
-  const value = useMemo(
+  const controls = useMemo(
     () => ({
       theme,
       scheme,
@@ -130,20 +127,18 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     [theme, scheme, preference, setPreference, setPrimaryColor, refreshStaffBrand],
   );
 
-  return <ThemeContext value={value}>{children}</ThemeContext>;
-}
-
-/** The active theme. Safe to call outside the provider (falls back to light). */
-export function useTheme(): Theme {
-  const ctx = use(ThemeContext);
-  return ctx?.theme ?? fallbackTheme('light');
+  return (
+    <ControlsContext value={controls}>
+      <ThemeValueProvider theme={theme}>{children}</ThemeValueProvider>
+    </ControlsContext>
+  );
 }
 
 /** Scheme preference controls, for the appearance switcher in Settings. */
-export function useThemeControls(): ThemeContextValue {
-  const ctx = use(ThemeContext);
+export function useThemeControls(): ThemeControls {
+  const ctx = use(ControlsContext);
   if (!ctx) {
-    const theme = fallbackTheme('light');
+    const theme = buildTheme('light', brandPaletteFromPrimary(null, 'light'));
     return {
       theme,
       scheme: 'light',
@@ -154,10 +149,4 @@ export function useThemeControls(): ThemeContextValue {
     };
   }
   return ctx;
-}
-
-/** Brand-only accessor, mirroring the pre-Expo `useBrandPalette()`. */
-export function useBrandPalette() {
-  const theme = useTheme();
-  return theme;
 }

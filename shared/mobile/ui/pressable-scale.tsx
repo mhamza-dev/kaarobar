@@ -7,7 +7,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 
-import { useTheme } from '@/theme';
+import { useTheme } from '@shared/theme';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 

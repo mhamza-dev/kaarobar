@@ -10,24 +10,24 @@ import {
 } from "react-native";
 import { useField } from "formik";
 import { api, apiAllPages, getSession, type Session } from "@/lib/api";
-import Switch from "@/components/form/switch";
+import Switch from "@shared/form/switch";
 import { canAccess, canAccessRoute } from "@/lib/rbac";
-import { t } from "@/lib/i18n";
+import { t } from "@shared/i18n";
 import {
   type Customer,
   type CustomerForm,
   customerPayload,
   customerToForm,
   emptyCustomerForm,
-} from "@/lib/customers";
+} from "@core/lib/customers";
 import { replacePath, pushPath } from "@/lib/nav";
 import ListToolbar, { emptyStaffFilters } from "@/components/list-toolbar";
-import { applyListingFilters } from "@/lib/listingFilters";
-import { formatDecimal } from "@/lib/decimal";
+import { applyListingFilters } from "@core/lib/listingFilters";
+import { formatDecimal } from "@core/lib/decimal";
 import ScreenCard from "@/components/screen/screen-card";
 import CustomerFormFields from "@/features/customers/components/customer-form-fields";
-import CustomForm from "@/components/form/custom-form";
-import { customerFormSchema } from "@/lib/validations/customers";
+import CustomForm from "@shared/form/custom-form";
+import { customerFormSchema } from "@core/validations/customers";
 
 type LedgerEntry = {
   kind: string;

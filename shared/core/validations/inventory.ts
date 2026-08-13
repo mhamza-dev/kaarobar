@@ -8,7 +8,7 @@ export {
   emptySupplierForm,
   type ProductFormValues,
   type SupplierFormValues,
-} from "@/lib/validations/products";
+} from "@core/validations/products";
 
 export type PurchaseOrderFormValues = {
   supplier_id: string;

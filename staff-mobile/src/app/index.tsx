@@ -2,7 +2,7 @@ import { Redirect } from 'expo-router';
 import { ActivityIndicator, Text, View } from 'react-native';
 
 import KaarobarLogo from '@/components/kaarobar-logo';
-import { t } from '@/lib/i18n';
+import { t } from '@shared/i18n';
 import { landingTabFor } from '@/lib/nav';
 import { canAccessRoute } from '@/lib/rbac';
 import { useIsStaffAuthed, useSession } from '@/lib/SessionContext';

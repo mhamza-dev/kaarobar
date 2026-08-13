@@ -1,21 +1,21 @@
 import { useCallback, useEffect, useState, useMemo } from "react";
 import { type Theme, useTheme } from "@/theme";
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { pickImageFromLibrary } from "@/lib/imagePicker";
 import { api } from "@/lib/api";
 
-import { formatDecimal } from "@/lib/decimal";
-import SegmentedTabs from "@/components/segmented-tabs";
+import { formatDecimal } from "@core/lib/decimal";
+import SegmentedTabs from "@shared/ui/segmented-tabs";
 import { useScreenGate } from "@/hooks/use-screen-gate";
 import { ScreenGateFallback } from "@/components/ui/screen-gate";
 import { useTabParam } from "@/hooks/useTabParam";
-import CustomForm from "@/components/form/custom-form";
-import { FormikTextField, FormikDateTimeField } from "@/components/form/form-fields";
+import CustomForm from "@shared/form/custom-form";
+import { FormikTextField, FormikDateTimeField } from "@shared/form/form-fields";
 import {
   emptyLeaveRequestForm,
   leaveRequestFormSchema,
   type LeaveRequestFormValues,
-} from "@/lib/validations/hr";
+} from "@core/validations/hr";
 
 type Tab = "clock" | "leave" | "payslips";
 const ATTENDANCE_TABS: readonly Tab[] = ["clock", "leave", "payslips"];
@@ -144,7 +144,7 @@ export default function EssScreen() {
   async function requestLeave(values: LeaveRequestFormValues) {
     setBusy(true);
     try {
-      await api("/app/leave", {
+      await api("/leave", {
         method: "POST",
         body: JSON.stringify({
           type: values.type,
@@ -164,11 +164,13 @@ export default function EssScreen() {
     }
   }
 
-  if (!session) {
+  if (gateStatus !== "ready" || !session) {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator color={theme.brand} />
-      </View>
+      <ScreenGateFallback
+        status={gateStatus}
+        featureName="Attendance"
+        onRetry={gateRetry}
+      />
     );
   }
 

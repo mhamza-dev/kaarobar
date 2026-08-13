@@ -7,7 +7,7 @@ import Animated, {
   LinearTransition,
 } from 'react-native-reanimated';
 
-import { motion } from '@/theme';
+import { motion } from '@shared/theme';
 
 type Props = {
   children?: ReactNode;

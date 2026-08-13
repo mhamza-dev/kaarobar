@@ -1,6 +1,6 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
-import { makeStyles, useBrandPalette } from "@/theme";
+import { makeStyles, useTheme } from "@shared/theme";
 
 export type MobileTabItem<T extends string = string> = {
   id: T;
@@ -20,7 +20,7 @@ export default function SegmentedTabs<T extends string>({
   onChange,
 }: Props<T>) {
   const styles = useStyles();
-  const brand = useBrandPalette();
+  const brand = useTheme();
   return (
     <ScrollView
       horizontal

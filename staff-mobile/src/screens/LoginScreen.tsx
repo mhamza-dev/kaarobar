@@ -10,11 +10,11 @@ import {
 } from "react-native";
 import { api, consumeSessionTimedOut, hydrateSessionContext } from "@/lib/api";
 import { useSession } from "@/lib/SessionContext";
-import { t } from "@/lib/i18n";
+import { t } from "@shared/i18n";
 import KaarobarLogo from "@/components/kaarobar-logo";
-import CustomForm from "@/components/form/custom-form";
-import { FormikTextField, FormikSwitchField } from "@/components/form/form-fields";
-import { loginSchema, type LoginFormValues } from "@/lib/validations/auth";
+import CustomForm from "@shared/form/custom-form";
+import { FormikTextField, FormikSwitchField } from "@shared/form/form-fields";
+import { loginSchema, type LoginFormValues } from "@core/validations/auth";
 
 const loginInitial: LoginFormValues = {
   loginMethod: "email",
