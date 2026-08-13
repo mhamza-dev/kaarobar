@@ -1,17 +1,11 @@
 import { useCallback, useEffect, useState, useMemo } from "react";
 import { type Theme, useTheme } from "@/theme";
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useField } from "formik";
-import { api, getSession, type Session } from "@/lib/api";
-import { canAccess, canAccessRoute } from "@/lib/rbac";
-import { replacePath } from "@/lib/nav";
+import { api } from "@/lib/api";
+import { canAccess } from "@/lib/rbac";
+import { useScreenGate } from "@/hooks/use-screen-gate";
+import { ScreenGateFallback } from "@/components/ui/screen-gate";
 import { formatDecimal } from "@/lib/decimal";
 import CustomForm from "@/components/form/custom-form";
 import { FormikTextField } from "@/components/form/form-fields";
@@ -100,7 +94,7 @@ function RefundMethodChips({
 export default function ReturnsScreen() {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const [session, setLocal] = useState<Session | null>(null);
+  const { session, status: gateStatus, retry: gateRetry } = useScreenGate("/app/returns");
   const [sale, setSale] = useState<Sale | null>(null);
   const [returnInitial, setReturnInitial] = useState(emptyReturnForm());
   const [pending, setPending] = useState<ReturnRow[]>([]);
@@ -127,16 +121,6 @@ export default function ReturnsScreen() {
 
   useEffect(() => {
     (async () => {
-      const s = await getSession();
-      if (!s) {
-        replacePath("/landing");
-        return;
-      }
-      if (!canAccessRoute(s, "/app/returns")) {
-        replacePath("/app/dashboard");
-        return;
-      }
-      setLocal(s);
       await reload();
     })();
   }, [reload]);
@@ -221,11 +205,13 @@ export default function ReturnsScreen() {
     }
   }
 
-  if (!session) {
+  if (gateStatus !== "ready" || !session) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator color={theme.brand} />
-      </View>
+      <ScreenGateFallback
+        status={gateStatus}
+        featureName="Returns & tills"
+        onRetry={gateRetry}
+      />
     );
   }
 
@@ -383,7 +369,7 @@ function createStyles(t: Theme) {
       borderRadius: 10,
       paddingHorizontal: 12,
       paddingVertical: 10,
-      backgroundColor: t.white,
+      backgroundColor: t.bgSecondary,
       color: t.heading,
       marginBottom: 10,
     },

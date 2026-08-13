@@ -6,13 +6,9 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GradientMesh } from '@/components/ui/gradient-mesh';
 import { makeStyles, useTheme } from '@/theme';
-
-/** Extra bottom padding so content clears the floating glass tab bar. */
-export const TAB_BAR_CLEARANCE = 96;
 
 type Props = {
   children?: ReactNode;
@@ -20,39 +16,31 @@ type Props = {
   scroll?: boolean;
   refreshing?: boolean;
   onRefresh?: () => void;
-  /** Leave room for the floating tab bar. */
-  tabBarClearance?: boolean;
   padded?: boolean;
   contentStyle?: StyleProp<ViewStyle>;
   style?: StyleProp<ViewStyle>;
 };
 
 /**
- * Screen scaffold: ambient mesh background, safe-area handling and consistent
- * padding. Every route renders inside one of these.
+ * Screen scaffold: ambient mesh background and consistent padding.
+ *
+ * Safe-area and tab-bar clearance are handled once by the tabs layout's
+ * `sceneStyle`, so this component deliberately adds no insets of its own —
+ * doing both double-pads every screen.
  */
 export function Screen({
   children,
   scroll = false,
   refreshing,
   onRefresh,
-  tabBarClearance = false,
   padded = true,
   contentStyle,
   style,
 }: Props) {
   const styles = useStyles();
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
 
-  const inner: StyleProp<ViewStyle> = [
-    padded && styles.padded,
-    {
-      paddingBottom:
-        (tabBarClearance ? TAB_BAR_CLEARANCE : theme.spacing.lg) + insets.bottom,
-    },
-    contentStyle,
-  ];
+  const inner: StyleProp<ViewStyle> = [padded && styles.padded, contentStyle];
 
   return (
     <View style={[styles.root, style]}>

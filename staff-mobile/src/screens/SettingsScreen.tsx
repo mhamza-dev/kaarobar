@@ -16,6 +16,7 @@ import SegmentedTabs from "@/components/segmented-tabs";
 import { type Theme, useTheme } from "@/theme";
 import { api, billingCheckout, getSession, setSession, type Session } from "@/lib/api";
 import { canAccessRoute, isOwner } from "@/lib/rbac";
+import { SettingsSections } from "@/components/settings-sections";
 import { loadLocale, t } from "@/lib/i18n";
 import LanguageSwitcher from "@/components/language-switcher";
 import { useToast } from "@/components/toast";
@@ -400,6 +401,8 @@ export default function SettingsScreen() {
           value={tab}
           onChange={(id) => changeTab(id as SettingsTab)}
         />
+
+        <SettingsSections session={session} />
 
         {tab === "profile" ? (
           <View style={styles.section}>

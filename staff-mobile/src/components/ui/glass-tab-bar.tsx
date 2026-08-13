@@ -15,6 +15,12 @@ import { makeStyles, useTheme } from '@/theme';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
+/**
+ * Height of the bar itself, excluding safe-area inset. The tabs layout adds this
+ * as bottom padding on every scene so content never hides behind the bar.
+ */
+export const TAB_BAR_CONTENT_HEIGHT = 58;
+
 /** Route name -> icon pair (inactive, active). */
 const ICONS: Record<string, [IoniconName, IoniconName]> = {
   pos: ['calculator-outline', 'calculator'],
@@ -42,6 +48,12 @@ export function GlassTabBar({ state, descriptors, navigation }: BottomTabBarProp
         <View style={styles.row}>
           {state.routes.map((route, index) => {
             const { options } = descriptors[route.key];
+
+            // A custom tabBar renders `state.routes` itself, so expo-router's
+            // `href: null` (which only swaps in an empty tabBarButton) would
+            // otherwise still draw the tab. Filter it out explicitly.
+            if ((options as { href?: string | null }).href === null) return null;
+
             const focused = state.index === index;
             const label =
               typeof options.tabBarLabel === 'string'

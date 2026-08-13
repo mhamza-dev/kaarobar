@@ -16,7 +16,9 @@ import { t } from "@/lib/i18n";
 import { canAccessRoute } from "@/lib/rbac";
 import { formatDecimal } from "@/lib/decimal";
 import { BarcodeScannerModal } from "@/components/barcode-scanner-modal";
-import { replacePath } from "@/lib/nav";
+import { Screen } from "@/components/ui/screen";
+import { LoadingView, StateView } from "@/components/ui/state-view";
+import { pushPath, replacePath } from "@/lib/nav";
 
 type Product = {
   id: string;
@@ -57,6 +59,11 @@ export default function PosScreen() {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [session, setLocal] = useState<Session | null>(null);
+  /** Explicit gate so "loading" is never confused with "denied" or "failed". */
+  const [gate, setGate] = useState<
+    "loading" | "ready" | "denied" | "signedOut" | "error"
+  >("loading");
+  const [reloadKey, setReloadKey] = useState(0);
   const [products, setProducts] = useState<Product[]>([]);
   const [query, setQuery] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
@@ -125,15 +132,25 @@ export default function PosScreen() {
 
   useEffect(() => {
     (async () => {
-      const s = await getSession();
+      let s: Session | null = null;
+      try {
+        s = await getSession();
+      } catch {
+        setGate("error");
+        return;
+      }
       if (!s) {
+        setGate("signedOut");
         replacePath("/landing");
         return;
       }
       if (!canAccessRoute(s, "/app/pos")) {
-        replacePath("/app/dashboard");
+        // Previously this redirected and left `session` null forever, so the
+        // screen spun indefinitely if the user came back to the POS tab.
+        setGate("denied");
         return;
       }
+      setGate("ready");
       setLocal(s);
       try {
         const cust = await apiAllPages<Customer>("/customers").catch(() => [] as Customer[]);
@@ -143,7 +160,7 @@ export default function PosScreen() {
         setMessage(err instanceof Error ? err.message : "Failed to load");
       }
     })();
-  }, [loadTill]);
+  }, [loadTill, reloadKey]);
 
   useEffect(() => {
     const id = setTimeout(() => setDebouncedQ(query.trim()), 300);
@@ -315,11 +332,34 @@ export default function PosScreen() {
     }
   }
 
-  if (!session) {
+  if (gate !== "ready" || !session) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator color={theme.brand} />
-      </View>
+      <Screen>
+        {gate === "loading" || gate === "signedOut" ? (
+          <LoadingView label={t("common.workspaceLoading")} />
+        ) : gate === "denied" ? (
+          <StateView
+            icon="lock-closed-outline"
+            tone="warning"
+            title="POS isn't available for your role"
+            detail="Your account doesn't have till access on this branch. An owner or branch manager can grant it from Settings → Roles."
+            actionLabel="Go to workspace"
+            onAction={() => pushPath("/app/dashboard")}
+          />
+        ) : (
+          <StateView
+            icon="cloud-offline-outline"
+            tone="danger"
+            title="Couldn't start the till"
+            detail="We couldn't read your session. Check your connection and try again."
+            actionLabel="Retry"
+            onAction={() => {
+              setGate("loading");
+              setReloadKey((n) => n + 1);
+            }}
+          />
+        )}
+      </Screen>
     );
   }
 
@@ -637,7 +677,7 @@ function createStyles(t: Theme) {
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: t.white,
+    backgroundColor: t.bgSecondary,
     color: t.heading,
     marginBottom: 10,
   },
@@ -658,7 +698,7 @@ function createStyles(t: Theme) {
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    backgroundColor: t.white,
+    backgroundColor: t.bgSecondary,
   },
   btnSecondaryText: { color: t.heading, fontWeight: "600" },
   productGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 12 },
@@ -717,7 +757,7 @@ function createStyles(t: Theme) {
     height: 34,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: t.white,
+    backgroundColor: t.bgSecondary,
   },
   qtyBtnText: { fontSize: 18, color: t.heading },
   qty: { width: 28, textAlign: "center", color: t.heading, fontWeight: "700" },
@@ -769,7 +809,7 @@ function createStyles(t: Theme) {
   },
   receiptCard: {
     width: "100%",
-    backgroundColor: t.white,
+    backgroundColor: t.bgSecondary,
     borderRadius: 12,
     padding: 16,
   },

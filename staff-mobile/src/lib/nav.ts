@@ -65,6 +65,26 @@ export function pushPath(path: string, params?: Record<string, unknown>) {
   if (href) router.push(withParams(href, params));
 }
 
+/** Tab order as shown in the bar, with the RBAC route each one needs. */
+const TAB_ORDER: { href: Href; route: string }[] = [
+  { href: '/(tabs)/pos', route: '/app/pos' },
+  { href: '/(tabs)/sales', route: '/app/sales' },
+  { href: '/(tabs)/products', route: '/app/inventory' },
+  { href: '/(tabs)/customers', route: '/app/customers' },
+];
+
+/**
+ * First tab this session can actually open. Without this a cashier who lacks
+ * POS would be redirected onto a tab that is hidden from the bar.
+ * Settings is the fallback because it is always reachable.
+ */
+export function landingTabFor(
+  canAccess: (route: string) => boolean,
+): Href {
+  const first = TAB_ORDER.find((tab) => canAccess(tab.route));
+  return first ? first.href : '/(tabs)/settings';
+}
+
 /** Go back if possible, else fall back to the workspace root. */
 export function goBack() {
   if (router.canGoBack()) router.back();

@@ -9,9 +9,10 @@ export default function SettingsLayout() {
   return (
     <Stack
       screenOptions={{
-        headerTransparent: true,
-        headerBlurEffect: theme.isDark ? 'systemThinMaterialDark' : 'systemThinMaterialLight',
-        headerStyle: { backgroundColor: theme.glass },
+        // Deliberately NOT headerTransparent: a transparent header makes every
+        // screen responsible for its own top inset, and each of these screens
+        // renders a plain ScrollView, so the first row ended up under the title.
+        headerStyle: { backgroundColor: theme.bgSecondary },
         headerTintColor: theme.heading,
         headerTitleStyle: { color: theme.heading, fontWeight: '700' },
         headerShadowVisible: false,

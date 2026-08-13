@@ -1,16 +1,8 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { type Theme, useTheme } from "@/theme";
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { api, apiAllPages, getSession, type Session } from "@/lib/api";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { api, apiAllPages, getSession } from "@/lib/api";
 import EntityFormModal from "@/components/screen/entity-form-modal";
 import { BarcodeScannerModal } from "@/components/barcode-scanner-modal";
 import ScreenTabs from "@/components/screen/screen-tabs";
@@ -18,10 +10,11 @@ import ListToolbar, { emptyStaffFilters } from "@/components/list-toolbar";
 import ScreenCard from "@/components/screen/screen-card";
 import { applyListingFilters } from "@/lib/listingFilters";
 import { pickImageFromLibrary } from "@/lib/imagePicker";
-import { canAccessRoute } from "@/lib/rbac";
+
 import { formatDecimal } from "@/lib/decimal";
 import { generateBarcode } from "@/lib/barcode";
-import { replacePath } from "@/lib/nav";
+import { useScreenGate } from "@/hooks/use-screen-gate";
+import { ScreenGateFallback } from "@/components/ui/screen-gate";
 import { useTabParam } from "@/hooks/useTabParam";
 import { inventoryKeys } from "@/lib/queryClient";
 import { t } from "@/lib/i18n";
@@ -116,7 +109,7 @@ export default function InventoryScreen() {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const queryClient = useQueryClient();
-  const [session, setLocal] = useState<Session | null>(null);
+  const { session, status: gateStatus, retry: gateRetry } = useScreenGate("/app/inventory");
   const [tab, setTab] = useTabParam<Tab>("stock", PRODUCT_TABS);
   const [modal, setModal] = useState<ModalKind>(null);
   const [productFilters, setProductFilters] = useState(emptyStaffFilters());
@@ -238,16 +231,6 @@ export default function InventoryScreen() {
 
   useEffect(() => {
     (async () => {
-      const s = await getSession();
-      if (!s) {
-        replacePath("/landing");
-        return;
-      }
-      if (!canAccessRoute(s, "/app/inventory")) {
-        replacePath("/app/dashboard");
-        return;
-      }
-      setLocal(s);
     })();
   }, []);
 
@@ -609,11 +592,13 @@ export default function InventoryScreen() {
     }
   }
 
-  if (!session) {
+  if (gateStatus !== "ready" || !session) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator color={theme.brand} />
-      </View>
+      <ScreenGateFallback
+        status={gateStatus}
+        featureName="Inventory"
+        onRetry={gateRetry}
+      />
     );
   }
 
@@ -1288,7 +1273,7 @@ function createStyles(t: Theme) {
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: t.white,
+    backgroundColor: t.bgSecondary,
     color: t.heading,
     marginBottom: 10,
   },

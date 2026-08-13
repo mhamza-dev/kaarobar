@@ -170,7 +170,7 @@ function createStyles(t: Theme) {
     title: { fontSize: 28, fontWeight: "800", color: t.heading },
     hint: { marginTop: 8, marginBottom: 12, color: t.body },
     error: {
-      backgroundColor: "#fee2e2",
+      backgroundColor: t.dangerSoft,
       color: t.danger,
       padding: 10,
       borderRadius: t.radiusLg,
@@ -179,7 +179,7 @@ function createStyles(t: Theme) {
     input: {
       borderWidth: 1,
       borderColor: t.glassBorder,
-      backgroundColor: "rgba(255,255,255,0.9)",
+      backgroundColor: t.bgSecondary,
       borderRadius: t.radiusLg,
       paddingHorizontal: 14,
       paddingVertical: 12,

@@ -1,20 +1,13 @@
 import { useCallback, useEffect, useState, useMemo } from "react";
 import { type Theme, useTheme } from "@/theme";
-import {
-  ActivityIndicator,
-  Image,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { pickImageFromLibrary } from "@/lib/imagePicker";
-import { api, getSession, type Session } from "@/lib/api";
-import { canAccessRoute } from "@/lib/rbac";
+import { api } from "@/lib/api";
+
 import { formatDecimal } from "@/lib/decimal";
 import SegmentedTabs from "@/components/segmented-tabs";
-import { replacePath } from "@/lib/nav";
+import { useScreenGate } from "@/hooks/use-screen-gate";
+import { ScreenGateFallback } from "@/components/ui/screen-gate";
 import { useTabParam } from "@/hooks/useTabParam";
 import CustomForm from "@/components/form/custom-form";
 import { FormikTextField, FormikDateTimeField } from "@/components/form/form-fields";
@@ -60,7 +53,7 @@ type EssData = {
 export default function EssScreen() {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const [session, setLocal] = useState<Session | null>(null);
+  const { session, status: gateStatus, retry: gateRetry } = useScreenGate("/app/ess");
   const [tab, setTab] = useTabParam<Tab>("clock", ATTENDANCE_TABS);
   const [data, setData] = useState<EssData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -81,16 +74,6 @@ export default function EssScreen() {
 
   useEffect(() => {
     (async () => {
-      const s = await getSession();
-      if (!s) {
-        replacePath("/landing");
-        return;
-      }
-      if (!canAccessRoute(s, "/app/ess")) {
-        replacePath("/app/dashboard");
-        return;
-      }
-      setLocal(s);
       await load();
     })();
   }, [load]);
