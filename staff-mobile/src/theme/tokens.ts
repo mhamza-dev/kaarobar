@@ -7,7 +7,6 @@
  */
 
 import { alpha, type BrandPalette, type ColorScheme } from '@/theme/palette';
-import { useTheme } from '@/theme';
 
 export type Elevation = {
   shadowColor: string;

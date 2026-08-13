@@ -251,11 +251,18 @@ export default function InventoryScreen() {
     })();
   }, []);
 
+  const poProductsActive = !!poSupplierId && (tab === "pos" || modal === "po");
+
+  // Clearing on deactivation is a state reset, not a subscription — doing it
+  // during render keeps the effect below purely about fetching.
+  const [wasPoProductsActive, setWasPoProductsActive] = useState(poProductsActive);
+  if (poProductsActive !== wasPoProductsActive) {
+    setWasPoProductsActive(poProductsActive);
+    if (!poProductsActive) setSupplierProductsForPo([]);
+  }
+
   useEffect(() => {
-    if (!poSupplierId || (tab !== "pos" && modal !== "po")) {
-      setSupplierProductsForPo([]);
-      return;
-    }
+    if (!poProductsActive) return;
     let cancelled = false;
     void (async () => {
       try {
@@ -270,7 +277,7 @@ export default function InventoryScreen() {
     return () => {
       cancelled = true;
     };
-  }, [poSupplierId, tab, modal]);
+  }, [poProductsActive, poSupplierId]);
 
   useEffect(() => {
     if (tab !== "suppliers" || suppliers.length === 0) return;
@@ -823,14 +830,14 @@ export default function InventoryScreen() {
           >
             <Text style={styles.btnText}>Create transfer</Text>
           </Pressable>
-          {transfers.map((t) => (
-            <View key={theme.id} style={styles.row}>
+          {transfers.map((transfer) => (
+            <View key={transfer.id} style={styles.row}>
               <Text style={[styles.body, { flex: 1 }]}>
-                {theme.status} ·{" "}
-                {(theme.items || []).map((i) => i.quantity).join(", ") || "?"} units
+                {transfer.status} ·{" "}
+                {(transfer.items || []).map((i) => i.quantity).join(", ") || "?"} units
               </Text>
-              {theme.status === "pending" ? (
-                <Pressable style={styles.btn} onPress={() => confirmTransfer(theme.id)}>
+              {transfer.status === "pending" ? (
+                <Pressable style={styles.btn} onPress={() => confirmTransfer(transfer.id)}>
                   <Text style={styles.btnText}>Confirm</Text>
                 </Pressable>
               ) : null}

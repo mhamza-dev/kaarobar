@@ -15,7 +15,7 @@ import { formatDecimal } from "@/lib/decimal";
 import { getLocale, loadLocale, setLocale, t, type Locale } from "@/lib/i18n";
 import { useToast } from "@/components/toast";
 import KaarobarLogo from "@/components/kaarobar-logo";
-import { type Theme, useBrandTheme, useTheme } from "@/theme";
+import { type Theme, useTheme, useThemeControls } from "@/theme";
 import { replacePath, pushPath } from "@/lib/nav";
 
 type Dashboard = {
@@ -73,10 +73,10 @@ function fillSalesDays(rows: SalesDayRow[], from: string, to: string): ChartPoin
 }
 
 export default function DashboardScreen() {
-  console.log("DashboardScreen");
   const { setSession } = useSession();
   const toast = useToast();
-  const { palette, refreshStaffBrand } = useBrandTheme();
+  const { refreshStaffBrand } = useThemeControls();
+  const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [localSession, setLocalSession] = useState<Session | null>(null);
   const [dash, setDash] = useState<Dashboard | null>(null);
@@ -252,6 +252,8 @@ export default function DashboardScreen() {
     }
   }
 
+  const chartPoints = useMemo(() => fillSalesDays(salesDays, from, to), [from, salesDays, to]);
+
   if (!localSession) {
     return (
       <View style={styles.center}>
@@ -293,7 +295,6 @@ export default function DashboardScreen() {
     return true;
   });
 
-  const chartPoints = useMemo(() => fillSalesDays(salesDays, from, to), [from, salesDays, to]);
   const canCharts = canAccess(localSession, "reports");
   const maxRevenue = Math.max(...chartPoints.map((p) => p.total), 1);
   const maxOrders = Math.max(...chartPoints.map((p) => p.count), 1);

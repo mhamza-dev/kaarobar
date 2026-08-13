@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Modal,
   Pressable,
-  StyleSheet,
   Text,
   TextInput,
   View,
@@ -30,9 +29,14 @@ export function BarcodeScannerModal({
   const palette = useBrandPalette();
   const [code, setCode] = useState("");
 
-  useEffect(() => {
+  // Clear the field each time the modal opens. Adjusting state during render is
+  // the supported pattern for reacting to a prop change; an effect here would
+  // render the stale code once before clearing it.
+  const [wasVisible, setWasVisible] = useState(visible);
+  if (visible !== wasVisible) {
+    setWasVisible(visible);
     if (visible) setCode("");
-  }, [visible]);
+  }
 
   function submit() {
     const trimmed = code.trim();

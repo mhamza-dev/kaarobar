@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { Modal, Pressable, Text, View } from "react-native";
 
 import { makeStyles, useBrandPalette } from "@/theme";
 

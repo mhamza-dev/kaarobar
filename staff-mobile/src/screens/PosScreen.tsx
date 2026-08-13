@@ -16,7 +16,7 @@ import { t } from "@/lib/i18n";
 import { canAccessRoute } from "@/lib/rbac";
 import { formatDecimal } from "@/lib/decimal";
 import { BarcodeScannerModal } from "@/components/barcode-scanner-modal";
-import { replacePath, pushPath } from "@/lib/nav";
+import { replacePath } from "@/lib/nav";
 
 type Product = {
   id: string;
@@ -152,6 +152,11 @@ export default function PosScreen() {
 
   useEffect(() => {
     if (!session) return;
+    // `loadProductPage` flips its loading flag synchronously so the spinner
+    // shows on the same frame as the keystroke. That is one extra render per
+    // fetch, not a cascade. Reworking POS pagination onto TanStack Query to
+    // satisfy the rule is not worth touching a money path for (POS-FR-*).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadProductPage({ reset: true, q: debouncedQ });
   }, [session, debouncedQ, loadProductPage]);
 
@@ -174,12 +179,16 @@ export default function PosScreen() {
   const tax = round2(Math.max(Number(taxInput || 0), 0));
   const total = round2(subtotal - discount + tax);
 
-  useEffect(() => {
+  // Reset the tender split whenever the order total changes. Done during render
+  // so the payment fields never paint one frame with the previous total.
+  const [lastTotal, setLastTotal] = useState(total);
+  if (total !== lastTotal) {
+    setLastTotal(total);
     setPayCash(formatDecimal(total));
     setPayCard("");
     setPayWallet("");
     setPayKhata("");
-  }, [total]);
+  }
 
   function addProduct(product: Product) {
     setCart((prev) => {
@@ -748,7 +757,11 @@ function createStyles(t: Theme) {
   chipText: { color: t.heading, fontWeight: "600", fontSize: 12 },
   chipTextOn: { color: t.white },
   receiptOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: "rgba(0,0,0,0.45)",
     alignItems: "center",
     justifyContent: "center",

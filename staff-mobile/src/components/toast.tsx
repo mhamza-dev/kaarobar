@@ -7,8 +7,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import { makeStyles, useTheme } from '@/theme';
+import { Pressable, Text, View } from "react-native";
+import { makeStyles, type Theme, useTheme } from '@/theme';
 
 
 export type ToastType = "info" | "success" | "error" | "warning";
@@ -31,19 +31,22 @@ const ToastContext = createContext<ToastContextValue | null>(null);
 
 const DEFAULT_DURATION = 7000;
 
-const toneStyles: Record<
-  ToastType,
-  { bg: string; border: string; text: string }
-> = {
-  info: { bg: theme.brandLight, border: theme.brand, text: "#1e3a8a" },
-  success: { bg: theme.successSoft, border: theme.success, text: "#14532d" },
-  error: { bg: theme.dangerSoft, border: theme.danger, text: "#7f1d1d" },
-  warning: { bg: theme.warningSoft, border: theme.warning, text: "#78350f" },
-};
+type Tone = { bg: string; border: string; text: string };
+
+/** Tones depend on the active scheme, so they are derived per render. */
+function toneStylesFor(theme: Theme): Record<ToastType, Tone> {
+  return {
+    info: { bg: theme.brandLight, border: theme.brand, text: theme.brandOn },
+    success: { bg: theme.successSoft, border: theme.success, text: theme.success },
+    error: { bg: theme.dangerSoft, border: theme.danger, text: theme.danger },
+    warning: { bg: theme.warningSoft, border: theme.warning, text: theme.warning },
+  };
+}
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const styles = useStyles();
   const theme = useTheme();
+  const toneStyles = useMemo(() => toneStylesFor(theme), [theme]);
   const [items, setItems] = useState<ToastItem[]>([]);
   const seq = useRef(0);
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});

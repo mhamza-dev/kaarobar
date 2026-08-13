@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   FlatList,
   Modal,
@@ -48,10 +48,11 @@ export function SearchSelect({
   const [cached, setCached] = useState<SearchSelectOption | null>(null);
   const selected = options.find((o) => o.value === value) ?? null;
 
-  useEffect(() => {
-    if (selected) setCached(selected);
-    else if (!value) setCached(null);
-  }, [selected, value]);
+  // Remember the last resolved option so the label survives the options list
+  // being refetched. Compared by `value` (not identity) so a freshly-built
+  // options array does not re-trigger this every render.
+  if (selected && selected.value !== cached?.value) setCached(selected);
+  else if (!value && cached) setCached(null);
 
   const display =
     selected ||

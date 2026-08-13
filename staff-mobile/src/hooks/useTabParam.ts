@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 import { router } from '@/lib/nav';
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 type Options<T extends string> = {
   isAllowed?: (tab: T) => boolean;
@@ -45,9 +45,13 @@ export function useTabParam<T extends string>(
     [defaultTab, isAllowed, validSet]
   );
 
-  useEffect(() => {
+  // Re-sync when the route param changes (deep link, back navigation). Done
+  // during render rather than in an effect so the correct tab paints first.
+  const [lastParam, setLastParam] = useState(paramTab);
+  if (paramTab !== lastParam) {
+    setLastParam(paramTab);
     setTabState(resolve(paramTab));
-  }, [paramTab, resolve]);
+  }
 
   return [tab, setTab];
 }

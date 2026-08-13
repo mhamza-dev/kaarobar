@@ -1,4 +1,6 @@
-import { Redirect, Tabs } from 'expo-router';
+import { Redirect } from 'expo-router';
+// `Tabs` from the expo-router root is deprecated in SDK 57.
+import { Tabs } from 'expo-router/js-tabs';
 
 import { GlassTabBar } from '@/components/ui/glass-tab-bar';
 import { t } from '@/lib/i18n';

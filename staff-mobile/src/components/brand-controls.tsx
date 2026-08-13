@@ -28,7 +28,6 @@ export function BrandButton({
   labelStyle,
   ...rest
 }: BrandButtonProps) {
-  const theme = useTheme();
   const palette = useBrandPalette();
 
   const bg =

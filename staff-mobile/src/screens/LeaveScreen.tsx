@@ -12,7 +12,7 @@ import { api, getSession } from "@/lib/api";
 import { canAccess } from "@/lib/rbac";
 import { loadLocale, t } from "@/lib/i18n";
 import { useToast } from "@/components/toast";
-import { goBack, pushPath, replacePath } from "@/lib/nav";
+import { goBack, replacePath } from "@/lib/nav";
 
 type Leave = {
   id: string;

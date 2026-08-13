@@ -39,7 +39,7 @@ export function PressableScale({
   const target = scaleTo ?? theme.motion.pressScale;
 
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
+    transform: [{ scale: scale.get() }],
   }));
 
   return (
@@ -47,14 +47,16 @@ export function PressableScale({
       {...rest}
       disabled={disabled}
       onPressIn={(e) => {
-        scale.value = withSpring(target, theme.motion.spring);
+        // `.set()` rather than `.value =` so the React Compiler does not treat
+        // this as mutating a captured value.
+        scale.set(withSpring(target, theme.motion.spring));
         if (haptic && Platform.OS !== 'web') {
           Haptics.selectionAsync().catch(() => undefined);
         }
         onPressIn?.(e);
       }}
       onPressOut={(e) => {
-        scale.value = withSpring(1, theme.motion.spring);
+        scale.set(withSpring(1, theme.motion.spring));
         onPressOut?.(e);
       }}
       style={[style, animatedStyle, disabled ? { opacity: 0.5 } : null]}>

@@ -5,12 +5,13 @@ import { Platform, StyleSheet, View, type StyleProp, type ViewStyle } from 'reac
 import { useTheme } from '@/theme';
 
 /**
- * Real backdrop blur is reliable and cheap on iOS. On Android it needs
- * `experimentalBlurMethod`, which repaints the whole subtree every frame and
- * drops frames badly on the low-end hardware the POS runs on. So Android gets a
- * tuned translucent fill instead — visually close, no frame cost.
+ * Android blur is opt-in via `blurMethod`. `dimezisBlurViewSdk31Plus` uses the
+ * native implementation on SDK 31+ and silently falls back to a translucent
+ * view on older devices — which is what we want on the low-end hardware the POS
+ * runs on, where the pre-31 path measurably drops frames.
+ * See https://docs.expo.dev/versions/v57.0.0/sdk/blur-view/
  */
-export const SUPPORTS_BACKDROP_BLUR = Platform.OS === 'ios';
+const ANDROID_BLUR_METHOD = 'dimezisBlurViewSdk31Plus' as const;
 
 export type GlassIntensity = 'subtle' | 'card' | 'chrome' | 'modal';
 
@@ -47,19 +48,11 @@ export function GlassSurface({
 
   const fill = strong ? theme.glassStrong : theme.glass;
 
-  if (!SUPPORTS_BACKDROP_BLUR) {
-    return (
-      <View style={[shell, { backgroundColor: fill }]}>
-        <GlassHighlight radius={cornerRadius} />
-        {children}
-      </View>
-    );
-  }
-
   return (
     <BlurView
       intensity={theme.blur[intensity]}
       tint={theme.isDark ? 'systemThickMaterialDark' : 'systemThickMaterialLight'}
+      blurMethod={Platform.OS === 'android' ? ANDROID_BLUR_METHOD : undefined}
       style={shell}>
       {/* BlurView alone reads too transparent over the mesh background; the tint
           layer restores contrast for text sitting on the surface. */}

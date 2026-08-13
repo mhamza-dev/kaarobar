@@ -1,5 +1,6 @@
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import type { BottomTabBarProps } from 'expo-router/js-tabs';
+import { useEffect } from 'react';
 import { Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -86,11 +87,16 @@ function TabItem({
   const styles = useStyles();
   const theme = useTheme();
   const pill = useSharedValue(focused ? 1 : 0);
-  pill.value = withSpring(focused ? 1 : 0, theme.motion.springSoft);
+
+  // Drive from an effect: assigning during render is a side effect and the
+  // React Compiler (on by default in SDK 57) rejects it.
+  useEffect(() => {
+    pill.set(withSpring(focused ? 1 : 0, theme.motion.springSoft));
+  }, [focused, pill, theme.motion.springSoft]);
 
   const pillStyle = useAnimatedStyle(() => ({
-    opacity: pill.value,
-    transform: [{ scale: 0.85 + pill.value * 0.15 }],
+    opacity: pill.get(),
+    transform: [{ scale: 0.85 + pill.get() * 0.15 }],
   }));
 
   const [inactive, active] = ICONS[name] ?? ['ellipse-outline', 'ellipse'];

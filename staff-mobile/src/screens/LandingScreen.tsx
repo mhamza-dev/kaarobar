@@ -3,7 +3,7 @@ import { type Theme, useTheme } from "@/theme";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import KaarobarLogo from "@/components/kaarobar-logo";
-import { replacePath, pushPath } from "@/lib/nav";
+import { pushPath } from "@/lib/nav";
 
 export default function LandingScreen() {
   const theme = useTheme();

@@ -112,14 +112,14 @@ export default function ReturnsScreen() {
 
   const reload = useCallback(async () => {
     try {
-      const [p, r, t] = await Promise.all([
+      const [p, r, tillsRes] = await Promise.all([
         api<{ data: ReturnRow[] }>("/returns/pending"),
         api<{ data: ReturnRow[] }>("/app/returns"),
         api<{ data: Till[] }>("/tills"),
       ]);
       setPending(p.data || []);
       setReturns(r.data || []);
-      setTills(theme.data || []);
+      setTills(tillsRes.data || []);
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Failed to load");
     }
@@ -343,11 +343,11 @@ export default function ReturnsScreen() {
 
       <View style={styles.card}>
         <Text style={styles.section}>Till history</Text>
-        {tills.map((t) => (
-          <Text key={theme.id} style={styles.body}>
-            {theme.status} · open {theme.opening_cash}
-            {theme.expected_cash ? ` · expected ${theme.expected_cash}` : ""}
-            {theme.over_short ? ` · Δ ${theme.over_short}` : ""}
+        {tills.map((till) => (
+          <Text key={till.id} style={styles.body}>
+            {till.status} · open {till.opening_cash}
+            {till.expected_cash ? ` · expected ${till.expected_cash}` : ""}
+            {till.over_short ? ` · Δ ${till.over_short}` : ""}
           </Text>
         ))}
       </View>

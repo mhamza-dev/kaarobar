@@ -168,14 +168,17 @@ export default function MarketingScreen() {
     points: "120",
   };
 
-  useEffect(() => {
-    const err = campaignsQuery.error || templatesQuery.error || templateVarsQuery.error;
-    if (err) {
-      setError(err instanceof Error ? err.message : t("common.loadFailed"));
-    } else {
-      setError(null);
-    }
-  }, [campaignsQuery.error, templatesQuery.error, templateVarsQuery.error]);
+  // Query failures are derived, not mirrored into state. `error` stays for
+  // mutation failures, which a background refetch should no longer wipe out.
+  const queryError =
+    campaignsQuery.error || templatesQuery.error || templateVarsQuery.error;
+  const displayError =
+    error ??
+    (queryError
+      ? queryError instanceof Error
+        ? queryError.message
+        : t("common.loadFailed")
+      : null);
 
   const invalidateCampaigns = () =>
     queryClient.invalidateQueries({ queryKey: crmKeys.campaigns(businessId) });
@@ -328,7 +331,7 @@ export default function MarketingScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
       <Text style={styles.title}>{t("pages.marketingTitle")}</Text>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {displayError ? <Text style={styles.error}>{displayError}</Text> : null}
 
       <ScreenTabs tabs={tabs} value={tab} onChange={setTab} />
 

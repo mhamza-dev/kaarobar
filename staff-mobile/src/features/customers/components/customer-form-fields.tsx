@@ -2,7 +2,8 @@ import { useField } from "formik";
 import { Text, TextInput, View, type StyleProp, type TextStyle } from "react-native";
 
 import type { CustomerForm } from "@/lib/customers";
-import { useTheme } from '@/theme';
+import { useTheme } from "@/theme";
+
 
 const CUSTOMER_FORM_FIELDS: readonly { key: keyof CustomerForm; label: string }[] = [
   { key: "name", label: "Name" },
@@ -30,8 +31,8 @@ function FormikTextInput({
   label: string;
   inputStyle: StyleProp<TextStyle>;
 }) {
-  const theme = useTheme();
   const [field, meta, helpers] = useField(name);
+  const theme = useTheme();
   return (
     <View>
       <TextInput
@@ -52,7 +53,6 @@ function FormikTextInput({
 }
 
 export default function CustomerFormFields({ inputStyle }: CustomerFormFieldsProps) {
-  const theme = useTheme();
   return (
     <>
       {CUSTOMER_FORM_FIELDS.map(({ key, label }) => (

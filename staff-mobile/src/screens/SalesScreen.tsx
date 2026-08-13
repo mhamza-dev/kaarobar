@@ -94,6 +94,10 @@ export default function SalesScreen() {
   }, [filters.categories, toast]);
 
   useEffect(() => {
+    // `load` sets no state before its first await — the only setState is
+    // `setLoading(false)` in a `finally`, well after the fetch resolves — so
+    // there is no synchronous cascade here for the rule to catch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
   }, [load]);
 

@@ -150,8 +150,12 @@ export default function SettingsScreen() {
   });
   const usage: Usage | null = usageData ?? null;
 
-  useEffect(() => {
-    if (!profile) return;
+  // Seed the profile form from the query result. Re-seeding is keyed on the
+  // query object identity, so edits in progress survive a background refetch
+  // that returns the same data.
+  const [seededProfile, setSeededProfile] = useState(profile);
+  if (profile && profile !== seededProfile) {
+    setSeededProfile(profile);
     setProfileInitial({
       name: profile.name || "",
       email: profile.email || "",
@@ -159,7 +163,7 @@ export default function SettingsScreen() {
       password: "",
     });
     setPicUrl(profile.profile_pic_url || null);
-  }, [profile]);
+  }
 
   useEffect(() => {
     (async () => {
@@ -177,16 +181,20 @@ export default function SettingsScreen() {
     })();
   }, []);
 
-  useEffect(() => {
-    const raw = typeof params.tab === "string" ? params.tab : "profile";
-    if (raw === "subscriptions" && !owner) {
-      setTab("profile");
-      return;
-    }
-    if (raw === "profile" || raw === "notifications" || raw === "subscriptions") {
-      setTab(raw);
-    }
-  }, [owner, params.tab]);
+  // Keep the tab in step with the route param (deep links, back navigation),
+  // falling back to profile when a non-owner asks for subscriptions.
+  const rawTab = typeof params.tab === "string" ? params.tab : "profile";
+  const resolvedTab: SettingsTab =
+    rawTab === "subscriptions" && !owner
+      ? "profile"
+      : rawTab === "profile" || rawTab === "notifications" || rawTab === "subscriptions"
+        ? rawTab
+        : tab;
+  const [syncedTab, setSyncedTab] = useState(resolvedTab);
+  if (resolvedTab !== syncedTab) {
+    setSyncedTab(resolvedTab);
+    setTab(resolvedTab);
+  }
 
   function changeTab(next: SettingsTab) {
     if (next === "subscriptions" && !owner) return;

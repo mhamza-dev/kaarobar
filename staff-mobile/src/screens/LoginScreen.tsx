@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { replacePath, pushPath } from "@/lib/nav";
 import { type Theme, useTheme } from "@/theme";
 import {
@@ -29,14 +29,12 @@ export default function LoginScreen() {
   const { setSession } = useSession();
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const [error, setError] = useState<string | null>(null);
+  // `consumeSessionTimedOut()` clears the flag as it reads it, so it must run
+  // exactly once — lazy initial state does that without an effect.
+  const [error, setError] = useState<string | null>(() =>
+    consumeSessionTimedOut() ? "Session timeout. Please login again." : null,
+  );
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    if (consumeSessionTimedOut()) {
-      setError("Session timeout. Please login again.");
-    }
-  }, []);
 
   async function onSubmit(values: LoginFormValues) {
     setBusy(true);
@@ -70,9 +68,8 @@ export default function LoginScreen() {
         refresh_token: result.refresh_token,
         user: result.user,
       });
-      console.log("hydrated", hydrated);
-      const next = await setSession(hydrated);
-      console.log("next -->", next);
+      // Never log `hydrated` — it carries the access and refresh tokens.
+      await setSession(hydrated);
       replacePath('/app/pos');
     } catch (err) {
       setError(err instanceof Error ? err.message : t("common.error"));

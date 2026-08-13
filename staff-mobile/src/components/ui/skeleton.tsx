@@ -23,14 +23,14 @@ export function Skeleton({ width = '100%', height = 14, radius, style }: Props) 
   const pulse = useSharedValue(0.5);
 
   useEffect(() => {
-    pulse.value = withRepeat(
+    pulse.set(withRepeat(
       withTiming(1, { duration: 900, easing: Easing.inOut(Easing.quad) }),
       -1,
       true,
-    );
+    ));
   }, [pulse]);
 
-  const animatedStyle = useAnimatedStyle(() => ({ opacity: pulse.value }));
+  const animatedStyle = useAnimatedStyle(() => ({ opacity: pulse.get() }));
 
   return (
     <Animated.View

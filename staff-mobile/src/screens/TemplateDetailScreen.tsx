@@ -4,7 +4,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { useQuery } from "@tanstack/react-query";
 import { api, getSession } from "@/lib/api";
 import { t } from "@/lib/i18n";
-import { useBrandPalette } from "@/theme";
+import { type Theme, useTheme } from "@/theme";
 import { pushPath } from "@/lib/nav";
 import { crmKeys } from "@/lib/queryClient";
 
@@ -17,13 +17,12 @@ type MsgTemplate = {
   variables: Record<string, string>;
 };
 
-type Params = { id: string };
 
 export default function TemplateDetailScreen() {
   const routeParams = useLocalSearchParams();
   const id = routeParams.id;
-  const palette = useBrandPalette();
-  const styles = useMemo(() => createStyles(), []);
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [businessId, setBusinessId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -71,7 +70,7 @@ export default function TemplateDetailScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={palette.brand} />
+        <ActivityIndicator color={theme.brandOn} />
       </View>
     );
   }
@@ -82,7 +81,7 @@ export default function TemplateDetailScreen() {
         onPress={() => pushPath("/app/marketing", { tab: "templates" })}
         style={{ marginBottom: 12 }}
       >
-        <Text style={{ color: palette.brand, fontWeight: "700" }}>
+        <Text style={{ color: theme.brandOn, fontWeight: "700" }}>
           ← {t("marketing.backToTemplates")}
         </Text>
       </Pressable>
@@ -119,7 +118,7 @@ export default function TemplateDetailScreen() {
   );
 }
 
-function createStyles() {
+function createStyles(t: Theme) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: t.bgPrimary, padding: 16 },
     center: { flex: 1, alignItems: "center", justifyContent: "center" },
