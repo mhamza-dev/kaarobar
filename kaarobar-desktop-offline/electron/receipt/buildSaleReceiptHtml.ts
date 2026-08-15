@@ -1,76 +1,85 @@
-import fs from 'node:fs'
-import path from 'node:path'
-import QRCode from 'qrcode'
-import { resolveAssetAbsolutePath } from '../assets/service'
-import { SOCIAL_LABELS, socialIconDataUrl, type SocialPlatform } from './socialIcons'
-import { kaarobarMarkDataUrl, resolvePrintBrandHex } from './kaarobarMark'
+import fs from "node:fs";
+import path from "node:path";
+import QRCode from "qrcode";
+import { resolveAssetAbsolutePath } from "../assets/service";
+import {
+  SOCIAL_LABELS,
+  socialIconDataUrl,
+  type SocialPlatform,
+} from "./socialIcons";
+import { kaarobarMarkDataUrl, resolvePrintBrandHex } from "./kaarobarMark";
 import {
   formatPrintDate,
   getPrintLanguage,
   getSalePrintLabels,
   printDocumentChrome,
   type PrintLanguage,
-} from './printLocale'
-import { currencyPrefix } from '../../shared/currencies'
+} from "./printLocale";
+import { currencyPrefix } from "../../shared/currencies";
 
 export type ReceiptSaleInput = {
-  invoiceNo: string
-  subtotal: number
-  discount: number
-  total: number
-  amountPaid: number
-  createdAt: string
-  businessName: string
-  currency: string
-  brandColor?: string | null
-  logoPath: string | null
-  customerName: string | null
-  cashierName: string | null
-  printedByName: string | null
-  receiptHeader?: string | null
-  receiptFooter?: string | null
-  branchAddress: string | null
-  branchPhone: string | null
-  socialWhatsapp: string | null
-  socialInstagram: string | null
-  socialFacebook: string | null
-  socialTiktok: string | null
-  socialWebsite: string | null
-  items: Array<{ productName: string; qty: number; unitPrice: number; lineTotal: number }>
-  payments: Array<{ method: string; amount: number }>
-  jsBarcodeScript: string
-  language?: PrintLanguage
-}
+  invoiceNo: string;
+  subtotal: number;
+  discount: number;
+  total: number;
+  amountPaid: number;
+  createdAt: string;
+  businessName: string;
+  currency: string;
+  brandColor?: string | null;
+  logoPath: string | null;
+  customerName: string | null;
+  cashierName: string | null;
+  printedByName: string | null;
+  receiptHeader?: string | null;
+  receiptFooter?: string | null;
+  branchAddress: string | null;
+  branchPhone: string | null;
+  socialWhatsapp: string | null;
+  socialInstagram: string | null;
+  socialFacebook: string | null;
+  socialTiktok: string | null;
+  socialWebsite: string | null;
+  items: Array<{
+    productName: string;
+    qty: number;
+    unitPrice: number;
+    lineTotal: number;
+  }>;
+  payments: Array<{ method: string; amount: number }>;
+  jsBarcodeScript: string;
+  language?: PrintLanguage;
+};
 
 function escapeHtml(value: string): string {
   return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 function divider(): string {
-  return `<div class="stars">********************************</div>`
+  return `<div class="stars">********************************</div>`;
 }
 
 function fileToDataUrl(absolute: string): string | null {
   try {
-    const buf = fs.readFileSync(absolute)
-    const ext = path.extname(absolute).toLowerCase().replace('.', '') || 'png'
+    const buf = fs.readFileSync(absolute);
+    const ext = path.extname(absolute).toLowerCase().replace(".", "") || "png";
     const mime =
-      ext === 'jpg' || ext === 'jpeg'
-        ? 'image/jpeg'
-        : ext === 'webp'
-          ? 'image/webp'
-          : ext === 'gif'
-            ? 'image/gif'
-            : ext === 'svg'
-              ? 'image/svg+xml'
-              : 'image/png'
-    return `data:${mime};base64,${buf.toString('base64')}`
+      ext === "jpg" || ext === "jpeg"
+        ? "image/jpeg"
+        : ext === "webp"
+          ? "image/webp"
+          : ext === "gif"
+            ? "image/gif"
+            : ext === "svg"
+              ? "image/svg+xml"
+              : "image/png";
+    return `data:${mime};base64,${buf.toString("base64")}`;
   } catch {
-    return null
+    return null;
   }
 }
 
@@ -80,77 +89,81 @@ async function socialBlock(
 ): Promise<string> {
   const links: Array<{ platform: SocialPlatform; url: string }> = (
     [
-      { platform: 'whatsapp' as const, url: input.socialWhatsapp || '' },
-      { platform: 'instagram' as const, url: input.socialInstagram || '' },
-      { platform: 'facebook' as const, url: input.socialFacebook || '' },
-      { platform: 'tiktok' as const, url: input.socialTiktok || '' },
-      { platform: 'website' as const, url: input.socialWebsite || '' },
+      { platform: "whatsapp" as const, url: input.socialWhatsapp || "" },
+      { platform: "instagram" as const, url: input.socialInstagram || "" },
+      { platform: "facebook" as const, url: input.socialFacebook || "" },
+      { platform: "tiktok" as const, url: input.socialTiktok || "" },
+      { platform: "website" as const, url: input.socialWebsite || "" },
     ] satisfies Array<{ platform: SocialPlatform; url: string }>
-  ).filter((l) => l.url.trim())
+  ).filter((l) => l.url.trim());
 
-  if (links.length === 0) return ''
+  if (links.length === 0) return "";
 
-  const cells: string[] = []
+  const cells: string[] = [];
   for (const link of links) {
     const qr = await QRCode.toDataURL(link.url.trim(), {
       margin: 1,
       width: 72,
-      color: { dark: '#000000', light: '#ffffff' },
-    })
+      color: { dark: "#000000", light: "#ffffff" },
+    });
     cells.push(`
       <div class="social-item">
         <img class="social-icon" src="${socialIconDataUrl(link.platform)}" alt="" />
         <img class="social-qr" src="${qr}" alt="${SOCIAL_LABELS[link.platform]}" />
         <div class="social-label">${SOCIAL_LABELS[link.platform]}</div>
       </div>
-    `)
+    `);
   }
 
   return `
     ${divider()}
     <div class="social-title">${escapeHtml(followUsLabel)}</div>
-    <div class="social-row">${cells.join('')}</div>
-  `
+    <div class="social-row">${cells.join("")}</div>
+  `;
 }
 
-export async function buildSaleReceiptHtml(input: ReceiptSaleInput): Promise<string> {
-  const lang = input.language ?? getPrintLanguage()
-  const labels = getSalePrintLabels(lang)
-  const chrome = printDocumentChrome(lang)
-  const currency = currencyPrefix(input.currency)
-  const hasCredit = input.payments.some((p) => p.method === 'credit')
-  const hasCash = input.payments.some((p) => p.method === 'cash')
-  const hasCard = input.payments.some((p) => p.method === 'card')
+export async function buildSaleReceiptHtml(
+  input: ReceiptSaleInput,
+): Promise<string> {
+  const lang = input.language ?? getPrintLanguage();
+  const labels = getSalePrintLabels(lang);
+  const chrome = printDocumentChrome(lang);
+  const currency = currencyPrefix(input.currency);
+  const hasCredit = input.payments.some((p) => p.method === "credit");
+  const hasCash = input.payments.some((p) => p.method === "cash");
+  const hasCard = input.payments.some((p) => p.method === "card");
   const title =
     hasCredit && !hasCash
       ? labels.creditReceipt
       : hasCard && !hasCash && !hasCredit
         ? labels.cardReceipt
-        : labels.cashReceipt
+        : labels.cashReceipt;
 
   const paymentMethodLabel = (method: string): string => {
-    if (method === 'card') return labels.card
-    if (method === 'cash') return labels.cash
-    if (method === 'credit') return labels.credit
-    return method
-  }
+    if (method === "card") return labels.card;
+    if (method === "cash") return labels.cash;
+    if (method === "credit") return labels.credit;
+    return method;
+  };
 
-  let logoHtml = ''
+  let logoHtml = "";
   if (input.logoPath) {
     try {
-      const dataUrl = fileToDataUrl(resolveAssetAbsolutePath(input.logoPath))
+      const dataUrl = fileToDataUrl(resolveAssetAbsolutePath(input.logoPath));
       if (dataUrl) {
-        logoHtml = `<img class="logo" src="${dataUrl}" alt="" />`
+        logoHtml = `<img class="logo" src="${dataUrl}" alt="" />`;
       }
     } catch {
-      logoHtml = ''
+      logoHtml = "";
     }
   }
 
   const contactBits = [
-    input.branchAddress ? escapeHtml(input.branchAddress) : '',
-    input.branchPhone ? `${escapeHtml(labels.tel)}: ${escapeHtml(input.branchPhone)}` : '',
-  ].filter(Boolean)
+    input.branchAddress ? escapeHtml(input.branchAddress) : "",
+    input.branchPhone
+      ? `${escapeHtml(labels.tel)}: ${escapeHtml(input.branchPhone)}`
+      : "",
+  ].filter(Boolean);
 
   const itemRows = input.items
     .map(
@@ -160,22 +173,22 @@ export async function buildSaleReceiptHtml(input: ReceiptSaleInput): Promise<str
         <td class="price">${currency} ${item.lineTotal.toFixed(2)}</td>
       </tr>`,
     )
-    .join('')
+    .join("");
 
   const paymentRows = input.payments
     .map(
       (p) =>
         `<div class="row"><span>${escapeHtml(paymentMethodLabel(p.method))}</span><span>${currency} ${p.amount.toFixed(2)}</span></div>`,
     )
-    .join('')
+    .join("");
 
-  const change = Math.max(0, input.amountPaid - input.total)
-  const socialHtml = await socialBlock(input, labels.followUs)
-  const brandHex = resolvePrintBrandHex(input.brandColor)
-  const brandMark = kaarobarMarkDataUrl(brandHex)
-  const invoiceJs = JSON.stringify(input.invoiceNo)
-  const jsBarcodeSrc = input.jsBarcodeScript
-  const dateLabel = formatPrintDate(input.createdAt, lang)
+  const change = Math.max(0, input.amountPaid - input.total);
+  const socialHtml = await socialBlock(input, labels.followUs);
+  const brandHex = resolvePrintBrandHex(input.brandColor);
+  const brandMark = kaarobarMarkDataUrl(brandHex);
+  const invoiceJs = JSON.stringify(input.invoiceNo);
+  const jsBarcodeSrc = input.jsBarcodeScript;
+  const dateLabel = formatPrintDate(input.createdAt, lang);
 
   return `<!DOCTYPE html>
 <html lang="${chrome.lang}" dir="${chrome.dir}">
@@ -220,6 +233,7 @@ export async function buildSaleReceiptHtml(input: ReceiptSaleInput): Promise<str
     .brand img { width: 28px; height: 28px; display: block; margin: 0 auto 4px; }
     .brand-name { font-size: 11px; font-weight: 700; color: ${brandHex}; }
     .brand-tag { font-size: 9px; color: #555; }
+    .support-line { font-size: 9px; color: #444; margin-top: 6px; line-height: 1.4; }
   </style>
 </head>
 <body>
@@ -227,11 +241,11 @@ export async function buildSaleReceiptHtml(input: ReceiptSaleInput): Promise<str
     <div class="center">
       ${logoHtml}
       <p class="shop">${escapeHtml(input.businessName)}</p>
-      ${contactBits.map((line) => `<p class="muted">${line}</p>`).join('')}
+      ${contactBits.map((line) => `<p class="muted">${line}</p>`).join("")}
       ${
         input.receiptHeader?.trim()
           ? `<p class="muted" style="margin-top:6px;white-space:pre-wrap">${escapeHtml(input.receiptHeader.trim())}</p>`
-          : ''
+          : ""
       }
     </div>
     ${divider()}
@@ -239,9 +253,9 @@ export async function buildSaleReceiptHtml(input: ReceiptSaleInput): Promise<str
     ${divider()}
     <div class="row"><span>${escapeHtml(labels.invoice)}</span><span>${escapeHtml(input.invoiceNo)}</span></div>
     <div class="row"><span>${escapeHtml(labels.date)}</span><span>${escapeHtml(dateLabel)}</span></div>
-    ${input.customerName ? `<div class="row"><span>${escapeHtml(labels.customer)}</span><span>${escapeHtml(input.customerName)}</span></div>` : ''}
-    ${input.cashierName ? `<div class="row"><span>${escapeHtml(labels.cashier)}</span><span>${escapeHtml(input.cashierName)}</span></div>` : ''}
-    ${input.printedByName ? `<div class="row"><span>${escapeHtml(labels.printedBy)}</span><span>${escapeHtml(input.printedByName)}</span></div>` : ''}
+    ${input.customerName ? `<div class="row"><span>${escapeHtml(labels.customer)}</span><span>${escapeHtml(input.customerName)}</span></div>` : ""}
+    ${input.cashierName ? `<div class="row"><span>${escapeHtml(labels.cashier)}</span><span>${escapeHtml(input.cashierName)}</span></div>` : ""}
+    ${input.printedByName ? `<div class="row"><span>${escapeHtml(labels.printedBy)}</span><span>${escapeHtml(input.printedByName)}</span></div>` : ""}
     ${divider()}
     <table>
       <thead>
@@ -257,16 +271,17 @@ export async function buildSaleReceiptHtml(input: ReceiptSaleInput): Promise<str
       input.discount > 0
         ? `<div class="row"><span>${escapeHtml(labels.subtotal)}</span><span>${currency} ${input.subtotal.toFixed(2)}</span></div>
     <div class="row"><span>${escapeHtml(labels.discount)}</span><span>- ${currency} ${input.discount.toFixed(2)}</span></div>`
-        : ''
+        : ""
     }
     <div class="row total"><span>${escapeHtml(labels.total)}</span><span>${currency} ${input.total.toFixed(2)}</span></div>
     ${paymentRows}
-    ${change > 0 ? `<div class="row"><span>${escapeHtml(labels.change)}</span><span>${currency} ${change.toFixed(2)}</span></div>` : ''}
+    ${change > 0 ? `<div class="row"><span>${escapeHtml(labels.change)}</span><span>${currency} ${change.toFixed(2)}</span></div>` : ""}
     ${socialHtml}
     ${divider()}
     <div class="center thanks" style="white-space:pre-wrap">${escapeHtml(
       input.receiptFooter?.trim() || labels.thankYou,
     )}</div>
+    <div class="center support-line">${escapeHtml(labels.customSoftwareSupport)}</div>
     <svg id="barcode"></svg>
     <div class="center brand">
       <img src="${brandMark}" alt="Kaarobar" />
@@ -288,5 +303,5 @@ export async function buildSaleReceiptHtml(input: ReceiptSaleInput): Promise<str
     } catch (e) {}
   <\/script>
 </body>
-</html>`
+</html>`;
 }

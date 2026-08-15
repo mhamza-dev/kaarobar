@@ -319,6 +319,7 @@
     "receiptFooter": "Footer message",
     "receiptFooterHint": "Shown above the invoice barcode. Leave blank to use the default thank-you.",
     "receiptFooterDefault": "THANK YOU!",
+    "customSoftwareSupport": "For custom software solutions, contact us at support.kaarobar@gmail.com or +93326307145",
     "receiptPreview": "Live receipt preview",
     "receiptPreviewShop": "Your shop",
     "receiptPreviewTitle": "CASH RECEIPT",
