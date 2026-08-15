@@ -112,7 +112,7 @@ const SALE_LABELS = {
     followUs: "Follow us",
     thankYou: "THANK YOU!",
     customSoftwareSupport:
-      "For custom software solutions, contact us at support.kaarobar@gmail.com or +93326307145",
+      "For custom software solutions, contact us at support.kaarobar@gmail.com or +93304757253",
     poweredBy: POWERED_BY.en,
     cash: "Cash",
     card: "Card / Online",
@@ -137,7 +137,7 @@ const SALE_LABELS = {
     followUs: "ہمیں فالو کریں",
     thankYou: "شکریہ!",
     customSoftwareSupport:
-      "اس طرح کے سسٹمز بنانے کے لیے رابطہ کریں: support.kaarobar@gmail.com یا +93326307145",
+      "اس طرح کے سسٹمز بنانے کے لیے رابطہ کریں: support.kaarobar@gmail.com یا +93304757253",
     poweredBy: POWERED_BY.ur,
     cash: "نقد",
     card: "کارڈ / آن لائن",
@@ -162,7 +162,7 @@ const SALE_LABELS = {
     followUs: "Folgen Sie uns",
     thankYou: "VIELEN DANK!",
     customSoftwareSupport:
-      "Für individuelle Software kontaktieren Sie uns unter support.kaarobar@gmail.com oder +93326307145",
+      "Für individuelle Software kontaktieren Sie uns unter support.kaarobar@gmail.com oder +93304757253",
     poweredBy: POWERED_BY.de,
     cash: "Bar",
     card: "Karte / Online",
@@ -187,7 +187,7 @@ const SALE_LABELS = {
     followUs: "Siga-nos",
     thankYou: "OBRIGADO!",
     customSoftwareSupport:
-      "Para soluções de software personalizadas, entre em contato em support.kaarobar@gmail.com ou +93326307145",
+      "Para soluções de software personalizadas, entre em contato em support.kaarobar@gmail.com ou +93304757253",
     poweredBy: POWERED_BY.pt,
     cash: "Dinheiro",
     card: "Cartão / Online",
@@ -212,7 +212,7 @@ const SALE_LABELS = {
     followUs: "Síguenos",
     thankYou: "¡GRACIAS!",
     customSoftwareSupport:
-      "Para software a medida, contáctanos en support.kaarobar@gmail.com o +93326307145",
+      "Para software a medida, contáctanos en support.kaarobar@gmail.com o +93304757253",
     poweredBy: POWERED_BY.es,
     cash: "Efectivo",
     card: "Tarjeta / En línea",
@@ -237,7 +237,7 @@ const SALE_LABELS = {
     followUs: "Suivez-nous",
     thankYou: "MERCI !",
     customSoftwareSupport:
-      "Pour un logiciel sur mesure, contactez-nous à support.kaarobar@gmail.com ou +93326307145",
+      "Pour un logiciel sur mesure, contactez-nous à support.kaarobar@gmail.com ou +93304757253",
     poweredBy: POWERED_BY.fr,
     cash: "Espèces",
     card: "Carte / En ligne",
@@ -262,7 +262,7 @@ const SALE_LABELS = {
     followUs: "تابعنا",
     thankYou: "شكراً لك!",
     customSoftwareSupport:
-      "للحلول البرمجية حسب الطلب، تواصل معنا على support.kaarobar@gmail.com أو +93326307145",
+      "للحلول البرمجية حسب الطلب، تواصل معنا على support.kaarobar@gmail.com أو +93304757253",
     poweredBy: POWERED_BY.ar,
     cash: "نقد",
     card: "بطاقة / أونلاين",

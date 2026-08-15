@@ -12,6 +12,7 @@
   npmRebuild: true,
   mac: {
     category: "public.app-category.business",
+    icon: "public/kaarobar-icon.png",
     target: [
       {
         target: "dmg",
@@ -27,6 +28,7 @@
     artifactName: "${productName}-Mac-${version}-Installer.${ext}",
   },
   win: {
+    icon: "public/kaarobar-icon.png",
     target: [
       {
         target: "nsis",
@@ -53,6 +55,7 @@
   },
   linux: {
     category: "Office",
+    icon: "public/kaarobar-icon.png",
     maintainer: "Kaarobar Team <support.kaarobar@gmail.com>",
     target: [
       {
