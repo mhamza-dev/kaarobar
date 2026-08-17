@@ -1,27 +1,29 @@
-import type Database from 'better-sqlite3'
-import { SCHEMA_SQL } from './schema'
+import type Database from "better-sqlite3";
+import { SCHEMA_SQL } from "./schema";
 
 type Migration = {
-  name: string
-  up: (db: Database.Database) => void
-}
+  name: string;
+  up: (db: Database.Database) => void;
+};
 
 const MIGRATIONS: Migration[] = [
   {
-    name: '001_initial_schema',
+    name: "001_initial_schema",
     up: (db) => {
-      db.exec(SCHEMA_SQL)
+      db.exec(SCHEMA_SQL);
     },
   },
   {
-    name: '002_refunds_audit_updates',
+    name: "002_refunds_audit_updates",
     up: (db) => {
       const hasActivity = db
-        .prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'activity_log'`)
-        .get() as { name: string } | undefined
+        .prepare(
+          `SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'activity_log'`,
+        )
+        .get() as { name: string } | undefined;
 
       if (!hasActivity) {
-        db.pragma('foreign_keys = OFF')
+        db.pragma("foreign_keys = OFF");
         db.exec(`
           CREATE TABLE sales_new (
             id TEXT PRIMARY KEY,
@@ -46,8 +48,8 @@ const MIGRATIONS: Migration[] = [
           ALTER TABLE sales_new RENAME TO sales;
           CREATE UNIQUE INDEX IF NOT EXISTS idx_sales_invoice ON sales(business_id, invoice_no);
           CREATE INDEX IF NOT EXISTS idx_sales_business_date ON sales(business_id, created_at);
-        `)
-        db.pragma('foreign_keys = ON')
+        `);
+        db.pragma("foreign_keys = ON");
 
         db.exec(`
           CREATE TABLE IF NOT EXISTS refund_requests (
@@ -87,42 +89,51 @@ const MIGRATIONS: Migration[] = [
           );
           CREATE INDEX IF NOT EXISTS idx_activity_entity ON activity_log(entity_type, entity_id);
           CREATE INDEX IF NOT EXISTS idx_activity_business ON activity_log(business_id);
-        `)
+        `);
       }
 
-      const saleItemCols = db.prepare(`PRAGMA table_info(sale_items)`).all() as Array<{ name: string }>
-      if (!saleItemCols.some((c) => c.name === 'refunded_qty')) {
-        db.exec(`ALTER TABLE sale_items ADD COLUMN refunded_qty REAL NOT NULL DEFAULT 0`)
+      const saleItemCols = db
+        .prepare(`PRAGMA table_info(sale_items)`)
+        .all() as Array<{ name: string }>;
+      if (!saleItemCols.some((c) => c.name === "refunded_qty")) {
+        db.exec(
+          `ALTER TABLE sale_items ADD COLUMN refunded_qty REAL NOT NULL DEFAULT 0`,
+        );
       }
     },
   },
   {
-    name: '003_product_image',
+    name: "003_product_image",
     up: (db) => {
-      const cols = db.prepare(`PRAGMA table_info(products)`).all() as Array<{ name: string }>
-      if (!cols.some((c) => c.name === 'image_path')) {
-        db.exec(`ALTER TABLE products ADD COLUMN image_path TEXT`)
+      const cols = db.prepare(`PRAGMA table_info(products)`).all() as Array<{
+        name: string;
+      }>;
+      if (!cols.some((c) => c.name === "image_path")) {
+        db.exec(`ALTER TABLE products ADD COLUMN image_path TEXT`);
       }
     },
   },
   {
-    name: '004_business_socials',
+    name: "004_business_socials",
     up: (db) => {
-      const cols = db.prepare(`PRAGMA table_info(businesses)`).all() as Array<{ name: string }>
-      const names = new Set(cols.map((c) => c.name))
+      const cols = db.prepare(`PRAGMA table_info(businesses)`).all() as Array<{
+        name: string;
+      }>;
+      const names = new Set(cols.map((c) => c.name));
       for (const col of [
-        'social_whatsapp',
-        'social_instagram',
-        'social_facebook',
-        'social_tiktok',
-        'social_website',
+        "social_whatsapp",
+        "social_instagram",
+        "social_facebook",
+        "social_tiktok",
+        "social_website",
       ]) {
-        if (!names.has(col)) db.exec(`ALTER TABLE businesses ADD COLUMN ${col} TEXT`)
+        if (!names.has(col))
+          db.exec(`ALTER TABLE businesses ADD COLUMN ${col} TEXT`);
       }
     },
   },
   {
-    name: '005_supplier_products',
+    name: "005_supplier_products",
     up: (db) => {
       db.exec(`
         CREATE TABLE IF NOT EXISTS supplier_products (
@@ -135,11 +146,11 @@ const MIGRATIONS: Migration[] = [
         );
         CREATE INDEX IF NOT EXISTS idx_supplier_products_supplier ON supplier_products(supplier_id);
         CREATE INDEX IF NOT EXISTS idx_supplier_products_product ON supplier_products(product_id);
-      `)
+      `);
     },
   },
   {
-    name: '006_app_license',
+    name: "006_app_license",
     up: (db) => {
       db.exec(`
         CREATE TABLE IF NOT EXISTS app_license (
@@ -152,56 +163,68 @@ const MIGRATIONS: Migration[] = [
           updated_at TEXT NOT NULL,
           blob TEXT NOT NULL
         );
-      `)
+      `);
     },
   },
   {
-    name: '007_user_profile_image',
+    name: "007_user_profile_image",
     up: (db) => {
-      const cols = db.prepare(`PRAGMA table_info(users)`).all() as Array<{ name: string }>
-      if (!cols.some((c) => c.name === 'image_path')) {
-        db.exec(`ALTER TABLE users ADD COLUMN image_path TEXT`)
+      const cols = db.prepare(`PRAGMA table_info(users)`).all() as Array<{
+        name: string;
+      }>;
+      if (!cols.some((c) => c.name === "image_path")) {
+        db.exec(`ALTER TABLE users ADD COLUMN image_path TEXT`);
       }
     },
   },
   {
-    name: '008_analytics_indexes',
+    name: "008_analytics_indexes",
     up: (db) => {
       db.exec(`
         CREATE INDEX IF NOT EXISTS idx_sales_business_created_status ON sales(business_id, created_at, status);
         CREATE INDEX IF NOT EXISTS idx_customers_business_balance ON customers(business_id, is_active, current_balance);
         CREATE INDEX IF NOT EXISTS idx_products_business_active_stock ON products(business_id, is_active, stock_qty);
         ANALYZE;
-      `)
+      `);
     },
   },
   {
-    name: '009_business_nature_pos',
+    name: "009_business_nature_pos",
     up: (db) => {
-      const bizCols = db.prepare(`PRAGMA table_info(businesses)`).all() as Array<{ name: string }>
-      if (!bizCols.some((c) => c.name === 'business_nature')) {
+      const bizCols = db
+        .prepare(`PRAGMA table_info(businesses)`)
+        .all() as Array<{ name: string }>;
+      if (!bizCols.some((c) => c.name === "business_nature")) {
         db.exec(
           `ALTER TABLE businesses ADD COLUMN business_nature TEXT NOT NULL DEFAULT 'retail'`,
-        )
+        );
       }
 
-      const productCols = db.prepare(`PRAGMA table_info(products)`).all() as Array<{ name: string }>
-      if (!productCols.some((c) => c.name === 'kind')) {
-        db.exec(`ALTER TABLE products ADD COLUMN kind TEXT NOT NULL DEFAULT 'item'`)
+      const productCols = db
+        .prepare(`PRAGMA table_info(products)`)
+        .all() as Array<{ name: string }>;
+      if (!productCols.some((c) => c.name === "kind")) {
+        db.exec(
+          `ALTER TABLE products ADD COLUMN kind TEXT NOT NULL DEFAULT 'item'`,
+        );
       }
-      if (!productCols.some((c) => c.name === 'tracks_stock')) {
-        db.exec(`ALTER TABLE products ADD COLUMN tracks_stock INTEGER NOT NULL DEFAULT 1`)
+      if (!productCols.some((c) => c.name === "tracks_stock")) {
+        db.exec(
+          `ALTER TABLE products ADD COLUMN tracks_stock INTEGER NOT NULL DEFAULT 1`,
+        );
       }
 
-      const saleCols = db.prepare(`PRAGMA table_info(sales)`).all() as Array<{ name: string }>
-      if (!saleCols.some((c) => c.name === 'served_by_user_id')) {
-        db.exec(`ALTER TABLE sales ADD COLUMN served_by_user_id TEXT`)
+      const saleCols = db.prepare(`PRAGMA table_info(sales)`).all() as Array<{
+        name: string;
+      }>;
+      if (!saleCols.some((c) => c.name === "served_by_user_id")) {
+        db.exec(`ALTER TABLE sales ADD COLUMN served_by_user_id TEXT`);
       }
-      if (!saleCols.some((c) => c.name === 'service_mode')) {
-        db.exec(`ALTER TABLE sales ADD COLUMN service_mode TEXT`)
+      if (!saleCols.some((c) => c.name === "service_mode")) {
+        db.exec(`ALTER TABLE sales ADD COLUMN service_mode TEXT`);
       }
-      if (!saleCols.some((c) => c.name === 'table_id')) {
-        db.exec(`ALTER TABLE sales ADD COLUMN table_id TEXT`)
+      if (!saleCols.some((c) => c.name === "table_id")) {
+        db.exec(`ALTER TABLE sales ADD COLUMN table_id TEXT`);
       }
 
       db.exec(`
@@ -242,19 +265,21 @@ const MIGRATIONS: Migration[] = [
           line_total REAL NOT NULL CHECK (line_total >= 0)
         );
         CREATE INDEX IF NOT EXISTS idx_pos_ticket_items_ticket ON pos_ticket_items(ticket_id);
-      `)
+      `);
     },
   },
   {
-    name: '010_payment_method_credit',
+    name: "010_payment_method_credit",
     up: (db) => {
       const hasPayments = db
-        .prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'payments'`)
-        .get() as { name: string } | undefined
-      if (!hasPayments) return
+        .prepare(
+          `SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'payments'`,
+        )
+        .get() as { name: string } | undefined;
+      if (!hasPayments) return;
 
       // SQLite cannot ALTER CHECK constraints — rebuild payments with credit instead of khata.
-      db.pragma('foreign_keys = OFF')
+      db.pragma("foreign_keys = OFF");
       db.exec(`
         CREATE TABLE payments_new (
           id TEXT PRIMARY KEY,
@@ -274,20 +299,22 @@ const MIGRATIONS: Migration[] = [
         DROP TABLE payments;
         ALTER TABLE payments_new RENAME TO payments;
         CREATE INDEX IF NOT EXISTS idx_payments_sale ON payments(sale_id);
-      `)
-      db.pragma('foreign_keys = ON')
+      `);
+      db.pragma("foreign_keys = ON");
     },
   },
   {
-    name: '011_receipt_messages',
+    name: "011_receipt_messages",
     up: (db) => {
-      const cols = db.prepare(`PRAGMA table_info(businesses)`).all() as Array<{ name: string }>
-      const names = new Set(cols.map((c) => c.name))
-      if (!names.has('receipt_header')) {
-        db.exec(`ALTER TABLE businesses ADD COLUMN receipt_header TEXT`)
+      const cols = db.prepare(`PRAGMA table_info(businesses)`).all() as Array<{
+        name: string;
+      }>;
+      const names = new Set(cols.map((c) => c.name));
+      if (!names.has("receipt_header")) {
+        db.exec(`ALTER TABLE businesses ADD COLUMN receipt_header TEXT`);
       }
-      if (!names.has('receipt_footer')) {
-        db.exec(`ALTER TABLE businesses ADD COLUMN receipt_footer TEXT`)
+      if (!names.has("receipt_footer")) {
+        db.exec(`ALTER TABLE businesses ADD COLUMN receipt_footer TEXT`);
       }
 
       // Prefer legacy settings.receipt_footer when present.
@@ -299,72 +326,86 @@ const MIGRATIONS: Migration[] = [
           LIMIT 1
         )
         WHERE receipt_footer IS NULL OR trim(receipt_footer) = ''
-      `)
+      `);
       db.exec(`
         UPDATE businesses
         SET receipt_footer = 'Thank you for shopping with us'
         WHERE receipt_footer IS NULL OR trim(receipt_footer) = ''
-      `)
+      `);
     },
   },
   {
-    name: '012_kot_split_rider_happy_hour',
+    name: "012_kot_split_rider_happy_hour",
     up: (db) => {
-      const productCols = db.prepare(`PRAGMA table_info(products)`).all() as Array<{ name: string }>
-      if (!productCols.some((c) => c.name === 'kitchen_station')) {
-        db.exec(`ALTER TABLE products ADD COLUMN kitchen_station TEXT NOT NULL DEFAULT 'main'`)
+      const productCols = db
+        .prepare(`PRAGMA table_info(products)`)
+        .all() as Array<{ name: string }>;
+      if (!productCols.some((c) => c.name === "kitchen_station")) {
+        db.exec(
+          `ALTER TABLE products ADD COLUMN kitchen_station TEXT NOT NULL DEFAULT 'main'`,
+        );
       }
 
-      const saleCols = db.prepare(`PRAGMA table_info(sales)`).all() as Array<{ name: string }>
-      const saleNames = new Set(saleCols.map((c) => c.name))
-      if (!saleNames.has('rider_user_id')) {
-        db.exec(`ALTER TABLE sales ADD COLUMN rider_user_id TEXT`)
+      const saleCols = db.prepare(`PRAGMA table_info(sales)`).all() as Array<{
+        name: string;
+      }>;
+      const saleNames = new Set(saleCols.map((c) => c.name));
+      if (!saleNames.has("rider_user_id")) {
+        db.exec(`ALTER TABLE sales ADD COLUMN rider_user_id TEXT`);
       }
-      if (!saleNames.has('delivery_status')) {
-        db.exec(`ALTER TABLE sales ADD COLUMN delivery_status TEXT`)
+      if (!saleNames.has("delivery_status")) {
+        db.exec(`ALTER TABLE sales ADD COLUMN delivery_status TEXT`);
       }
-      if (!saleNames.has('delivery_notes')) {
-        db.exec(`ALTER TABLE sales ADD COLUMN delivery_notes TEXT`)
-      }
-
-      const ticketCols = db.prepare(`PRAGMA table_info(pos_tickets)`).all() as Array<{ name: string }>
-      const ticketNames = new Set(ticketCols.map((c) => c.name))
-      if (!ticketNames.has('rider_user_id')) {
-        db.exec(`ALTER TABLE pos_tickets ADD COLUMN rider_user_id TEXT`)
-      }
-      if (!ticketNames.has('delivery_status')) {
-        db.exec(`ALTER TABLE pos_tickets ADD COLUMN delivery_status TEXT`)
-      }
-      if (!ticketNames.has('delivery_notes')) {
-        db.exec(`ALTER TABLE pos_tickets ADD COLUMN delivery_notes TEXT`)
+      if (!saleNames.has("delivery_notes")) {
+        db.exec(`ALTER TABLE sales ADD COLUMN delivery_notes TEXT`);
       }
 
-      const itemCols = db.prepare(`PRAGMA table_info(pos_ticket_items)`).all() as Array<{ name: string }>
-      const itemNames = new Set(itemCols.map((c) => c.name))
-      if (!itemNames.has('seat_no')) {
-        db.exec(`ALTER TABLE pos_ticket_items ADD COLUMN seat_no INTEGER`)
+      const ticketCols = db
+        .prepare(`PRAGMA table_info(pos_tickets)`)
+        .all() as Array<{ name: string }>;
+      const ticketNames = new Set(ticketCols.map((c) => c.name));
+      if (!ticketNames.has("rider_user_id")) {
+        db.exec(`ALTER TABLE pos_tickets ADD COLUMN rider_user_id TEXT`);
       }
-      if (!itemNames.has('kitchen_status')) {
+      if (!ticketNames.has("delivery_status")) {
+        db.exec(`ALTER TABLE pos_tickets ADD COLUMN delivery_status TEXT`);
+      }
+      if (!ticketNames.has("delivery_notes")) {
+        db.exec(`ALTER TABLE pos_tickets ADD COLUMN delivery_notes TEXT`);
+      }
+
+      const itemCols = db
+        .prepare(`PRAGMA table_info(pos_ticket_items)`)
+        .all() as Array<{ name: string }>;
+      const itemNames = new Set(itemCols.map((c) => c.name));
+      if (!itemNames.has("seat_no")) {
+        db.exec(`ALTER TABLE pos_ticket_items ADD COLUMN seat_no INTEGER`);
+      }
+      if (!itemNames.has("kitchen_status")) {
         db.exec(
           `ALTER TABLE pos_ticket_items ADD COLUMN kitchen_status TEXT NOT NULL DEFAULT 'held'`,
-        )
+        );
       }
-      if (!itemNames.has('fired_at')) {
-        db.exec(`ALTER TABLE pos_ticket_items ADD COLUMN fired_at TEXT`)
+      if (!itemNames.has("fired_at")) {
+        db.exec(`ALTER TABLE pos_ticket_items ADD COLUMN fired_at TEXT`);
       }
-      if (!itemNames.has('bumped_at')) {
-        db.exec(`ALTER TABLE pos_ticket_items ADD COLUMN bumped_at TEXT`)
+      if (!itemNames.has("bumped_at")) {
+        db.exec(`ALTER TABLE pos_ticket_items ADD COLUMN bumped_at TEXT`);
       }
-      if (!itemNames.has('billed_qty')) {
-        db.exec(`ALTER TABLE pos_ticket_items ADD COLUMN billed_qty REAL NOT NULL DEFAULT 0`)
+      if (!itemNames.has("billed_qty")) {
+        db.exec(
+          `ALTER TABLE pos_ticket_items ADD COLUMN billed_qty REAL NOT NULL DEFAULT 0`,
+        );
       }
-      if (!itemNames.has('price_rule_id')) {
-        db.exec(`ALTER TABLE pos_ticket_items ADD COLUMN price_rule_id TEXT`)
+      if (!itemNames.has("price_rule_id")) {
+        db.exec(`ALTER TABLE pos_ticket_items ADD COLUMN price_rule_id TEXT`);
       }
 
-      const saleItemCols = db.prepare(`PRAGMA table_info(sale_items)`).all() as Array<{ name: string }>
-      if (!saleItemCols.some((c) => c.name === 'price_rule_id')) {
-        db.exec(`ALTER TABLE sale_items ADD COLUMN price_rule_id TEXT`)
+      const saleItemCols = db
+        .prepare(`PRAGMA table_info(sale_items)`)
+        .all() as Array<{ name: string }>;
+      if (!saleItemCols.some((c) => c.name === "price_rule_id")) {
+        db.exec(`ALTER TABLE sale_items ADD COLUMN price_rule_id TEXT`);
       }
 
       db.exec(`
@@ -394,10 +435,40 @@ const MIGRATIONS: Migration[] = [
         CREATE INDEX IF NOT EXISTS idx_hh_rules_business_active
           ON happy_hour_price_rules(business_id, is_active, priority DESC);
         CREATE INDEX IF NOT EXISTS idx_pos_ticket_items_kitchen ON pos_ticket_items(kitchen_status);
-      `)
+      `);
     },
   },
-]
+  {
+    name: "013_customer_address_starting_balance",
+    up: (db) => {
+      const customerCols = db
+        .prepare(`PRAGMA table_info(customers)`)
+        .all() as Array<{ name: string }>;
+      const customerNames = new Set(customerCols.map((c) => c.name));
+
+      if (!customerNames.has("address")) {
+        db.exec(`ALTER TABLE customers ADD COLUMN address TEXT`);
+      }
+      if (!customerNames.has("opening_balance")) {
+        db.exec(
+          `ALTER TABLE customers ADD COLUMN opening_balance REAL NOT NULL DEFAULT 0`,
+        );
+      }
+      if (!customerNames.has("current_balance")) {
+        db.exec(
+          `ALTER TABLE customers ADD COLUMN current_balance REAL NOT NULL DEFAULT 0`,
+        );
+      }
+
+      db.exec(`
+        UPDATE customers
+        SET opening_balance = COALESCE(opening_balance, 0),
+            current_balance = COALESCE(current_balance, opening_balance, 0)
+        WHERE opening_balance IS NULL OR current_balance IS NULL;
+      `);
+    },
+  },
+];
 
 export function runMigrations(db: Database.Database): void {
   db.exec(`
@@ -406,19 +477,25 @@ export function runMigrations(db: Database.Database): void {
       name TEXT NOT NULL UNIQUE,
       applied_at TEXT NOT NULL
     );
-  `)
+  `);
 
-  const hasMigration = db.prepare('SELECT name FROM schema_migrations WHERE name = ?')
-  const insertMigration = db.prepare('INSERT INTO schema_migrations (name, applied_at) VALUES (?, ?)')
+  const hasMigration = db.prepare(
+    "SELECT name FROM schema_migrations WHERE name = ?",
+  );
+  const insertMigration = db.prepare(
+    "INSERT INTO schema_migrations (name, applied_at) VALUES (?, ?)",
+  );
 
   for (const migration of MIGRATIONS) {
-    const applied = hasMigration.get(migration.name) as { name: string } | undefined
-    if (applied) continue
+    const applied = hasMigration.get(migration.name) as
+      | { name: string }
+      | undefined;
+    if (applied) continue;
 
     const run = db.transaction(() => {
-      migration.up(db)
-      insertMigration.run(migration.name, new Date().toISOString())
-    })
-    run()
+      migration.up(db);
+      insertMigration.run(migration.name, new Date().toISOString());
+    });
+    run();
   }
 }

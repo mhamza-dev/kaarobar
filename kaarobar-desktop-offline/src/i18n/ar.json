@@ -354,6 +354,7 @@
     "paymentType": "الدفع",
     "date": "التاريخ",
     "address": "العنوان",
+    "startingKhataAmount": "مبلغ الخاتمة الابتدائي",
     "phone": "الهاتف",
     "notes": "ملاحظات",
     "barcode": "الباركود",

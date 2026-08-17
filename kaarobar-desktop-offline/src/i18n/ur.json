@@ -374,6 +374,7 @@
     "paymentType": "ادائیگی",
     "date": "تاریخ",
     "address": "پتہ",
+    "startingKhataAmount": "شروعی کھاتہ رقم",
     "phone": "فون",
     "notes": "نوٹس",
     "barcode": "بارکوڈ",

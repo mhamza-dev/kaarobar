@@ -354,6 +354,7 @@
     "paymentType": "Pagamento",
     "date": "Data",
     "address": "Endereço",
+    "startingKhataAmount": "Valor inicial do khata",
     "phone": "Telefone",
     "notes": "Notas",
     "barcode": "Código de barras",
