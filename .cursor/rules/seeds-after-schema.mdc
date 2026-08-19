@@ -1,6 +1,6 @@
 ---
-description: Always update kaarobar-BE seeds.exs after schema or DB changes
-globs: kaarobar-BE/priv/repo/migrations/**/*.exs,kaarobar-BE/lib/kaarobar/schemas/**/*.ex
+description: Always update kaarobar-backend seeds.exs after schema or DB changes
+globs: kaarobar-backend/priv/repo/migrations/**/*.exs,kaarobar-backend/lib/kaarobar/schemas/**/*.ex
 alwaysApply: false
 ---
 
@@ -8,7 +8,7 @@ alwaysApply: false
 
 Whenever you add or change a migration, Ecto schema field, association, or enum used in the DB:
 
-1. Update [`kaarobar-BE/priv/repo/seeds.exs`](kaarobar-BE/priv/repo/seeds.exs) in the **same** PR/change set.
+1. Update [`kaarobar-backend/priv/repo/seeds.exs`](kaarobar-backend/priv/repo/seeds.exs) in the **same** PR/change set.
 2. Seed every new persisted field that demo flows need (defaults alone are not enough if the UI/marketplace depends on them).
 3. Prefer idempotent patterns already used in seeds (`insert_all` + existence checks, `change/2` updates).
 4. Absolute `https://` URLs are allowed for `logo_key` / `profile_pic_key` (see `Kaarobar.Storage.url/1`).

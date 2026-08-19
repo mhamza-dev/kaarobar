@@ -17,7 +17,7 @@ Aligned to Kaarobar SRS **[KRB-SRS-004](srs/KRB-SRS-004.md) v4.1** §3 (ISO/IEC/
 └────────────────────────────┬─────────────────────────────────────┘
                              │
 ┌────────────────────────────▼─────────────────────────────────────┐
-│ Application — Kaarobar Phoenix modular monolith (`kaarobar-BE`)  │
+│ Application — Kaarobar Phoenix modular monolith (`kaarobar-backend`)  │
 │  Auth & RBAC · Tenancy · POS · Inventory · Accounting            │
 │  HR & Payroll · Reporting · Billing · Fiscal packs (FBR PK) · Notifications · CRM  │
 │  Oban workers (sale journal, payroll journal, fiscal packs, notify)       │
@@ -63,7 +63,7 @@ Aligned to Kaarobar SRS **[KRB-SRS-004](srs/KRB-SRS-004.md) v4.1** §3 (ISO/IEC/
 | Web | `kaarobar-web` | Owner, Manager, Accountant, Inventory, HR, Buyer | Dashboard + browser POS + buyer market |
 | Cloud Desktop | `kaarobar-desktop` | Cashier, Branch Manager | Offline-capable till that syncs (`OFF-FR`) |
 | Offline Desktop | `kaarobar-desktop-offline` | Owner, Admin, Manager, Cashier | Single-shop local POS (`ODE-FR`) |
-| Staff mobile | `kaarobar-mobile` | Owner, Manager, Employee | Oversight, approvals, ESS |
+| Staff mobile | `staff-mobile` | Owner, Manager, Employee | Oversight, approvals, ESS |
 | Customer mobile | `mobile-consumer` | Consumer | Marketplace / portal |
 
 Cloud clients share TanStack Query defaults — see [`architecture/client-cache-standards.md`](architecture/client-cache-standards.md).

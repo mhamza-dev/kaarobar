@@ -1,9 +1,9 @@
-# ADR 002 — Shared source folder for the mobile clients
+# ADR 002 — Shared source folders (`shared/core`, `shared/mobile`)
 
 - **Status:** Accepted
 - **Date:** 2026-08-13
-- **Supersedes:** the "no shared code between clients" rule as it applies to the
-  two React Native apps only. Web and desktop clients are unaffected.
+- **Supersedes:** the "no shared code between clients" rule. Superseded scope was
+  widened on 2026-08-19 to include web and desktop via `shared/core`.
 
 ## Context
 
@@ -29,20 +29,30 @@ leaves the other wrong.
 
 ## Decision
 
-Introduce `shared/mobile/` as a **source folder**, consumed by both mobile apps
-via a `@shared/*` alias. It is deliberately *not* an npm package: no `package.json`,
-no version, no publish step, no workspace.
+Introduce `shared/` as **source folders**, consumed via path aliases. Deliberately
+*not* npm packages: no `package.json`, no version, no publish step, no workspace.
+
+Split in two, because web (`kaarobar-web`, React DOM) and desktop
+(`kaarobar-desktop`, Electron) cannot consume React Native components but were
+found to be duplicating the same logic — `barcode.ts`, `decimal.ts`, `rbac.ts`,
+`listFilters.ts`, `customers.ts`, `brand-theme.ts`, `i18n/` and `validations/`:
+
+| Folder | Alias | Consumers | Constraint |
+|--------|-------|-----------|------------|
+| `shared/core/` | `@core/*` | all four clients | **must not** import `react-native`, `next`, `electron` or a DOM API |
+| `shared/mobile/` | `@shared/*` | the two Expo apps | may import `react-native` and Expo modules |
 
 Shared:
 
 | Area | Contents |
 |------|----------|
-| `theme/` | tokens (light + dark), brand palette derivation, `makeStyles`, theme context |
+| `theme/` | tokens (light + dark), `makeStyles`, theme context (brand palette maths lives in `core`) |
 | `ui/` | glass surfaces, cards, screen scaffold, motion, skeletons, state views, toast |
 | `form/` | `CustomForm`, formik fields, switch, date picker, search select |
-| `validations/` | all yup schemas |
-| `i18n/` | translator + locale catalogs |
-| `lib/` | `decimal`, `uuid`, `barcode`, `listingFilters`, `customers` |
+| `i18n/` | translator runtime (catalogs live in `core`) |
+
+`shared/core/` holds `validations/`, `i18n/catalogs/`, and `lib/` (`decimal`,
+`uuid`, `barcode`, `listingFilters`, `customers`, `brand-palette`).
 
 Kept per-app:
 
@@ -71,6 +81,15 @@ Two traps worth recording:
 2. **Do not set `resolver.disableHierarchicalLookup`.** It is only correct in a
    hoisted monorepo; here it breaks packages that ship nested dependencies
    (`react-native-reanimated` bundles its own `semver`).
+3. **Never create `shared/node_modules`.** Metro resolves upward from the
+   importing file, so it would shadow the app's `react-native` and load a second
+   React instance at runtime. `shared/tsconfig.json` exists solely so editors can
+   resolve `react` / `@shared` / `@core`; no build reads it.
+
+Web and desktop wiring: `@core` is aliased in `kaarobar-web/next.config.ts` (both
+Turbopack `resolveAlias` and webpack, plus `outputFileTracingRoot` so Next will
+compile files from outside its own root) and in `kaarobar-desktop/vite.config.ts`,
+with matching `paths` in each `tsconfig.json`.
 
 ## Consequences
 
@@ -86,7 +105,12 @@ still produces its own bundle, and CI needs no extra install step.
 original rule: brand colour is resolved at runtime from the business
 `primary_color`, and each app keeps its own provider, icons and app config.
 
-**Follow-up.** `rbac.ts` should move into `shared/` once `Session` is expressed
-as a shared structural type rather than being imported from each app's
-`api.ts`. Until then it is duplicated, which is the drift risk this ADR exists
-to remove.
+**Follow-up.**
+
+- `rbac.ts` should move into `shared/core/` once `Session` is expressed as a
+  shared structural type rather than imported from each app's `api.ts`. Until
+  then it is duplicated — the exact drift risk this ADR exists to remove.
+- Web and desktop are **wired but not yet migrated**: their existing copies
+  differ in shape (`listFilters` vs `listingFilters`, `brand-theme` vs
+  `brand-palette`, and extra schemas such as `accounting`/`appointments`/`ess`).
+  Migrate module-by-module, starting with `decimal` and `validations/auth`.

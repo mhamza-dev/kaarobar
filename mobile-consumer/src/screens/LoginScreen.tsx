@@ -32,13 +32,11 @@ export default function LoginScreen() {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const palette = useBrandPalette();
   const styles = useMemo(() => createStyles(palette), [palette]);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (consumeSessionTimedOut()) {
-      setError("Session timeout. Please login again.");
-    }
-  }, []);
+  // `consumeSessionTimedOut()` clears the flag as it reads it, so it must run
+  // exactly once — lazy initial state does that without an effect.
+  const [error, setError] = useState<string | null>(() =>
+    consumeSessionTimedOut() ? "Session timeout. Please login again." : null
+  );
 
   async function onSubmit(values: ConsumerLoginValues) {
     setError(null);

@@ -69,17 +69,36 @@ Business Owner · Admin · Branch Manager · Cashier · Inventory Manager · Acc
 ```
 kaarobar/
 ├── kaarobar-web/                 # Next.js — authenticated dashboard / browser POS / buyer market
-├── kaarobar-mobile/              # Expo (React Native) — staff (POS, sales, products, customers, ESS)
-├── mobile-consumer/              # Expo (React Native) — consumer marketplace
+├── staff-mobile/                 # Expo + expo-router — staff (POS, sales, products, customers, ESS)
+├── mobile-consumer/              # Expo — consumer marketplace
 ├── kaarobar-desktop/             # Electron — Cloud Desktop POS (SQLite outbox → sync)
 ├── kaarobar-desktop-offline/     # Electron — Offline Desktop Edition (local SQLite, one-time license)
 ├── kaarobar-backend/             # Elixir/Phoenix API + PostgreSQL (modular monolith)
-├── shared/mobile/                # Source shared by the two Expo apps (@shared/*)
+├── shared/
+│   ├── core/                     # Platform-agnostic — usable by every client (@core/*)
+│   └── mobile/                   # React Native only — theme, glass UI kit, forms (@shared/*)
 ├── docs/                         # SRS, ADRs, module docs, architecture notes
 └── docker-compose.yml            # Postgres + Redis for local development
 ```
 
-Clients are independently deployable (no shared npm packages). The two mobile apps share source via `shared/mobile/` ([ADR 002](docs/adr/002-shared-mobile-source-folder.md)); web and desktop duplicate theme tokens so branding stays consistent without coupling releases.
+Clients are independently deployable — there is no shared npm package and no
+workspace. Common code lives in `shared/` as **plain source**, consumed through
+path aliases ([ADR 002](docs/adr/002-shared-mobile-source-folder.md)):
+
+| Folder | Alias | Who can import it | Contents |
+|--------|-------|-------------------|----------|
+| `shared/core/` | `@core/*` | every client (mobile, web, desktop) | validations, money/decimal, barcode, list filters, customers, brand palette, i18n catalogs |
+| `shared/mobile/` | `@shared/*` | the Expo apps only | theme tokens, glass UI kit, form primitives, i18n runtime |
+
+`shared/core/` must never import `react-native`, `next`, `electron` or a DOM API —
+that restriction is what keeps it usable from all four clients.
+
+> **Do not add a `package.json` + `node_modules` inside `shared/`.** Metro resolves
+> from the importing file upward, so a `shared/node_modules` would shadow the app's
+> copy of `react-native` and load a second React instance at runtime. Each app
+> supplies the dependencies (`resolver.nodeModulesPaths` in `metro.config.js`,
+> `paths` in `tsconfig.json`). `shared/tsconfig.json` exists **only** so editors can
+> resolve those imports; no build uses it.
 
 | Desktop package | Edition | Data | Cloud API |
 |-----------------|---------|------|-----------|
@@ -95,7 +114,7 @@ Clients are independently deployable (no shared npm packages). The two mobile ap
 | BullMQ + Redis | **Oban** (Postgres-backed job queue) |
 | React web | **Next.js** web |
 | Electron POS + SQLite outbox | **Electron** Cloud Desktop (`kaarobar-desktop`) + Offline Desktop SKU (`kaarobar-desktop-offline`) |
-| React Native | **Expo SDK 57** (`kaarobar-mobile` staff + `mobile-consumer`) |
+| React Native | **Expo SDK 57** (`staff-mobile` staff + `mobile-consumer`) |
 
 ```
 Cloud clients (Web / Mobile / Cloud Desktop)
@@ -138,7 +157,7 @@ Shared cluster, tenant-isolated by ID. Every tenant-scoped table carries `owner_
 | Layer | Technology |
 |-------|------------|
 | Web | Next.js 16, React 19, Tailwind CSS 4 |
-| Mobile (staff) | Expo SDK 57 / React Native 0.86 (`kaarobar-mobile`) |
+| Mobile (staff) | Expo SDK 57 / React Native 0.86 / expo-router (`staff-mobile`) |
 | Mobile (customer) | Expo SDK 57 / React Native 0.86 (`mobile-consumer`) |
 | Desktop (Cloud) | Electron (`kaarobar-desktop`) |
 | Desktop (Offline Edition) | Electron + SQLite (`kaarobar-desktop-offline`) |
@@ -173,7 +192,7 @@ cd kaarobar-backend && mix deps.get && mix ecto.setup && mix phx.server
 cd kaarobar-web && npm install && npm run dev
 
 # Staff mobile (Expo — press a/i, or scan the QR with Expo Go)
-cd kaarobar-mobile && npm install && npm start
+cd staff-mobile && npm install && npm start
 
 # Customer mobile (Expo)
 cd mobile-consumer && npm install && npm start

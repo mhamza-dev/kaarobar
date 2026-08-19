@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Modern Theme-First UI Standard
 
-When designing or updating UI in any client app (`kaarobar-web`, `kaarobar-desktop`, `kaarobar-mobile`, `mobile-consumer`):
+When designing or updating UI in any client app (`kaarobar-web`, `kaarobar-desktop`, `staff-mobile`, `mobile-consumer`):
 
 1. Design with a **senior UI/UX quality bar**:
    - clean hierarchy, strong spacing rhythm, and clear visual structure

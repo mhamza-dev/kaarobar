@@ -69,9 +69,13 @@ export default function MarketplaceFilterBar({
     return items;
   }, [value, showCategories, showPriceRange]);
 
-  useEffect(() => {
+  // Seed the draft each time the sheet opens. Keyed on the open transition so
+  // it does not clobber edits in progress when `value` changes underneath.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
     if (open) setDraft(value);
-  }, [open, value]);
+  }
 
   const openSheet = () => {
     setDraft(value);

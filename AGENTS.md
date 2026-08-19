@@ -63,7 +63,7 @@ The SRS describes **logical modules**. This repo implements them as:
 | DB | **PostgreSQL 16** (shared DB; tenant by ID) |
 | Jobs | **Oban** (Postgres-backed) |
 | Web | **Next.js** (`kaarobar-web`) |
-| Mobile (staff) | **Expo SDK 57** / React Native 0.86 (`staff-mobile`; rebuilt on expo-router — `kaarobar-mobile` is the retired predecessor) |
+| Mobile (staff) | **Expo SDK 57** / RN 0.86 / expo-router (`staff-mobile`; `kaarobar-mobile` is the retired predecessor, pending deletion) |
 | Mobile (customer) | **Expo SDK 57** / React Native 0.86 (`mobile-consumer`) |
 | Desktop POS (Cloud) | **Electron** + SQLite outbox (`kaarobar-desktop`) — syncs to API (`OFF-FR`) |
 | Desktop POS (Offline Edition) | **Electron** + local SQLite (`kaarobar-desktop-offline`) — one-time license (`ODE-FR`); no NestJS/Phoenix day-to-day dependency |
@@ -86,7 +86,21 @@ Do **not** introduce NestJS, MongoDB, or BullMQ. Map SRS modules to Phoenix cont
 | FBR / Notifications / Offline | FBR (Pakistan fiscal pack), NOT, OFF (Cloud Desktop sync) |
 | Offline Desktop Edition | ODE (package `kaarobar-desktop-offline`; see [`docs/offline-desktop.md`](docs/offline-desktop.md)) |
 
-Clients are independently deployable (no shared npm packages). The two **mobile** apps share a source folder, `shared/mobile/` (theme, UI kit, form primitives, validations, i18n, money helpers), imported via `@shared/*` — see [ADR 002](docs/adr/002-shared-mobile-source-folder.md). Web and desktop remain fully self-contained; theme tokens are still duplicated for those.
+Clients are independently deployable — no shared npm package, no workspace.
+Common code lives in `shared/` as plain source behind path aliases
+([ADR 002](docs/adr/002-shared-mobile-source-folder.md)):
+
+| Folder | Alias | Importable from | Contents |
+|--------|-------|-----------------|----------|
+| `shared/core/` | `@core/*` | **every** client | validations, decimal/money, barcode, list filters, customers, brand palette, i18n catalogs |
+| `shared/mobile/` | `@shared/*` | the Expo apps only | theme tokens, glass UI kit, form primitives, i18n runtime |
+
+**`shared/core/` may not import `react-native`, `next`, `electron` or any DOM
+API.** That is the invariant that keeps it usable from mobile, web and desktop.
+
+Never add `package.json`/`node_modules` under `shared/` — Metro resolves upward
+from the importing file, so it would shadow the app's `react-native` and load a
+second React at runtime. `shared/tsconfig.json` is for editor resolution only.
 
 ---
 
@@ -174,8 +188,10 @@ kaarobar/
 ├── AGENTS.md                      # this file
 ├── kaarobar-backend/              # Phoenix API (Elixir)
 ├── kaarobar-web/                  # Next.js
-├── kaarobar-mobile/               # Expo (React Native) — staff
-├── mobile-consumer/               # Expo (React Native) — consumers
+├── staff-mobile/                  # Expo + expo-router — staff
+├── mobile-consumer/               # Expo — consumers
+├── shared/core/                   # Platform-agnostic, all clients (@core/*)
+├── shared/mobile/                 # React Native only (@shared/*)
 ├── kaarobar-desktop/              # Electron Cloud POS (sync)
 ├── kaarobar-desktop-offline/      # Electron Offline Desktop Edition
 ├── docs/srs/KRB-SRS-004.md        # authoritative requirements

@@ -1,29 +1,82 @@
-name: Mobile APK Release
+name: Mobile CI + APK Release
 
 on:
   push:
     branches: ["main"]
+    paths:
+      - "staff-mobile/**"
+      - "mobile-consumer/**"
+      - "shared/**"
+      - ".github/workflows/mobile-apk.yml"
+  pull_request:
+    paths:
+      - "staff-mobile/**"
+      - "mobile-consumer/**"
+      - "shared/**"
+      - ".github/workflows/mobile-apk.yml"
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  build-apk:
-    name: Build ${{ matrix.app_name }} APK
+  # Typecheck and lint gate. Runs on pull requests too, where building a signed
+  # APK is pointless — catching a broken `shared/` change here is the whole
+  # reason the workflow watches that path.
+  check:
+    name: Check ${{ matrix.app_name }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
-          - app_name: kaarobar-mobile
-            app_dir: kaarobar-mobile
+          - app_name: staff-mobile
+            app_dir: staff-mobile
+          - app_name: consumer
+            app_dir: mobile-consumer
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: "${{ matrix.app_dir }}/package-lock.json"
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ${{ matrix.app_dir }}
+
+      - name: Typecheck
+        run: npm run typecheck
+        working-directory: ${{ matrix.app_dir }}
+
+      - name: Lint
+        run: npm run lint
+        working-directory: ${{ matrix.app_dir }}
+
+  build-apk:
+    name: Build ${{ matrix.app_name }} APK
+    needs: check
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app_name: staff-mobile
+            app_dir: staff-mobile
             apk_name: Kaarobar-staff.apk
-          - app_name: kaarobar-customer
+          - app_name: consumer
             app_dir: mobile-consumer
             apk_name: Kaarobar-customer.apk
 
     steps:
+      # Full checkout: the apps import `shared/` via @shared / @core aliases, so
+      # Metro needs that folder present at bundle time.
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -40,6 +93,9 @@ jobs:
           distribution: "temurin"
           java-version: "17"
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Install dependencies
         run: npm ci
         working-directory: ${{ matrix.app_dir }}
@@ -49,10 +105,13 @@ jobs:
         run: npx expo prebuild --platform android --no-install
         working-directory: ${{ matrix.app_dir }}
 
-      # Keep the historical signing identity so released APKs remain
+      # Keep the historical signing identity so released APKs stay
       # upgrade-compatible with previously installed builds.
       - name: Restore debug signing keystore
-        run: cp credentials/debug.keystore android/app/debug.keystore
+        run: |
+          set -euo pipefail
+          test -f credentials/debug.keystore
+          cp credentials/debug.keystore android/app/debug.keystore
         working-directory: ${{ matrix.app_dir }}
 
       - name: Build release APK
@@ -63,6 +122,7 @@ jobs:
 
       - name: Stage APK
         run: |
+          set -euo pipefail
           mkdir -p staged
           src="${{ matrix.app_dir }}/android/app/build/outputs/apk/release/app-release.apk"
           if [ ! -f "$src" ]; then
@@ -81,6 +141,7 @@ jobs:
   release:
     name: Publish APKs to GitHub Release
     needs: build-apk
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
@@ -102,11 +163,11 @@ jobs:
           body: |
             Kaarobar Android APKs for commit `${{ github.sha }}`.
 
-            - **Kaarobar-staff.apk** — staff app
-            - **Kaarobar-customer.apk** — customer app
+            - **Kaarobar-staff.apk** — staff app (`staff-mobile`)
+            - **Kaarobar-customer.apk** — customer app (`mobile-consumer`)
 
             Source is not packaged in this release. APKs are built with
-            `expo prebuild` and use the project debug keystore until a release
-            keystore is configured.
+            `expo prebuild` and signed with the project debug keystore until a
+            release keystore is configured.
           files: apks/*.apk
           fail_on_unmatched_files: true

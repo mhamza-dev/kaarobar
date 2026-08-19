@@ -18,7 +18,7 @@ If unset, the workflow **skips** (does not fail). Prefer Vercel’s GitHub integ
 
 1. Create a Neon Postgres database; copy the connection string (`?sslmode=require`).
 2. In Render, create a **Web Service** from this repo with:
-   - **Root Directory:** `kaarobar-BE`
+   - **Root Directory:** `kaarobar-backend`
    - **Language:** Elixir
    - **Build Command:** `./build.sh`
    - **Start Command:** `_build/prod/rel/kaarobar/bin/server`
@@ -34,15 +34,24 @@ If unset, the workflow **skips** (does not fail). Prefer Vercel’s GitHub integ
 | `STORAGE_BACKEND` | `local` until S3 is configured |
 | `MIX_ENV` | `prod` |
 
-Do **not** paste shell prompts into Build/Start (no `kaarobar-BE/ $ …`). Root Directory already `cd`s into `kaarobar-BE`.
+Do **not** paste shell prompts into Build/Start (no `kaarobar-backend/ $ …`). Root Directory already `cd`s into `kaarobar-backend`.
 
 4. Point web/mobile/desktop `*_API_URL` at `https://<your-service>.onrender.com/api/v1`.
 
 ## Notes
-- **Mobile** (`mobile-apk.yml`) publishes **APKs only** to a GitHub Release (`android-<sha>`):
-  - `Kaarobar-staff.apk`
-  - `Kaarobar-customer.apk`
-  - Keep `react-native-screens` at `4.4.0` while on RN `0.76` (New Arch). `4.19+` needs RN `0.81+`.
+- **Mobile** (`mobile-apk.yml`) runs typecheck + lint for `staff-mobile` and
+  `mobile-consumer`, then publishes **APKs only** to a GitHub Release (`android-<sha>`):
+  - `Kaarobar-staff.apk` — from `staff-mobile`
+  - `Kaarobar-customer.apk` — from `mobile-consumer`
+  - The `check` job also runs on pull requests; `build-apk` and `release` do not.
+  - It watches `shared/**` as well as the app folders — a change to shared source
+    can break either app, so it must re-run their checks.
+  - `android/` is **not** committed. CI runs `expo prebuild --platform android`
+    (Continuous Native Generation) and then restores
+    `<app>/credentials/debug.keystore` into `android/app/` so released APKs keep a
+    stable signing identity and stay upgrade-compatible.
+  - Dependency versions are pinned to the Expo SDK 57 matrix — use
+    `npx expo install <pkg>` rather than `npm install` so they stay compatible.
 - **Desktop** (`desktop-release.yml`) publishes **installers only** to a GitHub Release (`desktop-<sha>`):
   - macOS `.dmg`
   - Windows `.exe` (NSIS)

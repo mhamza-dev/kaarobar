@@ -47,6 +47,10 @@ export default function OrderDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  /* eslint-disable react-hooks/set-state-in-effect --
+     Fetch effect: the spinner is raised synchronously so it appears on the same
+     frame the order id changes, rather than after a blank paint. One extra
+     render per fetch, not a cascade. */
   useEffect(() => {
     if (!id) {
       setError(t("common.loadFailed"));
@@ -64,6 +68,7 @@ export default function OrderDetailScreen() {
       )
       .finally(() => setLoading(false));
   }, [id]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   if (loading) {
     return <BuyerDetailLoadingState />;

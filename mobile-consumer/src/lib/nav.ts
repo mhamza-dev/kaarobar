@@ -1,5 +1,22 @@
 import type { NavigationProp, ParamListBase } from "@react-navigation/native";
 
+/**
+ * React Navigation 7.3 types `navigate` against a typed param list, so the
+ * two-argument form no longer accepts `as never` casts. This app resolves route
+ * names at runtime from `/app/*` path strings, so funnel every call through one
+ * narrow escape hatch instead of re-casting at 15 call sites.
+ */
+export function go(
+  navigation: NavigationProp<ParamListBase>,
+  name: string,
+  params?: Record<string, unknown>
+) {
+  (navigation.navigate as (screen: string, params?: Record<string, unknown>) => void)(
+    name,
+    params
+  );
+}
+
 export function replacePath(
   navigation: NavigationProp<ParamListBase>,
   path: string
@@ -13,7 +30,7 @@ export function replacePath(
     return;
   }
   if (path === "/signup" || path === "Signup") {
-    navigation.navigate("Signup" as never);
+    go(navigation, "Signup");
     return;
   }
   if (path.startsWith("/app/") || path === "Main") {
@@ -33,90 +50,90 @@ export function pushPath(
   params?: Record<string, unknown>
 ) {
   if (path === "/app/dashboard" || path === "/app/market" || path === "/app/market/index") {
-    navigation.navigate("Discover" as never, {
+    go(navigation, "Discover", {
       screen: "DiscoverHome",
-    } as never);
+    });
     return;
   }
   if (path === "/app/products") {
     // Products route is an alias of Discover (product-first home).
-    navigation.navigate("Discover" as never, {
+    go(navigation, "Discover", {
       screen: "DiscoverHome",
-    } as never);
+    });
     return;
   }
   if (path === "/app/sales") {
-    navigation.navigate("Orders" as never, {
+    go(navigation, "Orders", {
       screen: "OrdersHome",
-    } as never);
+    });
     return;
   }
   if (path === "/app/account") {
-    navigation.navigate("Account" as never, {
+    go(navigation, "Account", {
       screen: "AccountHome",
-    } as never);
+    });
     return;
   }
   if (path === "/app/customers") {
-    navigation.navigate("Loyalty" as never);
+    go(navigation, "Loyalty");
     return;
   }
   if (path === "/app/accounting") {
-    navigation.navigate("Account" as never, {
+    go(navigation, "Account", {
       screen: "Balance",
-    } as never);
+    });
     return;
   }
   if (path === "/app/notifications") {
-    navigation.navigate("Account" as never, {
+    go(navigation, "Account", {
       screen: "Alerts",
-    } as never);
+    });
     return;
   }
 
   const productParts = productPathParts(path);
   if (productParts) {
-    navigation.navigate("Discover" as never, {
+    go(navigation, "Discover", {
       screen: "ProductDetail",
       params: { ...productParts, ...params },
-    } as never);
+    });
     return;
   }
 
   if (path.startsWith("/app/sales/appointments/")) {
     const id = path.split("/").pop();
-    navigation.navigate("Orders" as never, {
+    go(navigation, "Orders", {
       screen: "AppointmentDetail",
       params: { id, ...params },
-    } as never);
+    });
     return;
   }
   if (path.startsWith("/app/sales/") && path !== "/app/sales") {
     const id = path.split("/").pop();
-    navigation.navigate("Orders" as never, {
+    go(navigation, "Orders", {
       screen: "OrderDetail",
       params: { id, ...params },
-    } as never);
+    });
     return;
   }
   if (path.startsWith("/app/market/")) {
     const id = path.split("/").pop();
-    navigation.navigate("Discover" as never, {
+    go(navigation, "Discover", {
       screen: "Store",
       params: { id, ...params },
-    } as never);
+    });
     return;
   }
   if (path === "/app/checkout" || path === "/app/checkout/index") {
-    navigation.navigate("Discover" as never, {
+    go(navigation, "Discover", {
       screen: "Cart",
-    } as never);
+    });
     return;
   }
   if (path === "/app/checkout/pay") {
-    navigation.navigate("Discover" as never, {
+    go(navigation, "Discover", {
       screen: "CheckoutPay",
-    } as never);
+    });
     return;
   }
   if (path === "/landing") {
@@ -128,6 +145,6 @@ export function pushPath(
     return;
   }
   if (path === "/signup") {
-    navigation.navigate("Signup" as never);
+    go(navigation, "Signup");
   }
 }

@@ -155,6 +155,10 @@ export default function BuyerBookFlow({
   }, [anyStaff, branchId, businessId, date, service, staff, staffMember]);
 
   useEffect(() => {
+    // `loadSlots` clears the previous slot and raises its loading flag
+    // synchronously so the UI reacts on the same frame as the step change.
+    // That is one extra render per fetch, not a cascade.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (step === "slot") void loadSlots();
   }, [step, loadSlots]);
 

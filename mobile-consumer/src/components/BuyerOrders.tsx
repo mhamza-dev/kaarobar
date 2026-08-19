@@ -90,12 +90,13 @@ export default function BuyerOrders() {
     enabled: tab === "appointments" || needApptsForPrefer,
   });
 
-  useEffect(() => {
-    if (!needApptsForPrefer || !appointmentsQuery.isSuccess) return;
+  // Choose the default tab as soon as the query resolves. Latches on
+  // `preferApptsChecked`, so it never fights a tab the user picked afterwards.
+  if (needApptsForPrefer && appointmentsQuery.isSuccess && !preferApptsChecked) {
     const upcomingCount = (appointmentsQuery.data || []).filter(isUpcoming).length;
     if (upcomingCount > 0) setTab("appointments");
     setPreferApptsChecked(true);
-  }, [needApptsForPrefer, appointmentsQuery.isSuccess, appointmentsQuery.data]);
+  }
 
   const orders: Order[] = ordersQuery.data ?? [];
   const appointments: Appointment[] = appointmentsQuery.data ?? [];

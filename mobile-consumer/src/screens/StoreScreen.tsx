@@ -1,3 +1,4 @@
+import { go } from "../lib/nav";
 import { useEffect, useMemo, useState } from "react";
 import {
   FlatList,
@@ -147,16 +148,19 @@ export default function MarketStoreScreen() {
     return products;
   }, [canBook, goods, products]);
 
-  useEffect(() => {
+  // Mode is derived from the store and its catalog. Adjusting during render
+  // avoids painting one frame of the wrong tab before the effect corrects it;
+  // both branches converge because `modeInitialized` latches.
+  const [modeStoreId, setModeStoreId] = useState(id);
+  if (id !== modeStoreId) {
+    setModeStoreId(id);
     setModeInitialized(false);
-  }, [id]);
-
-  useEffect(() => {
-    if (!catalogQuery.isSuccess || modeInitialized) return;
+  }
+  if (catalogQuery.isSuccess && !modeInitialized) {
     if (canBook && !canShop) setMode("book");
     else if (canShop) setMode("shop");
     setModeInitialized(true);
-  }, [catalogQuery.isSuccess, canBook, canShop, modeInitialized]);
+  }
 
   const categoryOptions = useMemo(() => {
     const set = new Set<string>();
@@ -428,10 +432,10 @@ export default function MarketStoreScreen() {
               <Pressable
                 style={styles.productCard}
                 onPress={() =>
-                  navigation.navigate("ProductDetail" as never, {
+                  go(navigation, "ProductDetail", {
                     storeId: id,
                     productId: item.id,
-                  } as never)
+                  })
                 }
               >
                 <View style={styles.productImgWrap}>

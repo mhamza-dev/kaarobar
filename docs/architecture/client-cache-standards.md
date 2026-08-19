@@ -1,6 +1,6 @@
 # Client cache standards (Cloud apps)
 
-Shared TanStack Query defaults for **Cloud** clients that talk to `kaarobar-BE` (`/api/v1`). Keep these values aligned across apps when changing cache behavior.
+Shared TanStack Query defaults for **Cloud** clients that talk to `kaarobar-backend` (`/api/v1`). Keep these values aligned across apps when changing cache behavior.
 
 ## Defaults
 
@@ -20,7 +20,7 @@ Shared TanStack Query defaults for **Cloud** clients that talk to `kaarobar-BE` 
 |-----|------|
 | Web | [`kaarobar-web/lib/queryClient.ts`](../../kaarobar-web/lib/queryClient.ts) |
 | Cloud Desktop | [`kaarobar-desktop/renderer/src/lib/queryClient.ts`](../../kaarobar-desktop/renderer/src/lib/queryClient.ts) |
-| Staff mobile | [`kaarobar-mobile/src/lib/queryClient.ts`](../../kaarobar-mobile/src/lib/queryClient.ts) |
+| Staff mobile | [`staff-mobile/src/lib/queryClient.ts`](../../staff-mobile/src/lib/queryClient.ts) |
 | Customer mobile | [`mobile-consumer/src/lib/queryClient.ts`](../../mobile-consumer/src/lib/queryClient.ts) |
 
 ## Out of scope

@@ -7,7 +7,7 @@ Implementation notes for KRB-SRS-004 Phase A Should items shipped in code.
 - SRS: [`docs/srs/KRB-SRS-004.md`](srs/KRB-SRS-004.md) (Phase A remaining)
 - Prefer module docs + requirement index for day-to-day work; do not invent Out-of-Scope features
 
-## Backend (`kaarobar-BE`)
+## Backend (`kaarobar-backend`)
 
 ### Consent (CRM-FR-009)
 
@@ -77,7 +77,7 @@ Unchanged from prior Phase A notes.
 - **Web:** filesystem `app/workspace/*` rewritten to browser `/app/*`; marketing at `/app/marketing` (campaigns, templates, wallet, segments, coupons, tiers)
 - **Consumer cart:** persistent multi-store cart (localStorage / AsyncStorage); navbar cart → `/app/checkout` review (grouped by store) → `/app/checkout/pay` places one pickup order per store with shared contact notes; branded Discover + store catalog; shared `ListingFilters` on catalog and staff DataTable products
 - **Branding UI scheme:** business `primary_color` remaps `--brand*` (web) / brand palette (mobile) for staff workspace and consumer store/checkout controls
-- **Mobile:** Expo (React Native) — staff in `kaarobar-mobile`, consumers in `mobile-consumer` (Discover / orders / appointments); same cart/checkout API paths
+- **Mobile:** Expo (React Native) — staff in `staff-mobile`, consumers in `mobile-consumer` (Discover / orders / appointments); same cart/checkout API paths
 - **Desktop:** HashRouter `/app/*`, business-only; marketing page mirrors web templates/wallet
 - Actors: web login supports Business / Consumer; mobile apps are split by audience (no shared login toggle)
 

@@ -1,0 +1,39 @@
+{
+  // EDITOR-SUPPORT ONLY.
+  //
+  // `shared/` is plain source with no node_modules of its own, so an editor
+  // opening a file here has nothing to resolve `react`, `react-native` or the
+  // `@shared` / `@core` aliases against, and marks the whole folder red.
+  // This config borrows staff-mobile's installed dependencies purely for
+  // language-service resolution.
+  //
+  // The real builds do NOT use this file: each app compiles `shared/` through
+  // its own tsconfig (`include` covers ../shared/**) and bundles it through its
+  // own Metro/Vite/Next resolver. Run `npm run typecheck` in an app to check.
+  //
+  // Do NOT add a package.json + node_modules here to "fix" it: Metro's
+  // hierarchical lookup resolves from the importing file upward, so a
+  // shared/node_modules would shadow the app's copy of react-native and load a
+  // second React instance at runtime.
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ESNext", "DOM"],
+    "jsx": "react-jsx",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "paths": {
+      "@shared/*": ["./mobile/*"],
+      "@core/*": ["./core/*"],
+      "react": ["../staff-mobile/node_modules/@types/react"],
+      "react/jsx-runtime": ["../staff-mobile/node_modules/@types/react/jsx-runtime"],
+      "*": ["../staff-mobile/node_modules/*"]
+    }
+  },
+  "include": ["mobile/**/*.ts", "mobile/**/*.tsx", "core/**/*.ts", "core/**/*.tsx"]
+}

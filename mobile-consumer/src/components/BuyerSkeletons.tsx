@@ -1,9 +1,11 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Animated, StyleSheet, View, type ViewStyle } from "react-native";
 import { colors } from "../lib/api";
 
 function Bone({ style }: { style?: ViewStyle }) {
-  const opacity = useRef(new Animated.Value(0.45)).current;
+  // Lazy state rather than `useRef(...).current`: reading a ref during render
+  // is not allowed, and this only needs to be created once.
+  const [opacity] = useState(() => new Animated.Value(0.45));
 
   useEffect(() => {
     const loop = Animated.loop(

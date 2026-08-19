@@ -10,11 +10,11 @@ Before implementing, read **[`AGENTS.md`](AGENTS.md)** and the authoritative SRS
 ## Non-negotiables
 
 1. **SRS is the contract** — Cite requirement IDs. **Must** = production baseline (shipped). Two editions: **Cloud** (subscription / Safepay) and **Offline Desktop** (`ODE-FR` / ADM-FR-007). Portal / Helpdesk / Public API / coupons / appointments are **Should** unless Product promotes them. §14 `FUT-FR-*` items are **Could** until promoted. Do not invent Out-of-Scope features.
-2. **Stack** — Backend is **Elixir/Phoenix + PostgreSQL + Oban**, not NestJS/Mongo/BullMQ. Clients: Next.js, Expo/React Native (`kaarobar-mobile` + `mobile-consumer`), Electron Cloud Desktop (`kaarobar-desktop`), Offline Desktop Edition (`kaarobar-desktop-offline`).
+2. **Stack** — Backend is **Elixir/Phoenix + PostgreSQL + Oban**, not NestJS/Mongo/BullMQ. Clients: Next.js, Expo/React Native (`staff-mobile` + `mobile-consumer`), Electron Cloud Desktop (`kaarobar-desktop`), Offline Desktop Edition (`kaarobar-desktop-offline`).
 3. **Tenant isolation** — Every tenant data path scopes by `owner_id` / `business_id` / `branch_id`. Roles use code names (`marketing`, not `marketing_manager`).
 4. **Money integrity** — Posted journals are immutable (reversals only). Stock updates are atomic deltas. Offline sales use idempotent `client_txn_id`.
 5. **Traceability** — Name satisfied SRS IDs in tests/PR notes; update `docs/` when behavior changes. Keep diffs focused.
-6. **Seeds stay in sync** — After **any** schema/DB change (migration, new/changed columns, enums, associations), update [`kaarobar-BE/priv/repo/seeds.exs`](kaarobar-BE/priv/repo/seeds.exs) in the **same** change set so `mix ecto.reset` / demo data still boots. Cover new fields with realistic demo values (branding, wallets, notifications, statuses, etc.).
+6. **Seeds stay in sync** — After **any** schema/DB change (migration, new/changed columns, enums, associations), update [`kaarobar-backend/priv/repo/seeds.exs`](kaarobar-backend/priv/repo/seeds.exs) in the **same** change set so `mix ecto.reset` / demo data still boots. Cover new fields with realistic demo values (branding, wallets, notifications, statuses, etc.).
 7. **Help (i) + i18n** — New pages/tabs need `infoKey` + help catalog entries and UI strings for **all** platform locales (`en`, `ur`, `de`, `pt-BR`, `es`, `fr`, `ar`). See [`.cursor/rules/help-icons-i18n.mdc`](help-icons-i18n.mdc).
 
 If code and SRS conflict, ask the human — do not silently diverge.
