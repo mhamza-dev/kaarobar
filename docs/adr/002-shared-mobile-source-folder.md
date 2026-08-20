@@ -91,6 +91,15 @@ Turbopack `resolveAlias` and webpack, plus `outputFileTracingRoot` so Next will
 compile files from outside its own root) and in `kaarobar-desktop/vite.config.ts`,
 with matching `paths` in each `tsconfig.json`.
 
+4. **Declare `babel-preset-expo` explicitly** in each Expo app. `babel.config.js`
+   requires it, but it is otherwise only present transitively — an app can pass
+   typecheck and lint, then fail at the Metro bundle step with
+   `Cannot find module 'babel-preset-expo'`. That is exactly how it failed in
+   `mobile-consumer`.
+
+Verified against real builds: `next build` (web), `vite build` (desktop) and
+`expo export` (both mobile apps) all succeed with the aliases in place.
+
 ## Consequences
 
 **Gained.** One edit to a validation schema, an RBAC rule, a locale string or a
@@ -110,7 +119,12 @@ original rule: brand colour is resolved at runtime from the business
 - `rbac.ts` should move into `shared/core/` once `Session` is expressed as a
   shared structural type rather than imported from each app's `api.ts`. Until
   then it is duplicated — the exact drift risk this ADR exists to remove.
-- Web and desktop are **wired but not yet migrated**: their existing copies
-  differ in shape (`listFilters` vs `listingFilters`, `brand-theme` vs
-  `brand-palette`, and extra schemas such as `accounting`/`appointments`/`ess`).
-  Migrate module-by-module, starting with `decimal` and `validations/auth`.
+- Web and desktop are **wired, with migration started**. `lib/decimal.ts` in both
+  is now a re-export of `@core/lib/decimal` — the three copies were byte
+  identical, so it was behaviour-preserving, and it proves the alias resolves
+  through webpack/Turbopack and Vite in a real build. Existing `@/lib/decimal`
+  imports are untouched.
+- Remaining modules differ in shape and need migrating one at a time:
+  `listFilters` vs `listingFilters`, `brand-theme` vs `brand-palette`, and web/
+  desktop carry extra schemas (`accounting`, `appointments`, `ess`) that mobile
+  does not.
