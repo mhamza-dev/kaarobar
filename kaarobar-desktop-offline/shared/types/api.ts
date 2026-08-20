@@ -527,6 +527,24 @@ export type SaleDetail = {
   activity: ActivityEntry[];
 };
 
+/** Paper widths supported by the receipt printer path. */
+export type PosPaperWidth = "58mm" | "76mm" | "80mm";
+
+export type PosPrinterSettings = {
+  posPrintEnabled: boolean;
+  posPrinterName: string;
+  posPaperWidth: PosPaperWidth;
+  posSilent: boolean;
+  posCopies: number;
+};
+
+export type PrinterDevice = {
+  name: string;
+  displayName: string;
+  description: string;
+  isDefault: boolean;
+};
+
 export type KaarobarApi = {
   app: {
     getInfo: () => Promise<AppInfo>;
@@ -746,6 +764,13 @@ export type KaarobarApi = {
       from?: string | null;
       to?: string | null;
     }) => Promise<{ ok: true }>;
+  };
+  printer: {
+    list: () => Promise<PrinterDevice[]>;
+    getSettings: () => Promise<PosPrinterSettings>;
+    setSettings: (
+      payload: Partial<PosPrinterSettings>,
+    ) => Promise<PosPrinterSettings>;
   };
   sales: {
     list: (businessId: string) => Promise<Sale[]>;
@@ -1009,6 +1034,10 @@ export const IPC_CHANNELS = {
   SALES_REFUND_REQUEST: "sales:refundRequest",
   SALES_REFUND_REVIEW: "sales:refundReview",
   SALES_PRINT: "sales:print",
+  PRINTER_LIST: "printer:list",
+  PRINTER_GET_SETTINGS: "printer:getSettings",
+  PRINTER_SET_SETTINGS: "printer:setSettings",
+  PRINTER_TEST: "printer:test",
   TABLE_LIST: "table:list",
   TABLE_CREATE: "table:create",
   TABLE_UPDATE: "table:update",

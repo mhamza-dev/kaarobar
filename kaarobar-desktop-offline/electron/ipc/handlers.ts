@@ -1,5 +1,11 @@
 import { app, ipcMain } from 'electron'
 import { IPC_CHANNELS, type AppInfo } from '../../shared/types/api'
+import { listPrinters } from '../receipt/printSaleReceiptPos'
+import {
+  getPosPrinterSettings,
+  setPosPrinterSettings,
+  type PosPrinterSettings,
+} from '../receipt/posPrinterSettings'
 import { activateLicense, getLicenseStatus } from '../licensing/service'
 import { completeSetup, getBootBrandColor, getBootState, restoreSetupFromBackup } from '../setup/service'
 import { getSession, login, logout, resetOwnerPasswordOffline } from '../auth/service'
@@ -213,6 +219,13 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.SALES_REFUND_REQUEST, async (_event, payload) => createRefundRequest(payload))
   ipcMain.handle(IPC_CHANNELS.SALES_REFUND_REVIEW, async (_event, payload) => reviewRefundRequest(payload))
   ipcMain.handle(IPC_CHANNELS.SALES_PRINT, async (_event, saleId: string) => printSaleReceipt(saleId))
+
+  ipcMain.handle(IPC_CHANNELS.PRINTER_LIST, async () => listPrinters())
+  ipcMain.handle(IPC_CHANNELS.PRINTER_GET_SETTINGS, async () => getPosPrinterSettings())
+  ipcMain.handle(
+    IPC_CHANNELS.PRINTER_SET_SETTINGS,
+    async (_event, payload: Partial<PosPrinterSettings>) => setPosPrinterSettings(payload),
+  )
 
   ipcMain.handle(IPC_CHANNELS.TABLE_LIST, async (_event, businessId: string) => listDiningTables(businessId))
   ipcMain.handle(IPC_CHANNELS.TABLE_CREATE, async (_event, payload) => createDiningTable(payload))

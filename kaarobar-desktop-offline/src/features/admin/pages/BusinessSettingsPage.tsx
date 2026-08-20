@@ -11,6 +11,7 @@ import { assetSrc } from '../../../lib/assets'
 import { currencyOptionsForValue } from '../../../../shared/currencies'
 import { useActiveBusinessStore } from '../../../stores/activeBusinessStore'
 import { InvoiceReceiptPreview } from '../components/InvoiceReceiptPreview'
+import { ReceiptPrinterCard } from '../components/ReceiptPrinterCard'
 import type { SessionUser } from '../../../../shared/types/api'
 import type { AdminData } from '../hooks/useAdminData'
 import * as yup from 'yup'
@@ -362,6 +363,8 @@ export function BusinessSettingsPage({ user, data }: Props) {
                 </div>
               </div>
             </Card>
+
+            <ReceiptPrinterCard />
 
             {canSave ? (
               <div className="sticky bottom-3 z-20 flex flex-wrap items-center justify-end gap-3 rounded-lg border border-line/80 bg-surface-raised/95 px-4 py-3 shadow-lift backdrop-blur-md">

@@ -435,7 +435,18 @@
     "amount": "رقم",
     "type": "قسم",
     "productKind": "پروڈکٹ قسم",
-    "stockNotTracked": "اس پروڈکٹ قسم کے لیے اسٹاک ٹریک نہیں ہوتا۔"
+    "stockNotTracked": "اس پروڈکٹ قسم کے لیے اسٹاک ٹریک نہیں ہوتا۔",
+    "receiptPrinter": "رسید پرنٹر",
+    "receiptPrinterHint": "پیش منظر ونڈو کھولنے کے بجائے رسیدیں براہِ راست تھرمل/POS پرنٹر پر پرنٹ کریں۔",
+    "receiptPrinterEnable": "رسیدیں POS پرنٹر پر پرنٹ کریں",
+    "receiptPrinterEnableHint": "بند ہونے پر پرنٹنگ پہلے کی طرح پیش منظر ونڈو کھولے گی۔",
+    "receiptPrinterDevice": "پرنٹر",
+    "receiptPrinterSystemDefault": "سسٹم کا ڈیفالٹ پرنٹر",
+    "receiptPrinterDefault": "ڈیفالٹ",
+    "receiptPrinterPaper": "کاغذ کی چوڑائی",
+    "receiptPrinterCopies": "کاپیاں",
+    "receiptPrinterSilent": "ڈائیلاگ کے بغیر پرنٹ کریں",
+    "receiptPrinterSilentHint": "سیدھا پرنٹر پر بھیجیں — کاؤنٹر کے لیے تجویز کردہ۔"
   },
   "barcode": {
     "generate": "تیار کریں",

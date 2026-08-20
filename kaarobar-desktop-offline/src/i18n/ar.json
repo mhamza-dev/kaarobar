@@ -413,7 +413,18 @@
     "paymentAmountRequired": "أدخل مبلغاً أكبر من 0",
     "paymentExceedsBalance": "لا يمكن أن تتجاوز الدفعة رصيد الائتمان المتبقي",
     "amount": "المبلغ",
-    "type": "النوع"
+    "type": "النوع",
+    "receiptPrinter": "طابعة الإيصالات",
+    "receiptPrinterHint": "اطبع الإيصالات مباشرة على طابعة حرارية/POS بدلاً من فتح نافذة المعاينة.",
+    "receiptPrinterEnable": "طباعة الإيصالات على طابعة POS",
+    "receiptPrinterEnableHint": "عند الإيقاف، تفتح الطباعة نافذة المعاينة كما في السابق.",
+    "receiptPrinterDevice": "الطابعة",
+    "receiptPrinterSystemDefault": "الطابعة الافتراضية للنظام",
+    "receiptPrinterDefault": "افتراضية",
+    "receiptPrinterPaper": "عرض الورق",
+    "receiptPrinterCopies": "النسخ",
+    "receiptPrinterSilent": "الطباعة بدون مربع حوار",
+    "receiptPrinterSilentHint": "أرسل مباشرة إلى الطابعة — موصى به عند الكاشير."
   },
   "barcode": {
     "generate": "إنشاء",

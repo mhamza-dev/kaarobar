@@ -413,7 +413,18 @@
     "paymentAmountRequired": "Digite um valor maior que 0",
     "paymentExceedsBalance": "O pagamento não pode exceder o saldo restante de crédito",
     "amount": "Valor",
-    "type": "Tipo"
+    "type": "Tipo",
+    "receiptPrinter": "Impressora de recibos",
+    "receiptPrinterHint": "Imprima recibos diretamente numa impressora térmica/POS em vez de abrir uma pré-visualização.",
+    "receiptPrinterEnable": "Imprimir recibos na impressora POS",
+    "receiptPrinterEnableHint": "Quando desativado, a impressão abre a pré-visualização como antes.",
+    "receiptPrinterDevice": "Impressora",
+    "receiptPrinterSystemDefault": "Impressora padrão do sistema",
+    "receiptPrinterDefault": "padrão",
+    "receiptPrinterPaper": "Largura do papel",
+    "receiptPrinterCopies": "Cópias",
+    "receiptPrinterSilent": "Imprimir sem diálogo",
+    "receiptPrinterSilentHint": "Enviar direto para a impressora — recomendado no caixa."
   },
   "barcode": {
     "generate": "Gerar",

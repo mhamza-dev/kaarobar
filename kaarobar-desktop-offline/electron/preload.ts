@@ -96,6 +96,12 @@ const api: KaarobarApi = {
     recordPayment: (payload) => ipcRenderer.invoke(IPC_CHANNELS.CUSTOMER_RECORD_PAYMENT, payload),
     printLedger: (payload) => ipcRenderer.invoke(IPC_CHANNELS.CUSTOMER_PRINT_LEDGER, payload),
   },
+  printer: {
+    list: () => ipcRenderer.invoke(IPC_CHANNELS.PRINTER_LIST),
+    getSettings: () => ipcRenderer.invoke(IPC_CHANNELS.PRINTER_GET_SETTINGS),
+    setSettings: (payload: unknown) =>
+      ipcRenderer.invoke(IPC_CHANNELS.PRINTER_SET_SETTINGS, payload),
+  },
   sales: {
     list: (businessId) => ipcRenderer.invoke(IPC_CHANNELS.SALES_LIST, businessId),
     getDetail: (saleId) => ipcRenderer.invoke(IPC_CHANNELS.SALES_GET_DETAIL, saleId),

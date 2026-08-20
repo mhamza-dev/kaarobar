@@ -38,6 +38,9 @@ export default defineConfig(({ mode }) => {
                   'better-sqlite3',
                   'electron-store',
                   'bcryptjs',
+                  // Loads its own renderer HTML from the package directory at
+                  // runtime, so it must not be inlined into the main bundle.
+                  'electron-pos-printer',
                 ],
               },
             },

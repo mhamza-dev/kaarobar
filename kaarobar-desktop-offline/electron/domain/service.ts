@@ -62,6 +62,8 @@ import { buildSaleReceiptHtml } from "../receipt/buildSaleReceiptHtml";
 import { buildPurchaseOrderHtml } from "../receipt/buildPurchaseOrderHtml";
 import { buildCustomerLedgerHtml } from "../receipt/buildCustomerLedgerHtml";
 import { openPrintPreview } from "../receipt/openPrintPreview";
+import { printSaleReceiptToPos } from "../receipt/printSaleReceiptPos";
+import { getPosPrinterSettings } from "../receipt/posPrinterSettings";
 
 const require = createRequire(import.meta.url);
 
@@ -3153,7 +3155,7 @@ export async function printSaleReceipt(saleId: string): Promise<{ ok: true }> {
     jsBarcodeScript = "";
   }
 
-  const html = await buildSaleReceiptHtml({
+  const receiptInput = {
     invoiceNo: sale.invoice_no,
     subtotal: sale.subtotal,
     discount: sale.discount,
@@ -3184,7 +3186,24 @@ export async function printSaleReceipt(saleId: string): Promise<{ ok: true }> {
     })),
     payments,
     jsBarcodeScript,
-  });
+  };
+
+  // A receipt printer gets structured POS rows. Sending the HTML document
+  // through the browser print pipeline leaves layout to the driver, which is how
+  // a generic/text-only thermal driver ends up emitting markup instead of the
+  // rendered receipt.
+  if (getPosPrinterSettings().posPrintEnabled) {
+    try {
+      await printSaleReceiptToPos(receiptInput);
+      return { ok: true };
+    } catch (error) {
+      // Never lose the receipt: fall back to the preview window so the cashier
+      // still has something to hand over.
+      console.error("POS print failed, falling back to preview", error);
+    }
+  }
+
+  const html = await buildSaleReceiptHtml(receiptInput);
 
   return openPrintPreview({
     html,

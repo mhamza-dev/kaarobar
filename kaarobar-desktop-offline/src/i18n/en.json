@@ -435,7 +435,18 @@
     "paymentAmountRequired": "Enter an amount greater than 0",
     "paymentExceedsBalance": "Payment cannot exceed remaining credit balance",
     "amount": "Amount",
-    "type": "Type"
+    "type": "Type",
+    "receiptPrinter": "Receipt printer",
+    "receiptPrinterHint": "Print sale receipts directly to a thermal/POS printer instead of opening a preview window.",
+    "receiptPrinterEnable": "Print receipts to POS printer",
+    "receiptPrinterEnableHint": "When off, printing opens the preview window as before.",
+    "receiptPrinterDevice": "Printer",
+    "receiptPrinterSystemDefault": "System default printer",
+    "receiptPrinterDefault": "default",
+    "receiptPrinterPaper": "Paper width",
+    "receiptPrinterCopies": "Copies",
+    "receiptPrinterSilent": "Print without dialog",
+    "receiptPrinterSilentHint": "Send straight to the printer — recommended at a till."
   },
   "barcode": {
     "generate": "Generate",

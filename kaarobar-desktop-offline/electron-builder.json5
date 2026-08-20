@@ -8,7 +8,13 @@
     buildResources: "build",
   },
   files: ["dist/**/*", "dist-electron/**/*"],
-  asarUnpack: ["**/*.node", "**/better-sqlite3/**"],
+  // electron-pos-printer loads its renderer HTML with loadFile(__dirname/...),
+  // which needs to be a real file on disk rather than an asar entry.
+  asarUnpack: [
+    "**/*.node",
+    "**/better-sqlite3/**",
+    "**/electron-pos-printer/**",
+  ],
   npmRebuild: true,
   mac: {
     category: "public.app-category.business",

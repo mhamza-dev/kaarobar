@@ -413,7 +413,18 @@
     "paymentAmountRequired": "Geben Sie einen Betrag größer als 0 ein",
     "paymentExceedsBalance": "Zahlung kann den verbleibenden Kreditsaldo nicht überschreiten",
     "amount": "Betrag",
-    "type": "Typ"
+    "type": "Typ",
+    "receiptPrinter": "Belegdrucker",
+    "receiptPrinterHint": "Belege direkt auf einem Thermo-/POS-Drucker drucken, statt ein Vorschaufenster zu öffnen.",
+    "receiptPrinterEnable": "Belege auf POS-Drucker drucken",
+    "receiptPrinterEnableHint": "Wenn deaktiviert, öffnet das Drucken wie bisher das Vorschaufenster.",
+    "receiptPrinterDevice": "Drucker",
+    "receiptPrinterSystemDefault": "Standarddrucker des Systems",
+    "receiptPrinterDefault": "Standard",
+    "receiptPrinterPaper": "Papierbreite",
+    "receiptPrinterCopies": "Kopien",
+    "receiptPrinterSilent": "Ohne Dialog drucken",
+    "receiptPrinterSilentHint": "Direkt an den Drucker senden — an der Kasse empfohlen."
   },
   "barcode": {
     "generate": "Generieren",
