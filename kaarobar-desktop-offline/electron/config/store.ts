@@ -37,6 +37,7 @@ type StoreSchema = {
   posPaperWidth: string
   posSilent: boolean
   posCopies: number
+  posTransport: string
 }
 
 export const appStore = new Store<StoreSchema>({
@@ -58,6 +59,9 @@ export const appStore = new Store<StoreSchema>({
     posPaperWidth: '80mm',
     posSilent: true,
     posCopies: 1,
+    // Raw ESC/POS by default: thermal printers are commonly installed as
+    // passthrough queues, where rendered output prints as PostScript source.
+    posTransport: 'raw',
   },
 })
 

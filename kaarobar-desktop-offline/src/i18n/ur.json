@@ -446,7 +446,15 @@
     "receiptPrinterPaper": "کاغذ کی چوڑائی",
     "receiptPrinterCopies": "کاپیاں",
     "receiptPrinterSilent": "ڈائیلاگ کے بغیر پرنٹ کریں",
-    "receiptPrinterSilentHint": "سیدھا پرنٹر پر بھیجیں — کاؤنٹر کے لیے تجویز کردہ۔"
+    "receiptPrinterSilentHint": "سیدھا پرنٹر پر بھیجیں — کاؤنٹر کے لیے تجویز کردہ۔",
+    "receiptPrinterTransport": "بھیجنے کا طریقہ",
+    "receiptPrinterTransportHint": "زیادہ تر تھرمل پرنٹرز کے لیے Raw ESC/POS ضروری ہے۔ Rendered صرف مکمل ڈرائیور کے ساتھ کام کرتا ہے۔",
+    "receiptPrinterTransportRaw": "Raw ESC/POS (تھرمل پرنٹرز)",
+    "receiptPrinterTransportRendered": "رینڈرڈ صفحہ (ڈرائیور درکار)",
+    "receiptPrinterTestRaw": "Raw ESC/POS ٹیسٹ",
+    "receiptPrinterTestRendered": "رینڈرڈ ٹیسٹ",
+    "receiptPrinterTestSent": "ٹیسٹ پرنٹر کو بھیج دیا گیا",
+    "receiptPrinterTestFailed": "ٹیسٹ پرنٹ ناکام"
   },
   "barcode": {
     "generate": "تیار کریں",

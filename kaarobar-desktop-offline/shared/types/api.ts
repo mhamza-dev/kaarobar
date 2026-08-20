@@ -530,12 +530,24 @@ export type SaleDetail = {
 /** Paper widths supported by the receipt printer path. */
 export type PosPaperWidth = "58mm" | "76mm" | "80mm";
 
+export type PosTransport = "raw" | "rendered";
+
 export type PosPrinterSettings = {
   posPrintEnabled: boolean;
   posPrinterName: string;
   posPaperWidth: PosPaperWidth;
   posSilent: boolean;
   posCopies: number;
+  posTransport: PosTransport;
+};
+
+export type PrinterTestKind = "rendered" | "raw";
+
+export type PrinterTestResult = {
+  kind: PrinterTestKind;
+  ok: boolean;
+  printerName: string;
+  error?: string;
 };
 
 export type PrinterDevice = {
@@ -771,6 +783,7 @@ export type KaarobarApi = {
     setSettings: (
       payload: Partial<PosPrinterSettings>,
     ) => Promise<PosPrinterSettings>;
+    test: (kind: PrinterTestKind) => Promise<PrinterTestResult>;
   };
   sales: {
     list: (businessId: string) => Promise<Sale[]>;

@@ -424,7 +424,15 @@
     "receiptPrinterPaper": "عرض الورق",
     "receiptPrinterCopies": "النسخ",
     "receiptPrinterSilent": "الطباعة بدون مربع حوار",
-    "receiptPrinterSilentHint": "أرسل مباشرة إلى الطابعة — موصى به عند الكاشير."
+    "receiptPrinterSilentHint": "أرسل مباشرة إلى الطابعة — موصى به عند الكاشير.",
+    "receiptPrinterTransport": "طريقة الإرسال",
+    "receiptPrinterTransportHint": "Raw ESC/POS مطلوب لمعظم الطابعات الحرارية. الطباعة المُصيَّرة تعمل فقط مع تعريف كامل.",
+    "receiptPrinterTransportRaw": "Raw ESC/POS (الطابعات الحرارية)",
+    "receiptPrinterTransportRendered": "صفحة مُصيَّرة (تتطلب تعريفًا)",
+    "receiptPrinterTestRaw": "اختبار Raw ESC/POS",
+    "receiptPrinterTestRendered": "اختبار مُصيَّر",
+    "receiptPrinterTestSent": "تم إرسال الاختبار إلى الطابعة",
+    "receiptPrinterTestFailed": "فشل اختبار الطباعة"
   },
   "barcode": {
     "generate": "إنشاء",

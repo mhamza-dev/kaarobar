@@ -101,6 +101,7 @@ const api: KaarobarApi = {
     getSettings: () => ipcRenderer.invoke(IPC_CHANNELS.PRINTER_GET_SETTINGS),
     setSettings: (payload: unknown) =>
       ipcRenderer.invoke(IPC_CHANNELS.PRINTER_SET_SETTINGS, payload),
+    test: (kind: unknown) => ipcRenderer.invoke(IPC_CHANNELS.PRINTER_TEST, kind),
   },
   sales: {
     list: (businessId) => ipcRenderer.invoke(IPC_CHANNELS.SALES_LIST, businessId),

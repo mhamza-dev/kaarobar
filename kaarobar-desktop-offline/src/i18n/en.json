@@ -446,7 +446,15 @@
     "receiptPrinterPaper": "Paper width",
     "receiptPrinterCopies": "Copies",
     "receiptPrinterSilent": "Print without dialog",
-    "receiptPrinterSilentHint": "Send straight to the printer — recommended at a till."
+    "receiptPrinterSilentHint": "Send straight to the printer — recommended at a till.",
+    "receiptPrinterTransport": "How to send",
+    "receiptPrinterTransportHint": "Raw ESC/POS is required for most thermal printers. Rendered only works if the printer has a full driver.",
+    "receiptPrinterTransportRaw": "Raw ESC/POS (thermal printers)",
+    "receiptPrinterTransportRendered": "Rendered page (needs a printer driver)",
+    "receiptPrinterTestRaw": "Test raw ESC/POS",
+    "receiptPrinterTestRendered": "Test rendered",
+    "receiptPrinterTestSent": "Test sent to the printer",
+    "receiptPrinterTestFailed": "Test print failed"
   },
   "barcode": {
     "generate": "Generate",

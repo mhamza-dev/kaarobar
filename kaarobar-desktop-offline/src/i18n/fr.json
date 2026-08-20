@@ -424,7 +424,15 @@
     "receiptPrinterPaper": "Largeur du papier",
     "receiptPrinterCopies": "Copies",
     "receiptPrinterSilent": "Imprimer sans boîte de dialogue",
-    "receiptPrinterSilentHint": "Envoyer directement à l’imprimante — recommandé en caisse."
+    "receiptPrinterSilentHint": "Envoyer directement à l’imprimante — recommandé en caisse.",
+    "receiptPrinterTransport": "Mode d'envoi",
+    "receiptPrinterTransportHint": "Raw ESC/POS est requis pour la plupart des imprimantes thermiques. Le rendu ne marche qu'avec un pilote complet.",
+    "receiptPrinterTransportRaw": "Raw ESC/POS (imprimantes thermiques)",
+    "receiptPrinterTransportRendered": "Page rendue (pilote requis)",
+    "receiptPrinterTestRaw": "Tester Raw ESC/POS",
+    "receiptPrinterTestRendered": "Tester le rendu",
+    "receiptPrinterTestSent": "Test envoyé à l'imprimante",
+    "receiptPrinterTestFailed": "Échec du test d'impression"
   },
   "barcode": {
     "generate": "Générer",

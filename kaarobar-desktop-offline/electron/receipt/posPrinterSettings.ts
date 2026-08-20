@@ -4,6 +4,13 @@ import { appStore } from '../config/store'
 export const POS_PAPER_WIDTHS = ['58mm', '76mm', '80mm'] as const
 export type PosPaperWidth = (typeof POS_PAPER_WIDTHS)[number]
 
+/**
+ * `raw` sends ESC/POS bytes straight to the queue. `rendered` goes
+ * HTML -> Chromium -> OS driver, which only works when the printer has a real
+ * driver — on a raw/passthrough queue it prints the PostScript source instead.
+ */
+export type PosTransport = 'raw' | 'rendered'
+
 export type PosPrinterSettings = {
   /**
    * When false, printing keeps using the HTML preview window. The POS path is
@@ -16,6 +23,7 @@ export type PosPrinterSettings = {
   /** Skip the OS print dialog. This is the point of a till printer. */
   posSilent: boolean
   posCopies: number
+  posTransport: PosTransport
 }
 
 const DEFAULTS: PosPrinterSettings = {
@@ -25,6 +33,7 @@ const DEFAULTS: PosPrinterSettings = {
   posPaperWidth: '80mm',
   posSilent: true,
   posCopies: 1,
+  posTransport: 'raw',
 }
 
 function normalizeWidth(value: unknown): PosPaperWidth {
@@ -48,6 +57,8 @@ export function getPosPrinterSettings(): PosPrinterSettings {
     posPaperWidth: normalizeWidth(appStore.get('posPaperWidth')),
     posSilent: (appStore.get('posSilent') as boolean | undefined) ?? DEFAULTS.posSilent,
     posCopies: normalizeCopies(appStore.get('posCopies')),
+    posTransport:
+      appStore.get('posTransport') === 'rendered' ? 'rendered' : DEFAULTS.posTransport,
   }
 }
 
@@ -68,6 +79,9 @@ export function setPosPrinterSettings(
   }
   if (payload.posCopies !== undefined) {
     appStore.set('posCopies', normalizeCopies(payload.posCopies))
+  }
+  if (payload.posTransport === 'raw' || payload.posTransport === 'rendered') {
+    appStore.set('posTransport', payload.posTransport)
   }
   return getPosPrinterSettings()
 }

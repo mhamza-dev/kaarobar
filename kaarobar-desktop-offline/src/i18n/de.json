@@ -424,7 +424,15 @@
     "receiptPrinterPaper": "Papierbreite",
     "receiptPrinterCopies": "Kopien",
     "receiptPrinterSilent": "Ohne Dialog drucken",
-    "receiptPrinterSilentHint": "Direkt an den Drucker senden — an der Kasse empfohlen."
+    "receiptPrinterSilentHint": "Direkt an den Drucker senden — an der Kasse empfohlen.",
+    "receiptPrinterTransport": "Sendeart",
+    "receiptPrinterTransportHint": "Raw ESC/POS wird für die meisten Thermodrucker benötigt. Gerendert funktioniert nur mit vollem Treiber.",
+    "receiptPrinterTransportRaw": "Raw ESC/POS (Thermodrucker)",
+    "receiptPrinterTransportRendered": "Gerenderte Seite (Treiber nötig)",
+    "receiptPrinterTestRaw": "Raw ESC/POS testen",
+    "receiptPrinterTestRendered": "Gerendert testen",
+    "receiptPrinterTestSent": "Test an den Drucker gesendet",
+    "receiptPrinterTestFailed": "Testdruck fehlgeschlagen"
   },
   "barcode": {
     "generate": "Generieren",

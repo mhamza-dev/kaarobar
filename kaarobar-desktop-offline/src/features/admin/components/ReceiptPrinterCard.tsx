@@ -4,7 +4,9 @@ import { Button, Card, NumberField, SelectField, Toggle, useToast } from '../../
 import type {
   PosPaperWidth,
   PosPrinterSettings,
+  PosTransport,
   PrinterDevice,
+  PrinterTestKind,
 } from '../../../../shared/types/api'
 
 const PAPER_WIDTHS: PosPaperWidth[] = ['58mm', '76mm', '80mm']
@@ -21,6 +23,7 @@ export function ReceiptPrinterCard() {
   const [settings, setSettings] = useState<PosPrinterSettings | null>(null)
   const [printers, setPrinters] = useState<PrinterDevice[]>([])
   const [saving, setSaving] = useState(false)
+  const [testing, setTesting] = useState<PrinterTestKind | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
@@ -51,6 +54,19 @@ export function ReceiptPrinterCard() {
       toast.error(error instanceof Error ? error.message : String(error))
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function runTest(kind: PrinterTestKind) {
+    setTesting(kind)
+    try {
+      const result = await window.api.printer.test(kind)
+      if (result.ok) toast.success(t('forms.receiptPrinterTestSent'))
+      else toast.error(result.error || t('forms.receiptPrinterTestFailed'))
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : String(error))
+    } finally {
+      setTesting(null)
     }
   }
 
@@ -121,6 +137,38 @@ export function ReceiptPrinterCard() {
                 }
               }}
             />
+            <SelectField
+              label={t('forms.receiptPrinterTransport')}
+              hint={t('forms.receiptPrinterTransportHint')}
+              value={settings.posTransport}
+              options={[
+                { value: 'raw', label: t('forms.receiptPrinterTransportRaw') },
+                { value: 'rendered', label: t('forms.receiptPrinterTransportRendered') },
+              ]}
+              disabled={saving}
+              onChange={(value) => void save({ posTransport: value as PosTransport })}
+              containerClassName="sm:col-span-2"
+            />
+            <div className="sm:col-span-2 flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                loading={testing === 'raw'}
+                disabled={saving || testing !== null}
+                onClick={() => void runTest('raw')}
+              >
+                {t('forms.receiptPrinterTestRaw')}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                loading={testing === 'rendered'}
+                disabled={saving || testing !== null}
+                onClick={() => void runTest('rendered')}
+              >
+                {t('forms.receiptPrinterTestRendered')}
+              </Button>
+            </div>
             <Toggle
               checked={settings.posSilent}
               onCheckedChange={(checked) => void save({ posSilent: checked })}

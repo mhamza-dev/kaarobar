@@ -1,6 +1,8 @@
 import { app, ipcMain } from 'electron'
 import { IPC_CHANNELS, type AppInfo } from '../../shared/types/api'
 import { listPrinters } from '../receipt/printSaleReceiptPos'
+import { testPrint } from '../receipt/printerDiagnostics'
+import type { PrinterTestKind } from '../../shared/types/api'
 import {
   getPosPrinterSettings,
   setPosPrinterSettings,
@@ -225,6 +227,9 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(
     IPC_CHANNELS.PRINTER_SET_SETTINGS,
     async (_event, payload: Partial<PosPrinterSettings>) => setPosPrinterSettings(payload),
+  )
+  ipcMain.handle(IPC_CHANNELS.PRINTER_TEST, async (_event, kind: PrinterTestKind) =>
+    testPrint(kind),
   )
 
   ipcMain.handle(IPC_CHANNELS.TABLE_LIST, async (_event, businessId: string) => listDiningTables(businessId))

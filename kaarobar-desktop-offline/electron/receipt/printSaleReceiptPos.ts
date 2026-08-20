@@ -1,6 +1,7 @@
 import { BrowserWindow } from 'electron'
 import { createRequire } from 'node:module'
 import { buildSaleReceiptPos } from './buildSaleReceiptPos'
+import { buildSaleReceiptEscPos } from './buildSaleReceiptEscPos'
 import type { ReceiptSaleInput } from './buildSaleReceiptHtml'
 import { getPosPrinterSettings } from './posPrinterSettings'
 
@@ -55,6 +56,23 @@ export async function listPrinters(): Promise<PrinterDevice[]> {
  */
 export async function printSaleReceiptToPos(input: ReceiptSaleInput): Promise<void> {
   const settings = getPosPrinterSettings()
+
+  // Raw ESC/POS: the only transport that works on a passthrough queue, where a
+  // rendered page arrives as PostScript source and is printed literally.
+  if (settings.posTransport === 'raw') {
+    if (!settings.posPrinterName) {
+      throw new Error(
+        'Raw ESC/POS printing needs an explicit printer (it shells out to `lp -d <printer>`). ' +
+          'Choose one in Settings → Receipt printer.',
+      )
+    }
+    const bytes = buildSaleReceiptEscPos(input, settings.posPaperWidth)
+    for (let copy = 0; copy < settings.posCopies; copy += 1) {
+      await PosPrinter.sendRawCommand(settings.posPrinterName, bytes)
+    }
+    return
+  }
+
   const data = buildSaleReceiptPos(input)
 
   await PosPrinter.print(data, {
