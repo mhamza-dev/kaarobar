@@ -1,8 +1,15 @@
 import { BrowserWindow } from 'electron'
-import { PosPrinter } from 'electron-pos-printer'
+import { createRequire } from 'node:module'
 import { buildSaleReceiptPos } from './buildSaleReceiptPos'
 import type { ReceiptSaleInput } from './buildSaleReceiptHtml'
 import { getPosPrinterSettings } from './posPrinterSettings'
+
+// electron-pos-printer is CommonJS while this main-process bundle is ESM, so a
+// named import throws at load: "Named export 'PosPrinter' not found". Go through
+// createRequire — the same interop this codebase already uses for CJS deps.
+const require = createRequire(import.meta.url)
+const { PosPrinter } =
+  require('electron-pos-printer') as typeof import('electron-pos-printer')
 
 export type PrinterDevice = {
   name: string

@@ -289,7 +289,7 @@ export async function buildSaleReceiptHtml(
       <div class="brand-tag">${escapeHtml(labels.poweredBy)}</div>
     </div>
   </div>
-  <script>${jsBarcodeSrc}<\/script>
+  <script>${jsBarcodeSrc}</script>
   <script>
     try {
       JsBarcode("#barcode", ${invoiceJs}, {
@@ -301,7 +301,7 @@ export async function buildSaleReceiptHtml(
         margin: 0
       });
     } catch (e) {}
-  <\/script>
+  </script>
 </body>
 </html>`;
 }

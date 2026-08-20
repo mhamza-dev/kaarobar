@@ -2193,7 +2193,7 @@ export function createSale(payload: {
     throw new Error("Add at least one item to the sale");
 
   const nature = getBusinessNature(payload.businessId);
-  let servedByUserId: string | null = payload.servedByUserId?.trim() || null;
+  const servedByUserId: string | null = payload.servedByUserId?.trim() || null;
   let serviceMode: ServiceMode | null = payload.serviceMode ?? null;
   let tableId: string | null = payload.tableId?.trim() || null;
   const ticketId = payload.ticketId?.trim() || null;
@@ -3021,7 +3021,7 @@ export function updateSaleDelivery(payload: {
   if (sale.serviceMode !== "takeaway" && sale.serviceMode !== "delivery") {
     throw new Error("Delivery tracking is only for takeaway or delivery sales");
   }
-  let riderUserId =
+  const riderUserId =
     payload.riderUserId === undefined
       ? sale.riderUserId
       : payload.riderUserId?.trim() || null;
