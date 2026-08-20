@@ -1,18 +1,18 @@
-import { app as Xe, BrowserWindow as Gr, dialog as Uc, ipcMain as C, protocol as Pc } from "electron";
+import { app as Xe, dialog as Uc, BrowserWindow as Gr, ipcMain as C, protocol as Pc } from "electron";
 import { fileURLToPath as Zd } from "node:url";
 import F from "node:path";
-import en from "fs";
+import tn from "fs";
 import Jd from "path";
 import Qd from "os";
 import ef from "crypto";
 import { createRequire as Js } from "node:module";
-import tf from "electron-store";
-import $ from "node:fs";
-import rf from "better-sqlite3";
+import M from "node:fs";
 import { randomBytes as Bc, createCipheriv as Fc, createHash as Mc, randomUUID as $c, scryptSync as Hc, createDecipheriv as Xc } from "node:crypto";
+import dr from "bcryptjs";
+import tf from "better-sqlite3";
+import rf from "electron-store";
 import { execFileSync as Wc } from "node:child_process";
 import Je from "node:os";
-import dr from "bcryptjs";
 import Vr from "stream";
 import nf from "events";
 import zc from "buffer";
@@ -24,7 +24,7 @@ function Qs(e) {
   return e && e.__esModule && Object.prototype.hasOwnProperty.call(e, "default") ? e.default : e;
 }
 var dt = { exports: {} };
-const Is = en, Hi = Jd, af = Qd, of = ef, Ma = [
+const Is = tn, Xi = Jd, af = Qd, of = ef, Ma = [
   "◈ encrypted .env [www.dotenvx.com]",
   "◈ secrets for agents [www.dotenvx.com]",
   "⌁ auth for agents [www.vestauth.com]",
@@ -134,11 +134,11 @@ function Yc(e) {
     else
       t = e.path.endsWith(".vault") ? e.path : `${e.path}.vault`;
   else
-    t = Hi.resolve(process.cwd(), ".env.vault");
+    t = Xi.resolve(process.cwd(), ".env.vault");
   return Is.existsSync(t) ? t : null;
 }
 function $a(e) {
-  return e[0] === "~" ? Hi.join(af.homedir(), e.slice(1)) : e;
+  return e[0] === "~" ? Xi.join(af.homedir(), e.slice(1)) : e;
 }
 function Ef(e) {
   const t = nr(process.env.DOTENV_CONFIG_DEBUG || e && e.debug), r = nr(process.env.DOTENV_CONFIG_QUIET || e && e.quiet);
@@ -148,7 +148,7 @@ function Ef(e) {
   return e && e.processEnv != null && (s = e.processEnv), me.populate(s, i, e), { parsed: i };
 }
 function mf(e) {
-  const t = Hi.resolve(process.cwd(), ".env");
+  const t = Xi.resolve(process.cwd(), ".env");
   let r = "utf8", i = process.env;
   e && e.processEnv != null && (i = e.processEnv);
   let s = nr(i.DOTENV_CONFIG_DEBUG || e && e.debug), n = nr(i.DOTENV_CONFIG_QUIET || e && e.quiet);
@@ -176,7 +176,7 @@ function mf(e) {
     const l = Object.keys(u).length, p = [];
     for (const d of a)
       try {
-        const f = Hi.relative(process.cwd(), d);
+        const f = Xi.relative(process.cwd(), d);
         p.push(f);
       } catch (f) {
         s && Dr(`failed to load ${d} ${f.message}`), o = f;
@@ -333,752 +333,16 @@ const yf = /* @__PURE__ */ Qs(vf), A = {
   BACKUP_PROGRESS: "backup:progress",
   BACKUP_GET_AUTO_SETTINGS: "backup:getAutoSettings",
   BACKUP_SET_AUTO_SETTINGS: "backup:setAutoSettings"
-}, wf = {
-  PKR: "Rs",
-  RS: "Rs",
-  USD: "$",
-  EUR: "€",
-  GBP: "£",
-  AED: "د.إ",
-  SAR: "﷼",
-  INR: "₹",
-  BRL: "R$",
-  TRY: "₺",
-  IDR: "Rp",
-  MXN: "MX$",
-  CAD: "CA$",
-  AUD: "A$",
-  QAR: "QR",
-  KWD: "KD",
-  EGP: "E£",
-  MYR: "RM",
-  SGD: "S$"
 };
-function tn(e) {
-  const t = (e || "PKR").trim().toUpperCase();
-  return wf[t] ?? t;
-}
 function tt() {
   return F.join(Xe.getPath("appData"), "Kaarobar");
 }
 function ea() {
   return F.join(tt(), "assets");
 }
-const j = new tf({
-  name: "kaarobar-config",
-  cwd: tt(),
-  defaults: {
-    language: "en",
-    lastBusinessId: null,
-    licenseBlob: null,
-    setupComplete: !1,
-    autoBackupEnabled: !1,
-    autoBackupTime: "22:00",
-    lastAutoBackupAt: null
-  }
-}), Sf = /^([01]\d|2[0-3]):([0-5]\d)$/;
-function ta(e) {
-  return e && Sf.test(e) ? e : "22:00";
-}
-function ra() {
-  return {
-    autoBackupEnabled: !!j.get("autoBackupEnabled"),
-    autoBackupTime: ta(j.get("autoBackupTime")),
-    lastAutoBackupAt: j.get("lastAutoBackupAt") ?? null
-  };
-}
-function Rf(e) {
-  return typeof e.autoBackupEnabled == "boolean" && j.set("autoBackupEnabled", e.autoBackupEnabled), e.autoBackupTime !== void 0 && j.set("autoBackupTime", ta(e.autoBackupTime)), ra();
-}
-function Nf(e = (/* @__PURE__ */ new Date()).toISOString()) {
-  j.set("lastAutoBackupAt", e);
-}
-const If = ["en", "ur", "de", "pt", "es", "fr", "ar"], Lf = /* @__PURE__ */ new Set(["ur", "ar"]), Af = {
-  en: "en-US",
-  ur: "ur-PK",
-  de: "de-DE",
-  pt: "pt-BR",
-  es: "es-ES",
-  fr: "fr-FR",
-  ar: "ar-SA"
-};
-function Cf(e) {
-  return If.includes(e);
-}
-function Xt(e) {
-  const t = e == null ? void 0 : e.trim().toLowerCase().split(/[-_]/)[0];
-  return t && Cf(t) ? t : "en";
-}
-function Of(e) {
-  return Lf.has(e);
-}
-function kf(e) {
-  return Af[e];
-}
-function Ke() {
-  return Xt(j.get("language"));
-}
-const fe = {
-  en: "Powered by Kaarobar POS · 2ndHub Solutions",
-  ur: "کاروبار POS · 2ndHub Solutions سے تقویت یافتہ",
-  de: "Bereitgestellt von Kaarobar POS · 2ndHub Solutions",
-  pt: "Desenvolvido por Kaarobar POS · 2ndHub Solutions",
-  es: "Desarrollado por Kaarobar POS · 2ndHub Solutions",
-  fr: "Propulsé par Kaarobar POS · 2ndHub Solutions",
-  ar: "مدعوم من Kaarobar POS · 2ndHub Solutions"
-}, xf = {
-  en: {
-    cashReceipt: "CASH RECEIPT",
-    creditReceipt: "CREDIT RECEIPT",
-    cardReceipt: "CARD / ONLINE RECEIPT",
-    invoice: "Invoice",
-    date: "Date",
-    customer: "Customer",
-    cashier: "Cashier",
-    printedBy: "Printed by",
-    description: "Description",
-    price: "Price",
-    subtotal: "Subtotal",
-    discount: "Discount",
-    total: "Total",
-    change: "Change",
-    tel: "Tel",
-    followUs: "Follow us",
-    thankYou: "THANK YOU!",
-    customSoftwareSupport: "For custom software solutions, contact us at support.kaarobar@gmail.com or +93304757253",
-    poweredBy: fe.en,
-    cash: "Cash",
-    card: "Card / Online",
-    credit: "Credit"
-  },
-  ur: {
-    cashReceipt: "نقد رسید",
-    creditReceipt: "کریڈٹ رسید",
-    cardReceipt: "کارڈ / آن لائن رسید",
-    invoice: "انوائس",
-    date: "تاریخ",
-    customer: "کسٹمر",
-    cashier: "کیشیئر",
-    printedBy: "پرنٹ کرنے والا",
-    description: "تفصیل",
-    price: "قیمت",
-    subtotal: "ذیلی کل",
-    discount: "رعایت",
-    total: "کل",
-    change: "بقایا واپسی",
-    tel: "فون",
-    followUs: "ہمیں فالو کریں",
-    thankYou: "شکریہ!",
-    customSoftwareSupport: "اس طرح کے سسٹمز بنانے کے لیے رابطہ کریں: support.kaarobar@gmail.com یا +93304757253",
-    poweredBy: fe.ur,
-    cash: "نقد",
-    card: "کارڈ / آن لائن",
-    credit: "کریڈٹ"
-  },
-  de: {
-    cashReceipt: "BARKWITTTUNG",
-    creditReceipt: "KREDITBELEG",
-    cardReceipt: "KARTEN- / ONLINE-BELEG",
-    invoice: "Rechnung",
-    date: "Datum",
-    customer: "Kunde",
-    cashier: "Kassierer",
-    printedBy: "Gedruckt von",
-    description: "Beschreibung",
-    price: "Preis",
-    subtotal: "Zwischensumme",
-    discount: "Rabatt",
-    total: "Gesamt",
-    change: "Rückgeld",
-    tel: "Tel",
-    followUs: "Folgen Sie uns",
-    thankYou: "VIELEN DANK!",
-    customSoftwareSupport: "Für individuelle Software kontaktieren Sie uns unter support.kaarobar@gmail.com oder +93304757253",
-    poweredBy: fe.de,
-    cash: "Bar",
-    card: "Karte / Online",
-    credit: "Kredit"
-  },
-  pt: {
-    cashReceipt: "RECIBO EM DINHEIRO",
-    creditReceipt: "RECIBO CRÉDITO",
-    cardReceipt: "RECIBO CARTÃO / ONLINE",
-    invoice: "Fatura",
-    date: "Data",
-    customer: "Cliente",
-    cashier: "Caixa",
-    printedBy: "Impresso por",
-    description: "Descrição",
-    price: "Preço",
-    subtotal: "Subtotal",
-    discount: "Desconto",
-    total: "Total",
-    change: "Troco",
-    tel: "Tel",
-    followUs: "Siga-nos",
-    thankYou: "OBRIGADO!",
-    customSoftwareSupport: "Para soluções de software personalizadas, entre em contato em support.kaarobar@gmail.com ou +93304757253",
-    poweredBy: fe.pt,
-    cash: "Dinheiro",
-    card: "Cartão / Online",
-    credit: "Crédito"
-  },
-  es: {
-    cashReceipt: "RECIBO EN EFECTIVO",
-    creditReceipt: "RECIBO CRÉDITO",
-    cardReceipt: "RECIBO TARJETA / EN LÍNEA",
-    invoice: "Factura",
-    date: "Fecha",
-    customer: "Cliente",
-    cashier: "Cajero",
-    printedBy: "Impreso por",
-    description: "Descripción",
-    price: "Precio",
-    subtotal: "Subtotal",
-    discount: "Descuento",
-    total: "Total",
-    change: "Cambio",
-    tel: "Tel",
-    followUs: "Síguenos",
-    thankYou: "¡GRACIAS!",
-    customSoftwareSupport: "Para software a medida, contáctanos en support.kaarobar@gmail.com o +93304757253",
-    poweredBy: fe.es,
-    cash: "Efectivo",
-    card: "Tarjeta / En línea",
-    credit: "Crédito"
-  },
-  fr: {
-    cashReceipt: "REÇU ESPÈCES",
-    creditReceipt: "REÇU CRÉDIT",
-    cardReceipt: "REÇU CARTE / EN LIGNE",
-    invoice: "Facture",
-    date: "Date",
-    customer: "Client",
-    cashier: "Caissier",
-    printedBy: "Imprimé par",
-    description: "Description",
-    price: "Prix",
-    subtotal: "Sous-total",
-    discount: "Remise",
-    total: "Total",
-    change: "Monnaie",
-    tel: "Tél",
-    followUs: "Suivez-nous",
-    thankYou: "MERCI !",
-    customSoftwareSupport: "Pour un logiciel sur mesure, contactez-nous à support.kaarobar@gmail.com ou +93304757253",
-    poweredBy: fe.fr,
-    cash: "Espèces",
-    card: "Carte / En ligne",
-    credit: "Crédit"
-  },
-  ar: {
-    cashReceipt: "إيصال نقدي",
-    creditReceipt: "إيصال ائتمان",
-    cardReceipt: "إيصال بطاقة / أونلاين",
-    invoice: "فاتورة",
-    date: "التاريخ",
-    customer: "العميل",
-    cashier: "أمين الصندوق",
-    printedBy: "طُبع بواسطة",
-    description: "الوصف",
-    price: "السعر",
-    subtotal: "المجموع الفرعي",
-    discount: "الخصم",
-    total: "الإجمالي",
-    change: "الباقي",
-    tel: "هاتف",
-    followUs: "تابعنا",
-    thankYou: "شكراً لك!",
-    customSoftwareSupport: "للحلول البرمجية حسب الطلب، تواصل معنا على support.kaarobar@gmail.com أو +93304757253",
-    poweredBy: fe.ar,
-    cash: "نقد",
-    card: "بطاقة / أونلاين",
-    credit: "ائتمان"
-  }
-}, Df = {
-  en: {
-    purchaseOrder: "PURCHASE ORDER",
-    poNumber: "PO #",
-    date: "Date",
-    status: "Status",
-    supplier: "Supplier",
-    phone: "Phone",
-    address: "Address",
-    product: "Product",
-    qty: "Qty",
-    unitCost: "Unit cost",
-    total: "Total",
-    poweredBy: fe.en
-  },
-  ur: {
-    purchaseOrder: "خریداری آرڈر",
-    poNumber: "پی او #",
-    date: "تاریخ",
-    status: "حالت",
-    supplier: "سپلائر",
-    phone: "فون",
-    address: "پتہ",
-    product: "پروڈکٹ",
-    qty: "مقدار",
-    unitCost: "یونٹ لاگت",
-    total: "کل",
-    poweredBy: fe.ur
-  },
-  de: {
-    purchaseOrder: "BESTELLUNG",
-    poNumber: "PO #",
-    date: "Datum",
-    status: "Status",
-    supplier: "Lieferant",
-    phone: "Telefon",
-    address: "Adresse",
-    product: "Produkt",
-    qty: "Menge",
-    unitCost: "Stückkosten",
-    total: "Gesamt",
-    poweredBy: fe.de
-  },
-  pt: {
-    purchaseOrder: "PEDIDO DE COMPRA",
-    poNumber: "PC #",
-    date: "Data",
-    status: "Status",
-    supplier: "Fornecedor",
-    phone: "Telefone",
-    address: "Endereço",
-    product: "Produto",
-    qty: "Qtd",
-    unitCost: "Custo unitário",
-    total: "Total",
-    poweredBy: fe.pt
-  },
-  es: {
-    purchaseOrder: "ORDEN DE COMPRA",
-    poNumber: "OC #",
-    date: "Fecha",
-    status: "Estado",
-    supplier: "Proveedor",
-    phone: "Teléfono",
-    address: "Dirección",
-    product: "Producto",
-    qty: "Cant",
-    unitCost: "Costo unitario",
-    total: "Total",
-    poweredBy: fe.es
-  },
-  fr: {
-    purchaseOrder: "BON DE COMMANDE",
-    poNumber: "BC #",
-    date: "Date",
-    status: "Statut",
-    supplier: "Fournisseur",
-    phone: "Téléphone",
-    address: "Adresse",
-    product: "Produit",
-    qty: "Qté",
-    unitCost: "Coût unitaire",
-    total: "Total",
-    poweredBy: fe.fr
-  },
-  ar: {
-    purchaseOrder: "أمر شراء",
-    poNumber: "أمر شراء #",
-    date: "التاريخ",
-    status: "الحالة",
-    supplier: "المورد",
-    phone: "الهاتف",
-    address: "العنوان",
-    product: "المنتج",
-    qty: "الكمية",
-    unitCost: "تكلفة الوحدة",
-    total: "الإجمالي",
-    poweredBy: fe.ar
-  }
-}, Uf = {
-  en: {
-    title: "CUSTOMER LEDGER",
-    customer: "Customer",
-    phone: "Phone",
-    period: "Period",
-    allEntries: "All entries",
-    printedAt: "Printed",
-    date: "Date",
-    particulars: "Particulars",
-    debit: "Debit",
-    credit: "Credit",
-    balance: "Balance",
-    balanceBroughtForward: "Balance brought forward",
-    totals: "Totals",
-    closingBalance: "Closing balance",
-    poweredBy: fe.en,
-    sale: "Sale",
-    payment: "Payment",
-    adjustment: "Adjustment",
-    opening: "Opening",
-    cash: "Cash",
-    card: "Card / Online"
-  },
-  ur: {
-    title: "کسٹمر کریڈٹ",
-    customer: "کسٹمر",
-    phone: "فون",
-    period: "مدت",
-    allEntries: "تمام اندراجات",
-    printedAt: "پرنٹ",
-    date: "تاریخ",
-    particulars: "تفصیل",
-    debit: "ڈیبٹ",
-    credit: "کریڈٹ",
-    balance: "بیلنس",
-    balanceBroughtForward: "پچھلا بیلنس",
-    totals: "کل",
-    closingBalance: "اختتامی بیلنس",
-    poweredBy: fe.ur,
-    sale: "فروخت",
-    payment: "ادائیگی",
-    adjustment: "ایڈجسٹمنٹ",
-    opening: "ابتدائی",
-    cash: "نقد",
-    card: "کارڈ / آن لائن"
-  },
-  de: {
-    title: "KUNDENKONTO",
-    customer: "Kunde",
-    phone: "Telefon",
-    period: "Zeitraum",
-    allEntries: "Alle Einträge",
-    printedAt: "Gedruckt",
-    date: "Datum",
-    particulars: "Details",
-    debit: "Soll",
-    credit: "Haben",
-    balance: "Saldo",
-    balanceBroughtForward: "Saldo vorgetragen",
-    totals: "Summen",
-    closingBalance: "Abschlusssaldo",
-    poweredBy: fe.de,
-    sale: "Verkauf",
-    payment: "Zahlung",
-    adjustment: "Anpassung",
-    opening: "Eröffnung",
-    cash: "Bar",
-    card: "Karte / Online"
-  },
-  pt: {
-    title: "RAZÃO DO CLIENTE",
-    customer: "Cliente",
-    phone: "Telefone",
-    period: "Período",
-    allEntries: "Todos os lançamentos",
-    printedAt: "Impresso",
-    date: "Data",
-    particulars: "Detalhes",
-    debit: "Débito",
-    credit: "Crédito",
-    balance: "Saldo",
-    balanceBroughtForward: "Saldo anterior",
-    totals: "Totais",
-    closingBalance: "Saldo final",
-    poweredBy: fe.pt,
-    sale: "Venda",
-    payment: "Pagamento",
-    adjustment: "Ajuste",
-    opening: "Abertura",
-    cash: "Dinheiro",
-    card: "Cartão / Online"
-  },
-  es: {
-    title: "LIBRO DEL CLIENTE",
-    customer: "Cliente",
-    phone: "Teléfono",
-    period: "Período",
-    allEntries: "Todos los asientos",
-    printedAt: "Impreso",
-    date: "Fecha",
-    particulars: "Concepto",
-    debit: "Débito",
-    credit: "Crédito",
-    balance: "Saldo",
-    balanceBroughtForward: "Saldo anterior",
-    totals: "Totales",
-    closingBalance: "Saldo de cierre",
-    poweredBy: fe.es,
-    sale: "Venta",
-    payment: "Pago",
-    adjustment: "Ajuste",
-    opening: "Apertura",
-    cash: "Efectivo",
-    card: "Tarjeta / En línea"
-  },
-  fr: {
-    title: "GRAND LIVRE CLIENT",
-    customer: "Client",
-    phone: "Téléphone",
-    period: "Période",
-    allEntries: "Toutes les écritures",
-    printedAt: "Imprimé",
-    date: "Date",
-    particulars: "Libellé",
-    debit: "Débit",
-    credit: "Crédit",
-    balance: "Solde",
-    balanceBroughtForward: "Solde reporté",
-    totals: "Totaux",
-    closingBalance: "Solde de clôture",
-    poweredBy: fe.fr,
-    sale: "Vente",
-    payment: "Paiement",
-    adjustment: "Ajustement",
-    opening: "Ouverture",
-    cash: "Espèces",
-    card: "Carte / En ligne"
-  },
-  ar: {
-    title: "دفتر العميل",
-    customer: "العميل",
-    phone: "الهاتف",
-    period: "الفترة",
-    allEntries: "كل القيود",
-    printedAt: "طُبع",
-    date: "التاريخ",
-    particulars: "التفاصيل",
-    debit: "مدين",
-    credit: "دائن",
-    balance: "الرصيد",
-    balanceBroughtForward: "الرصيد المُرحَّل",
-    totals: "الإجماليات",
-    closingBalance: "الرصيد الختامي",
-    poweredBy: fe.ar,
-    sale: "بيع",
-    payment: "دفعة",
-    adjustment: "تعديل",
-    opening: "افتتاحي",
-    cash: "نقد",
-    card: "بطاقة / أونلاين"
-  }
-};
-function jc(e = Ke()) {
-  return xf[e];
-}
-function Pf(e = Ke()) {
-  return Df[e];
-}
-function Bf(e = Ke()) {
-  return Uf[e];
-}
-const Ff = {
-  en: {
-    print: "Print",
-    close: "Close",
-    previewHint: "Preview — print when ready"
-  },
-  ur: {
-    print: "پرنٹ",
-    close: "بند کریں",
-    previewHint: "پیش منظر — تیار ہونے پر پرنٹ کریں"
-  },
-  de: {
-    print: "Drucken",
-    close: "Schließen",
-    previewHint: "Vorschau — bei Bedarf drucken"
-  },
-  pt: {
-    print: "Imprimir",
-    close: "Fechar",
-    previewHint: "Prévia — imprima quando estiver pronto"
-  },
-  es: {
-    print: "Imprimir",
-    close: "Cerrar",
-    previewHint: "Vista previa — imprima cuando esté listo"
-  },
-  fr: {
-    print: "Imprimer",
-    close: "Fermer",
-    previewHint: "Aperçu — imprimez quand vous êtes prêt"
-  },
-  ar: {
-    print: "طباعة",
-    close: "إغلاق",
-    previewHint: "معاينة — اطبع عند الجاهزية"
-  }
-};
-function Mf(e = Ke()) {
-  return Ff[e];
-}
-function ia(e = Ke()) {
-  const t = Of(e);
-  return {
-    lang: e,
-    dir: t ? "rtl" : "ltr",
-    fontFamily: t ? "'Noto Sans Arabic', 'Noto Naskh Arabic', ui-sans-serif, sans-serif" : "'Poppins', ui-sans-serif, sans-serif",
-    fontLink: t ? "https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap" : "https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"
-  };
-}
-function Xi(e, t = Ke()) {
-  try {
-    return new Date(e).toLocaleString(kf(t));
-  } catch {
-    return e;
-  }
-}
-const $f = '"Courier New", ui-monospace, monospace';
-function Dt(e, t) {
-  return `${e} ${t.toFixed(2)}`;
-}
-function hi(e = "-") {
-  return {
-    type: "text",
-    value: e.repeat(42),
-    style: { fontFamily: $f, fontSize: "11px", textAlign: "center", margin: "2px 0" }
-  };
-}
-function st(e, t = {}) {
-  return {
-    type: "text",
-    value: e,
-    style: {
-      textAlign: "center",
-      fontWeight: t.bold ? "700" : "400",
-      fontSize: t.size ?? "12px",
-      margin: "1px 0"
-    }
-  };
-}
-function Ge(e, t, r = {}) {
-  return {
-    type: "text",
-    value: `<div style="display:flex;justify-content:space-between;gap:8px;">
-      <span>${Ls(e)}</span><span>${Ls(t)}</span>
-    </div>`,
-    style: {
-      fontSize: r.bold ? "14px" : "12px",
-      fontWeight: r.bold ? "700" : "400",
-      margin: "1px 0"
-    }
-  };
-}
-function Ls(e) {
-  return e.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
-function Hf(e, t) {
-  const r = e.toLowerCase();
-  return r === "cash" ? t.cash : r === "card" ? t.card : r === "credit" ? t.credit : e;
-}
-function Xf(e, t = e.language ?? Ke()) {
-  const r = jc(t), i = tn(e.currency), s = Math.max(e.amountPaid - e.total, 0), n = [];
-  e.logoPath && n.push({
-    type: "image",
-    path: e.logoPath,
-    position: "center",
-    width: "120px",
-    style: { margin: "0 auto 4px" }
-  }), n.push(st(e.businessName, { bold: !0, size: "16px" })), e.branchAddress && n.push(st(e.branchAddress, { size: "11px" })), e.branchPhone && n.push(st(`${r.tel} ${e.branchPhone}`, { size: "11px" })), e.receiptHeader && n.push(st(e.receiptHeader, { size: "11px" })), n.push(hi("=")), n.push(Ge(r.invoice, e.invoiceNo, { bold: !0 })), n.push(Ge(r.date, Xi(e.createdAt, t))), e.customerName && n.push(Ge(r.customer, e.customerName)), e.cashierName && n.push(Ge(r.cashier, e.cashierName)), e.printedByName && e.printedByName !== e.cashierName && n.push(Ge(r.printedBy, e.printedByName)), n.push(hi()), n.push({
-    type: "table",
-    style: { width: "100%", fontSize: "11px" },
-    tableHeader: [r.description, r.price],
-    tableHeaderStyle: {
-      borderBottom: "1px solid #000",
-      fontWeight: "700",
-      textAlign: "left",
-      fontSize: "11px"
-    },
-    tableBody: e.items.map((o) => [
-      {
-        type: "text",
-        value: `${Ls(o.productName)}<br/><span style="font-size:10px">${o.qty} x ${Dt(i, o.unitPrice)}</span>`,
-        style: { textAlign: "left", paddingRight: "6px" }
-      },
-      {
-        type: "text",
-        value: Dt(i, o.lineTotal),
-        style: { textAlign: "right", whiteSpace: "nowrap" }
-      }
-    ]),
-    tableBodyStyle: { fontSize: "11px", padding: "2px 0", verticalAlign: "top" }
-  }), n.push(hi()), e.discount > 0 && (n.push(Ge(r.subtotal, Dt(i, e.subtotal))), n.push(Ge(r.discount, `- ${Dt(i, e.discount)}`))), n.push(Ge(r.total, Dt(i, e.total), { bold: !0 }));
-  for (const o of e.payments)
-    n.push(Ge(Hf(o.method, r), Dt(i, o.amount)));
-  s > 0 && n.push(Ge(r.change, Dt(i, s))), n.push(hi("=")), n.push({
-    type: "barCode",
-    value: e.invoiceNo.replace(/[^0-9A-Za-z]/g, "").slice(0, 20) || "0",
-    height: "40",
-    width: "2",
-    displayValue: !0,
-    fontsize: 10,
-    position: "center"
-  }), e.receiptFooter && n.push(st(e.receiptFooter, { size: "11px" })), n.push(st(r.thankYou, { bold: !0, size: "12px" }));
-  const a = [
-    e.socialWhatsapp,
-    e.socialInstagram,
-    e.socialFacebook,
-    e.socialTiktok,
-    e.socialWebsite
-  ].filter((o) => !!o && o.trim().length > 0);
-  if (a.length > 0) {
-    n.push(st(r.followUs, { size: "10px" }));
-    for (const o of a) n.push(st(o, { size: "10px" }));
-  }
-  return n.push(st(r.poweredBy + " Kaarobar", { size: "10px" })), n.push({ type: "text", value: " ", style: { margin: "0 0 18px" } }), n;
-}
-const Wf = ["58mm", "76mm", "80mm"], Di = {
-  posPrintEnabled: !1,
-  posPrinterName: "",
-  posPaperWidth: "80mm",
-  posSilent: !0
-};
-function Gc(e) {
-  return Wf.includes(e) ? e : Di.posPaperWidth;
-}
-function Vc(e) {
-  const t = typeof e == "string" ? Number(e) : e;
-  return typeof t != "number" || !Number.isFinite(t) ? 1 : Math.min(Math.max(Math.trunc(t), 1), 5);
-}
-function rn() {
-  return {
-    posPrintEnabled: j.get("posPrintEnabled") ?? Di.posPrintEnabled,
-    posPrinterName: j.get("posPrinterName") ?? Di.posPrinterName,
-    posPaperWidth: Gc(j.get("posPaperWidth")),
-    posSilent: j.get("posSilent") ?? Di.posSilent,
-    posCopies: Vc(j.get("posCopies"))
-  };
-}
-function zf(e) {
-  return typeof e.posPrintEnabled == "boolean" && j.set("posPrintEnabled", e.posPrintEnabled), typeof e.posPrinterName == "string" && j.set("posPrinterName", e.posPrinterName.trim()), e.posPaperWidth !== void 0 && j.set("posPaperWidth", Gc(e.posPaperWidth)), typeof e.posSilent == "boolean" && j.set("posSilent", e.posSilent), e.posCopies !== void 0 && j.set("posCopies", Vc(e.posCopies)), rn();
-}
-const qf = Js(import.meta.url), { PosPrinter: Kf } = qf("electron-pos-printer");
-async function Yf() {
-  const e = Gr.getAllWindows()[0];
-  return e ? (await e.webContents.getPrintersAsync()).map((r) => {
-    var n, a;
-    const i = r, s = i.isDefault === !0 || ((n = i.options) == null ? void 0 : n["printer-is-default"]) === !0 || ((a = i.options) == null ? void 0 : a["is-default"]) === "true";
-    return {
-      name: i.name,
-      displayName: i.displayName || i.name,
-      description: i.description || "",
-      isDefault: s
-    };
-  }) : [];
-}
-async function jf(e) {
-  const t = rn(), r = Xf(e);
-  await Kf.print(r, {
-    printerName: t.posPrinterName || void 0,
-    // `silent` needs a printerName to be meaningful; without one the OS default
-    // is used, which is still what a single-printer till wants.
-    silent: t.posSilent,
-    preview: !1,
-    copies: t.posCopies,
-    pageSize: t.posPaperWidth,
-    margin: "0 0 0 0",
-    // The library waits `data.length * timeOutPerLine` ms before resolving.
-    // Receipts are short, so keep this small or every sale blocks the till.
-    timeOutPerLine: 400
-  });
-}
 let ke = null;
-const Gf = Js(import.meta.url);
-function Vf() {
+const wf = Js(import.meta.url);
+function Sf() {
   var e, t, r;
   if (process.platform !== "linux") return !1;
   try {
@@ -1088,401 +352,45 @@ function Vf() {
     return !1;
   }
 }
-function Zf() {
+function Rf() {
   try {
-    const e = Gf.resolve("better-sqlite3/package.json"), t = F.dirname(e), r = `${Vf() ? "linuxmusl" : process.platform}-${process.arch}`, i = F.join(t, "prebuilds", `${r}.node`);
-    if ($.existsSync(i)) return i;
+    const e = wf.resolve("better-sqlite3/package.json"), t = F.dirname(e), r = `${Sf() ? "linuxmusl" : process.platform}-${process.arch}`, i = F.join(t, "prebuilds", `${r}.node`);
+    if (M.existsSync(i)) return i;
     const s = F.join(t, "build", "Release", "better_sqlite3.node");
-    if ($.existsSync(s)) return s;
+    if (M.existsSync(s)) return s;
     const n = F.join(t, "build", "Debug", "better_sqlite3.node");
-    if ($.existsSync(n)) return n;
+    if (M.existsSync(n)) return n;
   } catch {
   }
 }
-function nn() {
+function rn() {
   return F.join(tt(), "kaarobar.sqlite");
 }
-function sn() {
-  return $.existsSync(nn());
+function nn() {
+  return M.existsSync(rn());
 }
 function We() {
   if (ke) return ke;
-  const e = nn();
-  $.mkdirSync(F.dirname(e), { recursive: !0 });
-  const t = Zf();
+  const e = rn();
+  M.mkdirSync(F.dirname(e), { recursive: !0 });
+  const t = Rf();
   if (!t)
     throw new Error(
       "better-sqlite3 native build is missing (prebuilds/*.node or build/Release/better_sqlite3.node). Run: npm run rebuild:native"
     );
-  return ke = new rf(e, { nativeBinding: t }), ke.pragma("journal_mode = WAL"), ke.pragma("foreign_keys = ON"), ke;
+  return ke = new tf(e, { nativeBinding: t }), ke.pragma("journal_mode = WAL"), ke.pragma("foreign_keys = ON"), ke;
 }
 function he() {
   if (!ke) throw new Error("Database is not open. Call openDatabase() first.");
   return ke;
 }
-function na() {
+function ta() {
   ke && (ke.close(), ke = null);
 }
-function an() {
+function sn() {
   return ke != null;
 }
-const Jf = "", Qf = "kaarobar-license-salt";
-let pi = null, _i = null;
-function eh() {
-  if (_i) return _i;
-  let e = "";
-  try {
-    const r = Je.networkInterfaces();
-    e = Object.values(r).flatMap((i) => i ?? []).filter((i) => i && !i.internal && i.mac && i.mac !== "00:00:00:00:00:00").map((i) => i.mac).sort().join("|");
-  } catch {
-    e = "";
-  }
-  const t = [
-    "kaarobar",
-    Je.hostname(),
-    Je.platform(),
-    Je.arch(),
-    Je.userInfo().username,
-    e
-  ].join("::");
-  return _i = Mc("sha256").update(t).digest("hex"), _i;
-}
-function th(e) {
-  return Mc("sha256").update(`kaarobar::${e}`).digest("hex");
-}
-function rh() {
-  var e;
-  try {
-    const r = Wc("ioreg", ["-rd1", "-c", "IOPlatformExpertDevice"], {
-      encoding: "utf8",
-      timeout: 5e3,
-      windowsHide: !0
-    }).match(/"IOPlatformUUID"\s*=\s*"([^"]+)"/);
-    return ((e = r == null ? void 0 : r[1]) == null ? void 0 : e.trim()) || null;
-  } catch {
-    return null;
-  }
-}
-function ih() {
-  var e;
-  try {
-    const r = Wc(
-      "reg",
-      ["query", "HKLM\\SOFTWARE\\Microsoft\\Cryptography", "/v", "MachineGuid"],
-      { encoding: "utf8", timeout: 5e3, windowsHide: !0 }
-    ).match(/MachineGuid\s+REG_SZ\s+([0-9A-Fa-f-]+)/);
-    return ((e = r == null ? void 0 : r[1]) == null ? void 0 : e.trim()) || null;
-  } catch {
-    return null;
-  }
-}
-function nh() {
-  for (const e of ["/etc/machine-id", "/var/lib/dbus/machine-id"])
-    try {
-      const t = $.readFileSync(e, "utf8").trim();
-      if (t) return t;
-    } catch {
-    }
-  return null;
-}
-function sh() {
-  switch (Je.platform()) {
-    case "darwin":
-      return rh();
-    case "win32":
-      return ih();
-    default:
-      return nh();
-  }
-}
-function Zc() {
-  const e = Je.homedir();
-  switch (Je.platform()) {
-    case "darwin":
-      return F.join(e, "Library", "Application Support", "2ndHub", "Kaarobar", "device.id");
-    case "win32": {
-      const t = process.env.PROGRAMDATA || "C:\\ProgramData";
-      return F.join(t, "2ndHub", "Kaarobar", "device.id");
-    }
-    default:
-      return F.join(e, ".local", "share", "2ndHub", "Kaarobar", "device.id");
-  }
-}
-function ah() {
-  try {
-    return $.readFileSync(Zc(), "utf8").trim() || null;
-  } catch {
-    return null;
-  }
-}
-function oh(e) {
-  const t = Zc();
-  $.mkdirSync(F.dirname(t), { recursive: !0 }), $.writeFileSync(t, e, { encoding: "utf8", mode: 384 });
-}
-function ch() {
-  const e = sh();
-  if (e) return e;
-  const t = ah();
-  if (t) return t;
-  const r = $c();
-  try {
-    return oh(r), r;
-  } catch {
-    if (Je.platform() === "win32") {
-      const i = F.join(
-        process.env.LOCALAPPDATA || F.join(Je.homedir(), "AppData", "Local"),
-        "2ndHub",
-        "Kaarobar",
-        "device.id"
-      );
-      try {
-        const s = $.readFileSync(i, "utf8").trim();
-        return s || ($.mkdirSync(F.dirname(i), { recursive: !0 }), $.writeFileSync(i, r, { encoding: "utf8", mode: 384 }), r);
-      } catch {
-        return r;
-      }
-    }
-    return r;
-  }
-}
-function Jc() {
-  return pi || (pi = th(ch()), pi);
-}
-function Qc(e) {
-  return Hc(`${Jf}:${e}`, Qf, 32);
-}
-function eu(e) {
-  const t = Qc(e.fingerprint), r = Bc(12), i = Fc("aes-256-gcm", t, r), s = Buffer.from(JSON.stringify(e), "utf8"), n = Buffer.concat([i.update(s), i.final()]), a = i.getAuthTag();
-  return Buffer.concat([r, a, n]).toString("base64");
-}
-function Ha(e, t) {
-  try {
-    const r = Buffer.from(e, "base64"), i = r.subarray(0, 12), s = r.subarray(12, 28), n = r.subarray(28), a = Qc(t), o = Xc("aes-256-gcm", a, i);
-    o.setAuthTag(s);
-    const c = Buffer.concat([o.update(n), o.final()]).toString("utf8"), u = JSON.parse(c);
-    return u.fingerprint === t ? u : null;
-  } catch {
-    return null;
-  }
-}
-function tu(e) {
-  const t = Jc(), r = Ha(e, t);
-  if (r) return { record: r, migratedFromLegacy: !1 };
-  const i = eh();
-  if (i === t) return null;
-  const s = Ha(e, i);
-  return s ? {
-    record: {
-      ...s,
-      fingerprint: t
-    },
-    migratedFromLegacy: !0
-  } : null;
-}
-function uh(e, t = /* @__PURE__ */ new Date()) {
-  return e.expiresAt ? new Date(e.expiresAt).getTime() < t.getTime() : !1;
-}
-let Dn = null;
-const As = /* @__PURE__ */ new Set();
-function lh() {
-  return null;
-}
-function dh(e) {
-  const t = eu(e);
-  return j.set("licenseBlob", t), t;
-}
-function ru(e, t) {
-  if (!an()) return;
-  const r = (/* @__PURE__ */ new Date()).toISOString();
-  he().prepare(
-    `INSERT INTO app_license (id, license_key, expires_at, issued_to, fingerprint, activated_at, updated_at, blob)
-       VALUES ('local', ?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(id) DO UPDATE SET
-         license_key = excluded.license_key,
-         expires_at = excluded.expires_at,
-         issued_to = excluded.issued_to,
-         fingerprint = excluded.fingerprint,
-         activated_at = excluded.activated_at,
-         updated_at = excluded.updated_at,
-         blob = excluded.blob`
-  ).run(
-    e.licenseKey,
-    e.expiresAt,
-    e.issuedTo,
-    e.fingerprint,
-    e.activatedAt,
-    r,
-    t
-  );
-}
-function Wi(e) {
-  const t = dh(e);
-  ru(e, t);
-}
-function fh(e) {
-  e.mode !== "dev" && (!e.licenseKey || As.has(e.licenseKey) || Dn || (Dn = on(e.licenseKey).then((t) => {
-    if (t.ok) {
-      As.add(e.licenseKey);
-      return;
-    }
-    t.error === "device_limit_reached" || t.error === "offline" || t.error;
-  }).catch(() => {
-  }).finally(() => {
-    Dn = null;
-  })));
-}
-function iu(e) {
-  return e ? (e.migratedFromLegacy && (Wi(e.record), fh(e.record)), e.record) : null;
-}
-function zi() {
-  if (!an()) return;
-  const e = sa();
-  if (!e) return;
-  const t = j.get("licenseBlob") || eu(e);
-  ru(e, t);
-}
-function hh() {
-  if (!an()) return null;
-  try {
-    return he().prepare(
-      `SELECT license_key, expires_at, issued_to, fingerprint, activated_at, blob
-         FROM app_license WHERE id = 'local'`
-    ).get() ?? null;
-  } catch {
-    return null;
-  }
-}
-function ph() {
-  const e = j.get("licenseBlob");
-  return e ? iu(tu(e)) : null;
-}
-function _h(e) {
-  const t = iu(tu(e.blob));
-  return t || {
-    licenseKey: e.license_key,
-    fingerprint: e.fingerprint,
-    issuedTo: e.issued_to || "Licensed Customer",
-    expiresAt: e.expires_at,
-    maxDevices: 1,
-    activatedAt: e.activated_at,
-    lastVerifiedAt: e.activated_at,
-    mode: "supabase"
-  };
-}
-function sa() {
-  const e = hh();
-  if (e) return _h(e);
-  const t = ph();
-  return t && an() && Wi(t), t;
-}
-function qi() {
-  const e = Tr();
-  return e.status === "valid" ? e.record : null;
-}
-function Tr() {
-  const e = sa();
-  return e != null && e.licenseKey ? uh(e) ? { status: "expired", record: e } : { status: "valid", record: e } : { status: "none" };
-}
-function Eh(e) {
-  const r = ["invalid_key", "revoked", "expired", "device_limit_reached"].find((s) => s === e);
-  return r ? { ok: !1, error: r, message: {
-    invalid_key: "This license key is not valid.",
-    revoked: "This license has been revoked. Contact support.",
-    expired: "This license has expired.",
-    device_limit_reached: "This license has reached its device limit."
-  }[r] } : { ok: !1, error: "unknown", message: `Activation failed: ${e}` };
-}
-async function on(e) {
-  const t = e.trim(), r = Jc(), i = lh();
-  if (!i) {
-    if (!Xe.isPackaged && t === "KAAROBAR-DEV-LOCAL") {
-      const s = (/* @__PURE__ */ new Date()).toISOString(), n = {
-        licenseKey: t,
-        fingerprint: r,
-        issuedTo: "Local Development",
-        expiresAt: null,
-        maxDevices: 1,
-        activatedAt: s,
-        lastVerifiedAt: s,
-        mode: "dev"
-      };
-      return Wi(n), { ok: !0, issuedTo: n.issuedTo, expiresAt: null, maxDevices: 1, mode: "dev" };
-    }
-    return {
-      ok: !1,
-      error: "network_error",
-      message: "License server is not configured. Set KAAROBAR_SUPABASE_URL and KAAROBAR_SUPABASE_ANON_KEY, or use KAAROBAR-DEV-LOCAL in development."
-    };
-  }
-  try {
-    const s = `${i.url.replace(/\/$/, "")}/rest/v1/rpc/validate_and_activate_license`, n = await fetch(s, {
-      method: "POST",
-      headers: {
-        apikey: i.anonKey,
-        Authorization: `Bearer ${i.anonKey}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        p_key: t,
-        p_fingerprint: r
-      })
-    });
-    if (!n.ok)
-      return {
-        ok: !1,
-        error: "network_error",
-        message: await n.text() || `License server request failed (${n.status})`
-      };
-    const a = await n.json();
-    if (!(a != null && a.ok)) return Eh((a == null ? void 0 : a.error) ?? "unknown");
-    const o = (/* @__PURE__ */ new Date()).toISOString(), c = {
-      licenseKey: t,
-      fingerprint: r,
-      issuedTo: a.issuedTo ?? "Licensed Customer",
-      expiresAt: a.expiresAt ?? null,
-      maxDevices: a.maxDevices ?? 1,
-      activatedAt: o,
-      lastVerifiedAt: o,
-      mode: "supabase"
-    };
-    return Wi(c), As.add(t), {
-      ok: !0,
-      issuedTo: c.issuedTo,
-      expiresAt: c.expiresAt,
-      maxDevices: c.maxDevices,
-      mode: "supabase"
-    };
-  } catch (s) {
-    const n = s instanceof Error ? s.message : "Network request failed", a = /fetch|network|ENOTFOUND|ECONNREFUSED/i.test(n);
-    return {
-      ok: !1,
-      error: a ? "offline" : "network_error",
-      message: a ? "No internet connection. License activation requires internet once." : n
-    };
-  }
-}
-const ve = [];
-for (let e = 0; e < 256; ++e)
-  ve.push((e + 256).toString(16).slice(1));
-function mh(e, t = 0) {
-  return (ve[e[t + 0]] + ve[e[t + 1]] + ve[e[t + 2]] + ve[e[t + 3]] + "-" + ve[e[t + 4]] + ve[e[t + 5]] + "-" + ve[e[t + 6]] + ve[e[t + 7]] + "-" + ve[e[t + 8]] + ve[e[t + 9]] + "-" + ve[e[t + 10]] + ve[e[t + 11]] + ve[e[t + 12]] + ve[e[t + 13]] + ve[e[t + 14]] + ve[e[t + 15]]).toLowerCase();
-}
-const Th = new Uint8Array(16);
-function gh() {
-  return crypto.getRandomValues(Th);
-}
-function ae(e, t, r) {
-  return crypto.randomUUID ? crypto.randomUUID() : bh(e);
-}
-function bh(e, t, r) {
-  var s;
-  e = e || {};
-  const i = e.random ?? ((s = e.rng) == null ? void 0 : s.call(e)) ?? gh();
-  if (i.length < 16)
-    throw new Error("Random bytes length must be >= 16");
-  return i[6] = i[6] & 15 | 64, i[8] = i[8] & 63 | 128, mh(i);
-}
-const vh = `
+const Nf = `
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -1857,11 +765,11 @@ AFTER UPDATE ON customers
 BEGIN
   UPDATE customers SET updated_at = datetime('now') WHERE id = NEW.id;
 END;
-`, yh = [
+`, If = [
   {
     name: "001_initial_schema",
     up: (e) => {
-      e.exec(vh);
+      e.exec(Nf);
     }
   },
   {
@@ -2182,17 +1090,1362 @@ function ft(e) {
   ), r = e.prepare(
     "INSERT INTO schema_migrations (name, applied_at) VALUES (?, ?)"
   );
-  for (const i of yh) {
+  for (const i of If) {
     if (t.get(i.name)) continue;
     e.transaction(() => {
       i.up(e), r.run(i.name, (/* @__PURE__ */ new Date()).toISOString());
     })();
   }
 }
-var gr = {}, Un = {}, pe = {}, Ei = { exports: {} }, mi = { exports: {} }, Xa;
+const j = new rf({
+  name: "kaarobar-config",
+  cwd: tt(),
+  defaults: {
+    language: "en",
+    lastBusinessId: null,
+    licenseBlob: null,
+    setupComplete: !1,
+    autoBackupEnabled: !1,
+    autoBackupTime: "22:00",
+    lastAutoBackupAt: null,
+    // On by default: this is a point-of-sale app, so a sale receipt should go to
+    // the receipt printer. If POS printing fails for any reason the caller falls
+    // back to the HTML preview window, which is the pre-existing behaviour.
+    posPrintEnabled: !0,
+    posPrinterName: "",
+    posPaperWidth: "80mm",
+    posSilent: !0,
+    posCopies: 1
+  }
+}), Lf = /^([01]\d|2[0-3]):([0-5]\d)$/;
+function ra(e) {
+  return e && Lf.test(e) ? e : "22:00";
+}
+function ia() {
+  return {
+    autoBackupEnabled: !!j.get("autoBackupEnabled"),
+    autoBackupTime: ra(j.get("autoBackupTime")),
+    lastAutoBackupAt: j.get("lastAutoBackupAt") ?? null
+  };
+}
+function Af(e) {
+  return typeof e.autoBackupEnabled == "boolean" && j.set("autoBackupEnabled", e.autoBackupEnabled), e.autoBackupTime !== void 0 && j.set("autoBackupTime", ra(e.autoBackupTime)), ia();
+}
+function Cf(e = (/* @__PURE__ */ new Date()).toISOString()) {
+  j.set("lastAutoBackupAt", e);
+}
+const Of = "", kf = "kaarobar-license-salt";
+let pi = null, _i = null;
+function xf() {
+  if (_i) return _i;
+  let e = "";
+  try {
+    const r = Je.networkInterfaces();
+    e = Object.values(r).flatMap((i) => i ?? []).filter((i) => i && !i.internal && i.mac && i.mac !== "00:00:00:00:00:00").map((i) => i.mac).sort().join("|");
+  } catch {
+    e = "";
+  }
+  const t = [
+    "kaarobar",
+    Je.hostname(),
+    Je.platform(),
+    Je.arch(),
+    Je.userInfo().username,
+    e
+  ].join("::");
+  return _i = Mc("sha256").update(t).digest("hex"), _i;
+}
+function Df(e) {
+  return Mc("sha256").update(`kaarobar::${e}`).digest("hex");
+}
+function Uf() {
+  var e;
+  try {
+    const r = Wc("ioreg", ["-rd1", "-c", "IOPlatformExpertDevice"], {
+      encoding: "utf8",
+      timeout: 5e3,
+      windowsHide: !0
+    }).match(/"IOPlatformUUID"\s*=\s*"([^"]+)"/);
+    return ((e = r == null ? void 0 : r[1]) == null ? void 0 : e.trim()) || null;
+  } catch {
+    return null;
+  }
+}
+function Pf() {
+  var e;
+  try {
+    const r = Wc(
+      "reg",
+      ["query", "HKLM\\SOFTWARE\\Microsoft\\Cryptography", "/v", "MachineGuid"],
+      { encoding: "utf8", timeout: 5e3, windowsHide: !0 }
+    ).match(/MachineGuid\s+REG_SZ\s+([0-9A-Fa-f-]+)/);
+    return ((e = r == null ? void 0 : r[1]) == null ? void 0 : e.trim()) || null;
+  } catch {
+    return null;
+  }
+}
+function Bf() {
+  for (const e of ["/etc/machine-id", "/var/lib/dbus/machine-id"])
+    try {
+      const t = M.readFileSync(e, "utf8").trim();
+      if (t) return t;
+    } catch {
+    }
+  return null;
+}
+function Ff() {
+  switch (Je.platform()) {
+    case "darwin":
+      return Uf();
+    case "win32":
+      return Pf();
+    default:
+      return Bf();
+  }
+}
+function jc() {
+  const e = Je.homedir();
+  switch (Je.platform()) {
+    case "darwin":
+      return F.join(e, "Library", "Application Support", "2ndHub", "Kaarobar", "device.id");
+    case "win32": {
+      const t = process.env.PROGRAMDATA || "C:\\ProgramData";
+      return F.join(t, "2ndHub", "Kaarobar", "device.id");
+    }
+    default:
+      return F.join(e, ".local", "share", "2ndHub", "Kaarobar", "device.id");
+  }
+}
+function Mf() {
+  try {
+    return M.readFileSync(jc(), "utf8").trim() || null;
+  } catch {
+    return null;
+  }
+}
+function $f(e) {
+  const t = jc();
+  M.mkdirSync(F.dirname(t), { recursive: !0 }), M.writeFileSync(t, e, { encoding: "utf8", mode: 384 });
+}
+function Hf() {
+  const e = Ff();
+  if (e) return e;
+  const t = Mf();
+  if (t) return t;
+  const r = $c();
+  try {
+    return $f(r), r;
+  } catch {
+    if (Je.platform() === "win32") {
+      const i = F.join(
+        process.env.LOCALAPPDATA || F.join(Je.homedir(), "AppData", "Local"),
+        "2ndHub",
+        "Kaarobar",
+        "device.id"
+      );
+      try {
+        const s = M.readFileSync(i, "utf8").trim();
+        return s || (M.mkdirSync(F.dirname(i), { recursive: !0 }), M.writeFileSync(i, r, { encoding: "utf8", mode: 384 }), r);
+      } catch {
+        return r;
+      }
+    }
+    return r;
+  }
+}
+function Gc() {
+  return pi || (pi = Df(Hf()), pi);
+}
+function Vc(e) {
+  return Hc(`${Of}:${e}`, kf, 32);
+}
+function Zc(e) {
+  const t = Vc(e.fingerprint), r = Bc(12), i = Fc("aes-256-gcm", t, r), s = Buffer.from(JSON.stringify(e), "utf8"), n = Buffer.concat([i.update(s), i.final()]), a = i.getAuthTag();
+  return Buffer.concat([r, a, n]).toString("base64");
+}
+function Ha(e, t) {
+  try {
+    const r = Buffer.from(e, "base64"), i = r.subarray(0, 12), s = r.subarray(12, 28), n = r.subarray(28), a = Vc(t), o = Xc("aes-256-gcm", a, i);
+    o.setAuthTag(s);
+    const c = Buffer.concat([o.update(n), o.final()]).toString("utf8"), u = JSON.parse(c);
+    return u.fingerprint === t ? u : null;
+  } catch {
+    return null;
+  }
+}
+function Jc(e) {
+  const t = Gc(), r = Ha(e, t);
+  if (r) return { record: r, migratedFromLegacy: !1 };
+  const i = xf();
+  if (i === t) return null;
+  const s = Ha(e, i);
+  return s ? {
+    record: {
+      ...s,
+      fingerprint: t
+    },
+    migratedFromLegacy: !0
+  } : null;
+}
+function Xf(e, t = /* @__PURE__ */ new Date()) {
+  return e.expiresAt ? new Date(e.expiresAt).getTime() < t.getTime() : !1;
+}
+let Dn = null;
+const Ls = /* @__PURE__ */ new Set();
+function Wf() {
+  return null;
+}
+function zf(e) {
+  const t = Zc(e);
+  return j.set("licenseBlob", t), t;
+}
+function Qc(e, t) {
+  if (!sn()) return;
+  const r = (/* @__PURE__ */ new Date()).toISOString();
+  he().prepare(
+    `INSERT INTO app_license (id, license_key, expires_at, issued_to, fingerprint, activated_at, updated_at, blob)
+       VALUES ('local', ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         license_key = excluded.license_key,
+         expires_at = excluded.expires_at,
+         issued_to = excluded.issued_to,
+         fingerprint = excluded.fingerprint,
+         activated_at = excluded.activated_at,
+         updated_at = excluded.updated_at,
+         blob = excluded.blob`
+  ).run(
+    e.licenseKey,
+    e.expiresAt,
+    e.issuedTo,
+    e.fingerprint,
+    e.activatedAt,
+    r,
+    t
+  );
+}
+function Wi(e) {
+  const t = zf(e);
+  Qc(e, t);
+}
+function qf(e) {
+  e.mode !== "dev" && (!e.licenseKey || Ls.has(e.licenseKey) || Dn || (Dn = an(e.licenseKey).then((t) => {
+    if (t.ok) {
+      Ls.add(e.licenseKey);
+      return;
+    }
+    t.error === "device_limit_reached" || t.error === "offline" || t.error;
+  }).catch(() => {
+  }).finally(() => {
+    Dn = null;
+  })));
+}
+function eu(e) {
+  return e ? (e.migratedFromLegacy && (Wi(e.record), qf(e.record)), e.record) : null;
+}
+function zi() {
+  if (!sn()) return;
+  const e = na();
+  if (!e) return;
+  const t = j.get("licenseBlob") || Zc(e);
+  Qc(e, t);
+}
+function Kf() {
+  if (!sn()) return null;
+  try {
+    return he().prepare(
+      `SELECT license_key, expires_at, issued_to, fingerprint, activated_at, blob
+         FROM app_license WHERE id = 'local'`
+    ).get() ?? null;
+  } catch {
+    return null;
+  }
+}
+function Yf() {
+  const e = j.get("licenseBlob");
+  return e ? eu(Jc(e)) : null;
+}
+function jf(e) {
+  const t = eu(Jc(e.blob));
+  return t || {
+    licenseKey: e.license_key,
+    fingerprint: e.fingerprint,
+    issuedTo: e.issued_to || "Licensed Customer",
+    expiresAt: e.expires_at,
+    maxDevices: 1,
+    activatedAt: e.activated_at,
+    lastVerifiedAt: e.activated_at,
+    mode: "supabase"
+  };
+}
+function na() {
+  const e = Kf();
+  if (e) return jf(e);
+  const t = Yf();
+  return t && sn() && Wi(t), t;
+}
+function qi() {
+  const e = Tr();
+  return e.status === "valid" ? e.record : null;
+}
+function Tr() {
+  const e = na();
+  return e != null && e.licenseKey ? Xf(e) ? { status: "expired", record: e } : { status: "valid", record: e } : { status: "none" };
+}
+function Gf(e) {
+  const r = ["invalid_key", "revoked", "expired", "device_limit_reached"].find((s) => s === e);
+  return r ? { ok: !1, error: r, message: {
+    invalid_key: "This license key is not valid.",
+    revoked: "This license has been revoked. Contact support.",
+    expired: "This license has expired.",
+    device_limit_reached: "This license has reached its device limit."
+  }[r] } : { ok: !1, error: "unknown", message: `Activation failed: ${e}` };
+}
+async function an(e) {
+  const t = e.trim(), r = Gc(), i = Wf();
+  if (!i) {
+    if (!Xe.isPackaged && t === "KAAROBAR-DEV-LOCAL") {
+      const s = (/* @__PURE__ */ new Date()).toISOString(), n = {
+        licenseKey: t,
+        fingerprint: r,
+        issuedTo: "Local Development",
+        expiresAt: null,
+        maxDevices: 1,
+        activatedAt: s,
+        lastVerifiedAt: s,
+        mode: "dev"
+      };
+      return Wi(n), { ok: !0, issuedTo: n.issuedTo, expiresAt: null, maxDevices: 1, mode: "dev" };
+    }
+    return {
+      ok: !1,
+      error: "network_error",
+      message: "License server is not configured. Set KAAROBAR_SUPABASE_URL and KAAROBAR_SUPABASE_ANON_KEY, or use KAAROBAR-DEV-LOCAL in development."
+    };
+  }
+  try {
+    const s = `${i.url.replace(/\/$/, "")}/rest/v1/rpc/validate_and_activate_license`, n = await fetch(s, {
+      method: "POST",
+      headers: {
+        apikey: i.anonKey,
+        Authorization: `Bearer ${i.anonKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        p_key: t,
+        p_fingerprint: r
+      })
+    });
+    if (!n.ok)
+      return {
+        ok: !1,
+        error: "network_error",
+        message: await n.text() || `License server request failed (${n.status})`
+      };
+    const a = await n.json();
+    if (!(a != null && a.ok)) return Gf((a == null ? void 0 : a.error) ?? "unknown");
+    const o = (/* @__PURE__ */ new Date()).toISOString(), c = {
+      licenseKey: t,
+      fingerprint: r,
+      issuedTo: a.issuedTo ?? "Licensed Customer",
+      expiresAt: a.expiresAt ?? null,
+      maxDevices: a.maxDevices ?? 1,
+      activatedAt: o,
+      lastVerifiedAt: o,
+      mode: "supabase"
+    };
+    return Wi(c), Ls.add(t), {
+      ok: !0,
+      issuedTo: c.issuedTo,
+      expiresAt: c.expiresAt,
+      maxDevices: c.maxDevices,
+      mode: "supabase"
+    };
+  } catch (s) {
+    const n = s instanceof Error ? s.message : "Network request failed", a = /fetch|network|ENOTFOUND|ECONNREFUSED/i.test(n);
+    return {
+      ok: !1,
+      error: a ? "offline" : "network_error",
+      message: a ? "No internet connection. License activation requires internet once." : n
+    };
+  }
+}
+let Bt = null;
+function tu() {
+  return Bt;
+}
+function ru() {
+  return Bt = null, { ok: !0 };
+}
+function Vf(e) {
+  try {
+    We(), ft(he());
+    const t = he().prepare(
+      `SELECT id, business_id, branch_id, name, image_path, email, password_hash, role, is_active
+         FROM users
+         WHERE email = ?`
+    ).get(e.email.trim().toLowerCase());
+    if (!t)
+      return { ok: !1, error: "invalid_credentials", message: "Email or password is incorrect." };
+    if (!t.is_active)
+      return { ok: !1, error: "inactive", message: "This account is inactive." };
+    if (!dr.compareSync(e.password, t.password_hash))
+      return { ok: !1, error: "invalid_credentials", message: "Email or password is incorrect." };
+    const i = {
+      id: t.id,
+      name: t.name,
+      email: t.email,
+      role: t.role,
+      businessId: t.business_id,
+      branchId: t.branch_id,
+      imagePath: t.image_path
+    };
+    return he().prepare("UPDATE users SET last_login_at = ? WHERE id = ?").run((/* @__PURE__ */ new Date()).toISOString(), t.id), Bt = i, { ok: !0, user: i };
+  } catch (t) {
+    return {
+      ok: !1,
+      error: "unknown",
+      message: t instanceof Error ? t.message : "Login failed"
+    };
+  }
+}
+function Zf(e) {
+  const t = {
+    ok: !1,
+    error: "invalid_credentials",
+    message: "Could not verify owner account details."
+  };
+  try {
+    const r = e.email.trim().toLowerCase(), i = e.licenseKey.trim(), s = e.newPassword.trim();
+    if (!r || !i || !s)
+      return { ok: !1, error: "validation_failed", message: "All fields are required." };
+    if (s.length < 8)
+      return {
+        ok: !1,
+        error: "validation_failed",
+        message: "Password must be at least 8 characters."
+      };
+    We(), ft(he());
+    const n = Tr();
+    if (n.status === "none")
+      return {
+        ok: !1,
+        error: "not_configured",
+        message: "License is not configured on this device."
+      };
+    if (n.status === "expired")
+      return {
+        ok: !1,
+        error: "license_expired",
+        message: "License has expired. Renew license before resetting password."
+      };
+    const a = na();
+    if (!a || a.licenseKey !== i)
+      return { ok: !1, error: "invalid_license", message: "License key is invalid for this device." };
+    const o = he().prepare(
+      `SELECT id
+         FROM users
+         WHERE role = 'owner' AND is_active = 1 AND email = ?`
+    ).get(r);
+    if (!o) return t;
+    const c = dr.hashSync(s, 12);
+    return he().prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(c, o.id), (Bt == null ? void 0 : Bt.id) === o.id && (Bt = null), { ok: !0 };
+  } catch (r) {
+    return {
+      ok: !1,
+      error: "unknown",
+      message: r instanceof Error ? r.message : "Password reset failed."
+    };
+  }
+}
+const Jf = {
+  owner: [
+    "business:edit",
+    "branch:edit",
+    "business:view",
+    "users:manage",
+    "products:edit",
+    "products:view",
+    "suppliers:edit",
+    "purchaseOrders:edit",
+    "customers:edit",
+    "sales:checkout",
+    "sales:refund_request",
+    "sales:refund_approve",
+    "sales:print",
+    "tables:edit",
+    "system:backup_create",
+    "system:backup_restore"
+  ],
+  admin: [
+    "business:edit",
+    "branch:edit",
+    "business:view",
+    "users:manage",
+    "products:edit",
+    "products:view",
+    "suppliers:edit",
+    "purchaseOrders:edit",
+    "customers:edit",
+    "sales:checkout",
+    "sales:refund_request",
+    "sales:refund_approve",
+    "sales:print",
+    "tables:edit",
+    "system:backup_create",
+    "system:backup_restore"
+  ],
+  manager: [
+    "business:view",
+    "products:edit",
+    "products:view",
+    "suppliers:edit",
+    "purchaseOrders:edit",
+    "customers:edit",
+    "sales:checkout",
+    "sales:refund_request",
+    "sales:refund_approve",
+    "sales:print",
+    "tables:edit",
+    "system:backup_create"
+  ],
+  cashier: [
+    "purchaseOrders:edit",
+    "customers:edit",
+    "sales:checkout",
+    "sales:refund_request",
+    "sales:print",
+    "system:backup_create"
+  ]
+};
+function Qf(e, t) {
+  return e ? Jf[e.role].includes(t) : !1;
+}
+function ie() {
+  const e = tu();
+  if (!e) throw new Error("Not authenticated");
+  return e;
+}
+function G() {
+  if (Tr().status !== "valid")
+    throw new Error("License expired");
+}
+function X(e) {
+  const t = ie();
+  if (!Qf(t, e)) throw new Error("Forbidden");
+  return t;
+}
+function $(e) {
+  const t = ie();
+  if (t.role !== "owner" && t.businessId !== e)
+    throw new Error("Forbidden business scope");
+}
+function gr(e) {
+  const t = ie();
+  if (!(t.role === "owner" || t.role === "admin") && t.branchId !== e)
+    throw new Error("Forbidden branch scope");
+}
+function iu() {
+  return ea();
+}
+function eh(e) {
+  const t = F.join(iu(), e === "logo" ? "logos" : "products");
+  return M.mkdirSync(t, { recursive: !0 }), t;
+}
+function Jr(e) {
+  const t = e.replace(/^[/\\]+/, "").replace(/\\/g, "/");
+  if (!t || t.includes(".."))
+    throw new Error("Invalid asset path");
+  const r = F.resolve(iu()), i = F.resolve(r, t), s = r.endsWith(F.sep) ? r : r + F.sep;
+  if (i !== r && !i.startsWith(s))
+    throw new Error("Invalid asset path");
+  return i;
+}
+function th(e) {
+  return e ? `kaarobar-asset:///${e.replace(/\\/g, "/").replace(/^\/+/, "")}` : null;
+}
+function rh(e) {
+  switch (F.extname(e).toLowerCase()) {
+    case ".jpg":
+    case ".jpeg":
+      return "image/jpeg";
+    case ".webp":
+      return "image/webp";
+    case ".gif":
+      return "image/gif";
+    case ".svg":
+      return "image/svg+xml";
+    case ".png":
+    default:
+      return "image/png";
+  }
+}
+function ih(e) {
+  try {
+    const t = new URL(e), r = decodeURIComponent(
+      t.hostname ? `${t.hostname}${t.pathname}` : t.pathname
+    ).replace(/^\/+/, ""), i = Jr(r);
+    if (!M.existsSync(i))
+      return new Response("Not found", { status: 404 });
+    const s = M.readFileSync(i);
+    return new Response(s, {
+      status: 200,
+      headers: {
+        "Content-Type": rh(i),
+        "Content-Length": String(s.byteLength),
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    });
+  } catch {
+    return new Response("Not found", { status: 404 });
+  }
+}
+async function nh(e) {
+  X(e === "logo" ? "business:edit" : "products:edit");
+  const t = await Uc.showOpenDialog({
+    title: e === "logo" ? "Choose business logo" : "Choose product image",
+    properties: ["openFile"],
+    filters: [{ name: "Images", extensions: ["png", "jpg", "jpeg", "webp", "gif"] }]
+  });
+  if (t.canceled || !t.filePaths[0]) return null;
+  const r = t.filePaths[0], i = F.extname(r).toLowerCase() || ".png", s = `${$c()}${i}`, n = e === "logo" ? "logos" : "products", a = eh(e), o = F.join(a, s);
+  M.copyFileSync(r, o);
+  const c = `${n}/${s}`;
+  return { relativePath: c, url: th(c) };
+}
+const sh = {
+  PKR: "Rs",
+  RS: "Rs",
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+  AED: "د.إ",
+  SAR: "﷼",
+  INR: "₹",
+  BRL: "R$",
+  TRY: "₺",
+  IDR: "Rp",
+  MXN: "MX$",
+  CAD: "CA$",
+  AUD: "A$",
+  QAR: "QR",
+  KWD: "KD",
+  EGP: "E£",
+  MYR: "RM",
+  SGD: "S$"
+};
+function on(e) {
+  const t = (e || "PKR").trim().toUpperCase();
+  return sh[t] ?? t;
+}
+const ah = ["en", "ur", "de", "pt", "es", "fr", "ar"], oh = /* @__PURE__ */ new Set(["ur", "ar"]), ch = {
+  en: "en-US",
+  ur: "ur-PK",
+  de: "de-DE",
+  pt: "pt-BR",
+  es: "es-ES",
+  fr: "fr-FR",
+  ar: "ar-SA"
+};
+function uh(e) {
+  return ah.includes(e);
+}
+function Xt(e) {
+  const t = e == null ? void 0 : e.trim().toLowerCase().split(/[-_]/)[0];
+  return t && uh(t) ? t : "en";
+}
+function lh(e) {
+  return oh.has(e);
+}
+function dh(e) {
+  return ch[e];
+}
+function Ke() {
+  return Xt(j.get("language"));
+}
+const fe = {
+  en: "Powered by Kaarobar POS · 2ndHub Solutions",
+  ur: "کاروبار POS · 2ndHub Solutions سے تقویت یافتہ",
+  de: "Bereitgestellt von Kaarobar POS · 2ndHub Solutions",
+  pt: "Desenvolvido por Kaarobar POS · 2ndHub Solutions",
+  es: "Desarrollado por Kaarobar POS · 2ndHub Solutions",
+  fr: "Propulsé par Kaarobar POS · 2ndHub Solutions",
+  ar: "مدعوم من Kaarobar POS · 2ndHub Solutions"
+}, fh = {
+  en: {
+    cashReceipt: "CASH RECEIPT",
+    creditReceipt: "CREDIT RECEIPT",
+    cardReceipt: "CARD / ONLINE RECEIPT",
+    invoice: "Invoice",
+    date: "Date",
+    customer: "Customer",
+    cashier: "Cashier",
+    printedBy: "Printed by",
+    description: "Description",
+    price: "Price",
+    subtotal: "Subtotal",
+    discount: "Discount",
+    total: "Total",
+    change: "Change",
+    tel: "Tel",
+    followUs: "Follow us",
+    thankYou: "THANK YOU!",
+    customSoftwareSupport: "For custom software solutions, contact us at support.kaarobar@gmail.com or +93304757253",
+    poweredBy: fe.en,
+    cash: "Cash",
+    card: "Card / Online",
+    credit: "Credit"
+  },
+  ur: {
+    cashReceipt: "نقد رسید",
+    creditReceipt: "کریڈٹ رسید",
+    cardReceipt: "کارڈ / آن لائن رسید",
+    invoice: "انوائس",
+    date: "تاریخ",
+    customer: "کسٹمر",
+    cashier: "کیشیئر",
+    printedBy: "پرنٹ کرنے والا",
+    description: "تفصیل",
+    price: "قیمت",
+    subtotal: "ذیلی کل",
+    discount: "رعایت",
+    total: "کل",
+    change: "بقایا واپسی",
+    tel: "فون",
+    followUs: "ہمیں فالو کریں",
+    thankYou: "شکریہ!",
+    customSoftwareSupport: "اس طرح کے سسٹمز بنانے کے لیے رابطہ کریں: support.kaarobar@gmail.com یا +93304757253",
+    poweredBy: fe.ur,
+    cash: "نقد",
+    card: "کارڈ / آن لائن",
+    credit: "کریڈٹ"
+  },
+  de: {
+    cashReceipt: "BARKWITTTUNG",
+    creditReceipt: "KREDITBELEG",
+    cardReceipt: "KARTEN- / ONLINE-BELEG",
+    invoice: "Rechnung",
+    date: "Datum",
+    customer: "Kunde",
+    cashier: "Kassierer",
+    printedBy: "Gedruckt von",
+    description: "Beschreibung",
+    price: "Preis",
+    subtotal: "Zwischensumme",
+    discount: "Rabatt",
+    total: "Gesamt",
+    change: "Rückgeld",
+    tel: "Tel",
+    followUs: "Folgen Sie uns",
+    thankYou: "VIELEN DANK!",
+    customSoftwareSupport: "Für individuelle Software kontaktieren Sie uns unter support.kaarobar@gmail.com oder +93304757253",
+    poweredBy: fe.de,
+    cash: "Bar",
+    card: "Karte / Online",
+    credit: "Kredit"
+  },
+  pt: {
+    cashReceipt: "RECIBO EM DINHEIRO",
+    creditReceipt: "RECIBO CRÉDITO",
+    cardReceipt: "RECIBO CARTÃO / ONLINE",
+    invoice: "Fatura",
+    date: "Data",
+    customer: "Cliente",
+    cashier: "Caixa",
+    printedBy: "Impresso por",
+    description: "Descrição",
+    price: "Preço",
+    subtotal: "Subtotal",
+    discount: "Desconto",
+    total: "Total",
+    change: "Troco",
+    tel: "Tel",
+    followUs: "Siga-nos",
+    thankYou: "OBRIGADO!",
+    customSoftwareSupport: "Para soluções de software personalizadas, entre em contato em support.kaarobar@gmail.com ou +93304757253",
+    poweredBy: fe.pt,
+    cash: "Dinheiro",
+    card: "Cartão / Online",
+    credit: "Crédito"
+  },
+  es: {
+    cashReceipt: "RECIBO EN EFECTIVO",
+    creditReceipt: "RECIBO CRÉDITO",
+    cardReceipt: "RECIBO TARJETA / EN LÍNEA",
+    invoice: "Factura",
+    date: "Fecha",
+    customer: "Cliente",
+    cashier: "Cajero",
+    printedBy: "Impreso por",
+    description: "Descripción",
+    price: "Precio",
+    subtotal: "Subtotal",
+    discount: "Descuento",
+    total: "Total",
+    change: "Cambio",
+    tel: "Tel",
+    followUs: "Síguenos",
+    thankYou: "¡GRACIAS!",
+    customSoftwareSupport: "Para software a medida, contáctanos en support.kaarobar@gmail.com o +93304757253",
+    poweredBy: fe.es,
+    cash: "Efectivo",
+    card: "Tarjeta / En línea",
+    credit: "Crédito"
+  },
+  fr: {
+    cashReceipt: "REÇU ESPÈCES",
+    creditReceipt: "REÇU CRÉDIT",
+    cardReceipt: "REÇU CARTE / EN LIGNE",
+    invoice: "Facture",
+    date: "Date",
+    customer: "Client",
+    cashier: "Caissier",
+    printedBy: "Imprimé par",
+    description: "Description",
+    price: "Prix",
+    subtotal: "Sous-total",
+    discount: "Remise",
+    total: "Total",
+    change: "Monnaie",
+    tel: "Tél",
+    followUs: "Suivez-nous",
+    thankYou: "MERCI !",
+    customSoftwareSupport: "Pour un logiciel sur mesure, contactez-nous à support.kaarobar@gmail.com ou +93304757253",
+    poweredBy: fe.fr,
+    cash: "Espèces",
+    card: "Carte / En ligne",
+    credit: "Crédit"
+  },
+  ar: {
+    cashReceipt: "إيصال نقدي",
+    creditReceipt: "إيصال ائتمان",
+    cardReceipt: "إيصال بطاقة / أونلاين",
+    invoice: "فاتورة",
+    date: "التاريخ",
+    customer: "العميل",
+    cashier: "أمين الصندوق",
+    printedBy: "طُبع بواسطة",
+    description: "الوصف",
+    price: "السعر",
+    subtotal: "المجموع الفرعي",
+    discount: "الخصم",
+    total: "الإجمالي",
+    change: "الباقي",
+    tel: "هاتف",
+    followUs: "تابعنا",
+    thankYou: "شكراً لك!",
+    customSoftwareSupport: "للحلول البرمجية حسب الطلب، تواصل معنا على support.kaarobar@gmail.com أو +93304757253",
+    poweredBy: fe.ar,
+    cash: "نقد",
+    card: "بطاقة / أونلاين",
+    credit: "ائتمان"
+  }
+}, hh = {
+  en: {
+    purchaseOrder: "PURCHASE ORDER",
+    poNumber: "PO #",
+    date: "Date",
+    status: "Status",
+    supplier: "Supplier",
+    phone: "Phone",
+    address: "Address",
+    product: "Product",
+    qty: "Qty",
+    unitCost: "Unit cost",
+    total: "Total",
+    poweredBy: fe.en
+  },
+  ur: {
+    purchaseOrder: "خریداری آرڈر",
+    poNumber: "پی او #",
+    date: "تاریخ",
+    status: "حالت",
+    supplier: "سپلائر",
+    phone: "فون",
+    address: "پتہ",
+    product: "پروڈکٹ",
+    qty: "مقدار",
+    unitCost: "یونٹ لاگت",
+    total: "کل",
+    poweredBy: fe.ur
+  },
+  de: {
+    purchaseOrder: "BESTELLUNG",
+    poNumber: "PO #",
+    date: "Datum",
+    status: "Status",
+    supplier: "Lieferant",
+    phone: "Telefon",
+    address: "Adresse",
+    product: "Produkt",
+    qty: "Menge",
+    unitCost: "Stückkosten",
+    total: "Gesamt",
+    poweredBy: fe.de
+  },
+  pt: {
+    purchaseOrder: "PEDIDO DE COMPRA",
+    poNumber: "PC #",
+    date: "Data",
+    status: "Status",
+    supplier: "Fornecedor",
+    phone: "Telefone",
+    address: "Endereço",
+    product: "Produto",
+    qty: "Qtd",
+    unitCost: "Custo unitário",
+    total: "Total",
+    poweredBy: fe.pt
+  },
+  es: {
+    purchaseOrder: "ORDEN DE COMPRA",
+    poNumber: "OC #",
+    date: "Fecha",
+    status: "Estado",
+    supplier: "Proveedor",
+    phone: "Teléfono",
+    address: "Dirección",
+    product: "Producto",
+    qty: "Cant",
+    unitCost: "Costo unitario",
+    total: "Total",
+    poweredBy: fe.es
+  },
+  fr: {
+    purchaseOrder: "BON DE COMMANDE",
+    poNumber: "BC #",
+    date: "Date",
+    status: "Statut",
+    supplier: "Fournisseur",
+    phone: "Téléphone",
+    address: "Adresse",
+    product: "Produit",
+    qty: "Qté",
+    unitCost: "Coût unitaire",
+    total: "Total",
+    poweredBy: fe.fr
+  },
+  ar: {
+    purchaseOrder: "أمر شراء",
+    poNumber: "أمر شراء #",
+    date: "التاريخ",
+    status: "الحالة",
+    supplier: "المورد",
+    phone: "الهاتف",
+    address: "العنوان",
+    product: "المنتج",
+    qty: "الكمية",
+    unitCost: "تكلفة الوحدة",
+    total: "الإجمالي",
+    poweredBy: fe.ar
+  }
+}, ph = {
+  en: {
+    title: "CUSTOMER LEDGER",
+    customer: "Customer",
+    phone: "Phone",
+    period: "Period",
+    allEntries: "All entries",
+    printedAt: "Printed",
+    date: "Date",
+    particulars: "Particulars",
+    debit: "Debit",
+    credit: "Credit",
+    balance: "Balance",
+    balanceBroughtForward: "Balance brought forward",
+    totals: "Totals",
+    closingBalance: "Closing balance",
+    poweredBy: fe.en,
+    sale: "Sale",
+    payment: "Payment",
+    adjustment: "Adjustment",
+    opening: "Opening",
+    cash: "Cash",
+    card: "Card / Online"
+  },
+  ur: {
+    title: "کسٹمر کریڈٹ",
+    customer: "کسٹمر",
+    phone: "فون",
+    period: "مدت",
+    allEntries: "تمام اندراجات",
+    printedAt: "پرنٹ",
+    date: "تاریخ",
+    particulars: "تفصیل",
+    debit: "ڈیبٹ",
+    credit: "کریڈٹ",
+    balance: "بیلنس",
+    balanceBroughtForward: "پچھلا بیلنس",
+    totals: "کل",
+    closingBalance: "اختتامی بیلنس",
+    poweredBy: fe.ur,
+    sale: "فروخت",
+    payment: "ادائیگی",
+    adjustment: "ایڈجسٹمنٹ",
+    opening: "ابتدائی",
+    cash: "نقد",
+    card: "کارڈ / آن لائن"
+  },
+  de: {
+    title: "KUNDENKONTO",
+    customer: "Kunde",
+    phone: "Telefon",
+    period: "Zeitraum",
+    allEntries: "Alle Einträge",
+    printedAt: "Gedruckt",
+    date: "Datum",
+    particulars: "Details",
+    debit: "Soll",
+    credit: "Haben",
+    balance: "Saldo",
+    balanceBroughtForward: "Saldo vorgetragen",
+    totals: "Summen",
+    closingBalance: "Abschlusssaldo",
+    poweredBy: fe.de,
+    sale: "Verkauf",
+    payment: "Zahlung",
+    adjustment: "Anpassung",
+    opening: "Eröffnung",
+    cash: "Bar",
+    card: "Karte / Online"
+  },
+  pt: {
+    title: "RAZÃO DO CLIENTE",
+    customer: "Cliente",
+    phone: "Telefone",
+    period: "Período",
+    allEntries: "Todos os lançamentos",
+    printedAt: "Impresso",
+    date: "Data",
+    particulars: "Detalhes",
+    debit: "Débito",
+    credit: "Crédito",
+    balance: "Saldo",
+    balanceBroughtForward: "Saldo anterior",
+    totals: "Totais",
+    closingBalance: "Saldo final",
+    poweredBy: fe.pt,
+    sale: "Venda",
+    payment: "Pagamento",
+    adjustment: "Ajuste",
+    opening: "Abertura",
+    cash: "Dinheiro",
+    card: "Cartão / Online"
+  },
+  es: {
+    title: "LIBRO DEL CLIENTE",
+    customer: "Cliente",
+    phone: "Teléfono",
+    period: "Período",
+    allEntries: "Todos los asientos",
+    printedAt: "Impreso",
+    date: "Fecha",
+    particulars: "Concepto",
+    debit: "Débito",
+    credit: "Crédito",
+    balance: "Saldo",
+    balanceBroughtForward: "Saldo anterior",
+    totals: "Totales",
+    closingBalance: "Saldo de cierre",
+    poweredBy: fe.es,
+    sale: "Venta",
+    payment: "Pago",
+    adjustment: "Ajuste",
+    opening: "Apertura",
+    cash: "Efectivo",
+    card: "Tarjeta / En línea"
+  },
+  fr: {
+    title: "GRAND LIVRE CLIENT",
+    customer: "Client",
+    phone: "Téléphone",
+    period: "Période",
+    allEntries: "Toutes les écritures",
+    printedAt: "Imprimé",
+    date: "Date",
+    particulars: "Libellé",
+    debit: "Débit",
+    credit: "Crédit",
+    balance: "Solde",
+    balanceBroughtForward: "Solde reporté",
+    totals: "Totaux",
+    closingBalance: "Solde de clôture",
+    poweredBy: fe.fr,
+    sale: "Vente",
+    payment: "Paiement",
+    adjustment: "Ajustement",
+    opening: "Ouverture",
+    cash: "Espèces",
+    card: "Carte / En ligne"
+  },
+  ar: {
+    title: "دفتر العميل",
+    customer: "العميل",
+    phone: "الهاتف",
+    period: "الفترة",
+    allEntries: "كل القيود",
+    printedAt: "طُبع",
+    date: "التاريخ",
+    particulars: "التفاصيل",
+    debit: "مدين",
+    credit: "دائن",
+    balance: "الرصيد",
+    balanceBroughtForward: "الرصيد المُرحَّل",
+    totals: "الإجماليات",
+    closingBalance: "الرصيد الختامي",
+    poweredBy: fe.ar,
+    sale: "بيع",
+    payment: "دفعة",
+    adjustment: "تعديل",
+    opening: "افتتاحي",
+    cash: "نقد",
+    card: "بطاقة / أونلاين"
+  }
+};
+function nu(e = Ke()) {
+  return fh[e];
+}
+function _h(e = Ke()) {
+  return hh[e];
+}
+function Eh(e = Ke()) {
+  return ph[e];
+}
+const mh = {
+  en: {
+    print: "Print",
+    close: "Close",
+    previewHint: "Preview — print when ready"
+  },
+  ur: {
+    print: "پرنٹ",
+    close: "بند کریں",
+    previewHint: "پیش منظر — تیار ہونے پر پرنٹ کریں"
+  },
+  de: {
+    print: "Drucken",
+    close: "Schließen",
+    previewHint: "Vorschau — bei Bedarf drucken"
+  },
+  pt: {
+    print: "Imprimir",
+    close: "Fechar",
+    previewHint: "Prévia — imprima quando estiver pronto"
+  },
+  es: {
+    print: "Imprimir",
+    close: "Cerrar",
+    previewHint: "Vista previa — imprima cuando esté listo"
+  },
+  fr: {
+    print: "Imprimer",
+    close: "Fermer",
+    previewHint: "Aperçu — imprimez quand vous êtes prêt"
+  },
+  ar: {
+    print: "طباعة",
+    close: "إغلاق",
+    previewHint: "معاينة — اطبع عند الجاهزية"
+  }
+};
+function Th(e = Ke()) {
+  return mh[e];
+}
+function sa(e = Ke()) {
+  const t = lh(e);
+  return {
+    lang: e,
+    dir: t ? "rtl" : "ltr",
+    fontFamily: t ? "'Noto Sans Arabic', 'Noto Naskh Arabic', ui-sans-serif, sans-serif" : "'Poppins', ui-sans-serif, sans-serif",
+    fontLink: t ? "https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap" : "https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"
+  };
+}
+function Ki(e, t = Ke()) {
+  try {
+    return new Date(e).toLocaleString(dh(t));
+  } catch {
+    return e;
+  }
+}
+const gh = '"Courier New", ui-monospace, monospace';
+function Dt(e, t) {
+  return `${e} ${t.toFixed(2)}`;
+}
+function Ei(e = "-") {
+  return {
+    type: "text",
+    value: e.repeat(42),
+    style: { fontFamily: gh, fontSize: "11px", textAlign: "center", margin: "2px 0" }
+  };
+}
+function st(e, t = {}) {
+  return {
+    type: "text",
+    value: e,
+    style: {
+      textAlign: "center",
+      fontWeight: t.bold ? "700" : "400",
+      fontSize: t.size ?? "12px",
+      margin: "1px 0"
+    }
+  };
+}
+function Ge(e, t, r = {}) {
+  return {
+    type: "text",
+    value: `<div style="display:flex;justify-content:space-between;gap:8px;">
+      <span>${As(e)}</span><span>${As(t)}</span>
+    </div>`,
+    style: {
+      fontSize: r.bold ? "14px" : "12px",
+      fontWeight: r.bold ? "700" : "400",
+      margin: "1px 0"
+    }
+  };
+}
+function As(e) {
+  return e.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+function bh(e, t) {
+  const r = e.toLowerCase();
+  return r === "cash" ? t.cash : r === "card" ? t.card : r === "credit" ? t.credit : e;
+}
+function vh(e, t = e.language ?? Ke()) {
+  const r = nu(t), i = on(e.currency), s = Math.max(e.amountPaid - e.total, 0), n = [], a = e.logoPath ? Jr(e.logoPath) : null;
+  a && M.existsSync(a) && n.push({
+    type: "image",
+    path: a,
+    position: "center",
+    width: "120px",
+    style: { margin: "0 auto 4px" }
+  }), n.push(st(e.businessName, { bold: !0, size: "16px" })), e.branchAddress && n.push(st(e.branchAddress, { size: "11px" })), e.branchPhone && n.push(st(`${r.tel} ${e.branchPhone}`, { size: "11px" })), e.receiptHeader && n.push(st(e.receiptHeader, { size: "11px" })), n.push(Ei("=")), n.push(Ge(r.invoice, e.invoiceNo, { bold: !0 })), n.push(Ge(r.date, Ki(e.createdAt, t))), e.customerName && n.push(Ge(r.customer, e.customerName)), e.cashierName && n.push(Ge(r.cashier, e.cashierName)), e.printedByName && e.printedByName !== e.cashierName && n.push(Ge(r.printedBy, e.printedByName)), n.push(Ei()), n.push({
+    type: "table",
+    style: { width: "100%", fontSize: "11px" },
+    tableHeader: [r.description, r.price],
+    tableHeaderStyle: {
+      borderBottom: "1px solid #000",
+      fontWeight: "700",
+      textAlign: "left",
+      fontSize: "11px"
+    },
+    tableBody: e.items.map((c) => [
+      {
+        type: "text",
+        value: `${As(c.productName)}<br/><span style="font-size:10px">${c.qty} x ${Dt(i, c.unitPrice)}</span>`,
+        style: { textAlign: "left", paddingRight: "6px" }
+      },
+      {
+        type: "text",
+        value: Dt(i, c.lineTotal),
+        style: { textAlign: "right", whiteSpace: "nowrap" }
+      }
+    ]),
+    tableBodyStyle: { fontSize: "11px", padding: "2px 0", verticalAlign: "top" }
+  }), n.push(Ei()), e.discount > 0 && (n.push(Ge(r.subtotal, Dt(i, e.subtotal))), n.push(Ge(r.discount, `- ${Dt(i, e.discount)}`))), n.push(Ge(r.total, Dt(i, e.total), { bold: !0 }));
+  for (const c of e.payments)
+    n.push(Ge(bh(c.method, r), Dt(i, c.amount)));
+  s > 0 && n.push(Ge(r.change, Dt(i, s))), n.push(Ei("=")), n.push({
+    type: "barCode",
+    value: e.invoiceNo.replace(/[^0-9A-Za-z]/g, "").slice(0, 20) || "0",
+    height: "40",
+    width: "2",
+    displayValue: !0,
+    fontsize: 10,
+    position: "center"
+  }), e.receiptFooter && n.push(st(e.receiptFooter, { size: "11px" })), n.push(st(r.thankYou, { bold: !0, size: "12px" }));
+  const o = [
+    e.socialWhatsapp,
+    e.socialInstagram,
+    e.socialFacebook,
+    e.socialTiktok,
+    e.socialWebsite
+  ].filter((c) => !!c && c.trim().length > 0);
+  if (o.length > 0) {
+    n.push(st(r.followUs, { size: "10px" }));
+    for (const c of o) n.push(st(c, { size: "10px" }));
+  }
+  return n.push(st(r.poweredBy + " Kaarobar", { size: "10px" })), n.push({ type: "text", value: " ", style: { margin: "0 0 18px" } }), n;
+}
+const yh = ["58mm", "76mm", "80mm"], Ui = {
+  // Mirrors the store defaults — see electron/config/store.ts.
+  posPrintEnabled: !0,
+  posPrinterName: "",
+  posPaperWidth: "80mm",
+  posSilent: !0
+};
+function su(e) {
+  return yh.includes(e) ? e : Ui.posPaperWidth;
+}
+function au(e) {
+  const t = typeof e == "string" ? Number(e) : e;
+  return typeof t != "number" || !Number.isFinite(t) ? 1 : Math.min(Math.max(Math.trunc(t), 1), 5);
+}
 function cn() {
-  if (Xa) return mi.exports;
-  Xa = 1, typeof process > "u" || !process.version || process.version.indexOf("v0.") === 0 || process.version.indexOf("v1.") === 0 && process.version.indexOf("v1.8.") !== 0 ? mi.exports = { nextTick: e } : mi.exports = process;
+  return {
+    posPrintEnabled: j.get("posPrintEnabled") ?? Ui.posPrintEnabled,
+    posPrinterName: j.get("posPrinterName") ?? Ui.posPrinterName,
+    posPaperWidth: su(j.get("posPaperWidth")),
+    posSilent: j.get("posSilent") ?? Ui.posSilent,
+    posCopies: au(j.get("posCopies"))
+  };
+}
+function wh(e) {
+  return typeof e.posPrintEnabled == "boolean" && j.set("posPrintEnabled", e.posPrintEnabled), typeof e.posPrinterName == "string" && j.set("posPrinterName", e.posPrinterName.trim()), e.posPaperWidth !== void 0 && j.set("posPaperWidth", su(e.posPaperWidth)), typeof e.posSilent == "boolean" && j.set("posSilent", e.posSilent), e.posCopies !== void 0 && j.set("posCopies", au(e.posCopies)), cn();
+}
+const Sh = Js(import.meta.url), { PosPrinter: Rh } = Sh("electron-pos-printer");
+async function Nh() {
+  const e = Gr.getAllWindows()[0];
+  return e ? (await e.webContents.getPrintersAsync()).map((r) => {
+    var n, a;
+    const i = r, s = i.isDefault === !0 || ((n = i.options) == null ? void 0 : n["printer-is-default"]) === !0 || ((a = i.options) == null ? void 0 : a["is-default"]) === "true";
+    return {
+      name: i.name,
+      displayName: i.displayName || i.name,
+      description: i.description || "",
+      isDefault: s
+    };
+  }) : [];
+}
+async function Ih(e) {
+  const t = cn(), r = vh(e);
+  await Rh.print(r, {
+    printerName: t.posPrinterName || void 0,
+    // `silent` needs a printerName to be meaningful; without one the OS default
+    // is used, which is still what a single-printer till wants.
+    silent: t.posSilent,
+    preview: !1,
+    copies: t.posCopies,
+    pageSize: t.posPaperWidth,
+    margin: "0 0 0 0",
+    // The library waits `data.length * timeOutPerLine` ms before resolving.
+    // Receipts are short, so keep this small or every sale blocks the till.
+    timeOutPerLine: 400
+  });
+}
+const ve = [];
+for (let e = 0; e < 256; ++e)
+  ve.push((e + 256).toString(16).slice(1));
+function Lh(e, t = 0) {
+  return (ve[e[t + 0]] + ve[e[t + 1]] + ve[e[t + 2]] + ve[e[t + 3]] + "-" + ve[e[t + 4]] + ve[e[t + 5]] + "-" + ve[e[t + 6]] + ve[e[t + 7]] + "-" + ve[e[t + 8]] + ve[e[t + 9]] + "-" + ve[e[t + 10]] + ve[e[t + 11]] + ve[e[t + 12]] + ve[e[t + 13]] + ve[e[t + 14]] + ve[e[t + 15]]).toLowerCase();
+}
+const Ah = new Uint8Array(16);
+function Ch() {
+  return crypto.getRandomValues(Ah);
+}
+function ae(e, t, r) {
+  return crypto.randomUUID ? crypto.randomUUID() : Oh(e);
+}
+function Oh(e, t, r) {
+  var s;
+  e = e || {};
+  const i = e.random ?? ((s = e.rng) == null ? void 0 : s.call(e)) ?? Ch();
+  if (i.length < 16)
+    throw new Error("Random bytes length must be >= 16");
+  return i[6] = i[6] & 15 | 64, i[8] = i[8] & 63 | 128, Lh(i);
+}
+var br = {}, Un = {}, pe = {}, mi = { exports: {} }, Ti = { exports: {} }, Xa;
+function un() {
+  if (Xa) return Ti.exports;
+  Xa = 1, typeof process > "u" || !process.version || process.version.indexOf("v0.") === 0 || process.version.indexOf("v1.") === 0 && process.version.indexOf("v1.8.") !== 0 ? Ti.exports = { nextTick: e } : Ti.exports = process;
   function e(t, r, i, s) {
     if (typeof t != "function")
       throw new TypeError('"callback" argument must be a function');
@@ -2221,10 +2474,10 @@ function cn() {
         });
     }
   }
-  return mi.exports;
+  return Ti.exports;
 }
 var Pn, Wa;
-function wh() {
+function kh() {
   if (Wa) return Pn;
   Wa = 1;
   var e = {}.toString;
@@ -2233,11 +2486,11 @@ function wh() {
   }, Pn;
 }
 var Bn, za;
-function nu() {
+function ou() {
   return za || (za = 1, Bn = Vr), Bn;
 }
-var Ti = { exports: {} }, qa;
-function un() {
+var gi = { exports: {} }, qa;
+function ln() {
   return qa || (qa = 1, function(e, t) {
     var r = zc, i = r.Buffer;
     function s(a, o) {
@@ -2266,10 +2519,10 @@ function un() {
         throw new TypeError("Argument must be a number");
       return r.SlowBuffer(a);
     };
-  }(Ti, Ti.exports)), Ti.exports;
+  }(gi, gi.exports)), gi.exports;
 }
 var be = {}, Ka;
-function Jr() {
+function Qr() {
   if (Ka) return be;
   Ka = 1;
   function e(E) {
@@ -2334,9 +2587,9 @@ function Jr() {
   }
   return be;
 }
-var gi = { exports: {} }, bi = { exports: {} }, Ya;
-function Sh() {
-  return Ya || (Ya = 1, typeof Object.create == "function" ? bi.exports = function(t, r) {
+var bi = { exports: {} }, vi = { exports: {} }, Ya;
+function xh() {
+  return Ya || (Ya = 1, typeof Object.create == "function" ? vi.exports = function(t, r) {
     r && (t.super_ = r, t.prototype = Object.create(r.prototype, {
       constructor: {
         value: t,
@@ -2345,36 +2598,36 @@ function Sh() {
         configurable: !0
       }
     }));
-  } : bi.exports = function(t, r) {
+  } : vi.exports = function(t, r) {
     if (r) {
       t.super_ = r;
       var i = function() {
       };
       i.prototype = r.prototype, t.prototype = new i(), t.prototype.constructor = t;
     }
-  }), bi.exports;
+  }), vi.exports;
 }
 var ja;
-function Qr() {
-  if (ja) return gi.exports;
+function ei() {
+  if (ja) return bi.exports;
   ja = 1;
   try {
     var e = require("util");
     if (typeof e.inherits != "function") throw "";
-    gi.exports = e.inherits;
+    bi.exports = e.inherits;
   } catch {
-    gi.exports = Sh();
+    bi.exports = xh();
   }
-  return gi.exports;
+  return bi.exports;
 }
 var Fn = { exports: {} }, Ga;
-function Rh() {
+function Dh() {
   return Ga || (Ga = 1, function(e) {
     function t(n, a) {
       if (!(n instanceof a))
         throw new TypeError("Cannot call a class as a function");
     }
-    var r = un().Buffer, i = lt;
+    var r = ln().Buffer, i = lt;
     function s(n, a, o) {
       n.copy(a, o);
     }
@@ -2413,10 +2666,10 @@ function Rh() {
   }(Fn)), Fn.exports;
 }
 var Mn, Va;
-function su() {
+function cu() {
   if (Va) return Mn;
   Va = 1;
-  var e = cn();
+  var e = un();
   function t(s, n) {
     var a = this, o = this._readableState && this._readableState.destroyed, c = this._writableState && this._writableState.destroyed;
     return o || c ? (n ? n(s) : s && (this._writableState ? this._writableState.errorEmitted || (this._writableState.errorEmitted = !0, e.nextTick(i, this, s)) : e.nextTick(i, this, s)), this) : (this._readableState && (this._readableState.destroyed = !0), this._writableState && (this._writableState.destroyed = !0), this._destroy(s || null, function(u) {
@@ -2435,14 +2688,14 @@ function su() {
   }, Mn;
 }
 var $n, Za;
-function Nh() {
+function Uh() {
   return Za || (Za = 1, $n = lt.deprecate), $n;
 }
 var Hn, Ja;
-function au() {
+function uu() {
   if (Ja) return Hn;
   Ja = 1;
-  var e = cn();
+  var e = un();
   Hn = E;
   function t(R) {
     var N = this;
@@ -2452,11 +2705,11 @@ function au() {
   }
   var r = !process.browser && ["v0.10", "v0.9."].indexOf(process.version.slice(0, 5)) > -1 ? setImmediate : e.nextTick, i;
   E.WritableState = f;
-  var s = Object.create(Jr());
-  s.inherits = Qr();
+  var s = Object.create(Qr());
+  s.inherits = ei();
   var n = {
-    deprecate: Nh()
-  }, a = nu(), o = un().Buffer, c = (typeof ye < "u" ? ye : typeof window < "u" ? window : typeof self < "u" ? self : {}).Uint8Array || function() {
+    deprecate: Uh()
+  }, a = ou(), o = ln().Buffer, c = (typeof ye < "u" ? ye : typeof window < "u" ? window : typeof self < "u" ? self : {}).Uint8Array || function() {
   };
   function u(R) {
     return o.from(R);
@@ -2464,7 +2717,7 @@ function au() {
   function l(R) {
     return o.isBuffer(R) || R instanceof c;
   }
-  var p = su();
+  var p = cu();
   s.inherits(E, a);
   function d() {
   }
@@ -2652,16 +2905,16 @@ var Xn, Qa;
 function fr() {
   if (Qa) return Xn;
   Qa = 1;
-  var e = cn(), t = Object.keys || function(p) {
+  var e = un(), t = Object.keys || function(p) {
     var d = [];
     for (var f in p)
       d.push(f);
     return d;
   };
   Xn = c;
-  var r = Object.create(Jr());
-  r.inherits = Qr();
-  var i = ou(), s = au();
+  var r = Object.create(Qr());
+  r.inherits = ei();
+  var i = lu(), s = uu();
   r.inherits(c, i);
   for (var n = t(s.prototype), a = 0; a < n.length; a++) {
     var o = n[a];
@@ -2701,7 +2954,7 @@ var Wn = {}, eo;
 function to() {
   if (eo) return Wn;
   eo = 1;
-  var e = un().Buffer, t = e.isEncoding || function(h) {
+  var e = ln().Buffer, t = e.isEncoding || function(h) {
     switch (h = "" + h, h && h.toLowerCase()) {
       case "hex":
       case "utf8":
@@ -2856,16 +3109,16 @@ function to() {
   return Wn;
 }
 var zn, ro;
-function ou() {
+function lu() {
   if (ro) return zn;
   ro = 1;
-  var e = cn();
+  var e = un();
   zn = m;
-  var t = wh(), r;
+  var t = kh(), r;
   m.ReadableState = h, nf.EventEmitter;
   var i = function(T, g) {
     return T.listeners(g).length;
-  }, s = nu(), n = un().Buffer, a = (typeof ye < "u" ? ye : typeof window < "u" ? window : typeof self < "u" ? self : {}).Uint8Array || function() {
+  }, s = ou(), n = ln().Buffer, a = (typeof ye < "u" ? ye : typeof window < "u" ? window : typeof self < "u" ? self : {}).Uint8Array || function() {
   };
   function o(T) {
     return n.from(T);
@@ -2873,12 +3126,12 @@ function ou() {
   function c(T) {
     return n.isBuffer(T) || T instanceof a;
   }
-  var u = Object.create(Jr());
-  u.inherits = Qr();
+  var u = Object.create(Qr());
+  u.inherits = ei();
   var l = lt, p = void 0;
   l && l.debuglog ? p = l.debuglog("stream") : p = function() {
   };
-  var d = Rh(), f = su(), _;
+  var d = Dh(), f = cu(), _;
   u.inherits(m, s);
   var E = ["error", "close", "destroy", "pause", "resume"];
   function w(T, g, k) {
@@ -2995,19 +3248,19 @@ function ou() {
         break;
     }
     U.pipesCount += 1, p("pipe count=%d opts=%j", U.pipesCount, g);
-    var J = (!g || g.end !== !1) && T !== process.stdout && T !== process.stderr, z = J ? fi : Cr;
+    var J = (!g || g.end !== !1) && T !== process.stdout && T !== process.stderr, z = J ? hi : Cr;
     U.endEmitted ? e.nextTick(z) : k.once("end", z), T.on("unpipe", K);
     function K(Qt, Or) {
       p("onunpipe"), Qt === k && Or && Or.hasUnpiped === !1 && (Or.hasUnpiped = !0, Vd());
     }
-    function fi() {
+    function hi() {
       p("onend"), T.end();
     }
     var An = _t(k);
     T.on("drain", An);
     var Ba = !1;
     function Vd() {
-      p("cleanup"), T.removeListener("close", kn), T.removeListener("finish", xn), T.removeListener("drain", An), T.removeListener("error", On), T.removeListener("unpipe", K), k.removeListener("end", fi), k.removeListener("end", Cr), k.removeListener("data", Fa), Ba = !0, U.awaitDrain && (!T._writableState || T._writableState.needDrain) && An();
+      p("cleanup"), T.removeListener("close", kn), T.removeListener("finish", xn), T.removeListener("drain", An), T.removeListener("error", On), T.removeListener("unpipe", K), k.removeListener("end", hi), k.removeListener("end", Cr), k.removeListener("data", Fa), Ba = !0, U.awaitDrain && (!T._writableState || T._writableState.needDrain) && An();
     }
     var Cn = !1;
     k.on("data", Fa);
@@ -3094,8 +3347,8 @@ function ou() {
       g.push(null);
     }), T.on("data", function(K) {
       if (p("wrapped data"), k.decoder && (K = k.decoder.write(K)), !(k.objectMode && K == null) && !(!k.objectMode && (!K || !K.length))) {
-        var fi = g.push(K);
-        fi || (U = !0, T.pause());
+        var hi = g.push(K);
+        hi || (U = !0, T.pause());
       }
     });
     for (var J in T)
@@ -3167,11 +3420,11 @@ function ou() {
   return zn;
 }
 var qn, io;
-function cu() {
+function du() {
   if (io) return qn;
   io = 1, qn = i;
-  var e = fr(), t = Object.create(Jr());
-  t.inherits = Qr(), t.inherits(i, e);
+  var e = fr(), t = Object.create(Qr());
+  t.inherits = ei(), t.inherits(i, e);
   function r(a, o) {
     var c = this._transformState;
     c.transforming = !1;
@@ -3227,11 +3480,11 @@ function cu() {
   return qn;
 }
 var Kn, no;
-function Ih() {
+function Ph() {
   if (no) return Kn;
   no = 1, Kn = r;
-  var e = cu(), t = Object.create(Jr());
-  t.inherits = Qr(), t.inherits(r, e);
+  var e = du(), t = Object.create(Qr());
+  t.inherits = ei(), t.inherits(r, e);
   function r(i) {
     if (!(this instanceof r)) return new r(i);
     e.call(this, i);
@@ -3241,13 +3494,13 @@ function Ih() {
   }, Kn;
 }
 var so;
-function uu() {
+function fu() {
   return so || (so = 1, function(e, t) {
     var r = Vr;
-    process.env.READABLE_STREAM === "disable" && r ? (e.exports = r, t = e.exports = r.Readable, t.Readable = r.Readable, t.Writable = r.Writable, t.Duplex = r.Duplex, t.Transform = r.Transform, t.PassThrough = r.PassThrough, t.Stream = r) : (t = e.exports = ou(), t.Stream = r || t, t.Readable = t, t.Writable = au(), t.Duplex = fr(), t.Transform = cu(), t.PassThrough = Ih());
-  }(Ei, Ei.exports)), Ei.exports;
+    process.env.READABLE_STREAM === "disable" && r ? (e.exports = r, t = e.exports = r.Readable, t.Readable = r.Readable, t.Writable = r.Writable, t.Duplex = r.Duplex, t.Transform = r.Transform, t.PassThrough = r.PassThrough, t.Stream = r) : (t = e.exports = lu(), t.Stream = r || t, t.Readable = t, t.Writable = uu(), t.Duplex = fr(), t.Transform = du(), t.PassThrough = Ph());
+  }(mi, mi.exports)), mi.exports;
 }
-var ao, vi;
+var ao, yi;
 pe.base64 = !0;
 pe.array = !0;
 pe.string = !0;
@@ -3255,37 +3508,37 @@ pe.arraybuffer = typeof ArrayBuffer < "u" && typeof Uint8Array < "u";
 pe.nodebuffer = typeof Buffer < "u";
 pe.uint8array = typeof Uint8Array < "u";
 if (typeof ArrayBuffer > "u")
-  vi = pe.blob = !1;
+  yi = pe.blob = !1;
 else {
   var oo = new ArrayBuffer(0);
   try {
-    vi = pe.blob = new Blob([oo], {
+    yi = pe.blob = new Blob([oo], {
       type: "application/zip"
     }).size === 0;
   } catch {
     try {
-      var Lh = self.BlobBuilder || self.WebKitBlobBuilder || self.MozBlobBuilder || self.MSBlobBuilder, co = new Lh();
-      co.append(oo), vi = pe.blob = co.getBlob("application/zip").size === 0;
+      var Bh = self.BlobBuilder || self.WebKitBlobBuilder || self.MozBlobBuilder || self.MSBlobBuilder, co = new Bh();
+      co.append(oo), yi = pe.blob = co.getBlob("application/zip").size === 0;
     } catch {
-      vi = pe.blob = !1;
+      yi = pe.blob = !1;
     }
   }
 }
 try {
-  ao = pe.nodestream = !!uu().Readable;
+  ao = pe.nodestream = !!fu().Readable;
 } catch {
   ao = pe.nodestream = !1;
 }
-var yi = {}, uo;
-function lu() {
-  if (uo) return yi;
+var wi = {}, uo;
+function hu() {
+  if (uo) return wi;
   uo = 1;
   var e = le(), t = pe, r = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
-  return yi.encode = function(i) {
+  return wi.encode = function(i) {
     for (var s = [], n, a, o, c, u, l, p, d = 0, f = i.length, _ = f, E = e.getTypeOf(i) !== "string"; d < i.length; )
       _ = f - d, E ? (n = i[d++], a = d < f ? i[d++] : 0, o = d < f ? i[d++] : 0) : (n = i.charCodeAt(d++), a = d < f ? i.charCodeAt(d++) : 0, o = d < f ? i.charCodeAt(d++) : 0), c = n >> 2, u = (n & 3) << 4 | a >> 4, l = _ > 1 ? (a & 15) << 2 | o >> 6 : 64, p = _ > 2 ? o & 63 : 64, s.push(r.charAt(c) + r.charAt(u) + r.charAt(l) + r.charAt(p));
     return s.join("");
-  }, yi.decode = function(i) {
+  }, wi.decode = function(i) {
     var s, n, a, o, c, u, l, p = 0, d = 0, f = "data:";
     if (i.substr(0, f.length) === f)
       throw new Error("Invalid base64 input, it looks like a data url.");
@@ -3297,9 +3550,9 @@ function lu() {
     for (t.uint8array ? E = new Uint8Array(_ | 0) : E = new Array(_ | 0); p < i.length; )
       o = r.indexOf(i.charAt(p++)), c = r.indexOf(i.charAt(p++)), u = r.indexOf(i.charAt(p++)), l = r.indexOf(i.charAt(p++)), s = o << 2 | c >> 4, n = (c & 15) << 4 | u >> 2, a = (u & 3) << 6 | l, E[d++] = s, u !== 64 && (E[d++] = n), l !== 64 && (E[d++] = a);
     return E;
-  }, yi;
+  }, wi;
 }
-var ln = {
+var dn = {
   /**
    * True if this is running in Nodejs, will be undefined in a browser.
    * In a browser, browserify won't include this file and the whole module
@@ -3342,7 +3595,7 @@ var ln = {
     return e && typeof e.on == "function" && typeof e.pause == "function" && typeof e.resume == "function";
   }
 }, Yn, lo;
-function Ah() {
+function Fh() {
   if (lo) return Yn;
   lo = 1;
   var e = ye.MutationObserver || ye.WebKitMutationObserver, t;
@@ -3388,10 +3641,10 @@ function Ah() {
   return Yn;
 }
 var jn, fo;
-function Ch() {
+function Mh() {
   if (fo) return jn;
   fo = 1;
-  var e = Ah();
+  var e = Fh();
   function t() {
   }
   var r = {}, i = ["REJECTED"], s = ["FULFILLED"], n = ["PENDING"];
@@ -3558,8 +3811,8 @@ function Ch() {
   return jn;
 }
 var Cs = null;
-typeof Promise < "u" ? Cs = Promise : Cs = Ch();
-var ei = {
+typeof Promise < "u" ? Cs = Promise : Cs = Mh();
+var ti = {
   Promise: Cs
 };
 (function(e, t) {
@@ -3663,7 +3916,7 @@ var ei = {
 var ho;
 function le() {
   return ho || (ho = 1, function(e) {
-    var t = pe, r = lu(), i = ln, s = ei;
+    var t = pe, r = hu(), i = dn, s = ti;
     function n(d) {
       var f = null;
       return t.uint8array ? f = new Uint8Array(d.length) : f = new Array(d.length), o(d, f);
@@ -3893,14 +4146,14 @@ function le() {
     };
   }(Un)), Un;
 }
-function du(e) {
+function pu(e) {
   this.name = e || "default", this.streamInfo = {}, this.generatedError = null, this.extraStreamInfo = {}, this.isPaused = !0, this.isFinished = !1, this.isLocked = !1, this._listeners = {
     data: [],
     end: [],
     error: []
   }, this.previous = null;
 }
-du.prototype = {
+pu.prototype = {
   /**
    * Push a chunk to the next workers.
    * @param {Object} chunk the chunk to push
@@ -4049,9 +4302,9 @@ du.prototype = {
     return this.previous ? this.previous + " -> " + e : e;
   }
 };
-var Be = du;
+var Be = pu;
 (function(e) {
-  for (var t = le(), r = pe, i = ln, s = Be, n = new Array(256), a = 0; a < 256; a++)
+  for (var t = le(), r = pe, i = dn, s = Be, n = new Array(256), a = 0; a < 256; a++)
     n[a] = a >= 252 ? 6 : a >= 248 ? 5 : a >= 240 ? 4 : a >= 224 ? 3 : a >= 192 ? 2 : 1;
   n[254] = n[254] = 1;
   var o = function(d) {
@@ -4125,23 +4378,23 @@ var Be = du;
       meta: d.meta
     });
   }, e.Utf8EncodeWorker = p;
-})(gr);
-var fu = Be, hu = le();
+})(br);
+var _u = Be, Eu = le();
 function aa(e) {
-  fu.call(this, "ConvertWorker to " + e), this.destType = e;
+  _u.call(this, "ConvertWorker to " + e), this.destType = e;
 }
-hu.inherits(aa, fu);
+Eu.inherits(aa, _u);
 aa.prototype.processChunk = function(e) {
   this.push({
-    data: hu.transformTo(this.destType, e.data),
+    data: Eu.transformTo(this.destType, e.data),
     meta: e.meta
   });
 };
-var Oh = aa, Gn, po;
-function kh() {
+var $h = aa, Gn, po;
+function Hh() {
   if (po) return Gn;
   po = 1;
-  var e = uu().Readable, t = le();
+  var e = fu().Readable, t = le();
   t.inherits(r, e);
   function r(i, s, n) {
     e.call(this, s), this._helper = i;
@@ -4158,23 +4411,23 @@ function kh() {
     this._helper.resume();
   }, Gn = r, Gn;
 }
-var $t = le(), xh = Oh, Dh = Be, Uh = lu(), Ph = pe, Bh = ei, pu = null;
-if (Ph.nodestream)
+var $t = le(), Xh = $h, Wh = Be, zh = hu(), qh = pe, Kh = ti, mu = null;
+if (qh.nodestream)
   try {
-    pu = kh();
+    mu = Hh();
   } catch {
   }
-function Fh(e, t, r) {
+function Yh(e, t, r) {
   switch (e) {
     case "blob":
       return $t.newBlob($t.transformTo("arraybuffer", t), r);
     case "base64":
-      return Uh.encode(t);
+      return zh.encode(t);
     default:
       return $t.transformTo(e, t);
   }
 }
-function Mh(e, t) {
+function jh(e, t) {
   var r, i = 0, s = null, n = 0;
   for (r = 0; r < t.length; r++)
     n += t[r].length;
@@ -4193,8 +4446,8 @@ function Mh(e, t) {
       throw new Error("concat : unsupported type '" + e + "'");
   }
 }
-function $h(e, t) {
-  return new Bh.Promise(function(r, i) {
+function Gh(e, t) {
+  return new Kh.Promise(function(r, i) {
     var s = [], n = e._internalType, a = e._outputType, o = e._mimeType;
     e.on("data", function(c, u) {
       s.push(c), t && t(u);
@@ -4202,7 +4455,7 @@ function $h(e, t) {
       s = [], i(c);
     }).on("end", function() {
       try {
-        var c = Fh(a, Mh(n, s), o);
+        var c = Yh(a, jh(n, s), o);
         r(c);
       } catch (u) {
         i(u);
@@ -4211,7 +4464,7 @@ function $h(e, t) {
     }).resume();
   });
 }
-function _u(e, t, r) {
+function Tu(e, t, r) {
   var i = t;
   switch (t) {
     case "blob":
@@ -4223,12 +4476,12 @@ function _u(e, t, r) {
       break;
   }
   try {
-    this._internalType = i, this._outputType = t, this._mimeType = r, $t.checkSupport(i), this._worker = e.pipe(new xh(i)), e.lock();
+    this._internalType = i, this._outputType = t, this._mimeType = r, $t.checkSupport(i), this._worker = e.pipe(new Xh(i)), e.lock();
   } catch (s) {
-    this._worker = new Dh("error"), this._worker.error(s);
+    this._worker = new Wh("error"), this._worker.error(s);
   }
 }
-_u.prototype = {
+Tu.prototype = {
   /**
    * Listen a StreamHelper, accumulate its content and concatenate it into a
    * complete block.
@@ -4236,7 +4489,7 @@ _u.prototype = {
    * @return Promise the promise for the accumulation.
    */
   accumulate: function(e) {
-    return $h(this, e);
+    return Gh(this, e);
   },
   /**
    * Add a listener on an event triggered on a stream.
@@ -4274,12 +4527,12 @@ _u.prototype = {
   toNodejsStream: function(e) {
     if ($t.checkSupport("nodestream"), this._outputType !== "nodebuffer")
       throw new Error(this._outputType + " is not supported by this method");
-    return new pu(this, {
+    return new mu(this, {
       objectMode: this._outputType !== "nodebuffer"
     }, e);
   }
 };
-var Eu = _u, Fe = {};
+var gu = Tu, Fe = {};
 Fe.base64 = !1;
 Fe.binary = !1;
 Fe.dir = !1;
@@ -4290,30 +4543,30 @@ Fe.compressionOptions = null;
 Fe.comment = null;
 Fe.unixPermissions = null;
 Fe.dosPermissions = null;
-var dn = le(), fn = Be, Hh = 16 * 1024;
-function br(e) {
-  fn.call(this, "DataWorker");
+var fn = le(), hn = Be, Vh = 16 * 1024;
+function vr(e) {
+  hn.call(this, "DataWorker");
   var t = this;
   this.dataIsReady = !1, this.index = 0, this.max = 0, this.data = null, this.type = "", this._tickScheduled = !1, e.then(function(r) {
-    t.dataIsReady = !0, t.data = r, t.max = r && r.length || 0, t.type = dn.getTypeOf(r), t.isPaused || t._tickAndRepeat();
+    t.dataIsReady = !0, t.data = r, t.max = r && r.length || 0, t.type = fn.getTypeOf(r), t.isPaused || t._tickAndRepeat();
   }, function(r) {
     t.error(r);
   });
 }
-dn.inherits(br, fn);
-br.prototype.cleanUp = function() {
-  fn.prototype.cleanUp.call(this), this.data = null;
+fn.inherits(vr, hn);
+vr.prototype.cleanUp = function() {
+  hn.prototype.cleanUp.call(this), this.data = null;
 };
-br.prototype.resume = function() {
-  return fn.prototype.resume.call(this) ? (!this._tickScheduled && this.dataIsReady && (this._tickScheduled = !0, dn.delay(this._tickAndRepeat, [], this)), !0) : !1;
+vr.prototype.resume = function() {
+  return hn.prototype.resume.call(this) ? (!this._tickScheduled && this.dataIsReady && (this._tickScheduled = !0, fn.delay(this._tickAndRepeat, [], this)), !0) : !1;
 };
-br.prototype._tickAndRepeat = function() {
-  this._tickScheduled = !1, !(this.isPaused || this.isFinished) && (this._tick(), this.isFinished || (dn.delay(this._tickAndRepeat, [], this), this._tickScheduled = !0));
+vr.prototype._tickAndRepeat = function() {
+  this._tickScheduled = !1, !(this.isPaused || this.isFinished) && (this._tick(), this.isFinished || (fn.delay(this._tickAndRepeat, [], this), this._tickScheduled = !0));
 };
-br.prototype._tick = function() {
+vr.prototype._tick = function() {
   if (this.isPaused || this.isFinished)
     return !1;
-  var e = Hh, t = null, r = Math.min(this.max, this.index + e);
+  var e = Vh, t = null, r = Math.min(this.max, this.index + e);
   if (this.index >= this.max)
     return this.end();
   switch (this.type) {
@@ -4335,8 +4588,8 @@ br.prototype._tick = function() {
     }
   });
 };
-var mu = br, Xh = le();
-function Wh() {
+var bu = vr, Zh = le();
+function Jh() {
   for (var e, t = [], r = 0; r < 256; r++) {
     e = r;
     for (var i = 0; i < 8; i++)
@@ -4345,16 +4598,16 @@ function Wh() {
   }
   return t;
 }
-var Tu = Wh();
-function zh(e, t, r, i) {
-  var s = Tu, n = i + r;
+var vu = Jh();
+function Qh(e, t, r, i) {
+  var s = vu, n = i + r;
   e = e ^ -1;
   for (var a = i; a < n; a++)
     e = e >>> 8 ^ s[(e ^ t[a]) & 255];
   return e ^ -1;
 }
-function qh(e, t, r, i) {
-  var s = Tu, n = i + r;
+function ep(e, t, r, i) {
+  var s = vu, n = i + r;
   e = e ^ -1;
   for (var a = i; a < n; a++)
     e = e >>> 8 ^ s[(e ^ t.charCodeAt(a)) & 255];
@@ -4363,21 +4616,21 @@ function qh(e, t, r, i) {
 var oa = function(t, r) {
   if (typeof t > "u" || !t.length)
     return 0;
-  var i = Xh.getTypeOf(t) !== "string";
-  return i ? zh(r | 0, t, t.length, 0) : qh(r | 0, t, t.length, 0);
-}, gu = Be, Kh = oa, Yh = le();
+  var i = Zh.getTypeOf(t) !== "string";
+  return i ? Qh(r | 0, t, t.length, 0) : ep(r | 0, t, t.length, 0);
+}, yu = Be, tp = oa, rp = le();
 function ca() {
-  gu.call(this, "Crc32Probe"), this.withStreamInfo("crc32", 0);
+  yu.call(this, "Crc32Probe"), this.withStreamInfo("crc32", 0);
 }
-Yh.inherits(ca, gu);
+rp.inherits(ca, yu);
 ca.prototype.processChunk = function(e) {
-  this.streamInfo.crc32 = Kh(e.data, this.streamInfo.crc32 || 0), this.push(e);
+  this.streamInfo.crc32 = tp(e.data, this.streamInfo.crc32 || 0), this.push(e);
 };
-var bu = ca, jh = le(), ua = Be;
+var wu = ca, ip = le(), ua = Be;
 function la(e) {
   ua.call(this, "DataLengthProbe for " + e), this.propName = e, this.withStreamInfo(e, 0);
 }
-jh.inherits(la, ua);
+ip.inherits(la, ua);
 la.prototype.processChunk = function(e) {
   if (e) {
     var t = this.streamInfo[this.propName] || 0;
@@ -4385,7 +4638,7 @@ la.prototype.processChunk = function(e) {
   }
   ua.prototype.processChunk.call(this, e);
 };
-var Gh = la, _o = ei, Eo = mu, Vh = bu, Os = Gh;
+var np = la, _o = ti, Eo = bu, sp = wu, Os = np;
 function da(e, t, r, i, s) {
   this.compressedSize = e, this.uncompressedSize = t, this.crc32 = r, this.compression = i, this.compressedContent = s;
 }
@@ -4410,9 +4663,9 @@ da.prototype = {
   }
 };
 da.createWorkerFrom = function(e, t, r) {
-  return e.pipe(new Vh()).pipe(new Os("uncompressedSize")).pipe(t.compressWorker(r)).pipe(new Os("compressedSize")).withStreamInfo("compression", t);
+  return e.pipe(new sp()).pipe(new Os("uncompressedSize")).pipe(t.compressWorker(r)).pipe(new Os("compressedSize")).withStreamInfo("compression", t);
 };
-var fa = da, Zh = Eu, Jh = mu, Vn = gr, Zn = fa, mo = Be, ha = function(e, t, r) {
+var fa = da, ap = gu, op = bu, Vn = br, Zn = fa, mo = Be, ha = function(e, t, r) {
   this.name = e, this.dir = r.dir, this.date = r.date, this.comment = r.comment, this.unixPermissions = r.unixPermissions, this.dosPermissions = r.dosPermissions, this._data = t, this._dataBinary = r.binary, this.options = {
     compression: r.compression,
     compressionOptions: r.compressionOptions
@@ -4437,7 +4690,7 @@ ha.prototype = {
     } catch (n) {
       t = new mo("error"), t.error(n);
     }
-    return new Zh(t, r, "");
+    return new ap(t, r, "");
   },
   /**
    * Prepare the content in the asked type.
@@ -4476,15 +4729,15 @@ ha.prototype = {
    * @return Worker the worker.
    */
   _decompressWorker: function() {
-    return this._data instanceof Zn ? this._data.getContentWorker() : this._data instanceof mo ? this._data : new Jh(this._data);
+    return this._data instanceof Zn ? this._data.getContentWorker() : this._data instanceof mo ? this._data : new op(this._data);
   }
 };
-var To = ["asText", "asBinary", "asNodeBuffer", "asUint8Array", "asArrayBuffer"], Qh = function() {
+var To = ["asText", "asBinary", "asNodeBuffer", "asUint8Array", "asArrayBuffer"], cp = function() {
   throw new Error("This method has been removed in JSZip 3.0, please check the upgrade guide.");
 };
 for (var Jn = 0; Jn < To.length; Jn++)
-  ha.prototype[To[Jn]] = Qh;
-var ep = ha, vu = {}, hn = {}, pn = {}, ht = {};
+  ha.prototype[To[Jn]] = cp;
+var up = ha, Su = {}, pn = {}, _n = {}, ht = {};
 (function(e) {
   var t = typeof Uint8Array < "u" && typeof Uint16Array < "u" && typeof Int32Array < "u";
   function r(n, a) {
@@ -4536,40 +4789,40 @@ var ep = ha, vu = {}, hn = {}, pn = {}, ht = {};
     n ? (e.Buf8 = Uint8Array, e.Buf16 = Uint16Array, e.Buf32 = Int32Array, e.assign(e, i)) : (e.Buf8 = Array, e.Buf16 = Array, e.Buf32 = Array, e.assign(e, s));
   }, e.setTyped(t);
 })(ht);
-var ti = {}, rt = {}, vr = {}, tp = ht, rp = 4, go = 0, bo = 1, ip = 2;
-function yr(e) {
+var ri = {}, rt = {}, yr = {}, lp = ht, dp = 4, go = 0, bo = 1, fp = 2;
+function wr(e) {
   for (var t = e.length; --t >= 0; )
     e[t] = 0;
 }
-var np = 0, yu = 1, sp = 2, ap = 3, op = 258, pa = 29, ri = 256, Xr = ri + 1 + pa, cr = 30, _a = 19, wu = 2 * Xr + 1, Bt = 15, Qn = 16, cp = 7, Ea = 256, Su = 16, Ru = 17, Nu = 18, ks = (
+var hp = 0, Ru = 1, pp = 2, _p = 3, Ep = 258, pa = 29, ii = 256, Xr = ii + 1 + pa, cr = 30, _a = 19, Nu = 2 * Xr + 1, Ft = 15, Qn = 16, mp = 7, Ea = 256, Iu = 16, Lu = 17, Au = 18, ks = (
   /* extra bits for each length code */
   [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0]
-), Ui = (
+), Pi = (
   /* extra bits for each distance code */
   [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13]
-), up = (
+), Tp = (
   /* extra bits for each bit length code */
   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 7]
-), Iu = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15], lp = 512, ut = new Array((Xr + 2) * 2);
-yr(ut);
+), Cu = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15], gp = 512, ut = new Array((Xr + 2) * 2);
+wr(ut);
 var Ur = new Array(cr * 2);
-yr(Ur);
-var Wr = new Array(lp);
-yr(Wr);
-var zr = new Array(op - ap + 1);
-yr(zr);
+wr(Ur);
+var Wr = new Array(gp);
+wr(Wr);
+var zr = new Array(Ep - _p + 1);
+wr(zr);
 var ma = new Array(pa);
-yr(ma);
-var Ki = new Array(cr);
-yr(Ki);
+wr(ma);
+var Yi = new Array(cr);
+wr(Yi);
 function es(e, t, r, i, s) {
   this.static_tree = e, this.extra_bits = t, this.extra_base = r, this.elems = i, this.max_length = s, this.has_stree = e && e.length;
 }
-var Lu, Au, Cu;
+var Ou, ku, xu;
 function ts(e, t) {
   this.dyn_tree = e, this.max_code = 0, this.stat_desc = t;
 }
-function Ou(e) {
+function Du(e) {
   return e < 256 ? Wr[e] : Wr[256 + (e >>> 7)];
 }
 function qr(e, t) {
@@ -4586,21 +4839,21 @@ function Qe(e, t, r) {
     /*.Len*/
   );
 }
-function ku(e, t) {
+function Uu(e, t) {
   var r = 0;
   do
     r |= e & 1, e >>>= 1, r <<= 1;
   while (--t > 0);
   return r >>> 1;
 }
-function dp(e) {
+function bp(e) {
   e.bi_valid === 16 ? (qr(e, e.bi_buf), e.bi_buf = 0, e.bi_valid = 0) : e.bi_valid >= 8 && (e.pending_buf[e.pending++] = e.bi_buf & 255, e.bi_buf >>= 8, e.bi_valid -= 8);
 }
-function fp(e, t) {
+function vp(e, t) {
   var r = t.dyn_tree, i = t.max_code, s = t.stat_desc.static_tree, n = t.stat_desc.has_stree, a = t.stat_desc.extra_bits, o = t.stat_desc.extra_base, c = t.stat_desc.max_length, u, l, p, d, f, _, E = 0;
-  for (d = 0; d <= Bt; d++)
+  for (d = 0; d <= Ft; d++)
     e.bl_count[d] = 0;
-  for (r[e.heap[e.heap_max] * 2 + 1] = 0, u = e.heap_max + 1; u < wu; u++)
+  for (r[e.heap[e.heap_max] * 2 + 1] = 0, u = e.heap_max + 1; u < Nu; u++)
     l = e.heap[u], d = r[r[l * 2 + 1] * 2 + 1] + 1, d > c && (d = c, E++), r[l * 2 + 1] = d, !(l > i) && (e.bl_count[d]++, f = 0, l >= o && (f = a[l - o]), _ = r[l * 2], e.opt_len += _ * (d + f), n && (e.static_len += _ * (s[l * 2 + 1] + f)));
   if (E !== 0) {
     do {
@@ -4613,27 +4866,27 @@ function fp(e, t) {
         p = e.heap[--u], !(p > i) && (r[p * 2 + 1] !== d && (e.opt_len += (d - r[p * 2 + 1]) * r[p * 2], r[p * 2 + 1] = d), l--);
   }
 }
-function xu(e, t, r) {
-  var i = new Array(Bt + 1), s = 0, n, a;
-  for (n = 1; n <= Bt; n++)
+function Pu(e, t, r) {
+  var i = new Array(Ft + 1), s = 0, n, a;
+  for (n = 1; n <= Ft; n++)
     i[n] = s = s + r[n - 1] << 1;
   for (a = 0; a <= t; a++) {
     var o = e[a * 2 + 1];
-    o !== 0 && (e[a * 2] = ku(i[o]++, o));
+    o !== 0 && (e[a * 2] = Uu(i[o]++, o));
   }
 }
-function hp() {
-  var e, t, r, i, s, n = new Array(Bt + 1);
+function yp() {
+  var e, t, r, i, s, n = new Array(Ft + 1);
   for (r = 0, i = 0; i < pa - 1; i++)
     for (ma[i] = r, e = 0; e < 1 << ks[i]; e++)
       zr[r++] = i;
   for (zr[r - 1] = i, s = 0, i = 0; i < 16; i++)
-    for (Ki[i] = s, e = 0; e < 1 << Ui[i]; e++)
+    for (Yi[i] = s, e = 0; e < 1 << Pi[i]; e++)
       Wr[s++] = i;
   for (s >>= 7; i < cr; i++)
-    for (Ki[i] = s << 7, e = 0; e < 1 << Ui[i] - 7; e++)
+    for (Yi[i] = s << 7, e = 0; e < 1 << Pi[i] - 7; e++)
       Wr[256 + s++] = i;
-  for (t = 0; t <= Bt; t++)
+  for (t = 0; t <= Ft; t++)
     n[t] = 0;
   for (e = 0; e <= 143; )
     ut[e * 2 + 1] = 8, e++, n[8]++;
@@ -4643,11 +4896,11 @@ function hp() {
     ut[e * 2 + 1] = 7, e++, n[7]++;
   for (; e <= 287; )
     ut[e * 2 + 1] = 8, e++, n[8]++;
-  for (xu(ut, Xr + 1, n), e = 0; e < cr; e++)
-    Ur[e * 2 + 1] = 5, Ur[e * 2] = ku(e, 5);
-  Lu = new es(ut, ks, ri + 1, Xr, Bt), Au = new es(Ur, Ui, 0, cr, Bt), Cu = new es(new Array(0), up, 0, _a, cp);
+  for (Pu(ut, Xr + 1, n), e = 0; e < cr; e++)
+    Ur[e * 2 + 1] = 5, Ur[e * 2] = Uu(e, 5);
+  Ou = new es(ut, ks, ii + 1, Xr, Ft), ku = new es(Ur, Pi, 0, cr, Ft), xu = new es(new Array(0), Tp, 0, _a, mp);
 }
-function Du(e) {
+function Bu(e) {
   var t;
   for (t = 0; t < Xr; t++)
     e.dyn_ltree[t * 2] = 0;
@@ -4657,11 +4910,11 @@ function Du(e) {
     e.bl_tree[t * 2] = 0;
   e.dyn_ltree[Ea * 2] = 1, e.opt_len = e.static_len = 0, e.last_lit = e.matches = 0;
 }
-function Uu(e) {
+function Fu(e) {
   e.bi_valid > 8 ? qr(e, e.bi_buf) : e.bi_valid > 0 && (e.pending_buf[e.pending++] = e.bi_buf), e.bi_buf = 0, e.bi_valid = 0;
 }
-function pp(e, t, r, i) {
-  Uu(e), qr(e, r), qr(e, ~r), tp.arraySet(e.pending_buf, e.window, t, r, e.pending), e.pending += r;
+function wp(e, t, r, i) {
+  Fu(e), qr(e, r), qr(e, ~r), lp.arraySet(e.pending_buf, e.window, t, r, e.pending), e.pending += r;
 }
 function vo(e, t, r, i) {
   var s = t * 2, n = r * 2;
@@ -4676,13 +4929,13 @@ function yo(e, t, r) {
   var i, s, n = 0, a, o;
   if (e.last_lit !== 0)
     do
-      i = e.pending_buf[e.d_buf + n * 2] << 8 | e.pending_buf[e.d_buf + n * 2 + 1], s = e.pending_buf[e.l_buf + n], n++, i === 0 ? Qe(e, s, t) : (a = zr[s], Qe(e, a + ri + 1, t), o = ks[a], o !== 0 && (s -= ma[a], Le(e, s, o)), i--, a = Ou(i), Qe(e, a, r), o = Ui[a], o !== 0 && (i -= Ki[a], Le(e, i, o)));
+      i = e.pending_buf[e.d_buf + n * 2] << 8 | e.pending_buf[e.d_buf + n * 2 + 1], s = e.pending_buf[e.l_buf + n], n++, i === 0 ? Qe(e, s, t) : (a = zr[s], Qe(e, a + ii + 1, t), o = ks[a], o !== 0 && (s -= ma[a], Le(e, s, o)), i--, a = Du(i), Qe(e, a, r), o = Pi[a], o !== 0 && (i -= Yi[a], Le(e, i, o)));
     while (n < e.last_lit);
   Qe(e, Ea, t);
 }
 function xs(e, t) {
   var r = t.dyn_tree, i = t.stat_desc.static_tree, s = t.stat_desc.has_stree, n = t.stat_desc.elems, a, o, c = -1, u;
-  for (e.heap_len = 0, e.heap_max = wu, a = 0; a < n; a++)
+  for (e.heap_len = 0, e.heap_max = Nu, a = 0; a < n; a++)
     r[a * 2] !== 0 ? (e.heap[++e.heap_len] = c = a, e.depth[a] = 0) : r[a * 2 + 1] = 0;
   for (; e.heap_len < 2; )
     u = e.heap[++e.heap_len] = c < 2 ? ++c : 0, r[u * 2] = 1, e.depth[u] = 0, e.opt_len--, s && (e.static_len -= i[u * 2 + 1]);
@@ -4717,12 +4970,12 @@ function xs(e, t) {
   e.heap[--e.heap_max] = e.heap[
     1
     /*SMALLEST*/
-  ], fp(e, t), xu(r, c, e.bl_count);
+  ], vp(e, t), Pu(r, c, e.bl_count);
 }
 function wo(e, t, r) {
   var i, s = -1, n, a = t[0 * 2 + 1], o = 0, c = 7, u = 4;
   for (a === 0 && (c = 138, u = 3), t[(r + 1) * 2 + 1] = 65535, i = 0; i <= r; i++)
-    n = a, a = t[(i + 1) * 2 + 1], !(++o < c && n === a) && (o < u ? e.bl_tree[n * 2] += o : n !== 0 ? (n !== s && e.bl_tree[n * 2]++, e.bl_tree[Su * 2]++) : o <= 10 ? e.bl_tree[Ru * 2]++ : e.bl_tree[Nu * 2]++, o = 0, s = n, a === 0 ? (c = 138, u = 3) : n === a ? (c = 6, u = 3) : (c = 7, u = 4));
+    n = a, a = t[(i + 1) * 2 + 1], !(++o < c && n === a) && (o < u ? e.bl_tree[n * 2] += o : n !== 0 ? (n !== s && e.bl_tree[n * 2]++, e.bl_tree[Iu * 2]++) : o <= 10 ? e.bl_tree[Lu * 2]++ : e.bl_tree[Au * 2]++, o = 0, s = n, a === 0 ? (c = 138, u = 3) : n === a ? (c = 6, u = 3) : (c = 7, u = 4));
 }
 function So(e, t, r) {
   var i, s = -1, n, a = t[0 * 2 + 1], o = 0, c = 7, u = 4;
@@ -4732,57 +4985,57 @@ function So(e, t, r) {
         do
           Qe(e, n, e.bl_tree);
         while (--o !== 0);
-      else n !== 0 ? (n !== s && (Qe(e, n, e.bl_tree), o--), Qe(e, Su, e.bl_tree), Le(e, o - 3, 2)) : o <= 10 ? (Qe(e, Ru, e.bl_tree), Le(e, o - 3, 3)) : (Qe(e, Nu, e.bl_tree), Le(e, o - 11, 7));
+      else n !== 0 ? (n !== s && (Qe(e, n, e.bl_tree), o--), Qe(e, Iu, e.bl_tree), Le(e, o - 3, 2)) : o <= 10 ? (Qe(e, Lu, e.bl_tree), Le(e, o - 3, 3)) : (Qe(e, Au, e.bl_tree), Le(e, o - 11, 7));
       o = 0, s = n, a === 0 ? (c = 138, u = 3) : n === a ? (c = 6, u = 3) : (c = 7, u = 4);
     }
 }
-function _p(e) {
+function Sp(e) {
   var t;
-  for (wo(e, e.dyn_ltree, e.l_desc.max_code), wo(e, e.dyn_dtree, e.d_desc.max_code), xs(e, e.bl_desc), t = _a - 1; t >= 3 && e.bl_tree[Iu[t] * 2 + 1] === 0; t--)
+  for (wo(e, e.dyn_ltree, e.l_desc.max_code), wo(e, e.dyn_dtree, e.d_desc.max_code), xs(e, e.bl_desc), t = _a - 1; t >= 3 && e.bl_tree[Cu[t] * 2 + 1] === 0; t--)
     ;
   return e.opt_len += 3 * (t + 1) + 5 + 5 + 4, t;
 }
-function Ep(e, t, r, i) {
+function Rp(e, t, r, i) {
   var s;
   for (Le(e, t - 257, 5), Le(e, r - 1, 5), Le(e, i - 4, 4), s = 0; s < i; s++)
-    Le(e, e.bl_tree[Iu[s] * 2 + 1], 3);
+    Le(e, e.bl_tree[Cu[s] * 2 + 1], 3);
   So(e, e.dyn_ltree, t - 1), So(e, e.dyn_dtree, r - 1);
 }
-function mp(e) {
+function Np(e) {
   var t = 4093624447, r;
   for (r = 0; r <= 31; r++, t >>>= 1)
     if (t & 1 && e.dyn_ltree[r * 2] !== 0)
       return go;
   if (e.dyn_ltree[9 * 2] !== 0 || e.dyn_ltree[10 * 2] !== 0 || e.dyn_ltree[13 * 2] !== 0)
     return bo;
-  for (r = 32; r < ri; r++)
+  for (r = 32; r < ii; r++)
     if (e.dyn_ltree[r * 2] !== 0)
       return bo;
   return go;
 }
 var Ro = !1;
-function Tp(e) {
-  Ro || (hp(), Ro = !0), e.l_desc = new ts(e.dyn_ltree, Lu), e.d_desc = new ts(e.dyn_dtree, Au), e.bl_desc = new ts(e.bl_tree, Cu), e.bi_buf = 0, e.bi_valid = 0, Du(e);
+function Ip(e) {
+  Ro || (yp(), Ro = !0), e.l_desc = new ts(e.dyn_ltree, Ou), e.d_desc = new ts(e.dyn_dtree, ku), e.bl_desc = new ts(e.bl_tree, xu), e.bi_buf = 0, e.bi_valid = 0, Bu(e);
 }
-function Pu(e, t, r, i) {
-  Le(e, (np << 1) + (i ? 1 : 0), 3), pp(e, t, r);
+function Mu(e, t, r, i) {
+  Le(e, (hp << 1) + (i ? 1 : 0), 3), wp(e, t, r);
 }
-function gp(e) {
-  Le(e, yu << 1, 3), Qe(e, Ea, ut), dp(e);
+function Lp(e) {
+  Le(e, Ru << 1, 3), Qe(e, Ea, ut), bp(e);
 }
-function bp(e, t, r, i) {
+function Ap(e, t, r, i) {
   var s, n, a = 0;
-  e.level > 0 ? (e.strm.data_type === ip && (e.strm.data_type = mp(e)), xs(e, e.l_desc), xs(e, e.d_desc), a = _p(e), s = e.opt_len + 3 + 7 >>> 3, n = e.static_len + 3 + 7 >>> 3, n <= s && (s = n)) : s = n = r + 5, r + 4 <= s && t !== -1 ? Pu(e, t, r, i) : e.strategy === rp || n === s ? (Le(e, (yu << 1) + (i ? 1 : 0), 3), yo(e, ut, Ur)) : (Le(e, (sp << 1) + (i ? 1 : 0), 3), Ep(e, e.l_desc.max_code + 1, e.d_desc.max_code + 1, a + 1), yo(e, e.dyn_ltree, e.dyn_dtree)), Du(e), i && Uu(e);
+  e.level > 0 ? (e.strm.data_type === fp && (e.strm.data_type = Np(e)), xs(e, e.l_desc), xs(e, e.d_desc), a = Sp(e), s = e.opt_len + 3 + 7 >>> 3, n = e.static_len + 3 + 7 >>> 3, n <= s && (s = n)) : s = n = r + 5, r + 4 <= s && t !== -1 ? Mu(e, t, r, i) : e.strategy === dp || n === s ? (Le(e, (Ru << 1) + (i ? 1 : 0), 3), yo(e, ut, Ur)) : (Le(e, (pp << 1) + (i ? 1 : 0), 3), Rp(e, e.l_desc.max_code + 1, e.d_desc.max_code + 1, a + 1), yo(e, e.dyn_ltree, e.dyn_dtree)), Bu(e), i && Fu(e);
 }
-function vp(e, t, r) {
-  return e.pending_buf[e.d_buf + e.last_lit * 2] = t >>> 8 & 255, e.pending_buf[e.d_buf + e.last_lit * 2 + 1] = t & 255, e.pending_buf[e.l_buf + e.last_lit] = r & 255, e.last_lit++, t === 0 ? e.dyn_ltree[r * 2]++ : (e.matches++, t--, e.dyn_ltree[(zr[r] + ri + 1) * 2]++, e.dyn_dtree[Ou(t) * 2]++), e.last_lit === e.lit_bufsize - 1;
+function Cp(e, t, r) {
+  return e.pending_buf[e.d_buf + e.last_lit * 2] = t >>> 8 & 255, e.pending_buf[e.d_buf + e.last_lit * 2 + 1] = t & 255, e.pending_buf[e.l_buf + e.last_lit] = r & 255, e.last_lit++, t === 0 ? e.dyn_ltree[r * 2]++ : (e.matches++, t--, e.dyn_ltree[(zr[r] + ii + 1) * 2]++, e.dyn_dtree[Du(t) * 2]++), e.last_lit === e.lit_bufsize - 1;
 }
-vr._tr_init = Tp;
-vr._tr_stored_block = Pu;
-vr._tr_flush_block = bp;
-vr._tr_tally = vp;
-vr._tr_align = gp;
-function yp(e, t, r, i) {
+yr._tr_init = Ip;
+yr._tr_stored_block = Mu;
+yr._tr_flush_block = Ap;
+yr._tr_tally = Cp;
+yr._tr_align = Lp;
+function Op(e, t, r, i) {
   for (var s = e & 65535 | 0, n = e >>> 16 & 65535 | 0, a = 0; r !== 0; ) {
     a = r > 2e3 ? 2e3 : r, r -= a;
     do
@@ -4792,8 +5045,8 @@ function yp(e, t, r, i) {
   }
   return s | n << 16 | 0;
 }
-var Bu = yp;
-function wp() {
+var $u = Op;
+function kp() {
   for (var e, t = [], r = 0; r < 256; r++) {
     e = r;
     for (var i = 0; i < 8; i++)
@@ -4802,15 +5055,15 @@ function wp() {
   }
   return t;
 }
-var Sp = wp();
-function Rp(e, t, r, i) {
-  var s = Sp, n = i + r;
+var xp = kp();
+function Dp(e, t, r, i) {
+  var s = xp, n = i + r;
   e ^= -1;
   for (var a = i; a < n; a++)
     e = e >>> 8 ^ s[(e ^ t[a]) & 255];
   return e ^ -1;
 }
-var Fu = Rp, Ta = {
+var Hu = Dp, Ta = {
   2: "need dictionary",
   /* Z_NEED_DICT       2  */
   1: "stream end",
@@ -4829,9 +5082,9 @@ var Fu = Rp, Ta = {
   /* Z_BUF_ERROR     (-5) */
   "-6": "incompatible version"
   /* Z_VERSION_ERROR (-6) */
-}, Re = ht, xe = vr, Mu = Bu, Tt = Fu, Np = Ta, jt = 0, Ip = 1, Lp = 3, Nt = 4, No = 5, et = 0, Io = 1, De = -2, Ap = -3, is = -5, Cp = -1, Op = 1, wi = 2, kp = 3, xp = 4, Dp = 0, Up = 2, _n = 8, Pp = 9, Bp = 15, Fp = 8, Mp = 29, $p = 256, Ds = $p + 1 + Mp, Hp = 30, Xp = 19, Wp = 2 * Ds + 1, zp = 15, Y = 3, wt = 258, ze = wt + Y + 1, qp = 32, En = 42, Us = 69, Pi = 73, Bi = 91, Fi = 103, Ft = 113, xr = 666, Ee = 1, ii = 2, Wt = 3, wr = 4, Kp = 3;
+}, Re = ht, xe = yr, Xu = $u, Tt = Hu, Up = Ta, jt = 0, Pp = 1, Bp = 3, Nt = 4, No = 5, et = 0, Io = 1, De = -2, Fp = -3, is = -5, Mp = -1, $p = 1, Si = 2, Hp = 3, Xp = 4, Wp = 0, zp = 2, En = 8, qp = 9, Kp = 15, Yp = 8, jp = 29, Gp = 256, Ds = Gp + 1 + jp, Vp = 30, Zp = 19, Jp = 2 * Ds + 1, Qp = 15, Y = 3, wt = 258, ze = wt + Y + 1, e_ = 32, mn = 42, Us = 69, Bi = 73, Fi = 91, Mi = 103, Mt = 113, xr = 666, Ee = 1, ni = 2, Wt = 3, Sr = 4, t_ = 3;
 function St(e, t) {
-  return e.msg = Np[t], t;
+  return e.msg = Up[t], t;
 }
 function Lo(e) {
   return (e << 1) - (e > 4 ? 9 : 0);
@@ -4853,11 +5106,11 @@ function Z(e, t) {
 function kr(e, t) {
   e.pending_buf[e.pending++] = t >>> 8 & 255, e.pending_buf[e.pending++] = t & 255;
 }
-function Yp(e, t, r, i) {
+function r_(e, t, r, i) {
   var s = e.avail_in;
-  return s > i && (s = i), s === 0 ? 0 : (e.avail_in -= s, Re.arraySet(t, e.input, e.next_in, s, r), e.state.wrap === 1 ? e.adler = Mu(e.adler, t, s, r) : e.state.wrap === 2 && (e.adler = Tt(e.adler, t, s, r)), e.next_in += s, e.total_in += s, s);
+  return s > i && (s = i), s === 0 ? 0 : (e.avail_in -= s, Re.arraySet(t, e.input, e.next_in, s, r), e.state.wrap === 1 ? e.adler = Xu(e.adler, t, s, r) : e.state.wrap === 2 && (e.adler = Tt(e.adler, t, s, r)), e.next_in += s, e.total_in += s, s);
 }
-function $u(e, t) {
+function Wu(e, t) {
   var r = e.max_chain_length, i = e.strstart, s, n, a = e.prev_length, o = e.nice_match, c = e.strstart > e.w_size - ze ? e.strstart - (e.w_size - ze) : 0, u = e.window, l = e.w_mask, p = e.prev, d = e.strstart + wt, f = u[i + a - 1], _ = u[i + a];
   e.prev_length >= e.good_match && (r >>= 2), o > e.lookahead && (o = e.lookahead);
   do
@@ -4891,12 +5144,12 @@ function zt(e) {
     }
     if (e.strm.avail_in === 0)
       break;
-    if (i = Yp(e.strm, e.window, e.strstart + e.lookahead, n), e.lookahead += i, e.lookahead + e.insert >= Y)
+    if (i = r_(e.strm, e.window, e.strstart + e.lookahead, n), e.lookahead += i, e.lookahead + e.insert >= Y)
       for (a = e.strstart - e.insert, e.ins_h = e.window[a], e.ins_h = (e.ins_h << e.hash_shift ^ e.window[a + 1]) & e.hash_mask; e.insert && (e.ins_h = (e.ins_h << e.hash_shift ^ e.window[a + Y - 1]) & e.hash_mask, e.prev[a & e.w_mask] = e.head[e.ins_h], e.head[e.ins_h] = a, a++, e.insert--, !(e.lookahead + e.insert < Y)); )
         ;
   } while (e.lookahead < ze && e.strm.avail_in !== 0);
 }
-function jp(e, t) {
+function i_(e, t) {
   var r = 65535;
   for (r > e.pending_buf_size - 5 && (r = e.pending_buf_size - 5); ; ) {
     if (e.lookahead <= 1) {
@@ -4910,7 +5163,7 @@ function jp(e, t) {
     if ((e.strstart === 0 || e.strstart >= i) && (e.lookahead = e.strstart - i, e.strstart = i, we(e, !1), e.strm.avail_out === 0) || e.strstart - e.block_start >= e.w_size - ze && (we(e, !1), e.strm.avail_out === 0))
       return Ee;
   }
-  return e.insert = 0, t === Nt ? (we(e, !0), e.strm.avail_out === 0 ? Wt : wr) : (e.strstart > e.block_start && (we(e, !1), e.strm.avail_out === 0), Ee);
+  return e.insert = 0, t === Nt ? (we(e, !0), e.strm.avail_out === 0 ? Wt : Sr) : (e.strstart > e.block_start && (we(e, !1), e.strm.avail_out === 0), Ee);
 }
 function ns(e, t) {
   for (var r, i; ; ) {
@@ -4920,7 +5173,7 @@ function ns(e, t) {
       if (e.lookahead === 0)
         break;
     }
-    if (r = 0, e.lookahead >= Y && (e.ins_h = (e.ins_h << e.hash_shift ^ e.window[e.strstart + Y - 1]) & e.hash_mask, r = e.prev[e.strstart & e.w_mask] = e.head[e.ins_h], e.head[e.ins_h] = e.strstart), r !== 0 && e.strstart - r <= e.w_size - ze && (e.match_length = $u(e, r)), e.match_length >= Y)
+    if (r = 0, e.lookahead >= Y && (e.ins_h = (e.ins_h << e.hash_shift ^ e.window[e.strstart + Y - 1]) & e.hash_mask, r = e.prev[e.strstart & e.w_mask] = e.head[e.ins_h], e.head[e.ins_h] = e.strstart), r !== 0 && e.strstart - r <= e.w_size - ze && (e.match_length = Wu(e, r)), e.match_length >= Y)
       if (i = xe._tr_tally(e, e.strstart - e.match_start, e.match_length - Y), e.lookahead -= e.match_length, e.match_length <= e.max_lazy_match && e.lookahead >= Y) {
         e.match_length--;
         do
@@ -4934,7 +5187,7 @@ function ns(e, t) {
     if (i && (we(e, !1), e.strm.avail_out === 0))
       return Ee;
   }
-  return e.insert = e.strstart < Y - 1 ? e.strstart : Y - 1, t === Nt ? (we(e, !0), e.strm.avail_out === 0 ? Wt : wr) : e.last_lit && (we(e, !1), e.strm.avail_out === 0) ? Ee : ii;
+  return e.insert = e.strstart < Y - 1 ? e.strstart : Y - 1, t === Nt ? (we(e, !0), e.strm.avail_out === 0 ? Wt : Sr) : e.last_lit && (we(e, !1), e.strm.avail_out === 0) ? Ee : ni;
 }
 function er(e, t) {
   for (var r, i, s; ; ) {
@@ -4944,7 +5197,7 @@ function er(e, t) {
       if (e.lookahead === 0)
         break;
     }
-    if (r = 0, e.lookahead >= Y && (e.ins_h = (e.ins_h << e.hash_shift ^ e.window[e.strstart + Y - 1]) & e.hash_mask, r = e.prev[e.strstart & e.w_mask] = e.head[e.ins_h], e.head[e.ins_h] = e.strstart), e.prev_length = e.match_length, e.prev_match = e.match_start, e.match_length = Y - 1, r !== 0 && e.prev_length < e.max_lazy_match && e.strstart - r <= e.w_size - ze && (e.match_length = $u(e, r), e.match_length <= 5 && (e.strategy === Op || e.match_length === Y && e.strstart - e.match_start > 4096) && (e.match_length = Y - 1)), e.prev_length >= Y && e.match_length <= e.prev_length) {
+    if (r = 0, e.lookahead >= Y && (e.ins_h = (e.ins_h << e.hash_shift ^ e.window[e.strstart + Y - 1]) & e.hash_mask, r = e.prev[e.strstart & e.w_mask] = e.head[e.ins_h], e.head[e.ins_h] = e.strstart), e.prev_length = e.match_length, e.prev_match = e.match_start, e.match_length = Y - 1, r !== 0 && e.prev_length < e.max_lazy_match && e.strstart - r <= e.w_size - ze && (e.match_length = Wu(e, r), e.match_length <= 5 && (e.strategy === $p || e.match_length === Y && e.strstart - e.match_start > 4096) && (e.match_length = Y - 1)), e.prev_length >= Y && e.match_length <= e.prev_length) {
       s = e.strstart + e.lookahead - Y, i = xe._tr_tally(e, e.strstart - 1 - e.prev_match, e.prev_length - Y), e.lookahead -= e.prev_length - 1, e.prev_length -= 2;
       do
         ++e.strstart <= s && (e.ins_h = (e.ins_h << e.hash_shift ^ e.window[e.strstart + Y - 1]) & e.hash_mask, r = e.prev[e.strstart & e.w_mask] = e.head[e.ins_h], e.head[e.ins_h] = e.strstart);
@@ -4957,9 +5210,9 @@ function er(e, t) {
     } else
       e.match_available = 1, e.strstart++, e.lookahead--;
   }
-  return e.match_available && (i = xe._tr_tally(e, 0, e.window[e.strstart - 1]), e.match_available = 0), e.insert = e.strstart < Y - 1 ? e.strstart : Y - 1, t === Nt ? (we(e, !0), e.strm.avail_out === 0 ? Wt : wr) : e.last_lit && (we(e, !1), e.strm.avail_out === 0) ? Ee : ii;
+  return e.match_available && (i = xe._tr_tally(e, 0, e.window[e.strstart - 1]), e.match_available = 0), e.insert = e.strstart < Y - 1 ? e.strstart : Y - 1, t === Nt ? (we(e, !0), e.strm.avail_out === 0 ? Wt : Sr) : e.last_lit && (we(e, !1), e.strm.avail_out === 0) ? Ee : ni;
 }
-function Gp(e, t) {
+function n_(e, t) {
   for (var r, i, s, n, a = e.window; ; ) {
     if (e.lookahead <= wt) {
       if (zt(e), e.lookahead <= wt && t === jt)
@@ -4977,9 +5230,9 @@ function Gp(e, t) {
     if (e.match_length >= Y ? (r = xe._tr_tally(e, 1, e.match_length - Y), e.lookahead -= e.match_length, e.strstart += e.match_length, e.match_length = 0) : (r = xe._tr_tally(e, 0, e.window[e.strstart]), e.lookahead--, e.strstart++), r && (we(e, !1), e.strm.avail_out === 0))
       return Ee;
   }
-  return e.insert = 0, t === Nt ? (we(e, !0), e.strm.avail_out === 0 ? Wt : wr) : e.last_lit && (we(e, !1), e.strm.avail_out === 0) ? Ee : ii;
+  return e.insert = 0, t === Nt ? (we(e, !0), e.strm.avail_out === 0 ? Wt : Sr) : e.last_lit && (we(e, !1), e.strm.avail_out === 0) ? Ee : ni;
 }
-function Vp(e, t) {
+function s_(e, t) {
   for (var r; ; ) {
     if (e.lookahead === 0 && (zt(e), e.lookahead === 0)) {
       if (t === jt)
@@ -4989,7 +5242,7 @@ function Vp(e, t) {
     if (e.match_length = 0, r = xe._tr_tally(e, 0, e.window[e.strstart]), e.lookahead--, e.strstart++, r && (we(e, !1), e.strm.avail_out === 0))
       return Ee;
   }
-  return e.insert = 0, t === Nt ? (we(e, !0), e.strm.avail_out === 0 ? Wt : wr) : e.last_lit && (we(e, !1), e.strm.avail_out === 0) ? Ee : ii;
+  return e.insert = 0, t === Nt ? (we(e, !0), e.strm.avail_out === 0 ? Wt : Sr) : e.last_lit && (we(e, !1), e.strm.avail_out === 0) ? Ee : ni;
 }
 function Ve(e, t, r, i, s) {
   this.good_length = e, this.max_lazy = t, this.nice_length = r, this.max_chain = i, this.func = s;
@@ -4997,7 +5250,7 @@ function Ve(e, t, r, i, s) {
 var sr;
 sr = [
   /*      good lazy nice chain */
-  new Ve(0, 0, 0, 0, jp),
+  new Ve(0, 0, 0, 0, i_),
   /* 0 store only */
   new Ve(4, 4, 8, 4, ns),
   /* 1 max speed, no lazy matches */
@@ -5018,60 +5271,60 @@ sr = [
   new Ve(32, 258, 258, 4096, er)
   /* 9 max compression */
 ];
-function Zp(e) {
+function a_(e) {
   e.window_size = 2 * e.w_size, yt(e.head), e.max_lazy_match = sr[e.level].max_lazy, e.good_match = sr[e.level].good_length, e.nice_match = sr[e.level].nice_length, e.max_chain_length = sr[e.level].max_chain, e.strstart = 0, e.block_start = 0, e.lookahead = 0, e.insert = 0, e.match_length = e.prev_length = Y - 1, e.match_available = 0, e.ins_h = 0;
 }
-function Jp() {
-  this.strm = null, this.status = 0, this.pending_buf = null, this.pending_buf_size = 0, this.pending_out = 0, this.pending = 0, this.wrap = 0, this.gzhead = null, this.gzindex = 0, this.method = _n, this.last_flush = -1, this.w_size = 0, this.w_bits = 0, this.w_mask = 0, this.window = null, this.window_size = 0, this.prev = null, this.head = null, this.ins_h = 0, this.hash_size = 0, this.hash_bits = 0, this.hash_mask = 0, this.hash_shift = 0, this.block_start = 0, this.match_length = 0, this.prev_match = 0, this.match_available = 0, this.strstart = 0, this.match_start = 0, this.lookahead = 0, this.prev_length = 0, this.max_chain_length = 0, this.max_lazy_match = 0, this.level = 0, this.strategy = 0, this.good_match = 0, this.nice_match = 0, this.dyn_ltree = new Re.Buf16(Wp * 2), this.dyn_dtree = new Re.Buf16((2 * Hp + 1) * 2), this.bl_tree = new Re.Buf16((2 * Xp + 1) * 2), yt(this.dyn_ltree), yt(this.dyn_dtree), yt(this.bl_tree), this.l_desc = null, this.d_desc = null, this.bl_desc = null, this.bl_count = new Re.Buf16(zp + 1), this.heap = new Re.Buf16(2 * Ds + 1), yt(this.heap), this.heap_len = 0, this.heap_max = 0, this.depth = new Re.Buf16(2 * Ds + 1), yt(this.depth), this.l_buf = 0, this.lit_bufsize = 0, this.last_lit = 0, this.d_buf = 0, this.opt_len = 0, this.static_len = 0, this.matches = 0, this.insert = 0, this.bi_buf = 0, this.bi_valid = 0;
+function o_() {
+  this.strm = null, this.status = 0, this.pending_buf = null, this.pending_buf_size = 0, this.pending_out = 0, this.pending = 0, this.wrap = 0, this.gzhead = null, this.gzindex = 0, this.method = En, this.last_flush = -1, this.w_size = 0, this.w_bits = 0, this.w_mask = 0, this.window = null, this.window_size = 0, this.prev = null, this.head = null, this.ins_h = 0, this.hash_size = 0, this.hash_bits = 0, this.hash_mask = 0, this.hash_shift = 0, this.block_start = 0, this.match_length = 0, this.prev_match = 0, this.match_available = 0, this.strstart = 0, this.match_start = 0, this.lookahead = 0, this.prev_length = 0, this.max_chain_length = 0, this.max_lazy_match = 0, this.level = 0, this.strategy = 0, this.good_match = 0, this.nice_match = 0, this.dyn_ltree = new Re.Buf16(Jp * 2), this.dyn_dtree = new Re.Buf16((2 * Vp + 1) * 2), this.bl_tree = new Re.Buf16((2 * Zp + 1) * 2), yt(this.dyn_ltree), yt(this.dyn_dtree), yt(this.bl_tree), this.l_desc = null, this.d_desc = null, this.bl_desc = null, this.bl_count = new Re.Buf16(Qp + 1), this.heap = new Re.Buf16(2 * Ds + 1), yt(this.heap), this.heap_len = 0, this.heap_max = 0, this.depth = new Re.Buf16(2 * Ds + 1), yt(this.depth), this.l_buf = 0, this.lit_bufsize = 0, this.last_lit = 0, this.d_buf = 0, this.opt_len = 0, this.static_len = 0, this.matches = 0, this.insert = 0, this.bi_buf = 0, this.bi_valid = 0;
 }
-function Hu(e) {
+function zu(e) {
   var t;
-  return !e || !e.state ? St(e, De) : (e.total_in = e.total_out = 0, e.data_type = Up, t = e.state, t.pending = 0, t.pending_out = 0, t.wrap < 0 && (t.wrap = -t.wrap), t.status = t.wrap ? En : Ft, e.adler = t.wrap === 2 ? 0 : 1, t.last_flush = jt, xe._tr_init(t), et);
+  return !e || !e.state ? St(e, De) : (e.total_in = e.total_out = 0, e.data_type = zp, t = e.state, t.pending = 0, t.pending_out = 0, t.wrap < 0 && (t.wrap = -t.wrap), t.status = t.wrap ? mn : Mt, e.adler = t.wrap === 2 ? 0 : 1, t.last_flush = jt, xe._tr_init(t), et);
 }
-function Xu(e) {
-  var t = Hu(e);
-  return t === et && Zp(e.state), t;
+function qu(e) {
+  var t = zu(e);
+  return t === et && a_(e.state), t;
 }
-function Qp(e, t) {
+function c_(e, t) {
   return !e || !e.state || e.state.wrap !== 2 ? De : (e.state.gzhead = t, et);
 }
-function Wu(e, t, r, i, s, n) {
+function Ku(e, t, r, i, s, n) {
   if (!e)
     return De;
   var a = 1;
-  if (t === Cp && (t = 6), i < 0 ? (a = 0, i = -i) : i > 15 && (a = 2, i -= 16), s < 1 || s > Pp || r !== _n || i < 8 || i > 15 || t < 0 || t > 9 || n < 0 || n > xp)
+  if (t === Mp && (t = 6), i < 0 ? (a = 0, i = -i) : i > 15 && (a = 2, i -= 16), s < 1 || s > qp || r !== En || i < 8 || i > 15 || t < 0 || t > 9 || n < 0 || n > Xp)
     return St(e, De);
   i === 8 && (i = 9);
-  var o = new Jp();
-  return e.state = o, o.strm = e, o.wrap = a, o.gzhead = null, o.w_bits = i, o.w_size = 1 << o.w_bits, o.w_mask = o.w_size - 1, o.hash_bits = s + 7, o.hash_size = 1 << o.hash_bits, o.hash_mask = o.hash_size - 1, o.hash_shift = ~~((o.hash_bits + Y - 1) / Y), o.window = new Re.Buf8(o.w_size * 2), o.head = new Re.Buf16(o.hash_size), o.prev = new Re.Buf16(o.w_size), o.lit_bufsize = 1 << s + 6, o.pending_buf_size = o.lit_bufsize * 4, o.pending_buf = new Re.Buf8(o.pending_buf_size), o.d_buf = 1 * o.lit_bufsize, o.l_buf = 3 * o.lit_bufsize, o.level = t, o.strategy = n, o.method = r, Xu(e);
+  var o = new o_();
+  return e.state = o, o.strm = e, o.wrap = a, o.gzhead = null, o.w_bits = i, o.w_size = 1 << o.w_bits, o.w_mask = o.w_size - 1, o.hash_bits = s + 7, o.hash_size = 1 << o.hash_bits, o.hash_mask = o.hash_size - 1, o.hash_shift = ~~((o.hash_bits + Y - 1) / Y), o.window = new Re.Buf8(o.w_size * 2), o.head = new Re.Buf16(o.hash_size), o.prev = new Re.Buf16(o.w_size), o.lit_bufsize = 1 << s + 6, o.pending_buf_size = o.lit_bufsize * 4, o.pending_buf = new Re.Buf8(o.pending_buf_size), o.d_buf = 1 * o.lit_bufsize, o.l_buf = 3 * o.lit_bufsize, o.level = t, o.strategy = n, o.method = r, qu(e);
 }
-function e_(e, t) {
-  return Wu(e, t, _n, Bp, Fp, Dp);
+function u_(e, t) {
+  return Ku(e, t, En, Kp, Yp, Wp);
 }
-function t_(e, t) {
+function l_(e, t) {
   var r, i, s, n;
   if (!e || !e.state || t > No || t < 0)
     return e ? St(e, De) : De;
   if (i = e.state, !e.output || !e.input && e.avail_in !== 0 || i.status === xr && t !== Nt)
     return St(e, e.avail_out === 0 ? is : De);
-  if (i.strm = e, r = i.last_flush, i.last_flush = t, i.status === En)
+  if (i.strm = e, r = i.last_flush, i.last_flush = t, i.status === mn)
     if (i.wrap === 2)
       e.adler = 0, Z(i, 31), Z(i, 139), Z(i, 8), i.gzhead ? (Z(
         i,
         (i.gzhead.text ? 1 : 0) + (i.gzhead.hcrc ? 2 : 0) + (i.gzhead.extra ? 4 : 0) + (i.gzhead.name ? 8 : 0) + (i.gzhead.comment ? 16 : 0)
-      ), Z(i, i.gzhead.time & 255), Z(i, i.gzhead.time >> 8 & 255), Z(i, i.gzhead.time >> 16 & 255), Z(i, i.gzhead.time >> 24 & 255), Z(i, i.level === 9 ? 2 : i.strategy >= wi || i.level < 2 ? 4 : 0), Z(i, i.gzhead.os & 255), i.gzhead.extra && i.gzhead.extra.length && (Z(i, i.gzhead.extra.length & 255), Z(i, i.gzhead.extra.length >> 8 & 255)), i.gzhead.hcrc && (e.adler = Tt(e.adler, i.pending_buf, i.pending, 0)), i.gzindex = 0, i.status = Us) : (Z(i, 0), Z(i, 0), Z(i, 0), Z(i, 0), Z(i, 0), Z(i, i.level === 9 ? 2 : i.strategy >= wi || i.level < 2 ? 4 : 0), Z(i, Kp), i.status = Ft);
+      ), Z(i, i.gzhead.time & 255), Z(i, i.gzhead.time >> 8 & 255), Z(i, i.gzhead.time >> 16 & 255), Z(i, i.gzhead.time >> 24 & 255), Z(i, i.level === 9 ? 2 : i.strategy >= Si || i.level < 2 ? 4 : 0), Z(i, i.gzhead.os & 255), i.gzhead.extra && i.gzhead.extra.length && (Z(i, i.gzhead.extra.length & 255), Z(i, i.gzhead.extra.length >> 8 & 255)), i.gzhead.hcrc && (e.adler = Tt(e.adler, i.pending_buf, i.pending, 0)), i.gzindex = 0, i.status = Us) : (Z(i, 0), Z(i, 0), Z(i, 0), Z(i, 0), Z(i, 0), Z(i, i.level === 9 ? 2 : i.strategy >= Si || i.level < 2 ? 4 : 0), Z(i, t_), i.status = Mt);
     else {
-      var a = _n + (i.w_bits - 8 << 4) << 8, o = -1;
-      i.strategy >= wi || i.level < 2 ? o = 0 : i.level < 6 ? o = 1 : i.level === 6 ? o = 2 : o = 3, a |= o << 6, i.strstart !== 0 && (a |= qp), a += 31 - a % 31, i.status = Ft, kr(i, a), i.strstart !== 0 && (kr(i, e.adler >>> 16), kr(i, e.adler & 65535)), e.adler = 1;
+      var a = En + (i.w_bits - 8 << 4) << 8, o = -1;
+      i.strategy >= Si || i.level < 2 ? o = 0 : i.level < 6 ? o = 1 : i.level === 6 ? o = 2 : o = 3, a |= o << 6, i.strstart !== 0 && (a |= e_), a += 31 - a % 31, i.status = Mt, kr(i, a), i.strstart !== 0 && (kr(i, e.adler >>> 16), kr(i, e.adler & 65535)), e.adler = 1;
     }
   if (i.status === Us)
     if (i.gzhead.extra) {
       for (s = i.pending; i.gzindex < (i.gzhead.extra.length & 65535) && !(i.pending === i.pending_buf_size && (i.gzhead.hcrc && i.pending > s && (e.adler = Tt(e.adler, i.pending_buf, i.pending - s, s)), gt(e), s = i.pending, i.pending === i.pending_buf_size)); )
         Z(i, i.gzhead.extra[i.gzindex] & 255), i.gzindex++;
-      i.gzhead.hcrc && i.pending > s && (e.adler = Tt(e.adler, i.pending_buf, i.pending - s, s)), i.gzindex === i.gzhead.extra.length && (i.gzindex = 0, i.status = Pi);
+      i.gzhead.hcrc && i.pending > s && (e.adler = Tt(e.adler, i.pending_buf, i.pending - s, s)), i.gzindex === i.gzhead.extra.length && (i.gzindex = 0, i.status = Bi);
     } else
-      i.status = Pi;
-  if (i.status === Pi)
+      i.status = Bi;
+  if (i.status === Bi)
     if (i.gzhead.name) {
       s = i.pending;
       do {
@@ -5081,10 +5334,10 @@ function t_(e, t) {
         }
         i.gzindex < i.gzhead.name.length ? n = i.gzhead.name.charCodeAt(i.gzindex++) & 255 : n = 0, Z(i, n);
       } while (n !== 0);
-      i.gzhead.hcrc && i.pending > s && (e.adler = Tt(e.adler, i.pending_buf, i.pending - s, s)), n === 0 && (i.gzindex = 0, i.status = Bi);
+      i.gzhead.hcrc && i.pending > s && (e.adler = Tt(e.adler, i.pending_buf, i.pending - s, s)), n === 0 && (i.gzindex = 0, i.status = Fi);
     } else
-      i.status = Bi;
-  if (i.status === Bi)
+      i.status = Fi;
+  if (i.status === Fi)
     if (i.gzhead.comment) {
       s = i.pending;
       do {
@@ -5094,10 +5347,10 @@ function t_(e, t) {
         }
         i.gzindex < i.gzhead.comment.length ? n = i.gzhead.comment.charCodeAt(i.gzindex++) & 255 : n = 0, Z(i, n);
       } while (n !== 0);
-      i.gzhead.hcrc && i.pending > s && (e.adler = Tt(e.adler, i.pending_buf, i.pending - s, s)), n === 0 && (i.status = Fi);
+      i.gzhead.hcrc && i.pending > s && (e.adler = Tt(e.adler, i.pending_buf, i.pending - s, s)), n === 0 && (i.status = Mi);
     } else
-      i.status = Fi;
-  if (i.status === Fi && (i.gzhead.hcrc ? (i.pending + 2 > i.pending_buf_size && gt(e), i.pending + 2 <= i.pending_buf_size && (Z(i, e.adler & 255), Z(i, e.adler >> 8 & 255), e.adler = 0, i.status = Ft)) : i.status = Ft), i.pending !== 0) {
+      i.status = Mi;
+  if (i.status === Mi && (i.gzhead.hcrc ? (i.pending + 2 > i.pending_buf_size && gt(e), i.pending + 2 <= i.pending_buf_size && (Z(i, e.adler & 255), Z(i, e.adler >> 8 & 255), e.adler = 0, i.status = Mt)) : i.status = Mt), i.pending !== 0) {
     if (gt(e), e.avail_out === 0)
       return i.last_flush = -1, et;
   } else if (e.avail_in === 0 && Lo(t) <= Lo(r) && t !== Nt)
@@ -5105,23 +5358,23 @@ function t_(e, t) {
   if (i.status === xr && e.avail_in !== 0)
     return St(e, is);
   if (e.avail_in !== 0 || i.lookahead !== 0 || t !== jt && i.status !== xr) {
-    var c = i.strategy === wi ? Vp(i, t) : i.strategy === kp ? Gp(i, t) : sr[i.level].func(i, t);
-    if ((c === Wt || c === wr) && (i.status = xr), c === Ee || c === Wt)
+    var c = i.strategy === Si ? s_(i, t) : i.strategy === Hp ? n_(i, t) : sr[i.level].func(i, t);
+    if ((c === Wt || c === Sr) && (i.status = xr), c === Ee || c === Wt)
       return e.avail_out === 0 && (i.last_flush = -1), et;
-    if (c === ii && (t === Ip ? xe._tr_align(i) : t !== No && (xe._tr_stored_block(i, 0, 0, !1), t === Lp && (yt(i.head), i.lookahead === 0 && (i.strstart = 0, i.block_start = 0, i.insert = 0))), gt(e), e.avail_out === 0))
+    if (c === ni && (t === Pp ? xe._tr_align(i) : t !== No && (xe._tr_stored_block(i, 0, 0, !1), t === Bp && (yt(i.head), i.lookahead === 0 && (i.strstart = 0, i.block_start = 0, i.insert = 0))), gt(e), e.avail_out === 0))
       return i.last_flush = -1, et;
   }
   return t !== Nt ? et : i.wrap <= 0 ? Io : (i.wrap === 2 ? (Z(i, e.adler & 255), Z(i, e.adler >> 8 & 255), Z(i, e.adler >> 16 & 255), Z(i, e.adler >> 24 & 255), Z(i, e.total_in & 255), Z(i, e.total_in >> 8 & 255), Z(i, e.total_in >> 16 & 255), Z(i, e.total_in >> 24 & 255)) : (kr(i, e.adler >>> 16), kr(i, e.adler & 65535)), gt(e), i.wrap > 0 && (i.wrap = -i.wrap), i.pending !== 0 ? et : Io);
 }
-function r_(e) {
+function d_(e) {
   var t;
-  return !e || !e.state ? De : (t = e.state.status, t !== En && t !== Us && t !== Pi && t !== Bi && t !== Fi && t !== Ft && t !== xr ? St(e, De) : (e.state = null, t === Ft ? St(e, Ap) : et));
+  return !e || !e.state ? De : (t = e.state.status, t !== mn && t !== Us && t !== Bi && t !== Fi && t !== Mi && t !== Mt && t !== xr ? St(e, De) : (e.state = null, t === Mt ? St(e, Fp) : et));
 }
-function i_(e, t) {
+function f_(e, t) {
   var r = t.length, i, s, n, a, o, c, u, l;
-  if (!e || !e.state || (i = e.state, a = i.wrap, a === 2 || a === 1 && i.status !== En || i.lookahead))
+  if (!e || !e.state || (i = e.state, a = i.wrap, a === 2 || a === 1 && i.status !== mn || i.lookahead))
     return De;
-  for (a === 1 && (e.adler = Mu(e.adler, t, r, 0)), i.wrap = 0, r >= i.w_size && (a === 0 && (yt(i.head), i.strstart = 0, i.block_start = 0, i.insert = 0), l = new Re.Buf8(i.w_size), Re.arraySet(l, t, r - i.w_size, i.w_size, 0), t = l, r = i.w_size), o = e.avail_in, c = e.next_in, u = e.input, e.avail_in = r, e.next_in = 0, e.input = t, zt(i); i.lookahead >= Y; ) {
+  for (a === 1 && (e.adler = Xu(e.adler, t, r, 0)), i.wrap = 0, r >= i.w_size && (a === 0 && (yt(i.head), i.strstart = 0, i.block_start = 0, i.insert = 0), l = new Re.Buf8(i.w_size), Re.arraySet(l, t, r - i.w_size, i.w_size, 0), t = l, r = i.w_size), o = e.avail_in, c = e.next_in, u = e.input, e.avail_in = r, e.next_in = 0, e.input = t, zt(i); i.lookahead >= Y; ) {
     s = i.strstart, n = i.lookahead - (Y - 1);
     do
       i.ins_h = (i.ins_h << i.hash_shift ^ i.window[s + Y - 1]) & i.hash_mask, i.prev[s & i.w_mask] = i.head[i.ins_h], i.head[i.ins_h] = s, s++;
@@ -5130,27 +5383,27 @@ function i_(e, t) {
   }
   return i.strstart += i.lookahead, i.block_start = i.strstart, i.insert = i.lookahead, i.lookahead = 0, i.match_length = i.prev_length = Y - 1, i.match_available = 0, e.next_in = c, e.input = u, e.avail_in = o, i.wrap = a, et;
 }
-rt.deflateInit = e_;
-rt.deflateInit2 = Wu;
-rt.deflateReset = Xu;
-rt.deflateResetKeep = Hu;
-rt.deflateSetHeader = Qp;
-rt.deflate = t_;
-rt.deflateEnd = r_;
-rt.deflateSetDictionary = i_;
+rt.deflateInit = u_;
+rt.deflateInit2 = Ku;
+rt.deflateReset = qu;
+rt.deflateResetKeep = zu;
+rt.deflateSetHeader = c_;
+rt.deflate = l_;
+rt.deflateEnd = d_;
+rt.deflateSetDictionary = f_;
 rt.deflateInfo = "pako deflate (from Nodeca project)";
-var Gt = {}, mn = ht, zu = !0, qu = !0;
+var Gt = {}, Tn = ht, Yu = !0, ju = !0;
 try {
   String.fromCharCode.apply(null, [0]);
 } catch {
-  zu = !1;
+  Yu = !1;
 }
 try {
   String.fromCharCode.apply(null, new Uint8Array(1));
 } catch {
-  qu = !1;
+  ju = !1;
 }
-var Kr = new mn.Buf8(256);
+var Kr = new Tn.Buf8(256);
 for (var Et = 0; Et < 256; Et++)
   Kr[Et] = Et >= 252 ? 6 : Et >= 248 ? 5 : Et >= 240 ? 4 : Et >= 224 ? 3 : Et >= 192 ? 2 : 1;
 Kr[254] = Kr[254] = 1;
@@ -5158,22 +5411,22 @@ Gt.string2buf = function(e) {
   var t, r, i, s, n, a = e.length, o = 0;
   for (s = 0; s < a; s++)
     r = e.charCodeAt(s), (r & 64512) === 55296 && s + 1 < a && (i = e.charCodeAt(s + 1), (i & 64512) === 56320 && (r = 65536 + (r - 55296 << 10) + (i - 56320), s++)), o += r < 128 ? 1 : r < 2048 ? 2 : r < 65536 ? 3 : 4;
-  for (t = new mn.Buf8(o), n = 0, s = 0; n < o; s++)
+  for (t = new Tn.Buf8(o), n = 0, s = 0; n < o; s++)
     r = e.charCodeAt(s), (r & 64512) === 55296 && s + 1 < a && (i = e.charCodeAt(s + 1), (i & 64512) === 56320 && (r = 65536 + (r - 55296 << 10) + (i - 56320), s++)), r < 128 ? t[n++] = r : r < 2048 ? (t[n++] = 192 | r >>> 6, t[n++] = 128 | r & 63) : r < 65536 ? (t[n++] = 224 | r >>> 12, t[n++] = 128 | r >>> 6 & 63, t[n++] = 128 | r & 63) : (t[n++] = 240 | r >>> 18, t[n++] = 128 | r >>> 12 & 63, t[n++] = 128 | r >>> 6 & 63, t[n++] = 128 | r & 63);
   return t;
 };
-function Ku(e, t) {
-  if (t < 65534 && (e.subarray && qu || !e.subarray && zu))
-    return String.fromCharCode.apply(null, mn.shrinkBuf(e, t));
+function Gu(e, t) {
+  if (t < 65534 && (e.subarray && ju || !e.subarray && Yu))
+    return String.fromCharCode.apply(null, Tn.shrinkBuf(e, t));
   for (var r = "", i = 0; i < t; i++)
     r += String.fromCharCode(e[i]);
   return r;
 }
 Gt.buf2binstring = function(e) {
-  return Ku(e, e.length);
+  return Gu(e, e.length);
 };
 Gt.binstring2buf = function(e) {
-  for (var t = new mn.Buf8(e.length), r = 0, i = t.length; r < i; r++)
+  for (var t = new Tn.Buf8(e.length), r = 0, i = t.length; r < i; r++)
     t[r] = e.charCodeAt(r);
   return t;
 };
@@ -5196,7 +5449,7 @@ Gt.buf2string = function(e, t) {
     }
     s < 65536 ? o[i++] = s : (s -= 65536, o[i++] = 55296 | s >> 10 & 1023, o[i++] = 56320 | s & 1023);
   }
-  return Ku(o, i);
+  return Gu(o, i);
 };
 Gt.utf8border = function(e, t) {
   var r;
@@ -5204,23 +5457,23 @@ Gt.utf8border = function(e, t) {
     r--;
   return r < 0 || r === 0 ? t : r + Kr[e[r]] > t ? r : t;
 };
-function n_() {
+function h_() {
   this.input = null, this.next_in = 0, this.avail_in = 0, this.total_in = 0, this.output = null, this.next_out = 0, this.avail_out = 0, this.total_out = 0, this.msg = "", this.state = null, this.data_type = 2, this.adler = 0;
 }
-var Yu = n_, Pr = rt, Br = ht, Ps = Gt, Bs = Ta, s_ = Yu, ju = Object.prototype.toString, a_ = 0, ss = 4, ur = 0, Ao = 1, Co = 2, o_ = -1, c_ = 0, u_ = 8;
+var Vu = h_, Pr = rt, Br = ht, Ps = Gt, Bs = Ta, p_ = Vu, Zu = Object.prototype.toString, __ = 0, ss = 4, ur = 0, Ao = 1, Co = 2, E_ = -1, m_ = 0, T_ = 8;
 function qt(e) {
   if (!(this instanceof qt)) return new qt(e);
   this.options = Br.assign({
-    level: o_,
-    method: u_,
+    level: E_,
+    method: T_,
     chunkSize: 16384,
     windowBits: 15,
     memLevel: 8,
-    strategy: c_,
+    strategy: m_,
     to: ""
   }, e || {});
   var t = this.options;
-  t.raw && t.windowBits > 0 ? t.windowBits = -t.windowBits : t.gzip && t.windowBits > 0 && t.windowBits < 16 && (t.windowBits += 16), this.err = 0, this.msg = "", this.ended = !1, this.chunks = [], this.strm = new s_(), this.strm.avail_out = 0;
+  t.raw && t.windowBits > 0 ? t.windowBits = -t.windowBits : t.gzip && t.windowBits > 0 && t.windowBits < 16 && (t.windowBits += 16), this.err = 0, this.msg = "", this.ended = !1, this.chunks = [], this.strm = new p_(), this.strm.avail_out = 0;
   var r = Pr.deflateInit2(
     this.strm,
     t.level,
@@ -5233,7 +5486,7 @@ function qt(e) {
     throw new Error(Bs[r]);
   if (t.header && Pr.deflateSetHeader(this.strm, t.header), t.dictionary) {
     var i;
-    if (typeof t.dictionary == "string" ? i = Ps.string2buf(t.dictionary) : ju.call(t.dictionary) === "[object ArrayBuffer]" ? i = new Uint8Array(t.dictionary) : i = t.dictionary, r = Pr.deflateSetDictionary(this.strm, i), r !== ur)
+    if (typeof t.dictionary == "string" ? i = Ps.string2buf(t.dictionary) : Zu.call(t.dictionary) === "[object ArrayBuffer]" ? i = new Uint8Array(t.dictionary) : i = t.dictionary, r = Pr.deflateSetDictionary(this.strm, i), r !== ur)
       throw new Error(Bs[r]);
     this._dict_set = !0;
   }
@@ -5242,7 +5495,7 @@ qt.prototype.push = function(e, t) {
   var r = this.strm, i = this.options.chunkSize, s, n;
   if (this.ended)
     return !1;
-  n = t === ~~t ? t : t === !0 ? ss : a_, typeof e == "string" ? r.input = Ps.string2buf(e) : ju.call(e) === "[object ArrayBuffer]" ? r.input = new Uint8Array(e) : r.input = e, r.next_in = 0, r.avail_in = r.input.length;
+  n = t === ~~t ? t : t === !0 ? ss : __, typeof e == "string" ? r.input = Ps.string2buf(e) : Zu.call(e) === "[object ArrayBuffer]" ? r.input = new Uint8Array(e) : r.input = e, r.next_in = 0, r.avail_in = r.input.length;
   do {
     if (r.avail_out === 0 && (r.output = new Br.Buf8(i), r.next_out = 0, r.avail_out = i), s = Pr.deflate(r, n), s !== Ao && s !== ur)
       return this.onEnd(s), this.ended = !0, !1;
@@ -5262,17 +5515,17 @@ function ga(e, t) {
     throw r.msg || Bs[r.err];
   return r.result;
 }
-function l_(e, t) {
+function g_(e, t) {
   return t = t || {}, t.raw = !0, ga(e, t);
 }
-function d_(e, t) {
+function b_(e, t) {
   return t = t || {}, t.gzip = !0, ga(e, t);
 }
-ti.Deflate = qt;
-ti.deflate = ga;
-ti.deflateRaw = l_;
-ti.gzip = d_;
-var ni = {}, Ye = {}, Si = 30, f_ = 12, h_ = function(t, r) {
+ri.Deflate = qt;
+ri.deflate = ga;
+ri.deflateRaw = g_;
+ri.gzip = b_;
+var si = {}, Ye = {}, Ri = 30, v_ = 12, y_ = function(t, r) {
   var i, s, n, a, o, c, u, l, p, d, f, _, E, w, h, m, b, v, S, L, I, O, P, H, D;
   i = t.state, s = t.next_in, H = t.input, n = s + (t.avail_in - 5), a = t.next_out, D = t.output, o = a - (r - t.avail_out), c = a + (t.avail_out - 257), u = i.dmax, l = i.wsize, p = i.whave, d = i.wnext, f = i.window, _ = i.hold, E = i.bits, w = i.lencode, h = i.distcode, m = (1 << i.lenbits) - 1, b = (1 << i.distbits) - 1;
   e:
@@ -5288,12 +5541,12 @@ var ni = {}, Ye = {}, Si = 30, f_ = 12, h_ = function(t, r) {
               for (; ; ) {
                 if (S = v >>> 24, _ >>>= S, E -= S, S = v >>> 16 & 255, S & 16) {
                   if (I = v & 65535, S &= 15, E < S && (_ += H[s++] << E, E += 8, E < S && (_ += H[s++] << E, E += 8)), I += _ & (1 << S) - 1, I > u) {
-                    t.msg = "invalid distance too far back", i.mode = Si;
+                    t.msg = "invalid distance too far back", i.mode = Ri;
                     break e;
                   }
                   if (_ >>>= S, E -= S, S = a - o, I > S) {
                     if (S = I - S, S > p && i.sane) {
-                      t.msg = "invalid distance too far back", i.mode = Si;
+                      t.msg = "invalid distance too far back", i.mode = Ri;
                       break e;
                     }
                     if (O = 0, P = f, d === 0) {
@@ -5336,7 +5589,7 @@ var ni = {}, Ye = {}, Si = 30, f_ = 12, h_ = function(t, r) {
                     L && (D[a++] = D[O++], L > 1 && (D[a++] = D[O++]));
                   }
                 } else if (S & 64) {
-                  t.msg = "invalid distance code", i.mode = Si;
+                  t.msg = "invalid distance code", i.mode = Ri;
                   break e;
                 } else {
                   v = h[(v & 65535) + (_ & (1 << S) - 1)];
@@ -5346,10 +5599,10 @@ var ni = {}, Ye = {}, Si = 30, f_ = 12, h_ = function(t, r) {
               }
           } else if (S & 64)
             if (S & 32) {
-              i.mode = f_;
+              i.mode = v_;
               break e;
             } else {
-              t.msg = "invalid literal/length code", i.mode = Si;
+              t.msg = "invalid literal/length code", i.mode = Ri;
               break e;
             }
           else {
@@ -5360,7 +5613,7 @@ var ni = {}, Ye = {}, Si = 30, f_ = 12, h_ = function(t, r) {
         }
     } while (s < n && a < c);
   L = E >> 3, s -= L, E -= L << 3, _ &= (1 << E) - 1, t.next_in = s, t.next_out = a, t.avail_in = s < n ? 5 + (n - s) : 5 - (s - n), t.avail_out = a < c ? 257 + (c - a) : 257 - (a - c), i.hold = _, i.bits = E;
-}, Oo = ht, tr = 15, ko = 852, xo = 592, Do = 0, as = 1, Uo = 2, p_ = [
+}, Oo = ht, tr = 15, ko = 852, xo = 592, Do = 0, as = 1, Uo = 2, w_ = [
   /* Length codes 257..285 base */
   3,
   4,
@@ -5393,7 +5646,7 @@ var ni = {}, Ye = {}, Si = 30, f_ = 12, h_ = function(t, r) {
   258,
   0,
   0
-], __ = [
+], S_ = [
   /* Length codes 257..285 extra */
   16,
   16,
@@ -5426,7 +5679,7 @@ var ni = {}, Ye = {}, Si = 30, f_ = 12, h_ = function(t, r) {
   16,
   72,
   78
-], E_ = [
+], R_ = [
   /* Distance codes 0..29 base */
   1,
   2,
@@ -5460,7 +5713,7 @@ var ni = {}, Ye = {}, Si = 30, f_ = 12, h_ = function(t, r) {
   24577,
   0,
   0
-], m_ = [
+], N_ = [
   /* Distance codes 0..29 extra */
   16,
   16,
@@ -5494,7 +5747,7 @@ var ni = {}, Ye = {}, Si = 30, f_ = 12, h_ = function(t, r) {
   29,
   64,
   64
-], T_ = function(t, r, i, s, n, a, o, c) {
+], I_ = function(t, r, i, s, n, a, o, c) {
   var u = c.bits, l = 0, p = 0, d = 0, f = 0, _ = 0, E = 0, w = 0, h = 0, m = 0, b = 0, v, S, L, I, O, P = null, H = 0, D, B = new Oo.Buf16(tr + 1), q = new Oo.Buf16(tr + 1), ge = null, _t = 0, Jt, R, N;
   for (l = 0; l <= tr; l++)
     B[l] = 0;
@@ -5515,7 +5768,7 @@ var ni = {}, Ye = {}, Si = 30, f_ = 12, h_ = function(t, r) {
     q[l + 1] = q[l] + B[l];
   for (p = 0; p < s; p++)
     r[i + p] !== 0 && (o[q[r[i + p]]++] = p);
-  if (t === Do ? (P = ge = o, D = 19) : t === as ? (P = p_, H -= 257, ge = __, _t -= 257, D = 256) : (P = E_, ge = m_, D = -1), b = 0, p = 0, l = d, O = a, E = _, w = 0, L = -1, m = 1 << _, I = m - 1, t === as && m > ko || t === Uo && m > xo)
+  if (t === Do ? (P = ge = o, D = 19) : t === as ? (P = w_, H -= 257, ge = S_, _t -= 257, D = 256) : (P = R_, ge = N_, D = -1), b = 0, p = 0, l = d, O = a, E = _, w = 0, L = -1, m = 1 << _, I = m - 1, t === as && m > ko || t === Uo && m > xo)
     return 1;
   for (; ; ) {
     Jt = l - w, o[p] < D ? (R = 0, N = o[p]) : o[p] > D ? (R = ge[_t + o[p]], N = P[H + o[p]]) : (R = 96, N = 0), v = 1 << l - w, S = 1 << E, d = S;
@@ -5538,34 +5791,34 @@ var ni = {}, Ye = {}, Si = 30, f_ = 12, h_ = function(t, r) {
     }
   }
   return b !== 0 && (n[O + b] = l - w << 24 | 64 << 16 | 0), c.bits = _, 0;
-}, Ae = ht, Fs = Bu, Ze = Fu, g_ = h_, Fr = T_, b_ = 0, Gu = 1, Vu = 2, Po = 4, v_ = 5, Ri = 6, Kt = 0, y_ = 1, w_ = 2, Pe = -2, Zu = -3, Ju = -4, S_ = -5, Bo = 8, Qu = 1, Fo = 2, Mo = 3, $o = 4, Ho = 5, Xo = 6, Wo = 7, zo = 8, qo = 9, Ko = 10, Yi = 11, at = 12, os = 13, Yo = 14, cs = 15, jo = 16, Go = 17, Vo = 18, Zo = 19, Ni = 20, Ii = 21, Jo = 22, Qo = 23, ec = 24, tc = 25, rc = 26, us = 27, ic = 28, nc = 29, oe = 30, el = 31, R_ = 32, N_ = 852, I_ = 592, L_ = 15, A_ = L_;
+}, Ae = ht, Fs = $u, Ze = Hu, L_ = y_, Fr = I_, A_ = 0, Ju = 1, Qu = 2, Po = 4, C_ = 5, Ni = 6, Kt = 0, O_ = 1, k_ = 2, Pe = -2, el = -3, tl = -4, x_ = -5, Bo = 8, rl = 1, Fo = 2, Mo = 3, $o = 4, Ho = 5, Xo = 6, Wo = 7, zo = 8, qo = 9, Ko = 10, ji = 11, at = 12, os = 13, Yo = 14, cs = 15, jo = 16, Go = 17, Vo = 18, Zo = 19, Ii = 20, Li = 21, Jo = 22, Qo = 23, ec = 24, tc = 25, rc = 26, us = 27, ic = 28, nc = 29, oe = 30, il = 31, D_ = 32, U_ = 852, P_ = 592, B_ = 15, F_ = B_;
 function sc(e) {
   return (e >>> 24 & 255) + (e >>> 8 & 65280) + ((e & 65280) << 8) + ((e & 255) << 24);
 }
-function C_() {
+function M_() {
   this.mode = 0, this.last = !1, this.wrap = 0, this.havedict = !1, this.flags = 0, this.dmax = 0, this.check = 0, this.total = 0, this.head = null, this.wbits = 0, this.wsize = 0, this.whave = 0, this.wnext = 0, this.window = null, this.hold = 0, this.bits = 0, this.length = 0, this.offset = 0, this.extra = 0, this.lencode = null, this.distcode = null, this.lenbits = 0, this.distbits = 0, this.ncode = 0, this.nlen = 0, this.ndist = 0, this.have = 0, this.next = null, this.lens = new Ae.Buf16(320), this.work = new Ae.Buf16(288), this.lendyn = null, this.distdyn = null, this.sane = 0, this.back = 0, this.was = 0;
 }
-function tl(e) {
+function nl(e) {
   var t;
-  return !e || !e.state ? Pe : (t = e.state, e.total_in = e.total_out = t.total = 0, e.msg = "", t.wrap && (e.adler = t.wrap & 1), t.mode = Qu, t.last = 0, t.havedict = 0, t.dmax = 32768, t.head = null, t.hold = 0, t.bits = 0, t.lencode = t.lendyn = new Ae.Buf32(N_), t.distcode = t.distdyn = new Ae.Buf32(I_), t.sane = 1, t.back = -1, Kt);
+  return !e || !e.state ? Pe : (t = e.state, e.total_in = e.total_out = t.total = 0, e.msg = "", t.wrap && (e.adler = t.wrap & 1), t.mode = rl, t.last = 0, t.havedict = 0, t.dmax = 32768, t.head = null, t.hold = 0, t.bits = 0, t.lencode = t.lendyn = new Ae.Buf32(U_), t.distcode = t.distdyn = new Ae.Buf32(P_), t.sane = 1, t.back = -1, Kt);
 }
-function rl(e) {
+function sl(e) {
   var t;
-  return !e || !e.state ? Pe : (t = e.state, t.wsize = 0, t.whave = 0, t.wnext = 0, tl(e));
+  return !e || !e.state ? Pe : (t = e.state, t.wsize = 0, t.whave = 0, t.wnext = 0, nl(e));
 }
-function il(e, t) {
+function al(e, t) {
   var r, i;
-  return !e || !e.state || (i = e.state, t < 0 ? (r = 0, t = -t) : (r = (t >> 4) + 1, t < 48 && (t &= 15)), t && (t < 8 || t > 15)) ? Pe : (i.window !== null && i.wbits !== t && (i.window = null), i.wrap = r, i.wbits = t, rl(e));
+  return !e || !e.state || (i = e.state, t < 0 ? (r = 0, t = -t) : (r = (t >> 4) + 1, t < 48 && (t &= 15)), t && (t < 8 || t > 15)) ? Pe : (i.window !== null && i.wbits !== t && (i.window = null), i.wrap = r, i.wbits = t, sl(e));
 }
-function nl(e, t) {
+function ol(e, t) {
   var r, i;
-  return e ? (i = new C_(), e.state = i, i.window = null, r = il(e, t), r !== Kt && (e.state = null), r) : Pe;
+  return e ? (i = new M_(), e.state = i, i.window = null, r = al(e, t), r !== Kt && (e.state = null), r) : Pe;
 }
-function O_(e) {
-  return nl(e, A_);
+function $_(e) {
+  return ol(e, F_);
 }
 var ac = !0, ls, ds;
-function k_(e) {
+function H_(e) {
   if (ac) {
     var t;
     for (ls = new Ae.Buf32(512), ds = new Ae.Buf32(32), t = 0; t < 144; )
@@ -5576,17 +5829,17 @@ function k_(e) {
       e.lens[t++] = 7;
     for (; t < 288; )
       e.lens[t++] = 8;
-    for (Fr(Gu, e.lens, 0, 288, ls, 0, e.work, { bits: 9 }), t = 0; t < 32; )
+    for (Fr(Ju, e.lens, 0, 288, ls, 0, e.work, { bits: 9 }), t = 0; t < 32; )
       e.lens[t++] = 5;
-    Fr(Vu, e.lens, 0, 32, ds, 0, e.work, { bits: 5 }), ac = !1;
+    Fr(Qu, e.lens, 0, 32, ds, 0, e.work, { bits: 5 }), ac = !1;
   }
   e.lencode = ls, e.lenbits = 9, e.distcode = ds, e.distbits = 5;
 }
-function sl(e, t, r, i) {
+function cl(e, t, r, i) {
   var s, n = e.state;
   return n.window === null && (n.wsize = 1 << n.wbits, n.wnext = 0, n.whave = 0, n.window = new Ae.Buf8(n.wsize)), i >= n.wsize ? (Ae.arraySet(n.window, t, r - n.wsize, n.wsize, 0), n.wnext = 0, n.whave = n.wsize) : (s = n.wsize - n.wnext, s > i && (s = i), Ae.arraySet(n.window, t, r - i, s, n.wnext), i -= s, i ? (Ae.arraySet(n.window, t, r - i, i, 0), n.wnext = i, n.whave = n.wsize) : (n.wnext += s, n.wnext === n.wsize && (n.wnext = 0), n.whave < n.wsize && (n.whave += s))), 0;
 }
-function x_(e, t) {
+function X_(e, t) {
   var r, i, s, n, a, o, c, u, l, p, d, f, _, E, w = 0, h, m, b, v, S, L, I, O, P = new Ae.Buf8(4), H, D, B = (
     /* permutation of code lengths */
     [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15]
@@ -5597,7 +5850,7 @@ function x_(e, t) {
   e:
     for (; ; )
       switch (r.mode) {
-        case Qu:
+        case rl:
           if (r.wrap === 0) {
             r.mode = os;
             break;
@@ -5725,13 +5978,13 @@ function x_(e, t) {
               break e;
             o--, u += i[n++] << l, l += 8;
           }
-          e.adler = r.check = sc(u), u = 0, l = 0, r.mode = Yi;
-        case Yi:
+          e.adler = r.check = sc(u), u = 0, l = 0, r.mode = ji;
+        case ji:
           if (r.havedict === 0)
-            return e.next_out = a, e.avail_out = c, e.next_in = n, e.avail_in = o, r.hold = u, r.bits = l, w_;
+            return e.next_out = a, e.avail_out = c, e.next_in = n, e.avail_in = o, r.hold = u, r.bits = l, k_;
           e.adler = r.check = 1, r.mode = at;
         case at:
-          if (t === v_ || t === Ri)
+          if (t === C_ || t === Ni)
             break e;
         case os:
           if (r.last) {
@@ -5748,7 +6001,7 @@ function x_(e, t) {
               r.mode = Yo;
               break;
             case 1:
-              if (k_(r), r.mode = Ni, t === Ri) {
+              if (H_(r), r.mode = Ii, t === Ni) {
                 u >>>= 2, l -= 2;
                 break e;
               }
@@ -5771,7 +6024,7 @@ function x_(e, t) {
             e.msg = "invalid stored block lengths", r.mode = oe;
             break;
           }
-          if (r.length = u & 65535, u = 0, l = 0, r.mode = cs, t === Ri)
+          if (r.length = u & 65535, u = 0, l = 0, r.mode = cs, t === Ni)
             break e;
         case cs:
           r.mode = jo;
@@ -5806,7 +6059,7 @@ function x_(e, t) {
           }
           for (; r.have < 19; )
             r.lens[B[r.have++]] = 0;
-          if (r.lencode = r.lendyn, r.lenbits = 7, H = { bits: r.lenbits }, O = Fr(b_, r.lens, 0, 19, r.lencode, 0, r.work, H), r.lenbits = H.bits, O) {
+          if (r.lencode = r.lendyn, r.lenbits = 7, H = { bits: r.lenbits }, O = Fr(A_, r.lens, 0, 19, r.lencode, 0, r.work, H), r.lenbits = H.bits, O) {
             e.msg = "invalid code lengths set", r.mode = oe;
             break;
           }
@@ -5861,21 +6114,21 @@ function x_(e, t) {
             e.msg = "invalid code -- missing end-of-block", r.mode = oe;
             break;
           }
-          if (r.lenbits = 9, H = { bits: r.lenbits }, O = Fr(Gu, r.lens, 0, r.nlen, r.lencode, 0, r.work, H), r.lenbits = H.bits, O) {
+          if (r.lenbits = 9, H = { bits: r.lenbits }, O = Fr(Ju, r.lens, 0, r.nlen, r.lencode, 0, r.work, H), r.lenbits = H.bits, O) {
             e.msg = "invalid literal/lengths set", r.mode = oe;
             break;
           }
-          if (r.distbits = 6, r.distcode = r.distdyn, H = { bits: r.distbits }, O = Fr(Vu, r.lens, r.nlen, r.ndist, r.distcode, 0, r.work, H), r.distbits = H.bits, O) {
+          if (r.distbits = 6, r.distcode = r.distdyn, H = { bits: r.distbits }, O = Fr(Qu, r.lens, r.nlen, r.ndist, r.distcode, 0, r.work, H), r.distbits = H.bits, O) {
             e.msg = "invalid distances set", r.mode = oe;
             break;
           }
-          if (r.mode = Ni, t === Ri)
+          if (r.mode = Ii, t === Ni)
             break e;
-        case Ni:
-          r.mode = Ii;
         case Ii:
+          r.mode = Li;
+        case Li:
           if (o >= 6 && c >= 258) {
-            e.next_out = a, e.avail_out = c, e.next_in = n, e.avail_in = o, r.hold = u, r.bits = l, g_(e, d), a = e.next_out, s = e.output, c = e.avail_out, n = e.next_in, i = e.input, o = e.avail_in, u = r.hold, l = r.bits, r.mode === at && (r.back = -1);
+            e.next_out = a, e.avail_out = c, e.next_in = n, e.avail_in = o, r.hold = u, r.bits = l, L_(e, d), a = e.next_out, s = e.output, c = e.avail_out, n = e.next_in, i = e.input, o = e.avail_in, u = r.hold, l = r.bits, r.mode === at && (r.back = -1);
             break;
           }
           for (r.back = 0; w = r.lencode[u & (1 << r.lenbits) - 1], h = w >>> 24, m = w >>> 16 & 255, b = w & 65535, !(h <= l); ) {
@@ -5962,12 +6215,12 @@ function x_(e, t) {
           do
             s[a++] = E[_++];
           while (--f);
-          r.length === 0 && (r.mode = Ii);
+          r.length === 0 && (r.mode = Li);
           break;
         case rc:
           if (c === 0)
             break e;
-          s[a++] = r.length, c--, r.mode = Ii;
+          s[a++] = r.length, c--, r.mode = Li;
           break;
         case us:
           if (r.wrap) {
@@ -5999,45 +6252,45 @@ function x_(e, t) {
           }
           r.mode = nc;
         case nc:
-          O = y_;
+          O = O_;
           break e;
         case oe:
-          O = Zu;
+          O = el;
           break e;
-        case el:
-          return Ju;
-        case R_:
+        case il:
+          return tl;
+        case D_:
         default:
           return Pe;
       }
-  return e.next_out = a, e.avail_out = c, e.next_in = n, e.avail_in = o, r.hold = u, r.bits = l, (r.wsize || d !== e.avail_out && r.mode < oe && (r.mode < us || t !== Po)) && sl(e, e.output, e.next_out, d - e.avail_out), p -= e.avail_in, d -= e.avail_out, e.total_in += p, e.total_out += d, r.total += d, r.wrap && d && (e.adler = r.check = /*UPDATE(state.check, strm.next_out - _out, _out);*/
-  r.flags ? Ze(r.check, s, d, e.next_out - d) : Fs(r.check, s, d, e.next_out - d)), e.data_type = r.bits + (r.last ? 64 : 0) + (r.mode === at ? 128 : 0) + (r.mode === Ni || r.mode === cs ? 256 : 0), (p === 0 && d === 0 || t === Po) && O === Kt && (O = S_), O;
+  return e.next_out = a, e.avail_out = c, e.next_in = n, e.avail_in = o, r.hold = u, r.bits = l, (r.wsize || d !== e.avail_out && r.mode < oe && (r.mode < us || t !== Po)) && cl(e, e.output, e.next_out, d - e.avail_out), p -= e.avail_in, d -= e.avail_out, e.total_in += p, e.total_out += d, r.total += d, r.wrap && d && (e.adler = r.check = /*UPDATE(state.check, strm.next_out - _out, _out);*/
+  r.flags ? Ze(r.check, s, d, e.next_out - d) : Fs(r.check, s, d, e.next_out - d)), e.data_type = r.bits + (r.last ? 64 : 0) + (r.mode === at ? 128 : 0) + (r.mode === Ii || r.mode === cs ? 256 : 0), (p === 0 && d === 0 || t === Po) && O === Kt && (O = x_), O;
 }
-function D_(e) {
+function W_(e) {
   if (!e || !e.state)
     return Pe;
   var t = e.state;
   return t.window && (t.window = null), e.state = null, Kt;
 }
-function U_(e, t) {
+function z_(e, t) {
   var r;
   return !e || !e.state || (r = e.state, !(r.wrap & 2)) ? Pe : (r.head = t, t.done = !1, Kt);
 }
-function P_(e, t) {
+function q_(e, t) {
   var r = t.length, i, s, n;
-  return !e || !e.state || (i = e.state, i.wrap !== 0 && i.mode !== Yi) ? Pe : i.mode === Yi && (s = 1, s = Fs(s, t, r, 0), s !== i.check) ? Zu : (n = sl(e, t, r, r), n ? (i.mode = el, Ju) : (i.havedict = 1, Kt));
+  return !e || !e.state || (i = e.state, i.wrap !== 0 && i.mode !== ji) ? Pe : i.mode === ji && (s = 1, s = Fs(s, t, r, 0), s !== i.check) ? el : (n = cl(e, t, r, r), n ? (i.mode = il, tl) : (i.havedict = 1, Kt));
 }
-Ye.inflateReset = rl;
-Ye.inflateReset2 = il;
-Ye.inflateResetKeep = tl;
-Ye.inflateInit = O_;
-Ye.inflateInit2 = nl;
-Ye.inflate = x_;
-Ye.inflateEnd = D_;
-Ye.inflateGetHeader = U_;
-Ye.inflateSetDictionary = P_;
+Ye.inflateReset = sl;
+Ye.inflateReset2 = al;
+Ye.inflateResetKeep = nl;
+Ye.inflateInit = $_;
+Ye.inflateInit2 = ol;
+Ye.inflate = X_;
+Ye.inflateEnd = W_;
+Ye.inflateGetHeader = z_;
+Ye.inflateSetDictionary = q_;
 Ye.inflateInfo = "pako inflate (from Nodeca project)";
-var al = {
+var ul = {
   /* Allowed flush values; see deflate() and inflate() below for details */
   Z_NO_FLUSH: 0,
   Z_PARTIAL_FLUSH: 1,
@@ -6077,10 +6330,10 @@ var al = {
   Z_DEFLATED: 8
   //Z_NULL:                 null // Use -1 or null inline, depending on var type
 };
-function B_() {
+function K_() {
   this.text = 0, this.time = 0, this.xflags = 0, this.os = 0, this.extra = null, this.extra_len = 0, this.name = "", this.comment = "", this.hcrc = 0, this.done = !1;
 }
-var F_ = B_, lr = Ye, Mr = ht, Mi = Gt, de = al, Ms = Ta, M_ = Yu, $_ = F_, ol = Object.prototype.toString;
+var Y_ = K_, lr = Ye, Mr = ht, $i = Gt, de = ul, Ms = Ta, j_ = Vu, G_ = Y_, ll = Object.prototype.toString;
 function Yt(e) {
   if (!(this instanceof Yt)) return new Yt(e);
   this.options = Mr.assign({
@@ -6089,25 +6342,25 @@ function Yt(e) {
     to: ""
   }, e || {});
   var t = this.options;
-  t.raw && t.windowBits >= 0 && t.windowBits < 16 && (t.windowBits = -t.windowBits, t.windowBits === 0 && (t.windowBits = -15)), t.windowBits >= 0 && t.windowBits < 16 && !(e && e.windowBits) && (t.windowBits += 32), t.windowBits > 15 && t.windowBits < 48 && (t.windowBits & 15 || (t.windowBits |= 15)), this.err = 0, this.msg = "", this.ended = !1, this.chunks = [], this.strm = new M_(), this.strm.avail_out = 0;
+  t.raw && t.windowBits >= 0 && t.windowBits < 16 && (t.windowBits = -t.windowBits, t.windowBits === 0 && (t.windowBits = -15)), t.windowBits >= 0 && t.windowBits < 16 && !(e && e.windowBits) && (t.windowBits += 32), t.windowBits > 15 && t.windowBits < 48 && (t.windowBits & 15 || (t.windowBits |= 15)), this.err = 0, this.msg = "", this.ended = !1, this.chunks = [], this.strm = new j_(), this.strm.avail_out = 0;
   var r = lr.inflateInit2(
     this.strm,
     t.windowBits
   );
   if (r !== de.Z_OK)
     throw new Error(Ms[r]);
-  if (this.header = new $_(), lr.inflateGetHeader(this.strm, this.header), t.dictionary && (typeof t.dictionary == "string" ? t.dictionary = Mi.string2buf(t.dictionary) : ol.call(t.dictionary) === "[object ArrayBuffer]" && (t.dictionary = new Uint8Array(t.dictionary)), t.raw && (r = lr.inflateSetDictionary(this.strm, t.dictionary), r !== de.Z_OK)))
+  if (this.header = new G_(), lr.inflateGetHeader(this.strm, this.header), t.dictionary && (typeof t.dictionary == "string" ? t.dictionary = $i.string2buf(t.dictionary) : ll.call(t.dictionary) === "[object ArrayBuffer]" && (t.dictionary = new Uint8Array(t.dictionary)), t.raw && (r = lr.inflateSetDictionary(this.strm, t.dictionary), r !== de.Z_OK)))
     throw new Error(Ms[r]);
 }
 Yt.prototype.push = function(e, t) {
   var r = this.strm, i = this.options.chunkSize, s = this.options.dictionary, n, a, o, c, u, l = !1;
   if (this.ended)
     return !1;
-  a = t === ~~t ? t : t === !0 ? de.Z_FINISH : de.Z_NO_FLUSH, typeof e == "string" ? r.input = Mi.binstring2buf(e) : ol.call(e) === "[object ArrayBuffer]" ? r.input = new Uint8Array(e) : r.input = e, r.next_in = 0, r.avail_in = r.input.length;
+  a = t === ~~t ? t : t === !0 ? de.Z_FINISH : de.Z_NO_FLUSH, typeof e == "string" ? r.input = $i.binstring2buf(e) : ll.call(e) === "[object ArrayBuffer]" ? r.input = new Uint8Array(e) : r.input = e, r.next_in = 0, r.avail_in = r.input.length;
   do {
     if (r.avail_out === 0 && (r.output = new Mr.Buf8(i), r.next_out = 0, r.avail_out = i), n = lr.inflate(r, de.Z_NO_FLUSH), n === de.Z_NEED_DICT && s && (n = lr.inflateSetDictionary(this.strm, s)), n === de.Z_BUF_ERROR && l === !0 && (n = de.Z_OK, l = !1), n !== de.Z_STREAM_END && n !== de.Z_OK)
       return this.onEnd(n), this.ended = !0, !1;
-    r.next_out && (r.avail_out === 0 || n === de.Z_STREAM_END || r.avail_in === 0 && (a === de.Z_FINISH || a === de.Z_SYNC_FLUSH)) && (this.options.to === "string" ? (o = Mi.utf8border(r.output, r.next_out), c = r.next_out - o, u = Mi.buf2string(r.output, o), r.next_out = c, r.avail_out = i - c, c && Mr.arraySet(r.output, r.output, o, c, 0), this.onData(u)) : this.onData(Mr.shrinkBuf(r.output, r.next_out))), r.avail_in === 0 && r.avail_out === 0 && (l = !0);
+    r.next_out && (r.avail_out === 0 || n === de.Z_STREAM_END || r.avail_in === 0 && (a === de.Z_FINISH || a === de.Z_SYNC_FLUSH)) && (this.options.to === "string" ? (o = $i.utf8border(r.output, r.next_out), c = r.next_out - o, u = $i.buf2string(r.output, o), r.next_out = c, r.avail_out = i - c, c && Mr.arraySet(r.output, r.output, o, c, 0), this.onData(u)) : this.onData(Mr.shrinkBuf(r.output, r.next_out))), r.avail_in === 0 && r.avail_out === 0 && (l = !0);
   } while ((r.avail_in > 0 || r.avail_out === 0) && n !== de.Z_STREAM_END);
   return n === de.Z_STREAM_END && (a = de.Z_FINISH), a === de.Z_FINISH ? (n = lr.inflateEnd(this.strm), this.onEnd(n), this.ended = !0, n === de.Z_OK) : (a === de.Z_SYNC_FLUSH && (this.onEnd(de.Z_OK), r.avail_out = 0), !0);
 };
@@ -6123,32 +6376,32 @@ function ba(e, t) {
     throw r.msg || Ms[r.err];
   return r.result;
 }
-function H_(e, t) {
+function V_(e, t) {
   return t = t || {}, t.raw = !0, ba(e, t);
 }
-ni.Inflate = Yt;
-ni.inflate = ba;
-ni.inflateRaw = H_;
-ni.ungzip = ba;
-var X_ = ht.assign, W_ = ti, z_ = ni, q_ = al, cl = {};
-X_(cl, W_, z_, q_);
-var K_ = cl, Y_ = typeof Uint8Array < "u" && typeof Uint16Array < "u" && typeof Uint32Array < "u", j_ = K_, ul = le(), Tn = Be, G_ = Y_ ? "uint8array" : "array";
-pn.magic = "\b\0";
+si.Inflate = Yt;
+si.inflate = ba;
+si.inflateRaw = V_;
+si.ungzip = ba;
+var Z_ = ht.assign, J_ = ri, Q_ = si, eE = ul, dl = {};
+Z_(dl, J_, Q_, eE);
+var tE = dl, rE = typeof Uint8Array < "u" && typeof Uint16Array < "u" && typeof Uint32Array < "u", iE = tE, fl = le(), gn = Be, nE = rE ? "uint8array" : "array";
+_n.magic = "\b\0";
 function Vt(e, t) {
-  Tn.call(this, "FlateWorker/" + e), this._pako = null, this._pakoAction = e, this._pakoOptions = t, this.meta = {};
+  gn.call(this, "FlateWorker/" + e), this._pako = null, this._pakoAction = e, this._pakoOptions = t, this.meta = {};
 }
-ul.inherits(Vt, Tn);
+fl.inherits(Vt, gn);
 Vt.prototype.processChunk = function(e) {
-  this.meta = e.meta, this._pako === null && this._createPako(), this._pako.push(ul.transformTo(G_, e.data), !1);
+  this.meta = e.meta, this._pako === null && this._createPako(), this._pako.push(fl.transformTo(nE, e.data), !1);
 };
 Vt.prototype.flush = function() {
-  Tn.prototype.flush.call(this), this._pako === null && this._createPako(), this._pako.push([], !0);
+  gn.prototype.flush.call(this), this._pako === null && this._createPako(), this._pako.push([], !0);
 };
 Vt.prototype.cleanUp = function() {
-  Tn.prototype.cleanUp.call(this), this._pako = null;
+  gn.prototype.cleanUp.call(this), this._pako = null;
 };
 Vt.prototype._createPako = function() {
-  this._pako = new j_[this._pakoAction]({
+  this._pako = new iE[this._pakoAction]({
     raw: !0,
     level: this._pakoOptions.level || -1
     // default compression
@@ -6161,14 +6414,14 @@ Vt.prototype._createPako = function() {
     });
   };
 };
-pn.compressWorker = function(e) {
+_n.compressWorker = function(e) {
   return new Vt("Deflate", e);
 };
-pn.uncompressWorker = function() {
+_n.uncompressWorker = function() {
   return new Vt("Inflate", {});
 };
 var oc = Be;
-hn.STORE = {
+pn.STORE = {
   magic: "\0\0",
   compressWorker: function() {
     return new oc("STORE compression");
@@ -6177,7 +6430,7 @@ hn.STORE = {
     return new oc("STORE decompression");
   }
 };
-hn.DEFLATE = pn;
+pn.DEFLATE = _n;
 var Lt = {};
 Lt.LOCAL_FILE_HEADER = "PK";
 Lt.CENTRAL_FILE_HEADER = "PK";
@@ -6185,17 +6438,17 @@ Lt.CENTRAL_DIRECTORY_END = "PK";
 Lt.ZIP64_CENTRAL_DIRECTORY_LOCATOR = "PK\x07";
 Lt.ZIP64_CENTRAL_DIRECTORY_END = "PK";
 Lt.DATA_DESCRIPTOR = "PK\x07\b";
-var ar = le(), Sr = Be, fs = gr, cc = oa, ji = Lt, se = function(e, t) {
+var ar = le(), Rr = Be, fs = br, cc = oa, Gi = Lt, se = function(e, t) {
   var r = "", i;
   for (i = 0; i < t; i++)
     r += String.fromCharCode(e & 255), e = e >>> 8;
   return r;
-}, V_ = function(e, t) {
+}, sE = function(e, t) {
   var r = e;
   return e || (r = t ? 16893 : 33204), (r & 65535) << 16;
-}, Z_ = function(e) {
+}, aE = function(e) {
   return (e || 0) & 63;
-}, ll = function(e, t, r, i, s, n) {
+}, hl = function(e, t, r, i, s, n) {
   var a = e.file, o = e.compression, c = n !== fs.utf8encode, u = ar.transformTo("string", n(a.name)), l = ar.transformTo("string", fs.utf8encode(a.name)), p = a.comment, d = ar.transformTo("string", n(p)), f = ar.transformTo("string", fs.utf8encode(p)), _ = l.length !== a.name.length, E = f.length !== p.length, w, h, m = "", b = "", v = "", S = a.dir, L = a.date, I = {
     crc32: 0,
     compressedSize: 0,
@@ -6205,7 +6458,7 @@ var ar = le(), Sr = Be, fs = gr, cc = oa, ji = Lt, se = function(e, t) {
   var O = 0;
   t && (O |= 8), !c && (_ || E) && (O |= 2048);
   var P = 0, H = 0;
-  S && (P |= 16), s === "UNIX" ? (H = 798, P |= V_(a.unixPermissions, S)) : (H = 20, P |= Z_(a.dosPermissions)), w = L.getUTCHours(), w = w << 6, w = w | L.getUTCMinutes(), w = w << 5, w = w | L.getUTCSeconds() / 2, h = L.getUTCFullYear() - 1980, h = h << 4, h = h | L.getUTCMonth() + 1, h = h << 5, h = h | L.getUTCDate(), _ && (b = // Version
+  S && (P |= 16), s === "UNIX" ? (H = 798, P |= sE(a.unixPermissions, S)) : (H = 20, P |= aE(a.dosPermissions)), w = L.getUTCHours(), w = w << 6, w = w | L.getUTCMinutes(), w = w << 5, w = w | L.getUTCSeconds() / 2, h = L.getUTCFullYear() - 1980, h = h << 4, h = h | L.getUTCMonth() + 1, h = h << 5, h = h | L.getUTCDate(), _ && (b = // Version
   se(1, 1) + // NameCRC32
   se(cc(u), 4) + // UnicodeName
   l, m += // Info-ZIP Unicode Path Extra Field
@@ -6221,7 +6474,7 @@ var ar = le(), Sr = Be, fs = gr, cc = oa, ji = Lt, se = function(e, t) {
   var D = "";
   D += `
 \0`, D += se(O, 2), D += o.magic, D += se(w, 2), D += se(h, 2), D += se(I.crc32, 4), D += se(I.compressedSize, 4), D += se(I.uncompressedSize, 4), D += se(u.length, 2), D += se(m.length, 2);
-  var B = ji.LOCAL_FILE_HEADER + D + u + m, q = ji.CENTRAL_FILE_HEADER + // version made by (00: DOS)
+  var B = Gi.LOCAL_FILE_HEADER + D + u + m, q = Gi.CENTRAL_FILE_HEADER + // version made by (00: DOS)
   se(H, 2) + // file header (common to file and central directory)
   D + // file comment length
   se(d.length, 2) + // disk number start
@@ -6235,9 +6488,9 @@ var ar = le(), Sr = Be, fs = gr, cc = oa, ji = Lt, se = function(e, t) {
     fileRecord: B,
     dirRecord: q
   };
-}, J_ = function(e, t, r, i, s) {
+}, oE = function(e, t, r, i, s) {
   var n = "", a = ar.transformTo("string", s(i));
-  return n = ji.CENTRAL_DIRECTORY_END + // number of this disk
+  return n = Gi.CENTRAL_DIRECTORY_END + // number of this disk
   "\0\0\0\0" + // total number of entries in the central directory on this disk
   se(e, 2) + // total number of entries in the central directory
   se(e, 2) + // size of the central directory   4 bytes
@@ -6245,20 +6498,20 @@ var ar = le(), Sr = Be, fs = gr, cc = oa, ji = Lt, se = function(e, t) {
   se(r, 4) + // .ZIP file comment length
   se(a.length, 2) + // .ZIP file comment
   a, n;
-}, Q_ = function(e) {
+}, cE = function(e) {
   var t = "";
-  return t = ji.DATA_DESCRIPTOR + // crc-32                          4 bytes
+  return t = Gi.DATA_DESCRIPTOR + // crc-32                          4 bytes
   se(e.crc32, 4) + // compressed size                 4 bytes
   se(e.compressedSize, 4) + // uncompressed size               4 bytes
   se(e.uncompressedSize, 4), t;
 };
 function je(e, t, r, i) {
-  Sr.call(this, "ZipFileWorker"), this.bytesWritten = 0, this.zipComment = t, this.zipPlatform = r, this.encodeFileName = i, this.streamFiles = e, this.accumulate = !1, this.contentBuffer = [], this.dirRecords = [], this.currentSourceOffset = 0, this.entriesCount = 0, this.currentFile = null, this._sources = [];
+  Rr.call(this, "ZipFileWorker"), this.bytesWritten = 0, this.zipComment = t, this.zipPlatform = r, this.encodeFileName = i, this.streamFiles = e, this.accumulate = !1, this.contentBuffer = [], this.dirRecords = [], this.currentSourceOffset = 0, this.entriesCount = 0, this.currentFile = null, this._sources = [];
 }
-ar.inherits(je, Sr);
+ar.inherits(je, Rr);
 je.prototype.push = function(e) {
   var t = e.meta.percent || 0, r = this.entriesCount, i = this._sources.length;
-  this.accumulate ? this.contentBuffer.push(e) : (this.bytesWritten += e.data.length, Sr.prototype.push.call(this, {
+  this.accumulate ? this.contentBuffer.push(e) : (this.bytesWritten += e.data.length, Rr.prototype.push.call(this, {
     data: e.data,
     meta: {
       currentFile: this.currentFile,
@@ -6270,7 +6523,7 @@ je.prototype.openedSource = function(e) {
   this.currentSourceOffset = this.bytesWritten, this.currentFile = e.file.name;
   var t = this.streamFiles && !e.file.dir;
   if (t) {
-    var r = ll(e, t, !1, this.currentSourceOffset, this.zipPlatform, this.encodeFileName);
+    var r = hl(e, t, !1, this.currentSourceOffset, this.zipPlatform, this.encodeFileName);
     this.push({
       data: r.fileRecord,
       meta: { percent: 0 }
@@ -6280,10 +6533,10 @@ je.prototype.openedSource = function(e) {
 };
 je.prototype.closedSource = function(e) {
   this.accumulate = !1;
-  var t = this.streamFiles && !e.file.dir, r = ll(e, t, !0, this.currentSourceOffset, this.zipPlatform, this.encodeFileName);
+  var t = this.streamFiles && !e.file.dir, r = hl(e, t, !0, this.currentSourceOffset, this.zipPlatform, this.encodeFileName);
   if (this.dirRecords.push(r.dirRecord), t)
     this.push({
-      data: Q_(e),
+      data: cE(e),
       meta: { percent: 100 }
     });
   else
@@ -6300,7 +6553,7 @@ je.prototype.flush = function() {
       data: this.dirRecords[t],
       meta: { percent: 100 }
     });
-  var r = this.bytesWritten - e, i = J_(this.dirRecords.length, r, e, this.zipComment, this.encodeFileName);
+  var r = this.bytesWritten - e, i = oE(this.dirRecords.length, r, e, this.zipComment, this.encodeFileName);
   this.push({
     data: i,
     meta: { percent: 100 }
@@ -6321,7 +6574,7 @@ je.prototype.registerPrevious = function(e) {
   }), this;
 };
 je.prototype.resume = function() {
-  if (!Sr.prototype.resume.call(this))
+  if (!Rr.prototype.resume.call(this))
     return !1;
   if (!this.previous && this._sources.length)
     return this.prepareNextSource(), !0;
@@ -6330,7 +6583,7 @@ je.prototype.resume = function() {
 };
 je.prototype.error = function(e) {
   var t = this._sources;
-  if (!Sr.prototype.error.call(this, e))
+  if (!Rr.prototype.error.call(this, e))
     return !1;
   for (var r = 0; r < t.length; r++)
     try {
@@ -6340,22 +6593,22 @@ je.prototype.error = function(e) {
   return !0;
 };
 je.prototype.lock = function() {
-  Sr.prototype.lock.call(this);
+  Rr.prototype.lock.call(this);
   for (var e = this._sources, t = 0; t < e.length; t++)
     e[t].lock();
 };
-var eE = je, tE = hn, rE = eE, iE = function(e, t) {
-  var r = e || t, i = tE[r];
+var uE = je, lE = pn, dE = uE, fE = function(e, t) {
+  var r = e || t, i = lE[r];
   if (!i)
     throw new Error(r + " is not a valid compression method !");
   return i;
 };
-vu.generateWorker = function(e, t, r) {
-  var i = new rE(t.streamFiles, r, t.platform, t.encodeFileName), s = 0;
+Su.generateWorker = function(e, t, r) {
+  var i = new dE(t.streamFiles, r, t.platform, t.encodeFileName), s = 0;
   try {
     e.forEach(function(n, a) {
       s++;
-      var o = iE(a.options.compression, t.compression), c = a.options.compressionOptions || t.compressionOptions || {}, u = a.dir, l = a.date;
+      var o = fE(a.options.compression, t.compression), c = a.options.compressionOptions || t.compressionOptions || {}, u = a.dir, l = a.date;
       a._compressWorker(o, c).withStreamInfo("file", {
         name: n,
         dir: u,
@@ -6370,12 +6623,12 @@ vu.generateWorker = function(e, t, r) {
   }
   return i;
 };
-var nE = le(), gn = Be;
-function si(e, t) {
-  gn.call(this, "Nodejs stream input adapter for " + e), this._upstreamEnded = !1, this._bindStream(t);
+var hE = le(), bn = Be;
+function ai(e, t) {
+  bn.call(this, "Nodejs stream input adapter for " + e), this._upstreamEnded = !1, this._bindStream(t);
 }
-nE.inherits(si, gn);
-si.prototype._bindStream = function(e) {
+hE.inherits(ai, bn);
+ai.prototype._bindStream = function(e) {
   var t = this;
   this._stream = e, e.pause(), e.on("data", function(r) {
     t.push({
@@ -6390,31 +6643,31 @@ si.prototype._bindStream = function(e) {
     t.isPaused ? t._upstreamEnded = !0 : t.end();
   });
 };
-si.prototype.pause = function() {
-  return gn.prototype.pause.call(this) ? (this._stream.pause(), !0) : !1;
+ai.prototype.pause = function() {
+  return bn.prototype.pause.call(this) ? (this._stream.pause(), !0) : !1;
 };
-si.prototype.resume = function() {
-  return gn.prototype.resume.call(this) ? (this._upstreamEnded ? this.end() : this._stream.resume(), !0) : !1;
+ai.prototype.resume = function() {
+  return bn.prototype.resume.call(this) ? (this._upstreamEnded ? this.end() : this._stream.resume(), !0) : !1;
 };
-var sE = si, aE = gr, $r = le(), dl = Be, oE = Eu, fl = Fe, uc = fa, cE = ep, uE = vu, lc = ln, lE = sE, hl = function(e, t, r) {
-  var i = $r.getTypeOf(t), s, n = $r.extend(r || {}, fl);
-  n.date = n.date || /* @__PURE__ */ new Date(), n.compression !== null && (n.compression = n.compression.toUpperCase()), typeof n.unixPermissions == "string" && (n.unixPermissions = parseInt(n.unixPermissions, 8)), n.unixPermissions && n.unixPermissions & 16384 && (n.dir = !0), n.dosPermissions && n.dosPermissions & 16 && (n.dir = !0), n.dir && (e = pl(e)), n.createFolders && (s = dE(e)) && _l.call(this, s, !0);
+var pE = ai, _E = br, $r = le(), pl = Be, EE = gu, _l = Fe, uc = fa, mE = up, TE = Su, lc = dn, gE = pE, El = function(e, t, r) {
+  var i = $r.getTypeOf(t), s, n = $r.extend(r || {}, _l);
+  n.date = n.date || /* @__PURE__ */ new Date(), n.compression !== null && (n.compression = n.compression.toUpperCase()), typeof n.unixPermissions == "string" && (n.unixPermissions = parseInt(n.unixPermissions, 8)), n.unixPermissions && n.unixPermissions & 16384 && (n.dir = !0), n.dosPermissions && n.dosPermissions & 16 && (n.dir = !0), n.dir && (e = ml(e)), n.createFolders && (s = bE(e)) && Tl.call(this, s, !0);
   var a = i === "string" && n.binary === !1 && n.base64 === !1;
   (!r || typeof r.binary > "u") && (n.binary = !a);
   var o = t instanceof uc && t.uncompressedSize === 0;
   (o || n.dir || !t || t.length === 0) && (n.base64 = !1, n.binary = !0, t = "", n.compression = "STORE", i = "string");
   var c = null;
-  t instanceof uc || t instanceof dl ? c = t : lc.isNode && lc.isStream(t) ? c = new lE(e, t) : c = $r.prepareContent(e, t, n.binary, n.optimizedBinaryString, n.base64);
-  var u = new cE(e, c, n);
+  t instanceof uc || t instanceof pl ? c = t : lc.isNode && lc.isStream(t) ? c = new gE(e, t) : c = $r.prepareContent(e, t, n.binary, n.optimizedBinaryString, n.base64);
+  var u = new mE(e, c, n);
   this.files[e] = u;
-}, dE = function(e) {
+}, bE = function(e) {
   e.slice(-1) === "/" && (e = e.substring(0, e.length - 1));
   var t = e.lastIndexOf("/");
   return t > 0 ? e.substring(0, t) : "";
-}, pl = function(e) {
+}, ml = function(e) {
   return e.slice(-1) !== "/" && (e += "/"), e;
-}, _l = function(e, t) {
-  return t = typeof t < "u" ? t : fl.createFolders, e = pl(e), this.files[e] || hl.call(this, e, null, {
+}, Tl = function(e, t) {
+  return t = typeof t < "u" ? t : _l.createFolders, e = ml(e), this.files[e] || El.call(this, e, null, {
     dir: !0,
     createFolders: t
   }), this.files[e];
@@ -6422,7 +6675,7 @@ var sE = si, aE = gr, $r = le(), dl = Be, oE = Eu, fl = Fe, uc = fa, cE = ep, uE
 function dc(e) {
   return Object.prototype.toString.call(e) === "[object RegExp]";
 }
-var fE = {
+var vE = {
   /**
    * @see loadAsync
    */
@@ -6474,7 +6727,7 @@ var fE = {
         return s && !s.dir ? s : null;
       }
     else
-      e = this.root + e, hl.call(this, e, t, r);
+      e = this.root + e, El.call(this, e, t, r);
     return this;
   },
   /**
@@ -6489,7 +6742,7 @@ var fE = {
       return this.filter(function(s, n) {
         return n.dir && e.test(s);
       });
-    var t = this.root + e, r = _l.call(this, t), i = this.clone();
+    var t = this.root + e, r = Tl.call(this, t), i = this.clone();
     return i.root = r.name, i;
   },
   /**
@@ -6533,16 +6786,16 @@ var fE = {
         platform: "DOS",
         comment: null,
         mimeType: "application/zip",
-        encodeFileName: aE.utf8encode
+        encodeFileName: _E.utf8encode
       }), r.type = r.type.toLowerCase(), r.compression = r.compression.toUpperCase(), r.type === "binarystring" && (r.type = "string"), !r.type)
         throw new Error("No output type specified.");
       $r.checkSupport(r.type), (r.platform === "darwin" || r.platform === "freebsd" || r.platform === "linux" || r.platform === "sunos") && (r.platform = "UNIX"), r.platform === "win32" && (r.platform = "DOS");
       var i = r.comment || this.comment || "";
-      t = uE.generateWorker(this, r, i);
+      t = TE.generateWorker(this, r, i);
     } catch (s) {
-      t = new dl("error"), t.error(s);
+      t = new pl("error"), t.error(s);
     }
-    return new oE(t, r.type || "string", r.mimeType);
+    return new EE(t, r.type || "string", r.mimeType);
   },
   /**
    * Generate the complete zip file asynchronously.
@@ -6558,11 +6811,11 @@ var fE = {
   generateNodeStream: function(e, t) {
     return e = e || {}, e.type || (e.type = "nodebuffer"), this.generateInternalStream(e).toNodejsStream(t);
   }
-}, hE = fE, pE = le();
-function El(e) {
+}, yE = vE, wE = le();
+function gl(e) {
   this.data = e, this.length = e.length, this.index = 0, this.zero = 0;
 }
-El.prototype = {
+gl.prototype = {
   /**
    * Check that the offset will not go too far.
    * @param {string} offset the additional offset to check.
@@ -6620,7 +6873,7 @@ El.prototype = {
    * @return {string} the corresponding string.
    */
   readString: function(e) {
-    return pE.transformTo("string", this.readData(e));
+    return wE.transformTo("string", this.readData(e));
   },
   /**
    * Get raw data without conversion, <size> bytes.
@@ -6664,86 +6917,86 @@ El.prototype = {
     ));
   }
 };
-var ml = El, Tl = ml, _E = le();
-function Rr(e) {
-  Tl.call(this, e);
+var bl = gl, vl = bl, SE = le();
+function Nr(e) {
+  vl.call(this, e);
   for (var t = 0; t < this.data.length; t++)
     e[t] = e[t] & 255;
 }
-_E.inherits(Rr, Tl);
-Rr.prototype.byteAt = function(e) {
+SE.inherits(Nr, vl);
+Nr.prototype.byteAt = function(e) {
   return this.data[this.zero + e];
 };
-Rr.prototype.lastIndexOfSignature = function(e) {
+Nr.prototype.lastIndexOfSignature = function(e) {
   for (var t = e.charCodeAt(0), r = e.charCodeAt(1), i = e.charCodeAt(2), s = e.charCodeAt(3), n = this.length - 4; n >= 0; --n)
     if (this.data[n] === t && this.data[n + 1] === r && this.data[n + 2] === i && this.data[n + 3] === s)
       return n - this.zero;
   return -1;
 };
-Rr.prototype.readAndCheckSignature = function(e) {
+Nr.prototype.readAndCheckSignature = function(e) {
   var t = e.charCodeAt(0), r = e.charCodeAt(1), i = e.charCodeAt(2), s = e.charCodeAt(3), n = this.readData(4);
   return t === n[0] && r === n[1] && i === n[2] && s === n[3];
 };
-Rr.prototype.readData = function(e) {
+Nr.prototype.readData = function(e) {
   if (this.checkOffset(e), e === 0)
     return [];
   var t = this.data.slice(this.zero + this.index, this.zero + this.index + e);
   return this.index += e, t;
 };
-var gl = Rr, bl = ml, EE = le();
-function Nr(e) {
-  bl.call(this, e);
+var yl = Nr, wl = bl, RE = le();
+function Ir(e) {
+  wl.call(this, e);
 }
-EE.inherits(Nr, bl);
-Nr.prototype.byteAt = function(e) {
+RE.inherits(Ir, wl);
+Ir.prototype.byteAt = function(e) {
   return this.data.charCodeAt(this.zero + e);
 };
-Nr.prototype.lastIndexOfSignature = function(e) {
+Ir.prototype.lastIndexOfSignature = function(e) {
   return this.data.lastIndexOf(e) - this.zero;
 };
-Nr.prototype.readAndCheckSignature = function(e) {
+Ir.prototype.readAndCheckSignature = function(e) {
   var t = this.readData(4);
   return e === t;
 };
-Nr.prototype.readData = function(e) {
+Ir.prototype.readData = function(e) {
   this.checkOffset(e);
   var t = this.data.slice(this.zero + this.index, this.zero + this.index + e);
   return this.index += e, t;
 };
-var mE = Nr, vl = gl, TE = le();
+var NE = Ir, Sl = yl, IE = le();
 function va(e) {
-  vl.call(this, e);
+  Sl.call(this, e);
 }
-TE.inherits(va, vl);
+IE.inherits(va, Sl);
 va.prototype.readData = function(e) {
   if (this.checkOffset(e), e === 0)
     return new Uint8Array(0);
   var t = this.data.subarray(this.zero + this.index, this.zero + this.index + e);
   return this.index += e, t;
 };
-var yl = va, wl = yl, gE = le();
+var Rl = va, Nl = Rl, LE = le();
 function ya(e) {
-  wl.call(this, e);
+  Nl.call(this, e);
 }
-gE.inherits(ya, wl);
+LE.inherits(ya, Nl);
 ya.prototype.readData = function(e) {
   this.checkOffset(e);
   var t = this.data.slice(this.zero + this.index, this.zero + this.index + e);
   return this.index += e, t;
 };
-var bE = ya, Li = le(), fc = pe, vE = gl, yE = mE, wE = bE, SE = yl, Sl = function(e) {
-  var t = Li.getTypeOf(e);
-  return Li.checkSupport(t), t === "string" && !fc.uint8array ? new yE(e) : t === "nodebuffer" ? new wE(e) : fc.uint8array ? new SE(Li.transformTo("uint8array", e)) : new vE(Li.transformTo("array", e));
-}, hs = Sl, mt = le(), RE = fa, hc = oa, Ai = gr, Ci = hn, NE = pe, IE = 0, LE = 3, AE = function(e) {
-  for (var t in Ci)
-    if (Object.prototype.hasOwnProperty.call(Ci, t) && Ci[t].magic === e)
-      return Ci[t];
+var AE = ya, Ai = le(), fc = pe, CE = yl, OE = NE, kE = AE, xE = Rl, Il = function(e) {
+  var t = Ai.getTypeOf(e);
+  return Ai.checkSupport(t), t === "string" && !fc.uint8array ? new OE(e) : t === "nodebuffer" ? new kE(e) : fc.uint8array ? new xE(Ai.transformTo("uint8array", e)) : new CE(Ai.transformTo("array", e));
+}, hs = Il, mt = le(), DE = fa, hc = oa, Ci = br, Oi = pn, UE = pe, PE = 0, BE = 3, FE = function(e) {
+  for (var t in Oi)
+    if (Object.prototype.hasOwnProperty.call(Oi, t) && Oi[t].magic === e)
+      return Oi[t];
   return null;
 };
-function Rl(e, t) {
+function Ll(e, t) {
   this.options = e, this.loadOptions = t;
 }
-Rl.prototype = {
+Ll.prototype = {
   /**
    * say if the file is encrypted.
    * @return {boolean} true if the file is encrypted, false otherwise.
@@ -6766,9 +7019,9 @@ Rl.prototype = {
     var t, r;
     if (e.skip(22), this.fileNameLength = e.readInt(2), r = e.readInt(2), this.fileName = e.readData(this.fileNameLength), e.skip(r), this.compressedSize === -1 || this.uncompressedSize === -1)
       throw new Error("Bug or corrupted zip : didn't get enough information from the central directory (compressedSize === -1 || uncompressedSize === -1)");
-    if (t = AE(this.compressionMethod), t === null)
+    if (t = FE(this.compressionMethod), t === null)
       throw new Error("Corrupted zip : compression " + mt.pretty(this.compressionMethod) + " unknown (inner file : " + mt.transformTo("string", this.fileName) + ")");
-    this.decompressed = new RE(this.compressedSize, this.uncompressedSize, this.crc32, t, e.readData(this.compressedSize));
+    this.decompressed = new DE(this.compressedSize, this.uncompressedSize, this.crc32, t, e.readData(this.compressedSize));
   },
   /**
    * Read the central part of a zip file and add the info in this object.
@@ -6787,7 +7040,7 @@ Rl.prototype = {
   processAttributes: function() {
     this.unixPermissions = null, this.dosPermissions = null;
     var e = this.versionMadeBy >> 8;
-    this.dir = !!(this.externalFileAttributes & 16), e === IE && (this.dosPermissions = this.externalFileAttributes & 63), e === LE && (this.unixPermissions = this.externalFileAttributes >> 16 & 65535), !this.dir && this.fileNameStr.slice(-1) === "/" && (this.dir = !0);
+    this.dir = !!(this.externalFileAttributes & 16), e === PE && (this.dosPermissions = this.externalFileAttributes & 63), e === BE && (this.unixPermissions = this.externalFileAttributes >> 16 & 65535), !this.dir && this.fileNameStr.slice(-1) === "/" && (this.dir = !0);
   },
   /**
    * Parse the ZIP64 extra field and merge the info in the current ZipEntry.
@@ -6817,9 +7070,9 @@ Rl.prototype = {
    * Apply an UTF8 transformation if needed.
    */
   handleUTF8: function() {
-    var e = NE.uint8array ? "uint8array" : "array";
+    var e = UE.uint8array ? "uint8array" : "array";
     if (this.useUTF8())
-      this.fileNameStr = Ai.utf8decode(this.fileName), this.fileCommentStr = Ai.utf8decode(this.fileComment);
+      this.fileNameStr = Ci.utf8decode(this.fileName), this.fileCommentStr = Ci.utf8decode(this.fileComment);
     else {
       var t = this.findExtraFieldUnicodePath();
       if (t !== null)
@@ -6845,7 +7098,7 @@ Rl.prototype = {
     var e = this.extraFields[28789];
     if (e) {
       var t = hs(e.value);
-      return t.readInt(1) !== 1 || hc(this.fileName) !== t.readInt(4) ? null : Ai.utf8decode(t.readData(e.length - 5));
+      return t.readInt(1) !== 1 || hc(this.fileName) !== t.readInt(4) ? null : Ci.utf8decode(t.readData(e.length - 5));
     }
     return null;
   },
@@ -6857,16 +7110,16 @@ Rl.prototype = {
     var e = this.extraFields[25461];
     if (e) {
       var t = hs(e.value);
-      return t.readInt(1) !== 1 || hc(this.fileComment) !== t.readInt(4) ? null : Ai.utf8decode(t.readData(e.length - 5));
+      return t.readInt(1) !== 1 || hc(this.fileComment) !== t.readInt(4) ? null : Ci.utf8decode(t.readData(e.length - 5));
     }
     return null;
   }
 };
-var CE = Rl, OE = Sl, ot = le(), He = Lt, kE = CE, xE = pe;
-function Nl(e) {
+var ME = Ll, $E = Il, ot = le(), He = Lt, HE = ME, XE = pe;
+function Al(e) {
   this.files = [], this.loadOptions = e;
 }
-Nl.prototype = {
+Al.prototype = {
   /**
    * Check that the reader is on the specified signature.
    * @param {string} expectedSignature the expected signature.
@@ -6896,7 +7149,7 @@ Nl.prototype = {
    */
   readBlockEndOfCentral: function() {
     this.diskNumber = this.reader.readInt(2), this.diskWithCentralDirStart = this.reader.readInt(2), this.centralDirRecordsOnThisDisk = this.reader.readInt(2), this.centralDirRecords = this.reader.readInt(2), this.centralDirSize = this.reader.readInt(4), this.centralDirOffset = this.reader.readInt(4), this.zipCommentLength = this.reader.readInt(2);
-    var e = this.reader.readData(this.zipCommentLength), t = xE.uint8array ? "uint8array" : "array", r = ot.transformTo(t, e);
+    var e = this.reader.readData(this.zipCommentLength), t = XE.uint8array ? "uint8array" : "array", r = ot.transformTo(t, e);
     this.zipComment = this.loadOptions.decodeFileName(r);
   },
   /**
@@ -6935,7 +7188,7 @@ Nl.prototype = {
   readCentralDir: function() {
     var e;
     for (this.reader.setIndex(this.centralDirOffset); this.reader.readAndCheckSignature(He.CENTRAL_FILE_HEADER); )
-      e = new kE({
+      e = new HE({
         zip64: this.zip64
       }, this.loadOptions), e.readCentralPart(this.reader), this.files.push(e);
     if (this.centralDirRecords !== this.files.length && this.centralDirRecords !== 0 && this.files.length === 0)
@@ -6968,7 +7221,7 @@ Nl.prototype = {
       throw new Error("Corrupted zip: missing " + Math.abs(s) + " bytes.");
   },
   prepareReader: function(e) {
-    this.reader = OE(e);
+    this.reader = $E(e);
   },
   /**
    * Read a zip file and create ZipEntries.
@@ -6978,10 +7231,10 @@ Nl.prototype = {
     this.prepareReader(e), this.readEndOfCentral(), this.readCentralDir(), this.readLocalFiles();
   }
 };
-var DE = Nl, ps = le(), $i = ei, UE = gr, PE = DE, BE = bu, pc = ln;
-function FE(e) {
-  return new $i.Promise(function(t, r) {
-    var i = e.decompressed.getContentWorker().pipe(new BE());
+var WE = Al, ps = le(), Hi = ti, zE = br, qE = WE, KE = wu, pc = dn;
+function YE(e) {
+  return new Hi.Promise(function(t, r) {
+    var i = e.decompressed.getContentWorker().pipe(new KE());
     i.on("error", function(s) {
       r(s);
     }).on("end", function() {
@@ -6989,23 +7242,23 @@ function FE(e) {
     }).resume();
   });
 }
-var ME = function(e, t) {
+var jE = function(e, t) {
   var r = this;
   return t = ps.extend(t || {}, {
     base64: !1,
     checkCRC32: !1,
     optimizedBinaryString: !1,
     createFolders: !1,
-    decodeFileName: UE.utf8decode
-  }), pc.isNode && pc.isStream(e) ? $i.Promise.reject(new Error("JSZip can't accept a stream when loading a zip file.")) : ps.prepareContent("the loaded zip file", e, !0, t.optimizedBinaryString, t.base64).then(function(i) {
-    var s = new PE(t);
+    decodeFileName: zE.utf8decode
+  }), pc.isNode && pc.isStream(e) ? Hi.Promise.reject(new Error("JSZip can't accept a stream when loading a zip file.")) : ps.prepareContent("the loaded zip file", e, !0, t.optimizedBinaryString, t.base64).then(function(i) {
+    var s = new qE(t);
     return s.load(i), s;
   }).then(function(s) {
-    var n = [$i.Promise.resolve(s)], a = s.files;
+    var n = [Hi.Promise.resolve(s)], a = s.files;
     if (t.checkCRC32)
       for (var o = 0; o < a.length; o++)
-        n.push(FE(a[o]));
-    return $i.Promise.all(n);
+        n.push(YE(a[o]));
+    return Hi.Promise.all(n);
   }).then(function(s) {
     for (var n = s.shift(), a = n.files, o = 0; o < a.length; o++) {
       var c = a[o], u = c.fileNameStr, l = ps.resolve(c.fileNameStr);
@@ -7035,226 +7288,50 @@ function Ue() {
     return e;
   };
 }
-Ue.prototype = hE;
-Ue.prototype.loadAsync = ME;
+Ue.prototype = yE;
+Ue.prototype.loadAsync = jE;
 Ue.support = pe;
 Ue.defaults = Fe;
 Ue.version = "3.10.1";
 Ue.loadAsync = function(e, t) {
   return new Ue().loadAsync(e, t);
 };
-Ue.external = ei;
-var $E = Ue;
-const Il = /* @__PURE__ */ Qs($E);
-let Mt = null;
-function Ll() {
-  return Mt;
+Ue.external = ti;
+var GE = Ue;
+const Cl = /* @__PURE__ */ Qs(GE), ct = Buffer.from("KAAROBKB1", "utf8"), VE = "kaarobar-backup-salt-v1", Ol = "kaarobar-dev-backup-secret";
+function ZE() {
+  return process.env.KAAROBAR_BACKUP_SECRET || "" || Ol;
 }
-function Al() {
-  return Mt = null, { ok: !0 };
-}
-function HE(e) {
-  try {
-    We(), ft(he());
-    const t = he().prepare(
-      `SELECT id, business_id, branch_id, name, image_path, email, password_hash, role, is_active
-         FROM users
-         WHERE email = ?`
-    ).get(e.email.trim().toLowerCase());
-    if (!t)
-      return { ok: !1, error: "invalid_credentials", message: "Email or password is incorrect." };
-    if (!t.is_active)
-      return { ok: !1, error: "inactive", message: "This account is inactive." };
-    if (!dr.compareSync(e.password, t.password_hash))
-      return { ok: !1, error: "invalid_credentials", message: "Email or password is incorrect." };
-    const i = {
-      id: t.id,
-      name: t.name,
-      email: t.email,
-      role: t.role,
-      businessId: t.business_id,
-      branchId: t.branch_id,
-      imagePath: t.image_path
-    };
-    return he().prepare("UPDATE users SET last_login_at = ? WHERE id = ?").run((/* @__PURE__ */ new Date()).toISOString(), t.id), Mt = i, { ok: !0, user: i };
-  } catch (t) {
-    return {
-      ok: !1,
-      error: "unknown",
-      message: t instanceof Error ? t.message : "Login failed"
-    };
-  }
-}
-function XE(e) {
-  const t = {
-    ok: !1,
-    error: "invalid_credentials",
-    message: "Could not verify owner account details."
-  };
-  try {
-    const r = e.email.trim().toLowerCase(), i = e.licenseKey.trim(), s = e.newPassword.trim();
-    if (!r || !i || !s)
-      return { ok: !1, error: "validation_failed", message: "All fields are required." };
-    if (s.length < 8)
-      return {
-        ok: !1,
-        error: "validation_failed",
-        message: "Password must be at least 8 characters."
-      };
-    We(), ft(he());
-    const n = Tr();
-    if (n.status === "none")
-      return {
-        ok: !1,
-        error: "not_configured",
-        message: "License is not configured on this device."
-      };
-    if (n.status === "expired")
-      return {
-        ok: !1,
-        error: "license_expired",
-        message: "License has expired. Renew license before resetting password."
-      };
-    const a = sa();
-    if (!a || a.licenseKey !== i)
-      return { ok: !1, error: "invalid_license", message: "License key is invalid for this device." };
-    const o = he().prepare(
-      `SELECT id
-         FROM users
-         WHERE role = 'owner' AND is_active = 1 AND email = ?`
-    ).get(r);
-    if (!o) return t;
-    const c = dr.hashSync(s, 12);
-    return he().prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(c, o.id), (Mt == null ? void 0 : Mt.id) === o.id && (Mt = null), { ok: !0 };
-  } catch (r) {
-    return {
-      ok: !1,
-      error: "unknown",
-      message: r instanceof Error ? r.message : "Password reset failed."
-    };
-  }
-}
-const WE = {
-  owner: [
-    "business:edit",
-    "branch:edit",
-    "business:view",
-    "users:manage",
-    "products:edit",
-    "products:view",
-    "suppliers:edit",
-    "purchaseOrders:edit",
-    "customers:edit",
-    "sales:checkout",
-    "sales:refund_request",
-    "sales:refund_approve",
-    "sales:print",
-    "tables:edit",
-    "system:backup_create",
-    "system:backup_restore"
-  ],
-  admin: [
-    "business:edit",
-    "branch:edit",
-    "business:view",
-    "users:manage",
-    "products:edit",
-    "products:view",
-    "suppliers:edit",
-    "purchaseOrders:edit",
-    "customers:edit",
-    "sales:checkout",
-    "sales:refund_request",
-    "sales:refund_approve",
-    "sales:print",
-    "tables:edit",
-    "system:backup_create",
-    "system:backup_restore"
-  ],
-  manager: [
-    "business:view",
-    "products:edit",
-    "products:view",
-    "suppliers:edit",
-    "purchaseOrders:edit",
-    "customers:edit",
-    "sales:checkout",
-    "sales:refund_request",
-    "sales:refund_approve",
-    "sales:print",
-    "tables:edit",
-    "system:backup_create"
-  ],
-  cashier: [
-    "purchaseOrders:edit",
-    "customers:edit",
-    "sales:checkout",
-    "sales:refund_request",
-    "sales:print",
-    "system:backup_create"
-  ]
-};
-function zE(e, t) {
-  return e ? WE[e.role].includes(t) : !1;
-}
-function ie() {
-  const e = Ll();
-  if (!e) throw new Error("Not authenticated");
-  return e;
-}
-function G() {
-  if (Tr().status !== "valid")
-    throw new Error("License expired");
-}
-function X(e) {
-  const t = ie();
-  if (!zE(t, e)) throw new Error("Forbidden");
-  return t;
-}
-function M(e) {
-  const t = ie();
-  if (t.role !== "owner" && t.businessId !== e)
-    throw new Error("Forbidden business scope");
-}
-function Ir(e) {
-  const t = ie();
-  if (!(t.role === "owner" || t.role === "admin") && t.branchId !== e)
-    throw new Error("Forbidden branch scope");
-}
-const ct = Buffer.from("KAAROBKB1", "utf8"), qE = "kaarobar-backup-salt-v1", Cl = "kaarobar-dev-backup-secret";
-function KE() {
-  return process.env.KAAROBAR_BACKUP_SECRET || "" || Cl;
-}
-function YE() {
+function JE() {
   const e = [
     process.env.KAAROBAR_BACKUP_SECRET,
     "",
-    Cl
+    Ol
   ].filter((t) => !!(t && t.trim()));
   return [...new Set(e)];
 }
-function Ol(e) {
-  return Hc(e, qE, 32);
+function kl(e) {
+  return Hc(e, VE, 32);
 }
-function jE(e) {
-  const t = Ol(KE()), r = Bc(12), i = Fc("aes-256-gcm", t, r), s = Buffer.concat([i.update(e), i.final()]), n = i.getAuthTag();
+function QE(e) {
+  const t = kl(ZE()), r = Bc(12), i = Fc("aes-256-gcm", t, r), s = Buffer.concat([i.update(e), i.final()]), n = i.getAuthTag();
   return Buffer.concat([ct, r, n, s]);
 }
-function GE(e) {
+function em(e) {
   if (e.length < ct.length + 12 + 16 + 1)
     throw new Error("Invalid backup file: too short");
   if (!e.subarray(0, ct.length).equals(ct))
     throw new Error("Invalid backup file: not a Kaarobar encrypted backup");
   const r = e.subarray(ct.length, ct.length + 12), i = e.subarray(ct.length + 12, ct.length + 28), s = e.subarray(ct.length + 28);
-  for (const n of YE())
+  for (const n of JE())
     try {
-      const a = Ol(n), o = Xc("aes-256-gcm", a, r);
+      const a = kl(n), o = Xc("aes-256-gcm", a, r);
       return o.setAuthTag(i), Buffer.concat([o.update(s), o.final()]);
     } catch {
     }
   throw new Error("Invalid backup file: decrypt failed");
 }
-const VE = 2, ZE = Buffer.from("SQLite format 3\0", "utf8"), JE = Buffer.from([80, 75, 3, 4]);
+const tm = 2, rm = Buffer.from("SQLite format 3\0", "utf8"), im = Buffer.from([80, 75, 3, 4]);
 function ne(e, t, r, i) {
   e && e({
     operation: t,
@@ -7270,47 +7347,47 @@ function $s(e, t, r, i, s) {
 async function hr() {
   await new Promise((e) => setImmediate(e));
 }
-function kl() {
+function xl() {
   const e = he().prepare("SELECT id FROM businesses WHERE is_active = 1 ORDER BY created_at ASC LIMIT 1").get(), t = (e == null ? void 0 : e.id) ?? null;
   return j.set("lastBusinessId", t), t;
 }
-function QE() {
+function nm() {
   const e = F.join(Xe.getPath("documents"), "KaarobarBackups");
-  return $.mkdirSync(e, { recursive: !0 }), e;
+  return M.mkdirSync(e, { recursive: !0 }), e;
 }
 const _c = "kaarobar-latest.kaarobar-backup";
-function em(e, t) {
-  for (const r of $.readdirSync(e, { withFileTypes: !0 }))
-    r.isFile() && r.name.endsWith(".kaarobar-backup") && r.name !== t && $.unlinkSync(F.join(e, r.name));
+function sm(e, t) {
+  for (const r of M.readdirSync(e, { withFileTypes: !0 }))
+    r.isFile() && r.name.endsWith(".kaarobar-backup") && r.name !== t && M.unlinkSync(F.join(e, r.name));
 }
-function tm(e) {
+function am(e) {
   for (const t of ["-wal", "-shm"]) {
     const r = `${e}${t}`;
-    $.existsSync(r) && $.unlinkSync(r);
+    M.existsSync(r) && M.unlinkSync(r);
   }
 }
-function rm() {
+function om() {
   he().pragma("wal_checkpoint(TRUNCATE)");
-  const t = nn();
-  return na(), $.readFileSync(t);
+  const t = rn();
+  return ta(), M.readFileSync(t);
 }
-function xl(e) {
-  na();
-  const t = nn();
-  $.mkdirSync(F.dirname(t), { recursive: !0 }), tm(t), $.writeFileSync(t, e);
+function Dl(e) {
+  ta();
+  const t = rn();
+  M.mkdirSync(F.dirname(t), { recursive: !0 }), am(t), M.writeFileSync(t, e);
   const r = We();
   ft(r);
 }
-function im(e) {
-  return e.length >= 4 && e.subarray(0, 4).equals(JE);
+function cm(e) {
+  return e.length >= 4 && e.subarray(0, 4).equals(im);
 }
-function Dl(e) {
-  return e.length >= 16 && e.subarray(0, 16).equals(ZE);
+function Ul(e) {
+  return e.length >= 16 && e.subarray(0, 16).equals(rm);
 }
-function nm(e) {
-  if (!$.existsSync(e)) return [];
+function um(e) {
+  if (!M.existsSync(e)) return [];
   const t = [], r = (i) => {
-    for (const s of $.readdirSync(i, { withFileTypes: !0 })) {
+    for (const s of M.readdirSync(i, { withFileTypes: !0 })) {
       const n = F.join(i, s.name);
       if (s.isDirectory()) {
         r(n);
@@ -7323,11 +7400,11 @@ function nm(e) {
   };
   return r(e), t;
 }
-function sm(e) {
-  if ($.existsSync(e))
-    for (const t of $.readdirSync(e, { withFileTypes: !0 })) {
+function lm(e) {
+  if (M.existsSync(e))
+    for (const t of M.readdirSync(e, { withFileTypes: !0 })) {
       const r = F.join(e, t.name);
-      $.rmSync(r, { recursive: !0, force: !0 });
+      M.rmSync(r, { recursive: !0, force: !0 });
     }
 }
 function _s(e) {
@@ -7342,7 +7419,7 @@ function _s(e) {
   const n = r.match(/\/((?:logos|products)\/[^/]+)$/i);
   return n != null && n[1] ? n[1] : null;
 }
-function Ul() {
+function Pl() {
   const e = he(), t = e.prepare("SELECT id, image_path FROM products WHERE image_path IS NOT NULL AND image_path != ''").all(), r = e.prepare("UPDATE products SET image_path = ? WHERE id = ?");
   for (const o of t) {
     const c = _s(o.image_path);
@@ -7359,18 +7436,18 @@ function Ul() {
     c !== o.logo_path && a.run(c, o.id);
   }
 }
-async function am(e, t) {
-  const r = new Il(), i = {
-    formatVersion: VE,
+async function dm(e, t) {
+  const r = new Cl(), i = {
+    formatVersion: tm,
     app: "kaarobar",
     createdAt: (/* @__PURE__ */ new Date()).toISOString(),
     includes: ["db", "files"]
   };
   r.file("manifest.json", JSON.stringify(i, null, 2)), r.file("db/kaarobar.sqlite", e);
-  const s = ea(), n = nm(s), a = Math.max(n.length, 1);
+  const s = ea(), n = um(s), a = Math.max(n.length, 1);
   for (let c = 0; c < n.length; c++) {
     const u = n[c];
-    r.file(`files/${u.relativePosix}`, $.readFileSync(u.absolute)), (c === 0 || c === n.length - 1 || c % 8 === 0) && (ne(t, "create", "packing_files", $s(c + 1, 0, a, 8, 50)), await hr());
+    r.file(`files/${u.relativePosix}`, M.readFileSync(u.absolute)), (c === 0 || c === n.length - 1 || c % 8 === 0) && (ne(t, "create", "packing_files", $s(c + 1, 0, a, 8, 50)), await hr());
   }
   n.length === 0 && ne(t, "create", "packing_files", 50), ne(t, "create", "compressing", 50);
   const o = await r.generateAsync(
@@ -7385,9 +7462,9 @@ async function am(e, t) {
   );
   return Buffer.from(o);
 }
-async function om(e, t) {
+async function fm(e, t) {
   const r = ea(), i = `${r}.restore-tmp`;
-  $.rmSync(i, { recursive: !0, force: !0 }), $.mkdirSync(i, { recursive: !0 });
+  M.rmSync(i, { recursive: !0, force: !0 }), M.mkdirSync(i, { recursive: !0 });
   const s = Object.values(e.files).filter(
     (a) => !a.dir && (a.name.startsWith("files/") || a.name.startsWith("assets/"))
   ), n = Math.max(s.length, 1);
@@ -7395,79 +7472,79 @@ async function om(e, t) {
     const o = s[a], c = o.name.startsWith("files/") ? "files/" : "assets/", u = o.name.slice(c.length).replace(/^\/+/, "");
     if (!u || u.includes("..")) continue;
     const l = F.resolve(i, ...u.split("/")), p = F.resolve(i), d = p.endsWith(F.sep) ? p : p + F.sep;
-    l !== p && !l.startsWith(d) || ($.mkdirSync(F.dirname(l), { recursive: !0 }), $.writeFileSync(l, Buffer.from(await o.async("nodebuffer"))), (a === 0 || a === s.length - 1 || a % 8 === 0) && (ne(t, "restore", "restoring_files", $s(a + 1, 0, n, 42, 88)), await hr()));
+    l !== p && !l.startsWith(d) || (M.mkdirSync(F.dirname(l), { recursive: !0 }), M.writeFileSync(l, Buffer.from(await o.async("nodebuffer"))), (a === 0 || a === s.length - 1 || a % 8 === 0) && (ne(t, "restore", "restoring_files", $s(a + 1, 0, n, 42, 88)), await hr()));
   }
-  if (s.length === 0 && ne(t, "restore", "restoring_files", 88), $.mkdirSync(r, { recursive: !0 }), sm(r), $.existsSync(i))
-    for (const a of $.readdirSync(i, { withFileTypes: !0 }))
-      $.renameSync(F.join(i, a.name), F.join(r, a.name));
-  $.rmSync(i, { recursive: !0, force: !0 });
+  if (s.length === 0 && ne(t, "restore", "restoring_files", 88), M.mkdirSync(r, { recursive: !0 }), lm(r), M.existsSync(i))
+    for (const a of M.readdirSync(i, { withFileTypes: !0 }))
+      M.renameSync(F.join(i, a.name), F.join(r, a.name));
+  M.rmSync(i, { recursive: !0, force: !0 });
 }
-async function cm(e, t) {
+async function hm(e, t) {
   ne(t, "restore", "extracting", 20);
-  const r = await Il.loadAsync(e);
+  const r = await Cl.loadAsync(e);
   ne(t, "restore", "extracting", 28);
   const i = r.file("db/kaarobar.sqlite") ?? r.file("kaarobar.sqlite") ?? Object.values(r.files).find((n) => !n.dir && n.name.endsWith(".sqlite"));
   if (!i || i.dir)
     throw new Error("Invalid backup archive: database file missing");
   ne(t, "restore", "installing_db", 30);
   const s = Buffer.from(await i.async("nodebuffer"));
-  if (!Dl(s))
+  if (!Ul(s))
     throw new Error("Invalid backup archive: database is not SQLite");
-  xl(s), ne(t, "restore", "installing_db", 42), await om(r, t), ne(t, "restore", "finalizing", 90), Ul(), ne(t, "restore", "finalizing", 98);
+  Dl(s), ne(t, "restore", "installing_db", 42), await fm(r, t), ne(t, "restore", "finalizing", 90), Pl(), ne(t, "restore", "finalizing", 98);
 }
 let Ht = !1;
-function um() {
+function pm() {
   return Ht;
 }
-async function Pl(e) {
+async function Bl(e) {
   if (Ht) throw new Error("A backup operation is already in progress");
   Ht = !0, We();
   try {
     ne(e, "create", "prepare_db", 2);
-    const t = rm();
+    const t = om();
     ne(e, "create", "prepare_db", 8), await hr();
-    const r = await am(t, e);
+    const r = await dm(t, e);
     ne(e, "create", "encrypting", 76), await hr();
-    const i = jE(r);
+    const i = QE(r);
     ne(e, "create", "encrypting", 90), ne(e, "create", "writing", 92);
-    const s = QE(), n = F.join(s, _c);
-    return $.writeFileSync(n, i), em(s, _c), We(), ft(he()), ne(e, "create", "writing", 100), { ok: !0, filePath: n };
+    const s = nm(), n = F.join(s, _c);
+    return M.writeFileSync(n, i), sm(s, _c), We(), ft(he()), ne(e, "create", "writing", 100), { ok: !0, filePath: n };
   } catch (t) {
     throw We(), t;
   } finally {
     Ht = !1;
   }
 }
-async function lm(e) {
-  return X("system:backup_create"), Pl(e);
+async function _m(e) {
+  return X("system:backup_create"), Bl(e);
 }
-async function Bl(e, t) {
-  if (!e || !$.existsSync(e))
+async function Fl(e, t) {
+  if (!e || !M.existsSync(e))
     throw new Error("Backup file not found");
   ne(t, "restore", "reading", 2);
-  const r = $.readFileSync(e);
+  const r = M.readFileSync(e);
   ne(t, "restore", "reading", 6), await hr(), ne(t, "restore", "decrypting", 8);
-  const i = GE(r);
-  if (ne(t, "restore", "decrypting", 18), await hr(), im(i)) {
-    await cm(i, t);
+  const i = em(r);
+  if (ne(t, "restore", "decrypting", 18), await hr(), cm(i)) {
+    await hm(i, t);
     return;
   }
-  if (!Dl(i))
+  if (!Ul(i))
     throw new Error("Invalid backup file: decrypted data is not a Kaarobar backup");
-  ne(t, "restore", "installing_db", 25), xl(i), ne(t, "restore", "finalizing", 85), Ul(), ne(t, "restore", "finalizing", 98);
+  ne(t, "restore", "installing_db", 25), Dl(i), ne(t, "restore", "finalizing", 85), Pl(), ne(t, "restore", "finalizing", 98);
 }
-async function dm(e, t) {
+async function Em(e, t) {
   if (X("system:backup_restore"), Ht) throw new Error("A backup operation is already in progress");
   Ht = !0;
   try {
-    await Bl(e, t), ne(t, "restore", "finalizing", 99);
-    const r = kl();
-    return Al(), ne(t, "restore", "finalizing", 100), { ok: !0, businessId: r };
+    await Fl(e, t), ne(t, "restore", "finalizing", 99);
+    const r = xl();
+    return ru(), ne(t, "restore", "finalizing", 100), { ok: !0, businessId: r };
   } finally {
     Ht = !1;
   }
 }
-async function fm() {
+async function mm() {
   const e = await Uc.showOpenDialog({
     title: "Choose Kaarobar backup",
     properties: ["openFile"],
@@ -7478,14 +7555,14 @@ async function fm() {
   });
   return e.canceled || !e.filePaths[0] ? null : e.filePaths[0];
 }
-const hm = ["retail", "food", "salon", "services"];
-function pm(e) {
-  return typeof e == "string" && hm.includes(e);
+const Tm = ["retail", "food", "salon", "services"];
+function gm(e) {
+  return typeof e == "string" && Tm.includes(e);
 }
-function ai(e) {
-  return pm(e) ? e : "retail";
+function oi(e) {
+  return gm(e) ? e : "retail";
 }
-function _m(e) {
+function bm(e) {
   switch (e) {
     case "retail":
       return ["item"];
@@ -7498,29 +7575,29 @@ function _m(e) {
       return ["item"];
   }
 }
-function Fl(e) {
+function Ml(e) {
   return e === "item";
 }
 function Zt(e) {
   return e === "food";
 }
-function Em(e) {
+function vm(e) {
   return e === "food";
 }
-function mm(e) {
+function ym(e) {
   return e === "salon" || e === "services";
 }
-function Ml(e, t) {
-  return _m(e).includes(t);
+function $l(e, t) {
+  return bm(e).includes(t);
 }
 function Hs() {
   return (/* @__PURE__ */ new Date()).toISOString();
 }
-function Tm() {
+function wm() {
   try {
-    $.mkdirSync(tt(), { recursive: !0 });
+    M.mkdirSync(tt(), { recursive: !0 });
     const e = j.get("setupComplete"), t = Xt(j.get("language"));
-    if (!e || !sn())
+    if (!e || !nn())
       return { status: "needs_setup" };
     We(), ft(he()), zi();
     const r = Tr();
@@ -7537,10 +7614,10 @@ function Tm() {
   }
 }
 const Es = "#2d6df6";
-function gm() {
+function Sm() {
   var e, t;
   try {
-    if (!j.get("setupComplete") || !sn()) return Es;
+    if (!j.get("setupComplete") || !nn()) return Es;
     We(), ft(he());
     const r = j.get("lastBusinessId");
     if (r) {
@@ -7553,20 +7630,20 @@ function gm() {
     return Es;
   }
 }
-async function bm(e) {
+async function Rm(e) {
   try {
-    $.mkdirSync(tt(), { recursive: !0 });
+    M.mkdirSync(tt(), { recursive: !0 });
     let t = qi();
     if (!t || t.licenseKey !== e.licenseKey.trim()) {
-      const c = await on(e.licenseKey);
+      const c = await an(e.licenseKey);
       if (!c.ok) return { ok: !1, error: c.error, message: c.message };
       t = qi();
     }
     if (!t)
       return { ok: !1, error: "license_missing", message: "License activation could not be saved locally." };
-    if (sn() && j.get("setupComplete"))
+    if (nn() && j.get("setupComplete"))
       return { ok: !1, error: "already_setup", message: "Setup has already been completed on this device." };
-    na();
+    ta();
     const r = We();
     ft(r), zi();
     const i = ae(), s = ae(), n = ae(), a = Hs(), o = dr.hashSync(e.owner.password, 12);
@@ -7586,7 +7663,7 @@ async function bm(e) {
         e.business.name.trim(),
         e.business.currency.trim() || "PKR",
         e.business.brandColor,
-        ai(e.business.businessNature),
+        oi(e.business.businessNature),
         "Thank you for shopping with us",
         a,
         a
@@ -7613,7 +7690,7 @@ async function bm(e) {
         "idle_lock_minutes",
         "10"
       );
-    })(), zi(), j.set("setupComplete", !0), j.set("language", Xt(e.language)), j.set("lastBusinessId", s), $.writeFileSync(F.join(tt(), "setup.complete"), Hs(), "utf8"), { ok: !0 };
+    })(), zi(), j.set("setupComplete", !0), j.set("language", Xt(e.language)), j.set("lastBusinessId", s), M.writeFileSync(F.join(tt(), "setup.complete"), Hs(), "utf8"), { ok: !0 };
   } catch (t) {
     return {
       ok: !1,
@@ -7622,21 +7699,21 @@ async function bm(e) {
     };
   }
 }
-async function vm(e, t) {
+async function Nm(e, t) {
   try {
-    if ($.mkdirSync(tt(), { recursive: !0 }), sn() && j.get("setupComplete"))
+    if (M.mkdirSync(tt(), { recursive: !0 }), nn() && j.get("setupComplete"))
       return { ok: !1, error: "already_setup", message: "Setup has already been completed on this device." };
     let r = qi();
     if (!r || r.licenseKey !== e.licenseKey.trim()) {
-      const a = await on(e.licenseKey);
+      const a = await an(e.licenseKey);
       if (!a.ok) return { ok: !1, error: a.error, message: a.message };
       r = qi();
     }
     if (!r)
       return { ok: !1, error: "license_missing", message: "License activation could not be saved locally." };
-    await Bl(e.filePath, t), t == null || t({ operation: "restore", phase: "finalizing", percent: 99 }), zi();
+    await Fl(e.filePath, t), t == null || t({ operation: "restore", phase: "finalizing", percent: 99 }), zi();
     const s = he().prepare("SELECT value FROM settings WHERE key = 'language' ORDER BY business_id ASC LIMIT 1").get(), n = Xt(s == null ? void 0 : s.value);
-    return kl(), j.set("setupComplete", !0), j.set("language", n), $.writeFileSync(F.join(tt(), "setup.complete"), Hs(), "utf8"), t == null || t({ operation: "restore", phase: "finalizing", percent: 100 }), { ok: !0 };
+    return xl(), j.set("setupComplete", !0), j.set("language", n), M.writeFileSync(F.join(tt(), "setup.complete"), Hs(), "utf8"), t == null || t({ operation: "restore", phase: "finalizing", percent: 100 }), { ok: !0 };
   } catch (r) {
     return {
       ok: !1,
@@ -7645,19 +7722,19 @@ async function vm(e, t) {
     };
   }
 }
-const Ec = 7, ym = 3, $l = /* @__PURE__ */ new Map();
-function wm(e) {
+const Ec = 7, Im = 3, Hl = /* @__PURE__ */ new Map();
+function Lm(e) {
   const t = /* @__PURE__ */ new Date();
   return t.setUTCDate(t.getUTCDate() - (e - 1)), t.setUTCHours(0, 0, 0, 0), t.toISOString();
 }
-function Hl() {
+function Xl() {
   return We(), ft(he()), he();
 }
-function Sm() {
-  return Hl().prepare("SELECT id FROM businesses WHERE is_active = 1").all().map((r) => r.id);
+function Am() {
+  return Xl().prepare("SELECT id FROM businesses WHERE is_active = 1").all().map((r) => r.id);
 }
-function Xl(e) {
-  const t = Hl(), r = wm(Ec), i = t.prepare(
+function Wl(e) {
+  const t = Xl(), r = Lm(Ec), i = t.prepare(
     `
       WITH recent_sales AS (
         SELECT
@@ -7683,7 +7760,7 @@ function Xl(e) {
     const a = n.qty_sold / Ec;
     if (a <= 0) continue;
     const o = n.stock_qty / a;
-    if (o > ym) continue;
+    if (o > Im) continue;
     const c = Math.max(0, Math.ceil(a * 7 - n.stock_qty));
     s.push({
       productId: n.id,
@@ -7694,23 +7771,23 @@ function Xl(e) {
       recommendedQty: c
     });
   }
-  return s.sort((n, a) => n.daysLeft - a.daysLeft || n.stockQty - a.stockQty), $l.set(e, { atMs: Date.now(), alerts: s }), s;
+  return s.sort((n, a) => n.daysLeft - a.daysLeft || n.stockQty - a.stockQty), Hl.set(e, { atMs: Date.now(), alerts: s }), s;
 }
-function Rm(e) {
-  const t = $l.get(e);
-  return t && Date.now() - t.atMs < 30 * 60 * 1e3 ? t.alerts : Xl(e);
+function Cm(e) {
+  const t = Hl.get(e);
+  return t && Date.now() - t.atMs < 30 * 60 * 1e3 ? t.alerts : Wl(e);
 }
-const Nm = 7;
+const Om = 7;
 let ms = !1;
-function Im(e = /* @__PURE__ */ new Date()) {
+function km(e = /* @__PURE__ */ new Date()) {
   const t = e.getFullYear(), r = String(e.getMonth() + 1).padStart(2, "0"), i = String(e.getDate()).padStart(2, "0");
   return `${t}-${r}-${i}`;
 }
-function Lm(e, t = /* @__PURE__ */ new Date()) {
+function xm(e, t = /* @__PURE__ */ new Date()) {
   const r = new Date(e).getTime();
   return Number.isFinite(r) ? (r - t.getTime()) / (24 * 60 * 60 * 1e3) : Number.POSITIVE_INFINITY;
 }
-function Am(e = /* @__PURE__ */ new Date()) {
+function Dm(e = /* @__PURE__ */ new Date()) {
   const t = Tr();
   if (t.status === "none")
     return { kind: "missing", expiresAt: null, issuedTo: null, daysLeft: null };
@@ -7723,69 +7800,69 @@ function Am(e = /* @__PURE__ */ new Date()) {
     };
   if (!t.record.expiresAt)
     return null;
-  const r = Lm(t.record.expiresAt, e);
-  return r > Nm ? null : {
+  const r = xm(t.record.expiresAt, e);
+  return r > Om ? null : {
     kind: "expiring",
     expiresAt: t.record.expiresAt,
     issuedTo: t.record.issuedTo,
     daysLeft: Math.max(0, Math.ceil(r))
   };
 }
-function Cm() {
-  const e = Sm(), t = [];
+function Um() {
+  const e = Am(), t = [];
   for (const r of e)
     try {
-      t.push(...Xl(r));
+      t.push(...Wl(r));
     } catch (i) {
       console.error("[daily-reminders] restock failed", r, i);
     }
   return t.sort((r, i) => r.daysLeft - i.daysLeft || r.stockQty - i.stockQty), t;
 }
-function Om(e) {
+function Pm(e) {
   for (const t of Gr.getAllWindows())
     t.isDestroyed() || t.webContents.send(A.REMINDERS_DAILY, e);
 }
-function km(e = /* @__PURE__ */ new Date()) {
-  const t = Cm(), r = Am(e), i = {
-    date: Im(e),
+function Bm(e = /* @__PURE__ */ new Date()) {
+  const t = Um(), r = Dm(e), i = {
+    date: km(e),
     at: e.toISOString(),
     restock: t,
     license: r
   };
-  return Om(i), i;
+  return Pm(i), i;
 }
-function xm() {
+function Fm() {
   if (ms) return { ran: !1 };
   ms = !0;
   try {
-    return km(), { ran: !0 };
+    return Bm(), { ran: !0 };
   } catch (e) {
     return console.error("[daily-reminders] failed", e), { ran: !1 };
   } finally {
     ms = !1;
   }
 }
-function Gi(e, t = 4) {
+function Vi(e, t = 4) {
   const r = e.trim().split(/\s+/).map((i) => i.replace(/[^a-zA-Z0-9]/g, "")).filter(Boolean);
   return r.length === 0 ? "X" : r.length >= 2 ? r.map((s) => s[0] ?? "").join("").toUpperCase().slice(0, t) || "X" : r[0].toUpperCase().slice(0, Math.min(3, t)) || "X";
 }
-function Dm(e, t, r) {
-  const i = Gi(e), s = Gi(t);
+function Mm(e, t, r) {
+  const i = Vi(e), s = Vi(t);
   return `KB-${i}-${s}-${r}`;
 }
-function Um(e, t) {
-  return `KB-${Gi(e)}-${Gi(t)}-`;
+function $m(e, t) {
+  return `KB-${Vi(e)}-${Vi(t)}-`;
 }
-function Pm(e, t) {
+function Hm(e, t) {
   if (!e.startsWith(t)) return null;
   const r = Number.parseInt(e.slice(t.length), 10);
   return Number.isFinite(r) && r > 0 ? r : null;
 }
-var At = {}, Wl = function() {
+var At = {}, zl = function() {
   return typeof Promise == "function" && Promise.prototype && Promise.prototype.then;
 }, wa = {}, Ce = {};
 let Sa;
-const Bm = [
+const Xm = [
   0,
   // Not used
   26,
@@ -7835,7 +7912,7 @@ Ce.getSymbolSize = function(t) {
   return t * 4 + 17;
 };
 Ce.getSymbolTotalCodewords = function(t) {
-  return Bm[t];
+  return Xm[t];
 };
 Ce.getBCHDigit = function(e) {
   let t = 0;
@@ -7854,7 +7931,7 @@ Ce.isKanjiModeEnabled = function() {
 Ce.toSJIS = function(t) {
   return Sa(t);
 };
-var bn = {};
+var vn = {};
 (function(e) {
   e.L = { bit: 1 }, e.M = { bit: 0 }, e.Q = { bit: 3 }, e.H = { bit: 2 };
   function t(r) {
@@ -7888,11 +7965,11 @@ var bn = {};
       return s;
     }
   };
-})(bn);
-function zl() {
+})(vn);
+function ql() {
   this.buffer = [], this.length = 0;
 }
-zl.prototype = {
+ql.prototype = {
   get: function(e) {
     const t = Math.floor(e / 8);
     return (this.buffer[t] >>> 7 - e % 8 & 1) === 1;
@@ -7909,26 +7986,26 @@ zl.prototype = {
     this.buffer.length <= t && this.buffer.push(0), e && (this.buffer[t] |= 128 >>> this.length % 8), this.length++;
   }
 };
-var Fm = zl;
-function oi(e) {
+var Wm = ql;
+function ci(e) {
   if (!e || e < 1)
     throw new Error("BitMatrix size must be defined and greater than 0");
   this.size = e, this.data = new Uint8Array(e * e), this.reservedBit = new Uint8Array(e * e);
 }
-oi.prototype.set = function(e, t, r, i) {
+ci.prototype.set = function(e, t, r, i) {
   const s = e * this.size + t;
   this.data[s] = r, i && (this.reservedBit[s] = !0);
 };
-oi.prototype.get = function(e, t) {
+ci.prototype.get = function(e, t) {
   return this.data[e * this.size + t];
 };
-oi.prototype.xor = function(e, t, r) {
+ci.prototype.xor = function(e, t, r) {
   this.data[e * this.size + t] ^= r;
 };
-oi.prototype.isReserved = function(e, t) {
+ci.prototype.isReserved = function(e, t) {
   return this.reservedBit[e * this.size + t];
 };
-var Mm = oi, ql = {};
+var zm = ci, Kl = {};
 (function(e) {
   const t = Ce.getSymbolSize;
   e.getRowColCoords = function(i) {
@@ -7946,11 +8023,11 @@ var Mm = oi, ql = {};
         o === a - 1 && c === 0 || s.push([n[o], n[c]]);
     return s;
   };
-})(ql);
-var Kl = {};
-const $m = Ce.getSymbolSize, mc = 7;
-Kl.getPositions = function(t) {
-  const r = $m(t);
+})(Kl);
+var Yl = {};
+const qm = Ce.getSymbolSize, mc = 7;
+Yl.getPositions = function(t) {
+  const r = qm(t);
   return [
     // top-left
     [0, 0],
@@ -7960,7 +8037,7 @@ Kl.getPositions = function(t) {
     [0, r - mc]
   ];
 };
-var Yl = {};
+var jl = {};
 (function(e) {
   e.Patterns = {
     PATTERN000: 0,
@@ -8055,9 +8132,9 @@ var Yl = {};
     }
     return o;
   };
-})(Yl);
-var vn = {};
-const Rt = bn, Oi = [
+})(jl);
+var yn = {};
+const Rt = vn, ki = [
   // L  M  Q  H
   1,
   1,
@@ -8219,7 +8296,7 @@ const Rt = bn, Oi = [
   49,
   68,
   81
-], ki = [
+], xi = [
   // L  M  Q  H
   7,
   10,
@@ -8382,21 +8459,7 @@ const Rt = bn, Oi = [
   2040,
   2430
 ];
-vn.getBlocksCount = function(t, r) {
-  switch (r) {
-    case Rt.L:
-      return Oi[(t - 1) * 4 + 0];
-    case Rt.M:
-      return Oi[(t - 1) * 4 + 1];
-    case Rt.Q:
-      return Oi[(t - 1) * 4 + 2];
-    case Rt.H:
-      return Oi[(t - 1) * 4 + 3];
-    default:
-      return;
-  }
-};
-vn.getTotalCodewordsCount = function(t, r) {
+yn.getBlocksCount = function(t, r) {
   switch (r) {
     case Rt.L:
       return ki[(t - 1) * 4 + 0];
@@ -8410,27 +8473,41 @@ vn.getTotalCodewordsCount = function(t, r) {
       return;
   }
 };
-var jl = {}, yn = {};
-const Hr = new Uint8Array(512), Vi = new Uint8Array(256);
+yn.getTotalCodewordsCount = function(t, r) {
+  switch (r) {
+    case Rt.L:
+      return xi[(t - 1) * 4 + 0];
+    case Rt.M:
+      return xi[(t - 1) * 4 + 1];
+    case Rt.Q:
+      return xi[(t - 1) * 4 + 2];
+    case Rt.H:
+      return xi[(t - 1) * 4 + 3];
+    default:
+      return;
+  }
+};
+var Gl = {}, wn = {};
+const Hr = new Uint8Array(512), Zi = new Uint8Array(256);
 (function() {
   let t = 1;
   for (let r = 0; r < 255; r++)
-    Hr[r] = t, Vi[t] = r, t <<= 1, t & 256 && (t ^= 285);
+    Hr[r] = t, Zi[t] = r, t <<= 1, t & 256 && (t ^= 285);
   for (let r = 255; r < 512; r++)
     Hr[r] = Hr[r - 255];
 })();
-yn.log = function(t) {
+wn.log = function(t) {
   if (t < 1) throw new Error("log(" + t + ")");
-  return Vi[t];
+  return Zi[t];
 };
-yn.exp = function(t) {
+wn.exp = function(t) {
   return Hr[t];
 };
-yn.mul = function(t, r) {
-  return t === 0 || r === 0 ? 0 : Hr[Vi[t] + Vi[r]];
+wn.mul = function(t, r) {
+  return t === 0 || r === 0 ? 0 : Hr[Zi[t] + Zi[r]];
 };
 (function(e) {
-  const t = yn;
+  const t = wn;
   e.mul = function(i, s) {
     const n = new Uint8Array(i.length + s.length - 1);
     for (let a = 0; a < i.length; a++)
@@ -8454,50 +8531,50 @@ yn.mul = function(t, r) {
       s = e.mul(s, new Uint8Array([1, t.exp(n)]));
     return s;
   };
-})(jl);
-const Gl = jl;
+})(Gl);
+const Vl = Gl;
 function Ra(e) {
   this.genPoly = void 0, this.degree = e, this.degree && this.initialize(this.degree);
 }
 Ra.prototype.initialize = function(t) {
-  this.degree = t, this.genPoly = Gl.generateECPolynomial(this.degree);
+  this.degree = t, this.genPoly = Vl.generateECPolynomial(this.degree);
 };
 Ra.prototype.encode = function(t) {
   if (!this.genPoly)
     throw new Error("Encoder not initialized");
   const r = new Uint8Array(t.length + this.degree);
   r.set(t);
-  const i = Gl.mod(r, this.genPoly), s = this.degree - i.length;
+  const i = Vl.mod(r, this.genPoly), s = this.degree - i.length;
   if (s > 0) {
     const n = new Uint8Array(this.degree);
     return n.set(i, s), n;
   }
   return i;
 };
-var Hm = Ra, Vl = {}, Ct = {}, Na = {};
+var Km = Ra, Zl = {}, Ct = {}, Na = {};
 Na.isValid = function(t) {
   return !isNaN(t) && t >= 1 && t <= 40;
 };
 var it = {};
-const Zl = "[0-9]+", Xm = "[A-Z $%*+\\-./:]+";
+const Jl = "[0-9]+", Ym = "[A-Z $%*+\\-./:]+";
 let Yr = "(?:[u3000-u303F]|[u3040-u309F]|[u30A0-u30FF]|[uFF00-uFFEF]|[u4E00-u9FAF]|[u2605-u2606]|[u2190-u2195]|u203B|[u2010u2015u2018u2019u2025u2026u201Cu201Du2225u2260]|[u0391-u0451]|[u00A7u00A8u00B1u00B4u00D7u00F7])+";
 Yr = Yr.replace(/u/g, "\\u");
-const Wm = "(?:(?![A-Z0-9 $%*+\\-./:]|" + Yr + `)(?:.|[\r
+const jm = "(?:(?![A-Z0-9 $%*+\\-./:]|" + Yr + `)(?:.|[\r
 ]))+`;
 it.KANJI = new RegExp(Yr, "g");
 it.BYTE_KANJI = new RegExp("[^A-Z0-9 $%*+\\-./:]+", "g");
-it.BYTE = new RegExp(Wm, "g");
-it.NUMERIC = new RegExp(Zl, "g");
-it.ALPHANUMERIC = new RegExp(Xm, "g");
-const zm = new RegExp("^" + Yr + "$"), qm = new RegExp("^" + Zl + "$"), Km = new RegExp("^[A-Z0-9 $%*+\\-./:]+$");
+it.BYTE = new RegExp(jm, "g");
+it.NUMERIC = new RegExp(Jl, "g");
+it.ALPHANUMERIC = new RegExp(Ym, "g");
+const Gm = new RegExp("^" + Yr + "$"), Vm = new RegExp("^" + Jl + "$"), Zm = new RegExp("^[A-Z0-9 $%*+\\-./:]+$");
 it.testKanji = function(t) {
-  return zm.test(t);
+  return Gm.test(t);
 };
 it.testNumeric = function(t) {
-  return qm.test(t);
+  return Vm.test(t);
 };
 it.testAlphanumeric = function(t) {
-  return Km.test(t);
+  return Zm.test(t);
 };
 (function(e) {
   const t = Na, r = it;
@@ -8559,7 +8636,7 @@ it.testAlphanumeric = function(t) {
   };
 })(Ct);
 (function(e) {
-  const t = Ce, r = vn, i = bn, s = Ct, n = Na, a = 7973, o = t.getBCHDigit(a);
+  const t = Ce, r = yn, i = vn, s = Ct, n = Na, a = 7973, o = t.getBCHDigit(a);
   function c(d, f, _) {
     for (let E = 1; E <= 40; E++)
       if (f <= e.getCapacity(E, _, d))
@@ -8620,20 +8697,20 @@ it.testAlphanumeric = function(t) {
       _ ^= a << t.getBCHDigit(_) - o;
     return f << 12 | _;
   };
-})(Vl);
-var Jl = {};
-const Xs = Ce, Ql = 1335, Ym = 21522, Tc = Xs.getBCHDigit(Ql);
-Jl.getEncodedBits = function(t, r) {
+})(Zl);
+var Ql = {};
+const Xs = Ce, ed = 1335, Jm = 21522, Tc = Xs.getBCHDigit(ed);
+Ql.getEncodedBits = function(t, r) {
   const i = t.bit << 3 | r;
   let s = i << 10;
   for (; Xs.getBCHDigit(s) - Tc >= 0; )
-    s ^= Ql << Xs.getBCHDigit(s) - Tc;
-  return (i << 10 | s) ^ Ym;
+    s ^= ed << Xs.getBCHDigit(s) - Tc;
+  return (i << 10 | s) ^ Jm;
 };
-var ed = {};
-const jm = Ct;
+var td = {};
+const Qm = Ct;
 function pr(e) {
-  this.mode = jm.NUMERIC, this.data = e.toString();
+  this.mode = Qm.NUMERIC, this.data = e.toString();
 }
 pr.getBitsLength = function(t) {
   return 10 * Math.floor(t / 3) + (t % 3 ? t % 3 * 3 + 1 : 0);
@@ -8651,8 +8728,8 @@ pr.prototype.write = function(t) {
   const n = this.data.length - r;
   n > 0 && (i = this.data.substr(r), s = parseInt(i, 10), t.put(s, n * 3 + 1));
 };
-var Gm = pr;
-const Vm = Ct, Ts = [
+var eT = pr;
+const tT = Ct, Ts = [
   "0",
   "1",
   "2",
@@ -8700,7 +8777,7 @@ const Vm = Ct, Ts = [
   ":"
 ];
 function _r(e) {
-  this.mode = Vm.ALPHANUMERIC, this.data = e;
+  this.mode = tT.ALPHANUMERIC, this.data = e;
 }
 _r.getBitsLength = function(t) {
   return 11 * Math.floor(t / 2) + 6 * (t % 2);
@@ -8719,10 +8796,10 @@ _r.prototype.write = function(t) {
   }
   this.data.length % 2 && t.put(Ts.indexOf(this.data[r]), 6);
 };
-var Zm = _r;
-const Jm = Ct;
+var rT = _r;
+const iT = Ct;
 function Er(e) {
-  this.mode = Jm.BYTE, typeof e == "string" ? this.data = new TextEncoder().encode(e) : this.data = new Uint8Array(e);
+  this.mode = iT.BYTE, typeof e == "string" ? this.data = new TextEncoder().encode(e) : this.data = new Uint8Array(e);
 }
 Er.getBitsLength = function(t) {
   return t * 8;
@@ -8737,10 +8814,10 @@ Er.prototype.write = function(e) {
   for (let t = 0, r = this.data.length; t < r; t++)
     e.put(this.data[t], 8);
 };
-var Qm = Er;
-const eT = Ct, tT = Ce;
+var nT = Er;
+const sT = Ct, aT = Ce;
 function mr(e) {
-  this.mode = eT.KANJI, this.data = e;
+  this.mode = sT.KANJI, this.data = e;
 }
 mr.getBitsLength = function(t) {
   return t * 13;
@@ -8754,7 +8831,7 @@ mr.prototype.getBitsLength = function() {
 mr.prototype.write = function(e) {
   let t;
   for (t = 0; t < this.data.length; t++) {
-    let r = tT.toSJIS(this.data[t]);
+    let r = aT.toSJIS(this.data[t]);
     if (r >= 33088 && r <= 40956)
       r -= 33088;
     else if (r >= 57408 && r <= 60351)
@@ -8767,7 +8844,7 @@ Make sure your charset is UTF-8`
     r = (r >>> 8 & 255) * 192 + (r & 255), e.put(r, 13);
   }
 };
-var rT = mr, td = { exports: {} };
+var oT = mr, rd = { exports: {} };
 (function(e) {
   var t = {
     single_source_shortest_paths: function(r, i, s) {
@@ -8832,10 +8909,10 @@ var rT = mr, td = { exports: {} };
     }
   };
   e.exports = t;
-})(td);
-var iT = td.exports;
+})(rd);
+var cT = rd.exports;
 (function(e) {
-  const t = Ct, r = Gm, i = Zm, s = Qm, n = rT, a = it, o = Ce, c = iT;
+  const t = Ct, r = eT, i = rT, s = nT, n = oT, a = it, o = Ce, c = cT;
   function u(h) {
     return unescape(encodeURIComponent(h)).length;
   }
@@ -8964,10 +9041,10 @@ var iT = td.exports;
       p(m, o.isKanjiModeEnabled())
     );
   };
-})(ed);
-const wn = Ce, gs = bn, nT = Fm, sT = Mm, aT = ql, oT = Kl, Ws = Yl, zs = vn, cT = Hm, Zi = Vl, uT = Jl, lT = Ct, bs = ed;
-function dT(e, t) {
-  const r = e.size, i = oT.getPositions(t);
+})(td);
+const Sn = Ce, gs = vn, uT = Wm, lT = zm, dT = Kl, fT = Yl, Ws = jl, zs = yn, hT = Km, Ji = Zl, pT = Ql, _T = Ct, bs = td;
+function ET(e, t) {
+  const r = e.size, i = fT.getPositions(t);
   for (let s = 0; s < i.length; s++) {
     const n = i[s][0], a = i[s][1];
     for (let o = -1; o <= 7; o++)
@@ -8976,15 +9053,15 @@ function dT(e, t) {
           a + c <= -1 || r <= a + c || (o >= 0 && o <= 6 && (c === 0 || c === 6) || c >= 0 && c <= 6 && (o === 0 || o === 6) || o >= 2 && o <= 4 && c >= 2 && c <= 4 ? e.set(n + o, a + c, !0, !0) : e.set(n + o, a + c, !1, !0));
   }
 }
-function fT(e) {
+function mT(e) {
   const t = e.size;
   for (let r = 8; r < t - 8; r++) {
     const i = r % 2 === 0;
     e.set(r, 6, i, !0), e.set(6, r, i, !0);
   }
 }
-function hT(e, t) {
-  const r = aT.getPositions(t);
+function TT(e, t) {
+  const r = dT.getPositions(t);
   for (let i = 0; i < r.length; i++) {
     const s = r[i][0], n = r[i][1];
     for (let a = -2; a <= 2; a++)
@@ -8992,20 +9069,20 @@ function hT(e, t) {
         a === -2 || a === 2 || o === -2 || o === 2 || a === 0 && o === 0 ? e.set(s + a, n + o, !0, !0) : e.set(s + a, n + o, !1, !0);
   }
 }
-function pT(e, t) {
-  const r = e.size, i = Zi.getEncodedBits(t);
+function gT(e, t) {
+  const r = e.size, i = Ji.getEncodedBits(t);
   let s, n, a;
   for (let o = 0; o < 18; o++)
     s = Math.floor(o / 3), n = o % 3 + r - 8 - 3, a = (i >> o & 1) === 1, e.set(s, n, a, !0), e.set(n, s, a, !0);
 }
 function vs(e, t, r) {
-  const i = e.size, s = uT.getEncodedBits(t, r);
+  const i = e.size, s = pT.getEncodedBits(t, r);
   let n, a;
   for (n = 0; n < 15; n++)
     a = (s >> n & 1) === 1, n < 6 ? e.set(n, 8, a, !0) : n < 8 ? e.set(n + 1, 8, a, !0) : e.set(i - 15 + n, 8, a, !0), n < 8 ? e.set(8, i - n - 1, a, !0) : n < 9 ? e.set(8, 15 - n - 1 + 1, a, !0) : e.set(8, 15 - n - 1, a, !0);
   e.set(i - 8, 8, 1, !0);
 }
-function _T(e, t) {
+function bT(e, t) {
   const r = e.size;
   let i = -1, s = r - 1, n = 7, a = 0;
   for (let o = r - 1; o > 0; o -= 2)
@@ -9021,21 +9098,21 @@ function _T(e, t) {
       }
     }
 }
-function ET(e, t, r) {
-  const i = new nT();
+function vT(e, t, r) {
+  const i = new uT();
   r.forEach(function(c) {
-    i.put(c.mode.bit, 4), i.put(c.getLength(), lT.getCharCountIndicator(c.mode, e)), c.write(i);
+    i.put(c.mode.bit, 4), i.put(c.getLength(), _T.getCharCountIndicator(c.mode, e)), c.write(i);
   });
-  const s = wn.getSymbolTotalCodewords(e), n = zs.getTotalCodewordsCount(e, t), a = (s - n) * 8;
+  const s = Sn.getSymbolTotalCodewords(e), n = zs.getTotalCodewordsCount(e, t), a = (s - n) * 8;
   for (i.getLengthInBits() + 4 <= a && i.put(0, 4); i.getLengthInBits() % 8 !== 0; )
     i.putBit(0);
   const o = (a - i.getLengthInBits()) / 8;
   for (let c = 0; c < o; c++)
     i.put(c % 2 ? 17 : 236, 8);
-  return mT(i, e, t);
+  return yT(i, e, t);
 }
-function mT(e, t, r) {
-  const i = wn.getSymbolTotalCodewords(t), s = zs.getTotalCodewordsCount(t, r), n = i - s, a = zs.getBlocksCount(t, r), o = i % a, c = a - o, u = Math.floor(i / a), l = Math.floor(n / a), p = l + 1, d = u - l, f = new cT(d);
+function yT(e, t, r) {
+  const i = Sn.getSymbolTotalCodewords(t), s = zs.getTotalCodewordsCount(t, r), n = i - s, a = zs.getBlocksCount(t, r), o = i % a, c = a - o, u = Math.floor(i / a), l = Math.floor(n / a), p = l + 1, d = u - l, f = new hT(d);
   let _ = 0;
   const E = new Array(a), w = new Array(a);
   let h = 0;
@@ -9054,7 +9131,7 @@ function mT(e, t, r) {
       b[v++] = w[L][S];
   return b;
 }
-function TT(e, t, r, i) {
+function wT(e, t, r, i) {
   let s;
   if (Array.isArray(e))
     s = bs.fromArray(e);
@@ -9062,12 +9139,12 @@ function TT(e, t, r, i) {
     let u = t;
     if (!u) {
       const l = bs.rawSplit(e);
-      u = Zi.getBestVersionForData(l, r);
+      u = Ji.getBestVersionForData(l, r);
     }
     s = bs.fromString(e, u || 40);
   } else
     throw new Error("Invalid data");
-  const n = Zi.getBestVersionForData(s, r);
+  const n = Ji.getBestVersionForData(s, r);
   if (!n)
     throw new Error("The amount of data is too big to be stored in a QR Code");
   if (!t)
@@ -9079,8 +9156,8 @@ The chosen QR Code version cannot contain this amount of data.
 Minimum version required to store current data is: ` + n + `.
 `
     );
-  const a = ET(t, r, s), o = wn.getSymbolSize(t), c = new sT(o);
-  return dT(c, t), fT(c), hT(c, t), vs(c, r, 0), t >= 7 && pT(c, t), _T(c, a), isNaN(i) && (i = Ws.getBestMask(
+  const a = vT(t, r, s), o = Sn.getSymbolSize(t), c = new lT(o);
+  return ET(c, t), mT(c), TT(c, t), vs(c, r, 0), t >= 7 && gT(c, t), bT(c, a), isNaN(i) && (i = Ws.getBestMask(
     c,
     vs.bind(null, c, r)
   )), Ws.applyMask(i, c), vs(c, r, i), {
@@ -9095,13 +9172,13 @@ wa.create = function(t, r) {
   if (typeof t > "u" || t === "")
     throw new Error("No input text");
   let i = gs.M, s, n;
-  return typeof r < "u" && (i = gs.from(r.errorCorrectionLevel, gs.M), s = Zi.from(r.version), n = Ws.from(r.maskPattern), r.toSJISFunc && wn.setToSJISFunction(r.toSJISFunc)), TT(t, s, i, n);
+  return typeof r < "u" && (i = gs.from(r.errorCorrectionLevel, gs.M), s = Ji.from(r.version), n = Ws.from(r.maskPattern), r.toSJISFunc && Sn.setToSJISFunction(r.toSJISFunc)), wT(t, s, i, n);
 };
-var rd = {}, id = {}, nd = { exports: {} }, sd = { exports: {} };
-let gT = lt, ad = Vr, qe = sd.exports = function() {
-  ad.call(this), this._buffers = [], this._buffered = 0, this._reads = [], this._paused = !1, this._encoding = "utf8", this.writable = !0;
+var id = {}, nd = {}, sd = { exports: {} }, ad = { exports: {} };
+let ST = lt, od = Vr, qe = ad.exports = function() {
+  od.call(this), this._buffers = [], this._buffered = 0, this._reads = [], this._paused = !1, this._encoding = "utf8", this.writable = !0;
 };
-gT.inherits(qe, ad);
+ST.inherits(qe, od);
 qe.prototype.read = function(e, t) {
   this._reads.push({
     length: Math.abs(e),
@@ -9160,7 +9237,7 @@ qe.prototype._process = function() {
     this.emit("error", e);
   }
 };
-var od = sd.exports, cd = { exports: {} }, ud = { exports: {} }, Sn = {};
+var cd = ad.exports, ud = { exports: {} }, ld = { exports: {} }, Rn = {};
 let vt = [
   {
     // pass 1 - 1px
@@ -9198,7 +9275,7 @@ let vt = [
     y: [1, 3, 5, 7]
   }
 ];
-Sn.getImagePasses = function(e, t) {
+Rn.getImagePasses = function(e, t) {
   let r = [], i = e % 8, s = t % 8, n = (e - i) / 8, a = (t - s) / 8;
   for (let o = 0; o < vt.length; o++) {
     let c = vt[o], u = n * c.x.length, l = a * c.y.length;
@@ -9210,25 +9287,25 @@ Sn.getImagePasses = function(e, t) {
   }
   return r;
 };
-Sn.getInterlaceIterator = function(e) {
+Rn.getInterlaceIterator = function(e) {
   return function(t, r, i) {
     let s = t % vt[i].x.length, n = (t - s) / vt[i].x.length * 8 + vt[i].x[s], a = r % vt[i].y.length, o = (r - a) / vt[i].y.length * 8 + vt[i].y[a];
     return n * 4 + o * e * 4;
   };
 };
-var ld = function(t, r, i) {
+var dd = function(t, r, i) {
   let s = t + r - i, n = Math.abs(s - t), a = Math.abs(s - r), o = Math.abs(s - i);
   return n <= a && n <= o ? t : a <= o ? r : i;
 };
-let bT = Sn, vT = ld;
+let RT = Rn, NT = dd;
 function gc(e, t, r) {
   let i = e * t;
   return r !== 8 && (i = Math.ceil(i / (8 / r))), i;
 }
-let Lr = ud.exports = function(e, t) {
+let Lr = ld.exports = function(e, t) {
   let r = e.width, i = e.height, s = e.interlace, n = e.bpp, a = e.depth;
   if (this.read = t.read, this.write = t.write, this.complete = t.complete, this._imageIndex = 0, this._images = [], s) {
-    let o = bT.getImagePasses(r, i);
+    let o = RT.getImagePasses(r, i);
     for (let c = 0; c < o.length; c++)
       this._images.push({
         byteWidth: gc(o[c].width, n, a),
@@ -9273,7 +9350,7 @@ Lr.prototype._unFilterType3 = function(e, t, r) {
 Lr.prototype._unFilterType4 = function(e, t, r) {
   let i = this._xComparison, s = i - 1, n = this._lastLine;
   for (let a = 0; a < r; a++) {
-    let o = e[1 + a], c = n ? n[a] : 0, u = a > s ? t[a - i] : 0, l = a > s && n ? n[a - i] : 0, p = vT(u, c, l);
+    let o = e[1 + a], c = n ? n[a] : 0, u = a > s ? t[a - i] : 0, l = a > s && n ? n[a - i] : 0, p = NT(u, c, l);
     t[a] = o + p;
   }
 };
@@ -9300,11 +9377,11 @@ Lr.prototype._reverseFilterLine = function(e) {
     }
   this.write(r), i.lineIndex++, i.lineIndex >= i.height ? (this._lastLine = null, this._imageIndex++, i = this._images[this._imageIndex]) : this._lastLine = r, i ? this.read(i.byteWidth + 1, this._reverseFilterLine.bind(this)) : (this._lastLine = null, this.complete());
 };
-var dd = ud.exports;
-let yT = lt, fd = od, wT = dd, ST = cd.exports = function(e) {
-  fd.call(this);
+var fd = ld.exports;
+let IT = lt, hd = cd, LT = fd, AT = ud.exports = function(e) {
+  hd.call(this);
   let t = [], r = this;
-  this._filter = new wT(e, {
+  this._filter = new LT(e, {
     read: this.read.bind(this),
     write: function(i) {
       t.push(i);
@@ -9314,8 +9391,8 @@ let yT = lt, fd = od, wT = dd, ST = cd.exports = function(e) {
     }
   }), this._filter.start();
 };
-yT.inherits(ST, fd);
-var RT = cd.exports, hd = { exports: {} }, ci = {
+IT.inherits(AT, hd);
+var CT = ud.exports, pd = { exports: {} }, ui = {
   PNG_SIGNATURE: [137, 80, 78, 71, 13, 10, 26, 10],
   TYPE_IHDR: 1229472850,
   TYPE_IEND: 1229278788,
@@ -9342,7 +9419,7 @@ var RT = cd.exports, hd = { exports: {} }, ci = {
     6: 4
   },
   GAMMA_DIVISION: 1e5
-}, pd = { exports: {} };
+}, _d = { exports: {} };
 let Ia = [];
 (function() {
   for (let e = 0; e < 256; e++) {
@@ -9352,7 +9429,7 @@ let Ia = [];
     Ia[e] = t;
   }
 })();
-let La = pd.exports = function() {
+let La = _d.exports = function() {
   this._crc = -1;
 };
 La.prototype.write = function(e) {
@@ -9369,8 +9446,8 @@ La.crc32 = function(e) {
     t = Ia[(t ^ e[r]) & 255] ^ t >>> 8;
   return t ^ -1;
 };
-var _d = pd.exports;
-let _e = ci, NT = _d, Te = hd.exports = function(e, t) {
+var Ed = _d.exports;
+let _e = ui, OT = Ed, Te = pd.exports = function(e, t) {
   this._options = e, e.checkCRC = e.checkCRC !== !1, this._hasIHDR = !1, this._hasIEND = !1, this._emittedHeadersFinished = !1, this._palette = [], this._colorType = 0, this._chunks = {}, this._chunks[_e.TYPE_IHDR] = this._handleIHDR.bind(this), this._chunks[_e.TYPE_IEND] = this._handleIEND.bind(this), this._chunks[_e.TYPE_IDAT] = this._handleIDAT.bind(this), this._chunks[_e.TYPE_PLTE] = this._handlePLTE.bind(this), this._chunks[_e.TYPE_tRNS] = this._handleTRNS.bind(this), this._chunks[_e.TYPE_gAMA] = this._handleGAMA.bind(this), this.read = t.read, this.error = t.error, this.metadata = t.metadata, this.gamma = t.gamma, this.transColor = t.transColor, this.palette = t.palette, this.parsed = t.parsed, this.inflateData = t.inflateData, this.finished = t.finished, this.simpleTransparency = t.simpleTransparency, this.headersFinished = t.headersFinished || function() {
   };
 };
@@ -9395,7 +9472,7 @@ Te.prototype._parseChunkBegin = function(e) {
     this.error(new Error("Expected IHDR on beggining"));
     return;
   }
-  if (this._crc = new NT(), this._crc.write(Buffer.from(i)), this._chunks[r])
+  if (this._crc = new OT(), this._crc.write(Buffer.from(i)), this._chunks[r])
     return this._chunks[r](t);
   if (!s) {
     this.error(new Error("Unsupported critical chunk type " + i));
@@ -9512,8 +9589,8 @@ Te.prototype._handleIEND = function(e) {
 Te.prototype._parseIEND = function(e) {
   this._crc.write(e), this._hasIEND = !0, this._handleChunkEnd(), this.finished && this.finished();
 };
-var Ed = hd.exports, Aa = {};
-let bc = Sn, IT = [
+var md = pd.exports, Aa = {};
+let bc = Rn, kT = [
   // 0 - dummy entry
   function() {
   },
@@ -9547,7 +9624,7 @@ let bc = Sn, IT = [
       throw new Error("Ran out of data");
     e[r] = t[i], e[r + 1] = t[i + 1], e[r + 2] = t[i + 2], e[r + 3] = t[i + 3];
   }
-], LT = [
+], xT = [
   // 0 - dummy entry
   function() {
   },
@@ -9574,7 +9651,7 @@ let bc = Sn, IT = [
     e[r] = t[0], e[r + 1] = t[1], e[r + 2] = t[2], e[r + 3] = t[3];
   }
 ];
-function AT(e, t) {
+function DT(e, t) {
   let r = [], i = 0;
   function s() {
     if (i === e.length)
@@ -9615,28 +9692,28 @@ function AT(e, t) {
     }
   };
 }
-function CT(e, t, r, i, s, n) {
+function UT(e, t, r, i, s, n) {
   let a = e.width, o = e.height, c = e.index;
   for (let u = 0; u < o; u++)
     for (let l = 0; l < a; l++) {
       let p = r(l, u, c);
-      IT[i](t, s, p, n), n += i;
+      kT[i](t, s, p, n), n += i;
     }
   return n;
 }
-function OT(e, t, r, i, s, n) {
+function PT(e, t, r, i, s, n) {
   let a = e.width, o = e.height, c = e.index;
   for (let u = 0; u < o; u++) {
     for (let l = 0; l < a; l++) {
       let p = s.get(i), d = r(l, u, c);
-      LT[i](t, p, d, n);
+      xT[i](t, p, d, n);
     }
     s.resetAfterLine();
   }
 }
 Aa.dataToBitMap = function(e, t) {
   let r = t.width, i = t.height, s = t.depth, n = t.bpp, a = t.interlace, o;
-  s !== 8 && (o = AT(e, s));
+  s !== 8 && (o = DT(e, s));
   let c;
   s <= 8 ? c = Buffer.alloc(r * i * 4) : c = new Uint16Array(r * i * 4);
   let u = Math.pow(2, s) - 1, l = 0, p, d;
@@ -9650,14 +9727,14 @@ Aa.dataToBitMap = function(e, t) {
     }, p = [{ width: r, height: i }];
   }
   for (let f = 0; f < p.length; f++)
-    s === 8 ? l = CT(
+    s === 8 ? l = UT(
       p[f],
       c,
       d,
       n,
       e,
       l
-    ) : OT(
+    ) : PT(
       p[f],
       c,
       d,
@@ -9672,7 +9749,7 @@ Aa.dataToBitMap = function(e, t) {
     o.end();
   return c;
 };
-function kT(e, t, r, i, s) {
+function BT(e, t, r, i, s) {
   let n = 0;
   for (let a = 0; a < i; a++)
     for (let o = 0; o < r; o++) {
@@ -9684,7 +9761,7 @@ function kT(e, t, r, i, s) {
       n += 4;
     }
 }
-function xT(e, t, r, i, s) {
+function FT(e, t, r, i, s) {
   let n = 0;
   for (let a = 0; a < i; a++)
     for (let o = 0; o < r; o++) {
@@ -9695,7 +9772,7 @@ function xT(e, t, r, i, s) {
       n += 4;
     }
 }
-function DT(e, t, r, i, s) {
+function MT(e, t, r, i, s) {
   let n = 255, a = Math.pow(2, s) - 1, o = 0;
   for (let c = 0; c < i; c++)
     for (let u = 0; u < r; u++) {
@@ -9706,12 +9783,12 @@ function DT(e, t, r, i, s) {
       o += 4;
     }
 }
-var md = function(e, t) {
+var Td = function(e, t) {
   let r = t.depth, i = t.width, s = t.height, n = t.colorType, a = t.transColor, o = t.palette, c = e;
-  return n === 3 ? kT(e, c, i, s, o) : (a && xT(e, c, i, s, a), r !== 8 && (r === 16 && (c = Buffer.alloc(i * s * 4)), DT(e, c, i, s, r))), c;
+  return n === 3 ? BT(e, c, i, s, o) : (a && FT(e, c, i, s, a), r !== 8 && (r === 16 && (c = Buffer.alloc(i * s * 4)), MT(e, c, i, s, r))), c;
 };
-let UT = lt, ys = Zr, Td = od, PT = RT, BT = Ed, FT = Aa, MT = md, nt = nd.exports = function(e) {
-  Td.call(this), this._parser = new BT(e, {
+let $T = lt, ys = Zr, gd = cd, HT = CT, XT = md, WT = Aa, zT = Td, nt = sd.exports = function(e) {
+  gd.call(this), this._parser = new XT(e, {
     read: this.read.bind(this),
     error: this._handleError.bind(this),
     metadata: this._handleMetaData.bind(this),
@@ -9724,7 +9801,7 @@ let UT = lt, ys = Zr, Td = od, PT = RT, BT = Ed, FT = Aa, MT = md, nt = nd.expor
     headersFinished: this._headersFinished.bind(this)
   }), this._options = e, this.writable = !0, this._parser.start();
 };
-UT.inherits(nt, Td);
+$T.inherits(nt, gd);
 nt.prototype._handleError = function(e) {
   this.emit("error", e), this.writable = !1, this.destroy(), this._inflate && this._inflate.destroy && this._inflate.destroy(), this._filter && (this._filter.destroy(), this._filter.on("error", function() {
   })), this.errord = !0;
@@ -9748,7 +9825,7 @@ nt.prototype._inflateData = function(e) {
   this._inflate.write(e);
 };
 nt.prototype._handleMetaData = function(e) {
-  this._metaData = e, this._bitmapInfo = Object.create(e), this._filter = new PT(this._bitmapInfo);
+  this._metaData = e, this._bitmapInfo = Object.create(e), this._filter = new HT(this._bitmapInfo);
 };
 nt.prototype._handleTransColor = function(e) {
   this._bitmapInfo.transColor = e;
@@ -9770,17 +9847,17 @@ nt.prototype._complete = function(e) {
     return;
   let t;
   try {
-    let r = FT.dataToBitMap(e, this._bitmapInfo);
-    t = MT(r, this._bitmapInfo), r = null;
+    let r = WT.dataToBitMap(e, this._bitmapInfo);
+    t = zT(r, this._bitmapInfo), r = null;
   } catch (r) {
     this._handleError(r);
     return;
   }
   this.emit("parsed", t);
 };
-var $T = nd.exports, gd = { exports: {} }, bd = { exports: {} };
-let Oe = ci;
-var HT = function(e, t, r, i) {
+var qT = sd.exports, bd = { exports: {} }, vd = { exports: {} };
+let Oe = ui;
+var KT = function(e, t, r, i) {
   let s = [Oe.COLORTYPE_COLOR_ALPHA, Oe.COLORTYPE_ALPHA].indexOf(
     i.colorType
   ) !== -1;
@@ -9855,24 +9932,24 @@ var HT = function(e, t, r, i) {
     }
   return u;
 };
-let vd = ld;
-function XT(e, t, r, i, s) {
+let yd = dd;
+function YT(e, t, r, i, s) {
   for (let n = 0; n < r; n++)
     i[s + n] = e[t + n];
 }
-function WT(e, t, r) {
+function jT(e, t, r) {
   let i = 0, s = t + r;
   for (let n = t; n < s; n++)
     i += Math.abs(e[n]);
   return i;
 }
-function zT(e, t, r, i, s, n) {
+function GT(e, t, r, i, s, n) {
   for (let a = 0; a < r; a++) {
     let o = a >= n ? e[t + a - n] : 0, c = e[t + a] - o;
     i[s + a] = c;
   }
 }
-function qT(e, t, r, i) {
+function VT(e, t, r, i) {
   let s = 0;
   for (let n = 0; n < r; n++) {
     let a = n >= i ? e[t + n - i] : 0, o = e[t + n] - a;
@@ -9880,13 +9957,13 @@ function qT(e, t, r, i) {
   }
   return s;
 }
-function KT(e, t, r, i, s) {
+function ZT(e, t, r, i, s) {
   for (let n = 0; n < r; n++) {
     let a = t > 0 ? e[t + n - r] : 0, o = e[t + n] - a;
     i[s + n] = o;
   }
 }
-function YT(e, t, r) {
+function JT(e, t, r) {
   let i = 0, s = t + r;
   for (let n = t; n < s; n++) {
     let a = t > 0 ? e[n - r] : 0, o = e[n] - a;
@@ -9894,13 +9971,13 @@ function YT(e, t, r) {
   }
   return i;
 }
-function jT(e, t, r, i, s, n) {
+function QT(e, t, r, i, s, n) {
   for (let a = 0; a < r; a++) {
     let o = a >= n ? e[t + a - n] : 0, c = t > 0 ? e[t + a - r] : 0, u = e[t + a] - (o + c >> 1);
     i[s + a] = u;
   }
 }
-function GT(e, t, r, i) {
+function eg(e, t, r, i) {
   let s = 0;
   for (let n = 0; n < r; n++) {
     let a = n >= i ? e[t + n - i] : 0, o = t > 0 ? e[t + n - r] : 0, c = e[t + n] - (a + o >> 1);
@@ -9908,34 +9985,34 @@ function GT(e, t, r, i) {
   }
   return s;
 }
-function VT(e, t, r, i, s, n) {
+function tg(e, t, r, i, s, n) {
   for (let a = 0; a < r; a++) {
-    let o = a >= n ? e[t + a - n] : 0, c = t > 0 ? e[t + a - r] : 0, u = t > 0 && a >= n ? e[t + a - (r + n)] : 0, l = e[t + a] - vd(o, c, u);
+    let o = a >= n ? e[t + a - n] : 0, c = t > 0 ? e[t + a - r] : 0, u = t > 0 && a >= n ? e[t + a - (r + n)] : 0, l = e[t + a] - yd(o, c, u);
     i[s + a] = l;
   }
 }
-function ZT(e, t, r, i) {
+function rg(e, t, r, i) {
   let s = 0;
   for (let n = 0; n < r; n++) {
-    let a = n >= i ? e[t + n - i] : 0, o = t > 0 ? e[t + n - r] : 0, c = t > 0 && n >= i ? e[t + n - (r + i)] : 0, u = e[t + n] - vd(a, o, c);
+    let a = n >= i ? e[t + n - i] : 0, o = t > 0 ? e[t + n - r] : 0, c = t > 0 && n >= i ? e[t + n - (r + i)] : 0, u = e[t + n] - yd(a, o, c);
     s += Math.abs(u);
   }
   return s;
 }
-let JT = {
-  0: XT,
-  1: zT,
-  2: KT,
-  3: jT,
-  4: VT
-}, QT = {
-  0: WT,
-  1: qT,
-  2: YT,
-  3: GT,
-  4: ZT
+let ig = {
+  0: YT,
+  1: GT,
+  2: ZT,
+  3: QT,
+  4: tg
+}, ng = {
+  0: jT,
+  1: VT,
+  2: JT,
+  3: eg,
+  4: rg
 };
-var eg = function(e, t, r, i, s) {
+var sg = function(e, t, r, i, s) {
   let n;
   if (!("filterType" in i) || i.filterType === -1)
     n = [0, 1, 2, 3, 4];
@@ -9949,16 +10026,16 @@ var eg = function(e, t, r, i, s) {
     if (n.length > 1) {
       let d = 1 / 0;
       for (let f = 0; f < n.length; f++) {
-        let _ = QT[n[f]](e, c, a, s);
+        let _ = ng[n[f]](e, c, a, s);
         _ < d && (l = n[f], d = _);
       }
     }
-    u[o] = l, o++, JT[l](e, c, a, u, o, s), o += a, c += a;
+    u[o] = l, o++, ig[l](e, c, a, u, o, s), o += a, c += a;
   }
   return u;
 };
-let Se = ci, tg = _d, rg = HT, ig = eg, ng = Zr, Ot = bd.exports = function(e) {
-  if (this._options = e, e.deflateChunkSize = e.deflateChunkSize || 32 * 1024, e.deflateLevel = e.deflateLevel != null ? e.deflateLevel : 9, e.deflateStrategy = e.deflateStrategy != null ? e.deflateStrategy : 3, e.inputHasAlpha = e.inputHasAlpha != null ? e.inputHasAlpha : !0, e.deflateFactory = e.deflateFactory || ng.createDeflate, e.bitDepth = e.bitDepth || 8, e.colorType = typeof e.colorType == "number" ? e.colorType : Se.COLORTYPE_COLOR_ALPHA, e.inputColorType = typeof e.inputColorType == "number" ? e.inputColorType : Se.COLORTYPE_COLOR_ALPHA, [
+let Se = ui, ag = Ed, og = KT, cg = sg, ug = Zr, Ot = vd.exports = function(e) {
+  if (this._options = e, e.deflateChunkSize = e.deflateChunkSize || 32 * 1024, e.deflateLevel = e.deflateLevel != null ? e.deflateLevel : 9, e.deflateStrategy = e.deflateStrategy != null ? e.deflateStrategy : 3, e.inputHasAlpha = e.inputHasAlpha != null ? e.inputHasAlpha : !0, e.deflateFactory = e.deflateFactory || ug.createDeflate, e.bitDepth = e.bitDepth || 8, e.colorType = typeof e.colorType == "number" ? e.colorType : Se.COLORTYPE_COLOR_ALPHA, e.inputColorType = typeof e.inputColorType == "number" ? e.inputColorType : Se.COLORTYPE_COLOR_ALPHA, [
     Se.COLORTYPE_GRAYSCALE,
     Se.COLORTYPE_COLOR,
     Se.COLORTYPE_COLOR_ALPHA,
@@ -9992,13 +10069,13 @@ Ot.prototype.createDeflate = function() {
   return this._options.deflateFactory(this.getDeflateOptions());
 };
 Ot.prototype.filterData = function(e, t, r) {
-  let i = rg(e, t, r, this._options), s = Se.COLORTYPE_TO_BPP_MAP[this._options.colorType];
-  return ig(i, t, r, this._options, s);
+  let i = og(e, t, r, this._options), s = Se.COLORTYPE_TO_BPP_MAP[this._options.colorType];
+  return cg(i, t, r, this._options, s);
 };
 Ot.prototype._packChunk = function(e, t) {
   let r = t ? t.length : 0, i = Buffer.alloc(r + 12);
   return i.writeUInt32BE(r, 0), i.writeUInt32BE(e, 4), t && t.copy(i, 8), i.writeInt32BE(
-    tg.crc32(i.slice(4, i.length - 4)),
+    ag.crc32(i.slice(4, i.length - 4)),
     i.length - 4
   ), i;
 };
@@ -10016,15 +10093,15 @@ Ot.prototype.packIDAT = function(e) {
 Ot.prototype.packIEND = function() {
   return this._packChunk(Se.TYPE_IEND, null);
 };
-var yd = bd.exports;
-let sg = lt, wd = Vr, ag = ci, og = yd, Sd = gd.exports = function(e) {
-  wd.call(this);
+var wd = vd.exports;
+let lg = lt, Sd = Vr, dg = ui, fg = wd, Rd = bd.exports = function(e) {
+  Sd.call(this);
   let t = e || {};
-  this._packer = new og(t), this._deflate = this._packer.createDeflate(), this.readable = !0;
+  this._packer = new fg(t), this._deflate = this._packer.createDeflate(), this.readable = !0;
 };
-sg.inherits(Sd, wd);
-Sd.prototype.pack = function(e, t, r, i) {
-  this.emit("data", Buffer.from(ag.PNG_SIGNATURE)), this.emit("data", this._packer.packIHDR(t, r)), i && this.emit("data", this._packer.packGAMA(i));
+lg.inherits(Rd, Sd);
+Rd.prototype.pack = function(e, t, r, i) {
+  this.emit("data", Buffer.from(dg.PNG_SIGNATURE)), this.emit("data", this._packer.packIHDR(t, r)), i && this.emit("data", this._packer.packGAMA(i));
   let s = this._packer.filterData(e, t, r);
   this._deflate.on("error", this.emit.bind(this, "error")), this._deflate.on(
     "data",
@@ -10038,7 +10115,7 @@ Sd.prototype.pack = function(e, t, r, i) {
     }).bind(this)
   ), this._deflate.end(s);
 };
-var cg = gd.exports, Ca = {}, qs = { exports: {} };
+var hg = bd.exports, Ca = {}, qs = { exports: {} };
 (function(e, t) {
   let r = sf.ok, i = Zr, s = lt, n = zc.kMaxLength;
   function a(p) {
@@ -10108,11 +10185,11 @@ var cg = gd.exports, Ca = {}, qs = { exports: {} };
   }
   e.exports = t = l, t.Inflate = a, t.createInflate = o, t.inflateSync = l;
 })(qs, qs.exports);
-var ug = qs.exports, Rd = { exports: {} };
-let Nd = Rd.exports = function(e) {
+var pg = qs.exports, Nd = { exports: {} };
+let Id = Nd.exports = function(e) {
   this._buffer = e, this._reads = [];
 };
-Nd.prototype.read = function(e, t) {
+Id.prototype.read = function(e, t) {
   this._reads.push({
     length: Math.abs(e),
     // if length < 0 then at most this length
@@ -10120,7 +10197,7 @@ Nd.prototype.read = function(e, t) {
     func: t
   });
 };
-Nd.prototype.process = function() {
+Id.prototype.process = function() {
   for (; this._reads.length > 0 && this._buffer.length; ) {
     let e = this._reads[0];
     if (this._buffer.length && (this._buffer.length >= e.length || e.allowLess)) {
@@ -10135,11 +10212,11 @@ Nd.prototype.process = function() {
   if (this._buffer.length > 0)
     return new Error("unrecognised content at end of stream");
 };
-var Id = Rd.exports, Ld = {};
-let lg = Id, dg = dd;
-Ld.process = function(e, t) {
-  let r = [], i = new lg(e);
-  return new dg(t, {
+var Ld = Nd.exports, Ad = {};
+let _g = Ld, Eg = fd;
+Ad.process = function(e, t) {
+  let r = [], i = new _g(e);
+  return new Eg(t, {
     read: i.read.bind(i),
     write: function(n) {
       r.push(n);
@@ -10148,11 +10225,11 @@ Ld.process = function(e, t) {
     }
   }).start(), i.process(), Buffer.concat(r);
 };
-let Ad = !0, Cd = Zr, fg = ug;
-Cd.deflateSync || (Ad = !1);
-let hg = Id, pg = Ld, _g = Ed, Eg = Aa, mg = md;
-var Tg = function(e, t) {
-  if (!Ad)
+let Cd = !0, Od = Zr, mg = pg;
+Od.deflateSync || (Cd = !1);
+let Tg = Ld, gg = Ad, bg = md, vg = Aa, yg = Td;
+var wg = function(e, t) {
+  if (!Cd)
     throw new Error(
       "To use the sync capability of this library in old node versions, please pin pngjs to v2.3.0"
     );
@@ -10181,8 +10258,8 @@ var Tg = function(e, t) {
   function d(v) {
     p.push(v);
   }
-  let f = new hg(e);
-  if (new _g(t, {
+  let f = new Tg(e);
+  if (new bg(t, {
     read: f.read.bind(f),
     error: i,
     metadata: n,
@@ -10197,38 +10274,38 @@ var Tg = function(e, t) {
   p.length = 0;
   let w;
   if (s.interlace)
-    w = Cd.inflateSync(E);
+    w = Od.inflateSync(E);
   else {
     let S = ((s.width * s.bpp * s.depth + 7 >> 3) + 1) * s.height;
-    w = fg(E, {
+    w = mg(E, {
       chunkSize: S,
       maxLength: S
     });
   }
   if (E = null, !w || !w.length)
     throw new Error("bad png - invalid inflate data response");
-  let h = pg.process(w, s);
+  let h = gg.process(w, s);
   E = null;
-  let m = Eg.dataToBitMap(h, s);
+  let m = vg.dataToBitMap(h, s);
   h = null;
-  let b = mg(m, s);
+  let b = yg(m, s);
   return s.data = b, s.gamma = u || 0, s;
 };
-let Od = !0, kd = Zr;
-kd.deflateSync || (Od = !1);
-let gg = ci, bg = yd;
-var vg = function(e, t) {
-  if (!Od)
+let kd = !0, xd = Zr;
+xd.deflateSync || (kd = !1);
+let Sg = ui, Rg = wd;
+var Ng = function(e, t) {
+  if (!kd)
     throw new Error(
       "To use the sync capability of this library in old node versions, please pin pngjs to v2.3.0"
     );
-  let r = t || {}, i = new bg(r), s = [];
-  s.push(Buffer.from(gg.PNG_SIGNATURE)), s.push(i.packIHDR(e.width, e.height)), e.gamma && s.push(i.packGAMA(e.gamma));
+  let r = t || {}, i = new Rg(r), s = [];
+  s.push(Buffer.from(Sg.PNG_SIGNATURE)), s.push(i.packIHDR(e.width, e.height)), e.gamma && s.push(i.packGAMA(e.gamma));
   let n = i.filterData(
     e.data,
     e.width,
     e.height
-  ), a = kd.deflateSync(
+  ), a = xd.deflateSync(
     n,
     i.getDeflateOptions()
   );
@@ -10236,23 +10313,23 @@ var vg = function(e, t) {
     throw new Error("bad png - invalid compressed data response");
   return s.push(i.packIDAT(a)), s.push(i.packIEND()), Buffer.concat(s);
 };
-let yg = Tg, wg = vg;
+let Ig = wg, Lg = Ng;
 Ca.read = function(e, t) {
-  return yg(e, t || {});
+  return Ig(e, t || {});
 };
 Ca.write = function(e, t) {
-  return wg(e, t);
+  return Lg(e, t);
 };
-let Sg = lt, xd = Vr, Rg = $T, Ng = cg, Ig = Ca, Ne = id.PNG = function(e) {
-  xd.call(this), e = e || {}, this.width = e.width | 0, this.height = e.height | 0, this.data = this.width > 0 && this.height > 0 ? Buffer.alloc(4 * this.width * this.height) : null, e.fill && this.data && this.data.fill(0), this.gamma = 0, this.readable = this.writable = !0, this._parser = new Rg(e), this._parser.on("error", this.emit.bind(this, "error")), this._parser.on("close", this._handleClose.bind(this)), this._parser.on("metadata", this._metadata.bind(this)), this._parser.on("gamma", this._gamma.bind(this)), this._parser.on(
+let Ag = lt, Dd = Vr, Cg = qT, Og = hg, kg = Ca, Ne = nd.PNG = function(e) {
+  Dd.call(this), e = e || {}, this.width = e.width | 0, this.height = e.height | 0, this.data = this.width > 0 && this.height > 0 ? Buffer.alloc(4 * this.width * this.height) : null, e.fill && this.data && this.data.fill(0), this.gamma = 0, this.readable = this.writable = !0, this._parser = new Cg(e), this._parser.on("error", this.emit.bind(this, "error")), this._parser.on("close", this._handleClose.bind(this)), this._parser.on("metadata", this._metadata.bind(this)), this._parser.on("gamma", this._gamma.bind(this)), this._parser.on(
     "parsed",
     (function(t) {
       this.data = t, this.emit("parsed", t);
     }).bind(this)
-  ), this._packer = new Ng(e), this._packer.on("data", this.emit.bind(this, "data")), this._packer.on("end", this.emit.bind(this, "end")), this._parser.on("close", this._handleClose.bind(this)), this._packer.on("error", this.emit.bind(this, "error"));
+  ), this._packer = new Og(e), this._packer.on("data", this.emit.bind(this, "data")), this._packer.on("end", this.emit.bind(this, "end")), this._parser.on("close", this._handleClose.bind(this)), this._packer.on("error", this.emit.bind(this, "error"));
 };
-Sg.inherits(Ne, xd);
-Ne.sync = Ig;
+Ag.inherits(Ne, Dd);
+Ne.sync = kg;
 Ne.prototype.pack = function() {
   return !this.data || !this.data.length ? (this.emit("error", "No data provided"), this) : (process.nextTick(
     (function() {
@@ -10318,7 +10395,7 @@ Ne.adjustGamma = function(e) {
 Ne.prototype.adjustGamma = function() {
   Ne.adjustGamma(this);
 };
-var ui = {};
+var li = {};
 (function(e) {
   function t(r) {
     if (typeof r == "number" && (r = r.toString()), typeof r != "string")
@@ -10369,9 +10446,9 @@ var ui = {};
         i[_++] = E.r, i[_++] = E.g, i[_++] = E.b, i[_] = E.a;
       }
   };
-})(ui);
+})(li);
 (function(e) {
-  const t = en, r = id.PNG, i = ui;
+  const t = tn, r = nd.PNG, i = li;
   e.render = function(n, a) {
     const o = i.getOptions(a), c = o.rendererOpts, u = i.getImageWidth(n.modules.size, o);
     c.width = u, c.height = u;
@@ -10401,10 +10478,10 @@ var ui = {};
   }, e.renderToFileStream = function(n, a, o) {
     e.render(a, o).pack().pipe(n);
   };
-})(rd);
-var Dd = {};
+})(id);
+var Ud = {};
 (function(e) {
-  const t = ui, r = {
+  const t = li, r = {
     WW: " ",
     WB: "▄",
     BB: "█",
@@ -10440,12 +10517,12 @@ var Dd = {};
     return d += f.slice(0, -1), typeof o == "function" && o(null, d), d;
   }, e.renderToFile = function(a, o, c, u) {
     typeof u > "u" && (u = c, c = void 0);
-    const l = en, p = e.render(o, c);
+    const l = tn, p = e.render(o, c);
     l.writeFile(a, p, u);
   };
-})(Dd);
-var Ud = {}, Pd = {};
-Pd.render = function(e, t, r) {
+})(Ud);
+var Pd = {}, Bd = {};
+Bd.render = function(e, t, r) {
   const i = e.modules.size, s = e.modules.data, n = "\x1B[40m  \x1B[0m", a = "\x1B[47m  \x1B[0m";
   let o = "";
   const c = Array(i + 3).join(a), u = Array(2).join(a);
@@ -10461,8 +10538,8 @@ Pd.render = function(e, t, r) {
   return o += c + `
 `, typeof r == "function" && r(null, o), o;
 };
-var Bd = {};
-const Lg = "\x1B[47m", Ag = "\x1B[40m", Ks = "\x1B[37m", Ys = "\x1B[30m", Pt = "\x1B[0m", Cg = Lg + Ys, Og = Ag + Ks, kg = function(e, t, r) {
+var Fd = {};
+const xg = "\x1B[47m", Dg = "\x1B[40m", Ks = "\x1B[37m", Ys = "\x1B[30m", Pt = "\x1B[0m", Ug = xg + Ys, Pg = Dg + Ks, Bg = function(e, t, r) {
   return {
     // 1 ... white, 2 ... black, 0 ... transparent (default)
     "00": Pt + " " + e,
@@ -10484,8 +10561,8 @@ const Lg = "\x1B[47m", Ag = "\x1B[40m", Ks = "\x1B[37m", Ys = "\x1B[30m", Pt = "
 }, yc = function(e, t, r, i) {
   return vc(e, t, r, i) + vc(e, t, r, i + 1);
 };
-Bd.render = function(e, t, r) {
-  const i = e.modules.size, s = e.modules.data, n = !!(t && t.inverse), a = t && t.inverse ? Og : Cg, u = kg(a, n ? Ys : Ks, n ? Ks : Ys), l = Pt + `
+Fd.render = function(e, t, r) {
+  const i = e.modules.size, s = e.modules.data, n = !!(t && t.inverse), a = t && t.inverse ? Pg : Ug, u = Bg(a, n ? Ys : Ks, n ? Ks : Ys), l = Pt + `
 ` + a;
   let p = a;
   for (let d = -1; d < i + 1; d += 2) {
@@ -10495,12 +10572,12 @@ Bd.render = function(e, t, r) {
   }
   return p += Pt, typeof r == "function" && r(null, p), p;
 };
-const xg = Pd, Dg = Bd;
-Ud.render = function(e, t, r) {
-  return t && t.small ? Dg.render(e, t, r) : xg.render(e, t, r);
+const Fg = Bd, Mg = Fd;
+Pd.render = function(e, t, r) {
+  return t && t.small ? Mg.render(e, t, r) : Fg.render(e, t, r);
 };
-var Fd = {}, Oa = {};
-const Ug = ui;
+var Md = {}, Oa = {};
+const $g = li;
 function wc(e, t) {
   const r = e.a / 255, i = t + '="' + e.hex + '"';
   return r < 1 ? i + " " + t + '-opacity="' + r.toFixed(2).slice(1) + '"' : i;
@@ -10509,7 +10586,7 @@ function ws(e, t, r) {
   let i = e + t;
   return typeof r < "u" && (i += " " + r), i;
 }
-function Pg(e, t, r) {
+function Hg(e, t, r) {
   let i = "", s = 0, n = !1, a = 0;
   for (let o = 0; o < e.length; o++) {
     const c = Math.floor(o % t), u = Math.floor(o / t);
@@ -10518,7 +10595,7 @@ function Pg(e, t, r) {
   return i;
 }
 Oa.render = function(t, r, i) {
-  const s = Ug.getOptions(r), n = t.modules.size, a = t.modules.data, o = n + s.margin * 2, c = s.color.light.a ? "<path " + wc(s.color.light, "fill") + ' d="M0 0h' + o + "v" + o + 'H0z"/>' : "", u = "<path " + wc(s.color.dark, "stroke") + ' d="' + Pg(a, n, s.margin) + '"/>', l = 'viewBox="0 0 ' + o + " " + o + '"', d = '<svg xmlns="http://www.w3.org/2000/svg" ' + (s.width ? 'width="' + s.width + '" height="' + s.width + '" ' : "") + l + ' shape-rendering="crispEdges">' + c + u + `</svg>
+  const s = $g.getOptions(r), n = t.modules.size, a = t.modules.data, o = n + s.margin * 2, c = s.color.light.a ? "<path " + wc(s.color.light, "fill") + ' d="M0 0h' + o + "v" + o + 'H0z"/>' : "", u = "<path " + wc(s.color.dark, "stroke") + ' d="' + Hg(a, n, s.margin) + '"/>', l = 'viewBox="0 0 ' + o + " " + o + '"', d = '<svg xmlns="http://www.w3.org/2000/svg" ' + (s.width ? 'width="' + s.width + '" height="' + s.width + '" ' : "") + l + ' shape-rendering="crispEdges">' + c + u + `</svg>
 `;
   return typeof i == "function" && i(null, d), d;
 };
@@ -10526,14 +10603,14 @@ Oa.render = function(t, r, i) {
   const t = Oa;
   e.render = t.render, e.renderToFile = function(i, s, n, a) {
     typeof a > "u" && (a = n, n = void 0);
-    const o = en, u = '<?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">' + e.render(s, n);
+    const o = tn, u = '<?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">' + e.render(s, n);
     o.writeFile(i, u, a);
   };
-})(Fd);
+})(Md);
 var rr = {}, Ss = {}, Sc;
-function Bg() {
+function Xg() {
   return Sc || (Sc = 1, function(e) {
-    const t = ui;
+    const t = li;
     function r(s, n, a) {
       s.clearRect(0, 0, n.width, n.height), n.style || (n.style = {}), n.height = a, n.width = a, n.style.height = a + "px", n.style.width = a + "px";
     }
@@ -10558,10 +10635,10 @@ function Bg() {
   }(Ss)), Ss;
 }
 var Rc;
-function Fg() {
+function Wg() {
   if (Rc) return rr;
   Rc = 1;
-  const e = Wl, t = wa, r = Bg(), i = Oa;
+  const e = zl, t = wa, r = Xg(), i = Oa;
   function s(n, a, o, c, u) {
     const l = [].slice.call(arguments, 1), p = l.length, d = typeof l[p - 1] == "function";
     if (!d && !e())
@@ -10593,12 +10670,12 @@ function Fg() {
     return i.render(n, o);
   }), rr;
 }
-const Md = Wl, js = wa, Mg = rd, $d = Dd, $g = Ud, Hd = Fd;
-function li(e, t, r) {
+const $d = zl, js = wa, zg = id, Hd = Ud, qg = Pd, Xd = Md;
+function di(e, t, r) {
   if (typeof e > "u")
     throw new Error("String required as first argument");
   if (typeof r > "u" && (r = t, t = {}), typeof r != "function")
-    if (Md())
+    if ($d())
       t = r || {}, r = null;
     else
       throw new Error("Callback required as last argument");
@@ -10607,34 +10684,34 @@ function li(e, t, r) {
     cb: r
   };
 }
-function Hg(e) {
+function Kg(e) {
   return e.slice((e.lastIndexOf(".") - 1 >>> 0) + 2).toLowerCase();
 }
-function Rn(e) {
+function Nn(e) {
   switch (e) {
     case "svg":
-      return Hd;
+      return Xd;
     case "txt":
     case "utf8":
-      return $d;
+      return Hd;
     case "png":
     case "image/png":
     default:
-      return Mg;
+      return zg;
   }
 }
-function Xg(e) {
+function Yg(e) {
   switch (e) {
     case "svg":
-      return Hd;
+      return Xd;
     case "terminal":
-      return $g;
+      return qg;
     case "utf8":
     default:
-      return $d;
+      return Hd;
   }
 }
-function di(e, t, r) {
+function fi(e, t, r) {
   if (!r.cb)
     return new Promise(function(i, s) {
       try {
@@ -10654,104 +10731,35 @@ function di(e, t, r) {
   }
 }
 At.create = js.create;
-At.toCanvas = Fg().toCanvas;
+At.toCanvas = Wg().toCanvas;
 At.toString = function(t, r, i) {
-  const s = li(t, r, i), n = s.opts ? s.opts.type : void 0, a = Xg(n);
-  return di(a.render, t, s);
+  const s = di(t, r, i), n = s.opts ? s.opts.type : void 0, a = Yg(n);
+  return fi(a.render, t, s);
 };
 At.toDataURL = function(t, r, i) {
-  const s = li(t, r, i), n = Rn(s.opts.type);
-  return di(n.renderToDataURL, t, s);
+  const s = di(t, r, i), n = Nn(s.opts.type);
+  return fi(n.renderToDataURL, t, s);
 };
 At.toBuffer = function(t, r, i) {
-  const s = li(t, r, i), n = Rn(s.opts.type);
-  return di(n.renderToBuffer, t, s);
+  const s = di(t, r, i), n = Nn(s.opts.type);
+  return fi(n.renderToBuffer, t, s);
 };
 At.toFile = function(t, r, i, s) {
   if (typeof t != "string" || !(typeof r == "string" || typeof r == "object"))
     throw new Error("Invalid argument");
-  if (arguments.length < 3 && !Md())
+  if (arguments.length < 3 && !$d())
     throw new Error("Too few arguments provided");
-  const n = li(r, i, s), a = n.opts.type || Hg(t), c = Rn(a).renderToFile.bind(null, t);
-  return di(c, r, n);
+  const n = di(r, i, s), a = n.opts.type || Kg(t), c = Nn(a).renderToFile.bind(null, t);
+  return fi(c, r, n);
 };
 At.toFileStream = function(t, r, i) {
   if (arguments.length < 2)
     throw new Error("Too few arguments provided");
-  const s = li(r, i, t.emit.bind(t, "error")), a = Rn("png").renderToFileStream.bind(null, t);
-  di(a, r, s);
+  const s = di(r, i, t.emit.bind(t, "error")), a = Nn("png").renderToFileStream.bind(null, t);
+  fi(a, r, s);
 };
-var Wg = At;
-const zg = /* @__PURE__ */ Qs(Wg);
-function Xd() {
-  return ea();
-}
-function qg(e) {
-  const t = F.join(Xd(), e === "logo" ? "logos" : "products");
-  return $.mkdirSync(t, { recursive: !0 }), t;
-}
-function Nn(e) {
-  const t = e.replace(/^[/\\]+/, "").replace(/\\/g, "/");
-  if (!t || t.includes(".."))
-    throw new Error("Invalid asset path");
-  const r = F.resolve(Xd()), i = F.resolve(r, t), s = r.endsWith(F.sep) ? r : r + F.sep;
-  if (i !== r && !i.startsWith(s))
-    throw new Error("Invalid asset path");
-  return i;
-}
-function Kg(e) {
-  return e ? `kaarobar-asset:///${e.replace(/\\/g, "/").replace(/^\/+/, "")}` : null;
-}
-function Yg(e) {
-  switch (F.extname(e).toLowerCase()) {
-    case ".jpg":
-    case ".jpeg":
-      return "image/jpeg";
-    case ".webp":
-      return "image/webp";
-    case ".gif":
-      return "image/gif";
-    case ".svg":
-      return "image/svg+xml";
-    case ".png":
-    default:
-      return "image/png";
-  }
-}
-function jg(e) {
-  try {
-    const t = new URL(e), r = decodeURIComponent(
-      t.hostname ? `${t.hostname}${t.pathname}` : t.pathname
-    ).replace(/^\/+/, ""), i = Nn(r);
-    if (!$.existsSync(i))
-      return new Response("Not found", { status: 404 });
-    const s = $.readFileSync(i);
-    return new Response(s, {
-      status: 200,
-      headers: {
-        "Content-Type": Yg(i),
-        "Content-Length": String(s.byteLength),
-        "Cache-Control": "public, max-age=31536000, immutable"
-      }
-    });
-  } catch {
-    return new Response("Not found", { status: 404 });
-  }
-}
-async function Gg(e) {
-  X(e === "logo" ? "business:edit" : "products:edit");
-  const t = await Uc.showOpenDialog({
-    title: e === "logo" ? "Choose business logo" : "Choose product image",
-    properties: ["openFile"],
-    filters: [{ name: "Images", extensions: ["png", "jpg", "jpeg", "webp", "gif"] }]
-  });
-  if (t.canceled || !t.filePaths[0]) return null;
-  const r = t.filePaths[0], i = F.extname(r).toLowerCase() || ".png", s = `${$c()}${i}`, n = e === "logo" ? "logos" : "products", a = qg(e), o = F.join(a, s);
-  $.copyFileSync(r, o);
-  const c = `${n}/${s}`;
-  return { relativePath: c, url: Kg(c) };
-}
-const Vg = {
+var jg = At;
+const Gg = /* @__PURE__ */ Qs(jg), Vg = {
   whatsapp: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16"><path fill="#111" d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.99.52 3.93 1.51 5.64L2 22l4.6-1.51a9.86 9.86 0 0 0 5.44 1.52h.01c5.46 0 9.91-4.45 9.91-9.91C21.95 6.45 17.5 2 12.04 2zm5.79 14.06c-.24.68-1.4 1.25-1.94 1.33-.5.07-1.13.1-1.82-.11-.42-.13-.96-.31-1.65-.61-2.9-1.25-4.79-4.17-4.93-4.36-.14-.19-1.17-1.56-1.17-2.97 0-1.41.74-2.1 1-2.39.26-.29.57-.36.76-.36h.55c.18 0 .42-.07.65.5.24.58.82 2 .89 2.14.07.14.12.31.02.5-.1.19-.14.31-.28.48-.14.17-.29.37-.42.5-.14.14-.28.29-.12.56.16.28.7 1.15 1.5 1.86 1.03.92 1.9 1.2 2.17 1.34.27.14.43.12.59-.07.16-.19.68-.79.86-1.06.18-.27.36-.22.61-.13.25.09 1.6.75 1.87.89.27.14.45.21.52.33.07.12.07.69-.17 1.37z"/></svg>',
   instagram: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16"><path fill="#111" d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5zm0 2a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7zm5 3.5A4.5 4.5 0 1 1 7.5 12 4.5 4.5 0 0 1 12 7.5zm0 2A2.5 2.5 0 1 0 14.5 12 2.5 2.5 0 0 0 12 9.5zm5.25-3.75a1 1 0 1 1-1 1 1 1 0 0 1 1-1z"/></svg>',
   facebook: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16"><path fill="#111" d="M14 9h3V6h-3c-2.2 0-4 1.8-4 4v2H8v3h2v7h3v-7h2.6l.4-3H13v-2c0-.6.4-1 1-1z"/></svg>',
@@ -10806,7 +10814,7 @@ function ir() {
 }
 function t0(e) {
   try {
-    const t = $.readFileSync(e), r = F.extname(e).toLowerCase().replace(".", "") || "png";
+    const t = M.readFileSync(e), r = F.extname(e).toLowerCase().replace(".", "") || "png";
     return `data:${r === "jpg" || r === "jpeg" ? "image/jpeg" : r === "webp" ? "image/webp" : r === "gif" ? "image/gif" : r === "svg" ? "image/svg+xml" : "image/png"};base64,${t.toString("base64")}`;
   } catch {
     return null;
@@ -10823,7 +10831,7 @@ async function r0(e, t) {
   if (r.length === 0) return "";
   const i = [];
   for (const s of r) {
-    const n = await zg.toDataURL(s.url.trim(), {
+    const n = await Gg.toDataURL(s.url.trim(), {
       margin: 1,
       width: 72,
       color: { dark: "#000000", light: "#ffffff" }
@@ -10844,11 +10852,11 @@ async function r0(e, t) {
 }
 async function i0(e) {
   var S, L;
-  const t = e.language ?? Ke(), r = jc(t), i = ia(t), s = tn(e.currency), n = e.payments.some((I) => I.method === "credit"), a = e.payments.some((I) => I.method === "cash"), o = e.payments.some((I) => I.method === "card"), c = n && !a ? r.creditReceipt : o && !a && !n ? r.cardReceipt : r.cashReceipt, u = (I) => I === "card" ? r.card : I === "cash" ? r.cash : I === "credit" ? r.credit : I;
+  const t = e.language ?? Ke(), r = nu(t), i = sa(t), s = on(e.currency), n = e.payments.some((I) => I.method === "credit"), a = e.payments.some((I) => I.method === "cash"), o = e.payments.some((I) => I.method === "card"), c = n && !a ? r.creditReceipt : o && !a && !n ? r.cardReceipt : r.cashReceipt, u = (I) => I === "card" ? r.card : I === "cash" ? r.cash : I === "credit" ? r.credit : I;
   let l = "";
   if (e.logoPath)
     try {
-      const I = t0(Nn(e.logoPath));
+      const I = t0(Jr(e.logoPath));
       I && (l = `<img class="logo" src="${I}" alt="" />`);
     } catch {
       l = "";
@@ -10864,7 +10872,7 @@ async function i0(e) {
       </tr>`
   ).join(""), f = e.payments.map(
     (I) => `<div class="row"><span>${re(u(I.method))}</span><span>${s} ${I.amount.toFixed(2)}</span></div>`
-  ).join(""), _ = Math.max(0, e.amountPaid - e.total), E = await r0(e, r.followUs), w = In(e.brandColor), h = ka(w), m = JSON.stringify(e.invoiceNo), b = e.jsBarcodeScript, v = Xi(e.createdAt, t);
+  ).join(""), _ = Math.max(0, e.amountPaid - e.total), E = await r0(e, r.followUs), w = In(e.brandColor), h = ka(w), m = JSON.stringify(e.invoiceNo), b = e.jsBarcodeScript, v = Ki(e.createdAt, t);
   return `<!DOCTYPE html>
 <html lang="${i.lang}" dir="${i.dir}">
 <head>
@@ -10977,18 +10985,18 @@ function ue(e) {
 }
 function n0(e) {
   try {
-    const t = $.readFileSync(e), r = F.extname(e).toLowerCase().replace(".", "") || "png";
+    const t = M.readFileSync(e), r = F.extname(e).toLowerCase().replace(".", "") || "png";
     return `data:${r === "jpg" || r === "jpeg" ? "image/jpeg" : r === "webp" ? "image/webp" : r === "svg" ? "image/svg+xml" : "image/png"};base64,${t.toString("base64")}`;
   } catch {
     return null;
   }
 }
 function s0(e) {
-  const t = e.language ?? Ke(), r = Pf(t), i = ia(t), s = tn(e.currency), n = In(e.brandColor);
+  const t = e.language ?? Ke(), r = _h(t), i = sa(t), s = on(e.currency), n = In(e.brandColor);
   let a = "";
   if (e.logoPath)
     try {
-      const u = n0(Nn(e.logoPath));
+      const u = n0(Jr(e.logoPath));
       u && (a = `<img class="logo" src="${u}" alt="" />`);
     } catch {
       a = "";
@@ -11078,7 +11086,7 @@ function te(e) {
 }
 function a0(e) {
   try {
-    const t = $.readFileSync(e), r = F.extname(e).toLowerCase().replace(".", "") || "png";
+    const t = M.readFileSync(e), r = F.extname(e).toLowerCase().replace(".", "") || "png";
     return `data:${r === "jpg" || r === "jpeg" ? "image/jpeg" : r === "webp" ? "image/webp" : r === "svg" ? "image/svg+xml" : "image/png"};base64,${t.toString("base64")}`;
   } catch {
     return null;
@@ -11100,11 +11108,11 @@ function c0(e, t) {
   return s && i.push(s), i.join(" · ");
 }
 function u0(e) {
-  const t = e.language ?? Ke(), r = Bf(t), i = ia(t), s = tn(e.currency), n = In(e.brandColor);
+  const t = e.language ?? Ke(), r = Eh(t), i = sa(t), s = on(e.currency), n = In(e.brandColor);
   let a = "";
   if (e.logoPath)
     try {
-      const _ = a0(Nn(e.logoPath));
+      const _ = a0(Jr(e.logoPath));
       _ && (a = `<img class="logo" src="${_}" alt="" />`);
     } catch {
       a = "";
@@ -11115,7 +11123,7 @@ function u0(e) {
     const E = _.amount > 0 ? _.amount : 0, w = _.amount < 0 ? Math.abs(_.amount) : 0;
     return c += E, u += w, `
       <tr>
-        <td>${te(Xi(_.createdAt, t))}</td>
+        <td>${te(Ki(_.createdAt, t))}</td>
         <td>${te(c0(_, r))}</td>
         <td class="num">${E ? te(Ut(s, E)) : ""}</td>
         <td class="num">${w ? te(Ut(s, w)) : ""}</td>
@@ -11195,7 +11203,7 @@ function u0(e) {
     <div><span>${te(r.customer)}</span><span>${te(e.customerName)}</span></div>
     ${e.customerPhone ? `<div><span>${te(r.phone)}</span><span>${te(e.customerPhone)}</span></div>` : ""}
     <div><span>${te(r.period)}</span><span>${te(o)}</span></div>
-    <div><span>${te(r.printedAt)}</span><span>${te(Xi((/* @__PURE__ */ new Date()).toISOString(), t))}</span></div>
+    <div><span>${te(r.printedAt)}</span><span>${te(Ki((/* @__PURE__ */ new Date()).toISOString(), t))}</span></div>
   </div>
   <table>
     <thead>
@@ -11236,17 +11244,17 @@ function u0(e) {
 </body>
 </html>`;
 }
-function xi(e) {
+function Di(e) {
   return e.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 function l0(e, t) {
   const r = F.join(tt(), "preview");
-  $.mkdirSync(r, { recursive: !0 });
+  M.mkdirSync(r, { recursive: !0 });
   const i = F.join(r, `${e}-${Date.now()}.html`);
-  return $.writeFileSync(i, t, "utf8"), i;
+  return M.writeFileSync(i, t, "utf8"), i;
 }
 function d0(e) {
-  const t = Mf(Ke()), r = `
+  const t = Th(Ke()), r = `
 <style id="kaarobar-print-preview-style">
   #kaarobar-print-toolbar {
     position: fixed;
@@ -11303,11 +11311,11 @@ function d0(e) {
     }
   }
 </style>
-<div id="kaarobar-print-toolbar" role="toolbar" aria-label="${xi(t.previewHint)}">
-  <div class="hint">${xi(t.previewHint)}</div>
+<div id="kaarobar-print-toolbar" role="toolbar" aria-label="${Di(t.previewHint)}">
+  <div class="hint">${Di(t.previewHint)}</div>
   <div class="actions">
-    <button type="button" class="close" onclick="window.close()">${xi(t.close)}</button>
-    <button type="button" class="print" onclick="window.print()">${xi(t.print)}</button>
+    <button type="button" class="close" onclick="window.close()">${Di(t.close)}</button>
+    <button type="button" class="print" onclick="window.print()">${Di(t.print)}</button>
   </div>
 </div>`;
   return /<\/body>/i.test(e) ? e.replace(/<\/body>/i, `${r}</body>`) : `${e}${r}`;
@@ -11367,7 +11375,7 @@ function Da(e) {
     costPrice: e.cost_price,
     stockQty: e.stock_qty,
     kind: t,
-    tracksStock: e.tracks_stock == null ? Fl(t) : !!e.tracks_stock,
+    tracksStock: e.tracks_stock == null ? Ml(t) : !!e.tracks_stock,
     kitchenStation: ((r = e.kitchen_station) == null ? void 0 : r.trim()) || "main",
     imagePath: e.image_path,
     isActive: !!e.is_active
@@ -11375,7 +11383,7 @@ function Da(e) {
 }
 function pt(e) {
   const t = y().prepare("SELECT business_nature FROM businesses WHERE id = ?").get(e);
-  return ai(t == null ? void 0 : t.business_nature);
+  return oi(t == null ? void 0 : t.business_nature);
 }
 function h0(e) {
   return {
@@ -11430,7 +11438,7 @@ function zd(e) {
     name: e.name,
     currency: e.currency,
     brandColor: e.brand_color,
-    businessNature: ai(e.business_nature),
+    businessNature: oi(e.business_nature),
     logoPath: e.logo_path,
     socialWhatsapp: e.social_whatsapp,
     socialInstagram: e.social_instagram,
@@ -11452,7 +11460,7 @@ function E0(e) {
     throw new Error(
       "This installation already has a business. Only one business is supported."
     );
-  const i = ae(), s = ce(), n = ((l = e.logoPath) == null ? void 0 : l.trim()) || null, a = ai(e.businessNature), o = {
+  const i = ae(), s = ce(), n = ((l = e.logoPath) == null ? void 0 : l.trim()) || null, a = oi(e.businessNature), o = {
     socialWhatsapp: Ie(e.socialWhatsapp),
     socialInstagram: Ie(e.socialInstagram),
     socialFacebook: Ie(e.socialFacebook),
@@ -11506,8 +11514,8 @@ function E0(e) {
 function m0(e) {
   var a;
   const t = X("business:edit");
-  M(e.id);
-  const r = e.logoPath === void 0 ? void 0 : ((a = e.logoPath) == null ? void 0 : a.trim()) || null, i = e.businessNature === void 0 ? void 0 : ai(e.businessNature), s = {
+  $(e.id);
+  const r = e.logoPath === void 0 ? void 0 : ((a = e.logoPath) == null ? void 0 : a.trim()) || null, i = e.businessNature === void 0 ? void 0 : oi(e.businessNature), s = {
     socialWhatsapp: Ie(e.socialWhatsapp),
     socialInstagram: Ie(e.socialInstagram),
     socialFacebook: Ie(e.socialFacebook),
@@ -11602,10 +11610,10 @@ function m0(e) {
   }), zd(n);
 }
 function T0(e) {
-  return M(e), j.set("lastBusinessId", e), { ok: !0 };
+  return $(e), j.set("lastBusinessId", e), { ok: !0 };
 }
 function g0(e) {
-  return M(e), y().prepare(
+  return $(e), y().prepare(
     "SELECT id, business_id, name, address, phone, is_main_branch, is_active FROM branches WHERE business_id = ? ORDER BY created_at DESC"
   ).all(e).map((r) => ({
     id: r.id,
@@ -11619,7 +11627,7 @@ function g0(e) {
 }
 function b0(e) {
   var s, n, a, o;
-  if (X("branch:edit"), M(e.businessId), y().prepare("SELECT id FROM branches WHERE business_id = ? LIMIT 1").get(e.businessId))
+  if (X("branch:edit"), $(e.businessId), y().prepare("SELECT id FROM branches WHERE business_id = ? LIMIT 1").get(e.businessId))
     throw new Error(
       "This business already has a branch. Only one branch is supported."
     );
@@ -11657,7 +11665,7 @@ function v0(e) {
     "SELECT business_id, is_main_branch, is_active FROM branches WHERE id = ?"
   ).get(e.id);
   if (!r) throw new Error("Branch not found");
-  M(r.business_id);
+  $(r.business_id);
   const i = e.isActive === void 0 ? r.is_active : e.isActive ? 1 : 0;
   return y().prepare(
     "UPDATE branches SET name = ?, address = ?, phone = ?, is_active = ? WHERE id = ?"
@@ -11685,7 +11693,7 @@ function v0(e) {
   };
 }
 function y0(e) {
-  return ie(), M(e), y().prepare(
+  return ie(), $(e), y().prepare(
     `SELECT id, name, email, role, business_id, branch_id, is_active FROM users
        WHERE business_id = ? OR id = (SELECT owner_id FROM businesses WHERE id = ?)
        ORDER BY created_at DESC`
@@ -11701,9 +11709,9 @@ function y0(e) {
 }
 function w0(e) {
   const t = X("users:manage");
-  if (M(e.businessId), t.role !== "owner" && e.role === "admin")
+  if ($(e.businessId), t.role !== "owner" && e.role === "admin")
     throw new Error("Only owner can create admins");
-  e.branchId && Ir(e.branchId);
+  e.branchId && gr(e.branchId);
   const r = ae(), i = dr.hashSync(e.password, 12);
   return y().prepare(
     `INSERT INTO users (id, business_id, branch_id, name, email, password_hash, role, is_active, created_at)
@@ -11731,7 +11739,7 @@ function S0(e) {
   X("users:manage");
   const t = y().prepare("SELECT business_id FROM users WHERE id = ?").get(e.userId);
   if (!t) throw new Error("User not found");
-  return M(t.business_id), y().prepare("UPDATE users SET is_active = ? WHERE id = ?").run(e.isActive ? 1 : 0, e.userId), { ok: !0 };
+  return $(t.business_id), y().prepare("UPDATE users SET is_active = ? WHERE id = ?").run(e.isActive ? 1 : 0, e.userId), { ok: !0 };
 }
 function R0(e) {
   var c, u, l, p;
@@ -11768,7 +11776,7 @@ function R0(e) {
   };
 }
 function N0(e) {
-  return G(), M(e), y().prepare(
+  return G(), $(e), y().prepare(
     `SELECT id, business_id, branch_id, name, barcode, price, cost_price, stock_qty, kind, tracks_stock,
               kitchen_station, image_path, is_active
        FROM products WHERE business_id = ? ORDER BY created_at DESC`
@@ -11776,13 +11784,13 @@ function N0(e) {
 }
 function I0(e) {
   var u, l, p;
-  G(), X("products:edit"), M(e.businessId), e.branchId && Ir(e.branchId), Wd(e.price, e.costPrice ?? null);
+  G(), X("products:edit"), $(e.businessId), e.branchId && gr(e.branchId), Wd(e.price, e.costPrice ?? null);
   const t = pt(e.businessId), r = e.kind ?? "item";
-  if (!Ml(t, r))
+  if (!$l(t, r))
     throw new Error(
       `Product kind "${r}" is not allowed for this business type`
     );
-  const i = e.tracksStock === void 0 ? Fl(r) : !!e.tracksStock;
+  const i = e.tracksStock === void 0 ? Ml(r) : !!e.tracksStock;
   if (i && r !== "item")
     throw new Error("Only item products can track stock");
   const s = ie(), n = ae(), a = ce(), o = ((u = e.imagePath) == null ? void 0 : u.trim()) || null, c = i ? e.stockQty ?? 0 : 0;
@@ -11834,9 +11842,9 @@ function L0(e) {
     "SELECT business_id, branch_id, stock_qty, kind, tracks_stock, image_path FROM products WHERE id = ?"
   ).get(e.id);
   if (!r) throw new Error("Product not found");
-  M(r.business_id), Wd(e.price, e.costPrice ?? null);
+  $(r.business_id), Wd(e.price, e.costPrice ?? null);
   const i = pt(r.business_id), s = e.kind ?? (r.kind || "item");
-  if (!Ml(i, s))
+  if (!$l(i, s))
     throw new Error(
       `Product kind "${s}" is not allowed for this business type`
     );
@@ -11885,7 +11893,7 @@ function A0(e) {
   G();
   const t = X("products:edit"), r = y().prepare("SELECT business_id, name FROM products WHERE id = ?").get(e.id);
   if (!r) throw new Error("Product not found");
-  return M(r.business_id), y().prepare("UPDATE products SET is_active = ? WHERE id = ?").run(e.isActive ? 1 : 0, e.id), ee({
+  return $(r.business_id), y().prepare("UPDATE products SET is_active = ? WHERE id = ?").run(e.isActive ? 1 : 0, e.id), ee({
     businessId: r.business_id,
     actorUserId: t.id,
     entityType: "product",
@@ -11898,7 +11906,7 @@ function C0(e) {
   G();
   const t = X("products:edit"), r = y().prepare("SELECT business_id, name, is_active FROM products WHERE id = ?").get(e);
   if (!r) throw new Error("Product not found");
-  M(r.business_id);
+  $(r.business_id);
   const i = y().prepare("SELECT id FROM sale_items WHERE product_id = ? LIMIT 1").get(e), s = y().prepare("SELECT id FROM purchase_order_items WHERE product_id = ? LIMIT 1").get(e);
   return i || s ? (r.is_active && (y().prepare("UPDATE products SET is_active = 0 WHERE id = ?").run(e), ee({
     businessId: r.business_id,
@@ -11921,7 +11929,7 @@ function C0(e) {
 function O0(e) {
   const t = y().prepare("SELECT business_id FROM products WHERE id = ?").get(e);
   if (!t) throw new Error("Product not found");
-  return M(t.business_id), y().prepare(
+  return $(t.business_id), y().prepare(
     `SELECT sp.id as link_id, sp.supplier_id, sp.unit_cost, s.name as supplier_name
        FROM supplier_products sp
        JOIN suppliers s ON s.id = sp.supplier_id
@@ -11935,7 +11943,7 @@ function O0(e) {
   }));
 }
 function k0(e) {
-  G(), X("products:edit"), M(e);
+  G(), X("products:edit"), $(e);
   for (let t = 0; t < 20; t += 1) {
     const r = `KB${Date.now().toString().slice(-8)}${Math.floor(Math.random() * 90 + 10)}`;
     if (!y().prepare("SELECT id FROM products WHERE business_id = ? AND barcode = ?").get(e, r)) return { barcode: r };
@@ -11943,7 +11951,7 @@ function k0(e) {
   throw new Error("Could not generate unique barcode");
 }
 function x0(e) {
-  return M(e), y().prepare(
+  return $(e), y().prepare(
     "SELECT id, business_id, name, phone, address, notes, is_active FROM suppliers WHERE business_id = ? ORDER BY created_at DESC"
   ).all(e).map((r) => ({
     id: r.id,
@@ -11957,7 +11965,7 @@ function x0(e) {
 }
 function D0(e) {
   var i, s, n, a, o, c;
-  X("suppliers:edit"), M(e.businessId);
+  X("suppliers:edit"), $(e.businessId);
   const t = ie(), r = ae();
   return y().prepare(
     `INSERT INTO suppliers (id, business_id, name, phone, address, notes, is_active, created_at)
@@ -11991,7 +11999,7 @@ function U0(e) {
   var s, n, a, o, c, u;
   const t = X("suppliers:edit"), r = y().prepare("SELECT business_id FROM suppliers WHERE id = ?").get(e.id);
   if (!r) throw new Error("Supplier not found");
-  M(r.business_id);
+  $(r.business_id);
   const i = e.isActive === !1 ? 0 : 1;
   return y().prepare(
     "UPDATE suppliers SET name = ?, phone = ?, address = ?, notes = ?, is_active = ? WHERE id = ?"
@@ -12024,7 +12032,7 @@ function Ar(e) {
     "SELECT id, business_id, name, phone, address, notes, is_active FROM suppliers WHERE id = ?"
   ).get(e);
   if (!t) throw new Error("Supplier not found");
-  return M(t.business_id), t;
+  return $(t.business_id), t;
 }
 function Ua(e) {
   return Ar(e), y().prepare(
@@ -12064,7 +12072,7 @@ function B0(e) {
   if (!r) throw new Error("Product not found");
   if (r.business_id !== t.business_id)
     throw new Error("Product and supplier must belong to the same business");
-  if (M(r.business_id), y().prepare(
+  if ($(r.business_id), y().prepare(
     "SELECT id FROM supplier_products WHERE supplier_id = ? AND product_id = ?"
   ).get(e.supplierId, e.productId)) throw new Error("Product is already attached to this supplier");
   const s = ae();
@@ -12106,7 +12114,7 @@ function M0(e) {
   return r;
 }
 function $0(e) {
-  return M(e), y().prepare(
+  return $(e), y().prepare(
     "SELECT id, business_id, branch_id, supplier_id, po_number, status, order_date FROM purchase_orders WHERE business_id = ? ORDER BY created_at DESC"
   ).all(e).map((r) => ({
     id: r.id,
@@ -12120,7 +12128,7 @@ function $0(e) {
 }
 function H0(e) {
   var a;
-  if (X("purchaseOrders:edit"), M(e.businessId), Ir(e.branchId), Ar(e.supplierId).business_id !== e.businessId)
+  if (X("purchaseOrders:edit"), $(e.businessId), gr(e.branchId), Ar(e.supplierId).business_id !== e.businessId)
     throw new Error("Supplier does not belong to this business");
   if (!((a = e.items) != null && a.length)) throw new Error("Add at least one product line");
   const r = ae(), i = ie(), s = y().prepare(
@@ -12190,7 +12198,7 @@ function qd(e) {
        WHERE po.id = ?`
   ).get(e);
   if (!t) throw new Error("Purchase order not found");
-  M(t.business_id);
+  $(t.business_id);
   const i = y().prepare(
     `SELECT poi.id, poi.product_id, p.name as product_name, poi.ordered_qty, poi.received_qty, poi.unit_cost, poi.line_total
        FROM purchase_order_items poi
@@ -12256,7 +12264,7 @@ async function X0(e) {
   });
 }
 function W0(e) {
-  return M(e), y().prepare(
+  return $(e), y().prepare(
     "SELECT id, business_id, name, phone, address, current_balance, is_active FROM customers WHERE business_id = ? ORDER BY created_at DESC"
   ).all(e).map((r) => ({
     id: r.id,
@@ -12271,7 +12279,7 @@ function W0(e) {
 function z0(e) {
   var a, o, c;
   const t = X("customers:edit");
-  M(e.businessId);
+  $(e.businessId);
   const r = ae(), i = ce(), s = Math.max(0, Number(e.amount ?? 0) || 0), n = ((a = e.address) == null ? void 0 : a.trim()) || null;
   if (y().prepare(
     `INSERT INTO customers (id, business_id, name, phone, address, opening_balance, current_balance, is_active, created_at, updated_at)
@@ -12323,7 +12331,7 @@ function q0(e) {
   var s, n, a, o;
   const t = X("customers:edit"), r = y().prepare("SELECT business_id, current_balance FROM customers WHERE id = ?").get(e.id);
   if (!r) throw new Error("Customer not found");
-  M(r.business_id);
+  $(r.business_id);
   const i = e.isActive === !1 ? 0 : 1;
   return y().prepare(
     "UPDATE customers SET name = ?, phone = ?, address = ?, is_active = ? WHERE id = ?"
@@ -12356,7 +12364,7 @@ function Kd(e) {
     "SELECT id, business_id, name, phone, address, current_balance, is_active FROM customers WHERE id = ?"
   ).get(e);
   if (!t) throw new Error("Customer not found");
-  M(t.business_id);
+  $(t.business_id);
   const r = y().prepare(
     `SELECT id, invoice_no, total, status, created_at
        FROM sales WHERE customer_id = ? ORDER BY created_at DESC`
@@ -12486,10 +12494,10 @@ function Y0(e) {
     "SELECT id, business_id, name, current_balance FROM customers WHERE id = ?"
   ).get(e.customerId);
   if (!i) throw new Error("Customer not found");
-  if (M(i.business_id), r > i.current_balance)
+  if ($(i.business_id), r > i.current_balance)
     throw new Error("Payment cannot exceed remaining credit balance");
   let s = ((l = e.branchId) == null ? void 0 : l.trim()) || null;
-  s ? Ir(s) : t.branchId && (s = t.branchId);
+  s ? gr(s) : t.branchId && (s = t.branchId);
   const n = ae(), a = ce(), o = i.current_balance - r, c = ((p = e.note) == null ? void 0 : p.trim()) || "", u = c ? `method:${e.method} | ${c}` : `method:${e.method}`;
   return y().transaction(() => {
     y().prepare(
@@ -12534,19 +12542,19 @@ function Y0(e) {
 function j0(e, t) {
   const r = y().prepare("SELECT name FROM businesses WHERE id = ?").get(e), i = y().prepare("SELECT name FROM branches WHERE id = ?").get(t);
   if (!r || !i) throw new Error("Business or branch not found");
-  const s = Um(r.name, i.name), n = y().prepare(
+  const s = $m(r.name, i.name), n = y().prepare(
     "SELECT invoice_no FROM sales WHERE business_id = ? AND invoice_no LIKE ?"
   ).all(e, `${s}%`);
   let a = 0;
   for (const o of n) {
-    const c = Pm(o.invoice_no, s);
+    const c = Hm(o.invoice_no, s);
     c != null && c > a && (a = c);
   }
-  return Dm(r.name, i.name, a + 1);
+  return Mm(r.name, i.name, a + 1);
 }
 function G0(e) {
   var m, b, v, S, L;
-  G(), X("sales:checkout"), M(e.businessId), Ir(e.branchId);
+  G(), X("sales:checkout"), $(e.businessId), gr(e.branchId);
   const t = ie();
   if (!e.items.length)
     throw new Error("Add at least one item to the sale");
@@ -12555,7 +12563,7 @@ function G0(e) {
   const a = ((v = e.ticketId) == null ? void 0 : v.trim()) || null;
   let o = ((S = e.riderUserId) == null ? void 0 : S.trim()) || null, c = e.deliveryStatus ?? null;
   const u = ((L = e.deliveryNotes) == null ? void 0 : L.trim()) || null, l = !!e.partialTicketBill;
-  if (mm(r)) {
+  if (ym(r)) {
     if (!i) throw new Error("Served by staff is required");
     if (!y().prepare(
       `SELECT id FROM users
@@ -12564,7 +12572,7 @@ function G0(e) {
     ).get(i, e.businessId, e.businessId)) throw new Error("Selected staff member was not found");
   } else if (i)
     throw new Error("Served by is not used for this business type");
-  if (Em(r)) {
+  if (vm(r)) {
     if (!s || !["dine_in", "takeaway", "delivery"].includes(s))
       throw new Error("Service mode is required");
     if (s === "dine_in") {
@@ -12764,7 +12772,7 @@ function jr(e) {
   return Yd(t);
 }
 function V0(e) {
-  return G(), M(e), y().prepare(
+  return G(), $(e), y().prepare(
     `SELECT s.id, s.business_id, s.branch_id, s.invoice_no, s.customer_id, s.cashier_id,
               s.subtotal, s.discount, s.total, s.amount_paid, s.status, s.created_at,
               s.served_by_user_id, u.name as served_by_name, s.service_mode, s.table_id, t.name as table_name,
@@ -12777,7 +12785,7 @@ function V0(e) {
        ORDER BY s.created_at DESC`
   ).all(e).map(Yd);
 }
-function Ji(e) {
+function Qi(e) {
   const t = y().prepare(
     `SELECT r.id, r.sale_id, r.business_id, r.requested_by, ru.name as requested_by_name, r.reason, r.status,
               r.reviewed_by, rv.name as reviewed_by_name, r.reviewed_at, r.review_note, r.created_at
@@ -12824,7 +12832,7 @@ function Z0(e) {
     throw new Error("Select at least one item to refund");
   const r = y().prepare("SELECT id, business_id, status FROM sales WHERE id = ?").get(e.saleId);
   if (!r) throw new Error("Sale not found");
-  if (M(r.business_id), r.status === "void" || r.status === "refunded")
+  if ($(r.business_id), r.status === "void" || r.status === "refunded")
     throw new Error("Sale cannot be refunded");
   if (y().prepare(
     "SELECT id FROM refund_requests WHERE sale_id = ? AND status = 'pending'"
@@ -12873,7 +12881,7 @@ function Z0(e) {
       summary: `Refund requested: ${e.reason.trim()}`,
       payload: { requestId: s, items: e.items }
     });
-  })(), Ji(s);
+  })(), Qi(s);
 }
 function J0(e) {
   var a;
@@ -12882,7 +12890,7 @@ function J0(e) {
     "SELECT id, sale_id, business_id, status, reason FROM refund_requests WHERE id = ?"
   ).get(e.id);
   if (!r) throw new Error("Refund request not found");
-  if (M(r.business_id), r.status !== "pending")
+  if ($(r.business_id), r.status !== "pending")
     throw new Error("Refund request already reviewed");
   const i = ce();
   if (e.decision === "reject")
@@ -12896,7 +12904,7 @@ function J0(e) {
       action: "refund_rejected",
       summary: `Refund rejected${e.note ? `: ${e.note}` : ""}`,
       payload: { requestId: e.id }
-    }), Ji(e.id);
+    }), Qi(e.id);
   const s = y().prepare("SELECT id, customer_id, status, total FROM sales WHERE id = ?").get(r.sale_id);
   if (!s) throw new Error("Sale not found");
   const n = y().prepare(
@@ -12952,12 +12960,12 @@ function J0(e) {
       summary: `Refund approved (${d})`,
       payload: { requestId: e.id, refundAmount: u, items: n }
     });
-  })(), Ji(e.id);
+  })(), Qi(e.id);
 }
 function Q0(e) {
   G(), ie();
   const t = jr(e);
-  M(t.businessId);
+  $(t.businessId);
   const r = y().prepare(
     `SELECT si.id, si.sale_id, si.product_id, si.product_name_snapshot, si.qty, si.unit_price, si.line_total,
               si.refunded_qty, si.price_rule_id, r.name as price_rule_name
@@ -12992,12 +13000,12 @@ function Q0(e) {
       amount: n.amount,
       createdAt: n.created_at
     })),
-    refundRequests: s.map((n) => Ji(n.id)),
+    refundRequests: s.map((n) => Qi(n.id)),
     activity: Gs("sale", e)
   };
 }
 function eb(e, t) {
-  G(), M(e);
+  G(), $(e);
   const r = t.trim();
   if (!r) return null;
   const i = y().prepare(
@@ -13009,7 +13017,7 @@ function tb(e) {
   var a, o;
   G(), X("sales:checkout");
   const t = ie(), r = jr(e.saleId);
-  if (M(r.businessId), r.serviceMode !== "takeaway" && r.serviceMode !== "delivery")
+  if ($(r.businessId), r.serviceMode !== "takeaway" && r.serviceMode !== "delivery")
     throw new Error("Delivery tracking is only for takeaway or delivery sales");
   const i = e.riderUserId === void 0 ? r.riderUserId : ((a = e.riderUserId) == null ? void 0 : a.trim()) || null;
   let s = e.deliveryStatus === void 0 ? r.deliveryStatus : e.deliveryStatus;
@@ -13049,7 +13057,7 @@ async function rb(e) {
        WHERE s.id = ?`
   ).get(e);
   if (!r) throw new Error("Sale not found");
-  M(r.business_id);
+  $(r.business_id);
   const i = y().prepare(
     `SELECT address, phone FROM branches
        WHERE business_id = ? AND is_main_branch = 1
@@ -13061,8 +13069,8 @@ async function rb(e) {
   ).all(e), o = y().prepare("SELECT method, amount FROM payments WHERE sale_id = ?").all(e);
   let c = "";
   try {
-    const p = f0.resolve("jsbarcode/dist/JsBarcode.all.min.js");
-    c = $.readFileSync(p, "utf8");
+    const d = f0.resolve("jsbarcode/dist/JsBarcode.all.min.js");
+    c = M.readFileSync(d, "utf8");
   } catch {
     c = "";
   }
@@ -13089,24 +13097,31 @@ async function rb(e) {
     socialFacebook: r.social_facebook,
     socialTiktok: r.social_tiktok,
     socialWebsite: r.social_website,
-    items: a.map((p) => ({
-      productName: p.product_name,
-      qty: p.qty,
-      unitPrice: p.unit_price,
-      lineTotal: p.line_total
+    items: a.map((d) => ({
+      productName: d.product_name,
+      qty: d.qty,
+      unitPrice: d.unit_price,
+      lineTotal: d.line_total
     })),
     payments: o,
     jsBarcodeScript: c
-  };
-  if (rn().posPrintEnabled)
+  }, l = cn();
+  if (l.posPrintEnabled)
     try {
-      return await jf(u), { ok: !0 };
-    } catch (p) {
-      console.error("POS print failed, falling back to preview", p);
+      return await Ih(u), { ok: !0 };
+    } catch (d) {
+      console.error(
+        `[receipt] POS print failed for ${r.invoice_no} (printer=${l.posPrinterName || "system default"}, paper=${l.posPaperWidth}); falling back to the HTML preview.`,
+        d
+      );
     }
-  const l = await i0(u);
+  else
+    console.info(
+      "[receipt] POS printing is disabled — opening the HTML preview. Enable it in Settings → Receipt printer."
+    );
+  const p = await i0(u);
   return xa({
-    html: l,
+    html: p,
     filePrefix: "sale-receipt",
     title: r.invoice_no,
     width: 420,
@@ -13127,7 +13142,7 @@ function Lc(e = /* @__PURE__ */ new Date()) {
   );
 }
 const Ac = /^(\d{4})-(\d{2})-(\d{2})$/, Rs = 366;
-function Qi(e) {
+function en(e) {
   if (!e || !Ac.test(e)) return null;
   const [, t, r, i] = e.match(Ac), s = Number(t), n = Number(r), a = Number(i), o = new Date(Date.UTC(s, n - 1, a));
   return or(o) !== e ? null : o;
@@ -13135,7 +13150,7 @@ function Qi(e) {
 function nb(e) {
   const t = typeof e.from == "string" ? e.from.trim() : "", r = typeof e.to == "string" ? e.to.trim() : "";
   if (!!(t || r)) {
-    let o = Qi(t), c = Qi(r);
+    let o = en(t), c = en(r);
     if (!o && !c)
       throw new Error("Invalid analytics date range");
     if (c || (c = Lc()), o || (o = new Date(c.getTime())), o.getTime() > c.getTime()) {
@@ -13167,8 +13182,8 @@ function Cc(e) {
       to: e.to
     } : {}
   );
-  X("business:view"), M(t);
-  const { from: i, to: s, days: n, sinceIso: a } = r, o = Qi(s);
+  X("business:view"), $(t);
+  const { from: i, to: s, days: n, sinceIso: a } = r, o = en(s);
   o.setUTCDate(o.getUTCDate() + 1);
   const c = o.toISOString(), u = y().prepare(
     `SELECT date(created_at) as day, SUM(total) as total, COUNT(*) as count
@@ -13178,7 +13193,7 @@ function Cc(e) {
        ORDER BY day ASC`
   ).all(t, a, c), l = new Map(u.map((S) => [S.day, S])), p = [];
   let d = 0, f = 0;
-  const _ = Qi(i);
+  const _ = en(i);
   for (let S = 0; S < n; S += 1) {
     const L = or(_), I = l.get(L), O = (I == null ? void 0 : I.total) ?? 0, P = (I == null ? void 0 : I.count) ?? 0;
     d += O, f += P, p.push({ date: L, total: O, count: P }), _.setUTCDate(_.getUTCDate() + 1);
@@ -13282,7 +13297,7 @@ function It(e) {
   };
 }
 function Pa(e) {
-  if (G(), M(e), !Zt(pt(e)))
+  if (G(), $(e), !Zt(pt(e)))
     throw new Error("Tables are only available for food businesses");
   return y().prepare(
     `SELECT t.id, t.business_id, t.name, t.seats, t.sort_order, t.is_active,
@@ -13307,7 +13322,7 @@ function Pa(e) {
   }));
 }
 function ab(e) {
-  if (G(), X("tables:edit"), M(e.businessId), !Zt(pt(e.businessId)))
+  if (G(), X("tables:edit"), $(e.businessId), !Zt(pt(e.businessId)))
     throw new Error("Tables are only available for food businesses");
   const t = ie(), r = ae(), i = e.name.trim();
   if (!i) throw new Error("Table name is required");
@@ -13334,7 +13349,7 @@ function ob(e) {
   G();
   const t = X("tables:edit"), r = y().prepare("SELECT business_id FROM dining_tables WHERE id = ?").get(e.id);
   if (!r) throw new Error("Table not found");
-  if (M(r.business_id), !Zt(pt(r.business_id)))
+  if ($(r.business_id), !Zt(pt(r.business_id)))
     throw new Error("Tables are only available for food businesses");
   const i = e.name.trim();
   if (!i) throw new Error("Table name is required");
@@ -13359,7 +13374,7 @@ function ob(e) {
   );
 }
 function cb(e) {
-  if (G(), M(e), !Zt(pt(e)))
+  if (G(), $(e), !Zt(pt(e)))
     throw new Error("Tickets are only available for food businesses");
   return y().prepare(
     "SELECT id FROM pos_tickets WHERE business_id = ? AND status = 'open' ORDER BY updated_at DESC"
@@ -13368,11 +13383,11 @@ function cb(e) {
 function ub(e) {
   G(), ie();
   const t = It(e);
-  return M(t.businessId), t;
+  return $(t.businessId), t;
 }
 function lb(e) {
   var a, o;
-  if (G(), X("sales:checkout"), M(e.businessId), Ir(e.branchId), !Zt(pt(e.businessId)))
+  if (G(), X("sales:checkout"), $(e.businessId), gr(e.branchId), !Zt(pt(e.businessId)))
     throw new Error("Tickets are only available for food businesses");
   if (!["dine_in", "takeaway", "delivery"].includes(e.serviceMode))
     throw new Error("Invalid service mode");
@@ -13419,7 +13434,7 @@ function db(e) {
   G(), X("sales:checkout");
   const t = y().prepare("SELECT id, business_id, status FROM pos_tickets WHERE id = ?").get(e.ticketId);
   if (!t) throw new Error("Ticket not found");
-  if (M(t.business_id), t.status !== "open") throw new Error("Ticket is no longer open");
+  if ($(t.business_id), t.status !== "open") throw new Error("Ticket is no longer open");
   const r = ce();
   return y().transaction(() => {
     const i = y().prepare(
@@ -13467,7 +13482,7 @@ function fb(e) {
   G(), X("sales:checkout");
   const t = ie(), r = y().prepare("SELECT id, business_id, status FROM pos_tickets WHERE id = ?").get(e);
   if (!r) throw new Error("Ticket not found");
-  if (M(r.business_id), r.status !== "open") throw new Error("Ticket is no longer open");
+  if ($(r.business_id), r.status !== "open") throw new Error("Ticket is no longer open");
   return y().prepare(
     "UPDATE pos_tickets SET status = 'cancelled', updated_at = ? WHERE id = ?"
   ).run(ce(), e), ee({
@@ -13482,7 +13497,7 @@ function fb(e) {
 function hb(e) {
   G(), X("sales:checkout");
   const t = ie(), r = It(e.ticketId);
-  if (M(r.businessId), r.status !== "open") throw new Error("Ticket is no longer open");
+  if ($(r.businessId), r.status !== "open") throw new Error("Ticket is no longer open");
   if (!e.itemIds.length)
     throw new Error("Select items to send to kitchen");
   const i = ce(), s = y().prepare(
@@ -13507,7 +13522,7 @@ function pb(e) {
   var a, o;
   G(), X("sales:checkout");
   const t = ie(), r = It(e.ticketId);
-  if (M(r.businessId), r.status !== "open") throw new Error("Ticket is no longer open");
+  if ($(r.businessId), r.status !== "open") throw new Error("Ticket is no longer open");
   if (r.serviceMode !== "takeaway" && r.serviceMode !== "delivery")
     throw new Error("Rider assignment is only for takeaway or delivery");
   const i = ((a = e.riderUserId) == null ? void 0 : a.trim()) || null;
@@ -13541,7 +13556,7 @@ function pb(e) {
   }), It(e.ticketId);
 }
 function _b(e) {
-  if (G(), X("sales:checkout"), M(e), !Zt(pt(e)))
+  if (G(), X("sales:checkout"), $(e), !Zt(pt(e)))
     throw new Error("Kitchen display is only available for food businesses");
   return y().prepare(
     `SELECT ti.id as item_id, ti.ticket_id, dt.name as table_name, t.service_mode,
@@ -13646,7 +13661,7 @@ function bb(e, t, r) {
   return t === r ? !0 : t < r ? e >= t && e < r : e >= t || e < r;
 }
 function vb(e) {
-  G(), M(e.businessId);
+  G(), $(e.businessId);
   const t = y().prepare(
     "SELECT id, price, category_id FROM products WHERE id = ? AND business_id = ? AND is_active = 1"
   ).get(e.productId, e.businessId);
@@ -13688,7 +13703,7 @@ function vb(e) {
   };
 }
 function Ln(e) {
-  return G(), X("products:view"), M(e), y().prepare(
+  return G(), X("products:view"), $(e), y().prepare(
     `SELECT id, business_id, name, product_id, category_id, override_price, percent_off,
               weekdays_mask, start_time, end_time, priority, is_active, valid_from, valid_to,
               created_at, updated_at
@@ -13698,7 +13713,7 @@ function Ln(e) {
 }
 function yb(e) {
   var a, o;
-  G(), X("products:edit"), M(e.businessId);
+  G(), X("products:edit"), $(e.businessId);
   const t = ie(), r = e.name.trim();
   if (!r) throw new Error("Rule name is required");
   const i = jd(e), s = ae(), n = ce();
@@ -13739,7 +13754,7 @@ function wb(e) {
   G(), X("products:edit");
   const t = ie(), r = y().prepare("SELECT business_id FROM happy_hour_price_rules WHERE id = ?").get(e.id);
   if (!r) throw new Error("Rule not found");
-  M(r.business_id);
+  $(r.business_id);
   const i = e.name.trim();
   if (!i) throw new Error("Rule name is required");
   const s = jd(e), n = ce();
@@ -13781,7 +13796,7 @@ function Sb(e) {
     "SELECT business_id, name FROM happy_hour_price_rules WHERE id = ?"
   ).get(e.id);
   if (!r) throw new Error("Rule not found");
-  return M(r.business_id), y().prepare(
+  return $(r.business_id), y().prepare(
     "UPDATE happy_hour_price_rules SET is_active = ?, updated_at = ? WHERE id = ?"
   ).run(e.isActive ? 1 : 0, ce(), e.id), ee({
     businessId: r.business_id,
@@ -13803,7 +13818,7 @@ function Rb() {
     version: Xe.getVersion(),
     platform: process.platform,
     userDataPath: Xe.getPath("userData")
-  })), C.handle(A.APP_GET_BOOT_STATE, async () => Tm()), C.handle(A.APP_GET_BRAND_COLOR, async () => gm()), C.handle(A.APP_GET_LANGUAGE, async () => Xt(j.get("language"))), C.handle(A.APP_SET_LANGUAGE, async (e, t) => {
+  })), C.handle(A.APP_GET_BOOT_STATE, async () => wm()), C.handle(A.APP_GET_BRAND_COLOR, async () => Sm()), C.handle(A.APP_GET_LANGUAGE, async () => Xt(j.get("language"))), C.handle(A.APP_SET_LANGUAGE, async (e, t) => {
     const r = Xt(t);
     return j.set("language", r), { ok: !0 };
   }), C.handle(A.APP_GET_LICENSE_STATUS, async () => {
@@ -13820,16 +13835,16 @@ function Rb() {
   }), C.handle(A.APP_GET_RESTOCK_ALERTS, async (e, t) => {
     X("business:view");
     const r = t == null ? void 0 : t.trim();
-    return r ? (M(r), Rm(r)) : [];
-  }), C.handle(A.REMINDERS_MAYBE_RUN, async () => (ie(), xm())), C.handle(A.LICENSE_ACTIVATE, async (e, t) => on(t)), C.handle(A.SETUP_COMPLETE, async (e, t) => bm(t)), C.handle(
+    return r ? ($(r), Cm(r)) : [];
+  }), C.handle(A.REMINDERS_MAYBE_RUN, async () => (ie(), Fm())), C.handle(A.LICENSE_ACTIVATE, async (e, t) => an(t)), C.handle(A.SETUP_COMPLETE, async (e, t) => Rm(t)), C.handle(
     A.SETUP_RESTORE_FROM_BACKUP,
-    async (e, t) => vm(t, (r) => {
+    async (e, t) => Nm(t, (r) => {
       e.sender.send(A.BACKUP_PROGRESS, r);
     })
-  ), C.handle(A.AUTH_LOGIN, async (e, t) => HE(t)), C.handle(
+  ), C.handle(A.AUTH_LOGIN, async (e, t) => Vf(t)), C.handle(
     A.AUTH_RESET_OWNER_PASSWORD_OFFLINE,
-    async (e, t) => XE(t)
-  ), C.handle(A.AUTH_LOGOUT, async () => Al()), C.handle(A.AUTH_SESSION, async () => Ll()), C.handle(A.BUSINESS_LIST, async () => _0()), C.handle(A.BUSINESS_CREATE, async (e, t) => E0(t)), C.handle(A.BUSINESS_UPDATE, async (e, t) => m0(t)), C.handle(A.BUSINESS_SET_ACTIVE, async (e, t) => T0(t)), C.handle(A.BRANCH_LIST, async (e, t) => g0(t)), C.handle(A.BRANCH_CREATE, async (e, t) => b0(t)), C.handle(A.BRANCH_UPDATE, async (e, t) => v0(t)), C.handle(A.USER_LIST, async (e, t) => y0(t)), C.handle(A.USER_CREATE, async (e, t) => w0(t)), C.handle(A.USER_UPDATE_SELF, async (e, t) => R0(t)), C.handle(A.USER_SET_ACTIVE, async (e, t) => S0(t)), C.handle(A.PRODUCT_LIST, async (e, t) => N0(t)), C.handle(A.PRODUCT_CREATE, async (e, t) => I0(t)), C.handle(A.PRODUCT_UPDATE, async (e, t) => L0(t)), C.handle(A.PRODUCT_SET_ACTIVE, async (e, t) => A0(t)), C.handle(A.PRODUCT_DELETE, async (e, t) => C0(t)), C.handle(
+    async (e, t) => Zf(t)
+  ), C.handle(A.AUTH_LOGOUT, async () => ru()), C.handle(A.AUTH_SESSION, async () => tu()), C.handle(A.BUSINESS_LIST, async () => _0()), C.handle(A.BUSINESS_CREATE, async (e, t) => E0(t)), C.handle(A.BUSINESS_UPDATE, async (e, t) => m0(t)), C.handle(A.BUSINESS_SET_ACTIVE, async (e, t) => T0(t)), C.handle(A.BRANCH_LIST, async (e, t) => g0(t)), C.handle(A.BRANCH_CREATE, async (e, t) => b0(t)), C.handle(A.BRANCH_UPDATE, async (e, t) => v0(t)), C.handle(A.USER_LIST, async (e, t) => y0(t)), C.handle(A.USER_CREATE, async (e, t) => w0(t)), C.handle(A.USER_UPDATE_SELF, async (e, t) => R0(t)), C.handle(A.USER_SET_ACTIVE, async (e, t) => S0(t)), C.handle(A.PRODUCT_LIST, async (e, t) => N0(t)), C.handle(A.PRODUCT_CREATE, async (e, t) => I0(t)), C.handle(A.PRODUCT_UPDATE, async (e, t) => L0(t)), C.handle(A.PRODUCT_SET_ACTIVE, async (e, t) => A0(t)), C.handle(A.PRODUCT_DELETE, async (e, t) => C0(t)), C.handle(
     A.PRODUCT_GENERATE_BARCODE,
     async (e, t) => k0(t)
   ), C.handle(
@@ -13859,9 +13874,9 @@ function Rb() {
   ), C.handle(A.SALES_LIST, async (e, t) => V0(t)), C.handle(A.SALES_GET_DETAIL, async (e, t) => Q0(t)), C.handle(
     A.SALES_FIND_BY_INVOICE,
     async (e, t) => eb(t.businessId, t.invoiceNo)
-  ), C.handle(A.SALES_CREATE, async (e, t) => G0(t)), C.handle(A.SALES_REFUND_REQUEST, async (e, t) => Z0(t)), C.handle(A.SALES_REFUND_REVIEW, async (e, t) => J0(t)), C.handle(A.SALES_PRINT, async (e, t) => rb(t)), C.handle(A.PRINTER_LIST, async () => Yf()), C.handle(A.PRINTER_GET_SETTINGS, async () => rn()), C.handle(
+  ), C.handle(A.SALES_CREATE, async (e, t) => G0(t)), C.handle(A.SALES_REFUND_REQUEST, async (e, t) => Z0(t)), C.handle(A.SALES_REFUND_REVIEW, async (e, t) => J0(t)), C.handle(A.SALES_PRINT, async (e, t) => rb(t)), C.handle(A.PRINTER_LIST, async () => Nh()), C.handle(A.PRINTER_GET_SETTINGS, async () => cn()), C.handle(
     A.PRINTER_SET_SETTINGS,
-    async (e, t) => zf(t)
+    async (e, t) => wh(t)
   ), C.handle(A.TABLE_LIST, async (e, t) => Pa(t)), C.handle(A.TABLE_CREATE, async (e, t) => ab(t)), C.handle(A.TABLE_UPDATE, async (e, t) => ob(t)), C.handle(A.TICKET_LIST_OPEN, async (e, t) => cb(t)), C.handle(A.TICKET_GET, async (e, t) => ub(t)), C.handle(A.TICKET_OPEN, async (e, t) => lb(t)), C.handle(A.TICKET_SET_ITEMS, async (e, t) => db(t)), C.handle(A.TICKET_CANCEL, async (e, t) => fb(t)), C.handle(A.TICKET_FIRE_ITEMS, async (e, t) => hb(t)), C.handle(A.TICKET_ASSIGN_RIDER, async (e, t) => pb(t)), C.handle(
     A.KITCHEN_LIST_ACTIVE,
     async (e, t) => _b(t)
@@ -13884,20 +13899,20 @@ function Rb() {
     })
   ), C.handle(
     A.ASSETS_PICK_AND_SAVE,
-    async (e, t) => Gg(t.kind)
+    async (e, t) => nh(t.kind)
   ), C.handle(
     A.BACKUP_CREATE,
-    async (e) => lm((t) => {
+    async (e) => _m((t) => {
       e.sender.send(A.BACKUP_PROGRESS, t);
     })
   ), C.handle(
     A.BACKUP_RESTORE,
-    async (e, t) => dm(t, (r) => {
+    async (e, t) => Em(t, (r) => {
       e.sender.send(A.BACKUP_PROGRESS, r);
     })
-  ), C.handle(A.BACKUP_PICK_FILE, async () => fm()), C.handle(A.BACKUP_GET_AUTO_SETTINGS, async () => (X("business:view"), ra())), C.handle(
+  ), C.handle(A.BACKUP_PICK_FILE, async () => mm()), C.handle(A.BACKUP_GET_AUTO_SETTINGS, async () => (X("business:view"), ia())), C.handle(
     A.BACKUP_SET_AUTO_SETTINGS,
-    async (e, t) => (X("business:view"), Rf(t))
+    async (e, t) => (X("business:view"), Af(t))
   );
 }
 const Nb = 45e3;
@@ -13912,16 +13927,16 @@ function Ib(e) {
   return Number.isNaN(t.getTime()) ? !1 : kc(t) === kc();
 }
 function Lb(e, t = /* @__PURE__ */ new Date()) {
-  const r = ta(e), [i, s] = r.split(":").map(Number);
+  const r = ra(e), [i, s] = r.split(":").map(Number);
   return t.getHours() === i && t.getMinutes() === s;
 }
 async function xc() {
-  if (Ns || um()) return;
-  const e = ra();
+  if (Ns || pm()) return;
+  const e = ia();
   if (e.autoBackupEnabled && Lb(e.autoBackupTime) && !Ib(e.lastAutoBackupAt)) {
     Ns = !0;
     try {
-      await Pl(), Nf();
+      await Bl(), Cf();
     } catch (t) {
       console.error("[auto-backup] failed", t);
     } finally {
@@ -13979,7 +13994,7 @@ function Dc() {
 Xe.whenReady().then(() => {
   Xe.setPath("userData", tt()), Pc.handle(
     "kaarobar-asset",
-    (e) => jg(e.url)
+    (e) => ih(e.url)
   ), Rb(), Dc(), Ab(), Xe.on("activate", () => {
     Gr.getAllWindows().length === 0 && Dc();
   });

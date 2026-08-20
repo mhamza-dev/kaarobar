@@ -3192,15 +3192,26 @@ export async function printSaleReceipt(saleId: string): Promise<{ ok: true }> {
   // through the browser print pipeline leaves layout to the driver, which is how
   // a generic/text-only thermal driver ends up emitting markup instead of the
   // rendered receipt.
-  if (getPosPrinterSettings().posPrintEnabled) {
+  const posSettings = getPosPrinterSettings();
+  if (posSettings.posPrintEnabled) {
     try {
       await printSaleReceiptToPos(receiptInput);
       return { ok: true };
     } catch (error) {
       // Never lose the receipt: fall back to the preview window so the cashier
-      // still has something to hand over.
-      console.error("POS print failed, falling back to preview", error);
+      // still has something to hand over. Log loudly — a silent fallback looks
+      // identical to "POS printing was never wired up".
+      console.error(
+        `[receipt] POS print failed for ${sale.invoice_no} (printer=${
+          posSettings.posPrinterName || "system default"
+        }, paper=${posSettings.posPaperWidth}); falling back to the HTML preview.`,
+        error,
+      );
     }
+  } else {
+    console.info(
+      "[receipt] POS printing is disabled — opening the HTML preview. Enable it in Settings → Receipt printer.",
+    );
   }
 
   const html = await buildSaleReceiptHtml(receiptInput);

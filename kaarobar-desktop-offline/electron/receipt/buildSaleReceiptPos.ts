@@ -1,4 +1,6 @@
+import fs from 'node:fs'
 import type { PosPrintData } from 'electron-pos-printer'
+import { resolveAssetAbsolutePath } from '../assets/service'
 import { currencyPrefix } from '../../shared/currencies'
 import {
   formatPrintDate,
@@ -92,10 +94,14 @@ export function buildSaleReceiptPos(
   const rows: Row[] = []
 
   // --- header -------------------------------------------------------------
-  if (input.logoPath) {
+  // `logoPath` is an asset key, not a filesystem path — resolve it the same way
+  // the HTML receipt does, and skip the row entirely if the file is missing so a
+  // broken logo can never fail the whole print.
+  const logoAbsolute = input.logoPath ? resolveAssetAbsolutePath(input.logoPath) : null
+  if (logoAbsolute && fs.existsSync(logoAbsolute)) {
     rows.push({
       type: 'image',
-      path: input.logoPath,
+      path: logoAbsolute,
       position: 'center',
       width: '120px',
       style: { margin: '0 auto 4px' },

@@ -19,7 +19,8 @@ export type PosPrinterSettings = {
 }
 
 const DEFAULTS: PosPrinterSettings = {
-  posPrintEnabled: false,
+  // Mirrors the store defaults — see electron/config/store.ts.
+  posPrintEnabled: true,
   posPrinterName: '',
   posPaperWidth: '80mm',
   posSilent: true,

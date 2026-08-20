@@ -31,6 +31,12 @@ type StoreSchema = {
   autoBackupEnabled: boolean
   autoBackupTime: string
   lastAutoBackupAt: string | null
+  /** Receipt printer (see receipt/posPrinterSettings.ts). */
+  posPrintEnabled: boolean
+  posPrinterName: string
+  posPaperWidth: string
+  posSilent: boolean
+  posCopies: number
 }
 
 export const appStore = new Store<StoreSchema>({
@@ -44,6 +50,14 @@ export const appStore = new Store<StoreSchema>({
     autoBackupEnabled: false,
     autoBackupTime: '22:00',
     lastAutoBackupAt: null,
+    // On by default: this is a point-of-sale app, so a sale receipt should go to
+    // the receipt printer. If POS printing fails for any reason the caller falls
+    // back to the HTML preview window, which is the pre-existing behaviour.
+    posPrintEnabled: true,
+    posPrinterName: '',
+    posPaperWidth: '80mm',
+    posSilent: true,
+    posCopies: 1,
   },
 })
 
