@@ -1,17 +1,32 @@
 # Kaarobar
 
-Kaarobar is a multi-platform commerce and operations ecosystem for small businesses, spanning desktop, web, and mobile experiences. The repository currently contains a desktop POS application, a cloud/web app, and mobile apps for staff and customers.
+Kaarobar is a multi-platform commerce platform for small businesses that need a simple, reliable way to sell, manage stock, track customers, and operate across desktop, web, and mobile channels.
 
-## Overview
+## GitHub project presentation
 
-This monorepo brings together the business tools needed to run a shop or service business across multiple channels:
+This repository is organized as a product monorepo with different application surfaces built for different business needs:
 
-- Desktop POS for offline-first retail operations
-- Web dashboard and storefront experience
+- Desktop POS for in-shop operations and offline-first sales workflows
+- Cloud/web experience for business management and broader access
 - Mobile apps for staff and customer interactions
-- Shared business logic and multi-platform product structure
+- Shared product structure designed for business continuity and expansion
 
-## Monorepo structure
+The project is positioned as a practical business operating system for shops and service businesses, with a focus on real-world retail workflows rather than generic app scaffolding.
+
+## Investor / client-facing summary
+
+Kaarobar addresses a common operational problem for small businesses: fragmented tools for sales, inventory, customer tracking, and payments. The platform is designed to bring these systems together into one cohesive experience, helping owners and staff work faster with less manual effort.
+
+Key value points:
+
+- Offline-first desktop operation for reliable local selling
+- Inventory and purchase workflows for better stock control
+- Customer credit and sales tracking for simplified business accountability
+- Role-based access for staff, managers, and owners
+- Multi-platform presence across desktop, web, and mobile
+- A practical focus on everyday shop operations, not just showroom dashboards
+
+## Repository structure
 
 ```text
 kaarobar/
@@ -30,37 +45,56 @@ kaarobar/
 └── ...
 ```
 
-## Applications in this repo
+## Applications
 
 ### Desktop
 
-- [desktop/local](desktop/local) — local/offline desktop application for shop operations
-- [desktop/cloud](desktop/cloud) — cloud-connected desktop product or hosted companion app
+- [desktop/local](desktop/local) — local/offline desktop application for core shop operations
+- [desktop/cloud](desktop/cloud) — cloud-connected desktop or hosted companion platform
 
 ### Web
 
-- [web/landing](web/landing) — marketing or public landing site
-- [web/main](web/main) — main web application
+- [web/landing](web/landing) — public-facing landing page or marketing experience
+- [web/main](web/main) — main web application for management and digital access
 
 ### Mobile
 
 - [mobile/customer](mobile/customer) — customer-facing mobile app
-- [mobile/staff](mobile/staff) — staff-facing mobile app
+- [mobile/staff](mobile/staff) — staff-focused mobile operations app
 
 ## Tech stack
 
-The project uses a modern multi-app stack, including:
+The project uses a modern multi-platform stack:
 
-- Electron and desktop native tooling for local desktop apps
-- React / Vite / Next.js for web experiences
+- Electron for desktop native experiences
+- React + Vite + Next.js for web interfaces
 - React Native / Expo for mobile apps
-- TypeScript across apps and shared code
-- Node.js-based tooling and package management
-- Local and cloud-ready architecture depending on the app
+- TypeScript across application layers
+- Node.js tooling and package-based project management
+- Local-first and cloud-ready architecture depending on app needs
 
-## Quick start
+## Developer onboarding guide
 
-Each app has its own dependencies and scripts. For the desktop local app:
+### Prerequisites
+
+Install the latest stable versions of the following tools:
+
+- Node.js
+- npm
+- Git
+- A code editor such as VS Code
+
+### Recommended workflow
+
+1. Clone the repository
+2. Open the app you want to work on
+3. Install dependencies in that app folder
+4. Run the local development command for that app
+5. Keep each app isolated by platform and service responsibility
+
+### Run the apps
+
+Desktop local app:
 
 ```bash
 cd desktop/local
@@ -68,7 +102,7 @@ npm install
 npm run dev
 ```
 
-For web apps:
+Web main app:
 
 ```bash
 cd web/main
@@ -76,7 +110,7 @@ npm install
 npm run dev
 ```
 
-For mobile apps:
+Mobile staff app:
 
 ```bash
 cd mobile/staff
@@ -84,9 +118,23 @@ npm install
 npm start
 ```
 
+### Development conventions
+
+- Keep app-specific logic inside each package folder
+- Avoid mixing web, mobile, and desktop concerns in one project folder
+- Use environment variables for secrets and local configuration
+- Treat generated build and output folders as non-source artifacts
+- Verify app-specific docs before changing behavior or build configuration
+
+### Useful project notes
+
+- This repository is structured as a multi-project monorepo, not a single app.
+- Not every app shares the same runtime and tooling requirements.
+- Generated files, local secrets, cache folders, and environment files should not be committed.
+
 ## Documentation
 
-The app-level documentation lives in each package folder:
+The detailed docs for the desktop implementation live in the local app package:
 
 - [desktop/local/README.md](desktop/local/README.md)
 - [desktop/local/FEATURES.md](desktop/local/FEATURES.md)
@@ -95,10 +143,8 @@ The app-level documentation lives in each package folder:
 
 ## Notes
 
-- This repository is organized as a multi-project monorepo rather than a single app.
-- Apps may have different runtime and build requirements depending on their platform.
-- Environment variables, generated build artifacts, and local secrets should remain out of version control.
+This project is designed to support real business operations, especially within retail and service environments. The platform evolves around practical workflows such as sales, inventory, customer management, and everyday staff coordination.
 
 ## License
 
-Please refer to each app package for its respective licensing and distribution details where applicable.
+Please refer to each package for its own licensing and release details where applicable.
