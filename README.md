@@ -1,32 +1,42 @@
 # Kaarobar
 
-Kaarobar is a multi-platform commerce platform for small businesses that need a simple, reliable way to sell, manage stock, track customers, and operate across desktop, web, and mobile channels.
+Kaarobar is a modern commerce platform built for small businesses that need a practical, reliable way to run sales, inventory, customer relationships, and operations across desktop, web, and mobile channels.
 
-## GitHub project presentation
+## Overview
 
-This repository is organized as a product monorepo with different application surfaces built for different business needs:
+From the storefront to the back office, Kaarobar brings essential business workflows into one connected ecosystem. The repository is organized as a multi-app product suite that supports daily operations for shops and service businesses.
 
-- Desktop POS for in-shop operations and offline-first sales workflows
-- Cloud/web experience for business management and broader access
-- Mobile apps for staff and customer interactions
-- Shared product structure designed for business continuity and expansion
+## What Kaarobar does
 
-The project is positioned as a practical business operating system for shops and service businesses, with a focus on real-world retail workflows rather than generic app scaffolding.
+- Runs shop operations through a desktop POS experience
+- Supports offline-first selling and local day-to-day business work
+- Tracks inventory, product movement, and purchasing
+- Helps manage customer credit, sales history, and follow-up activity
+- Gives owners and staff role-based access to the tools they need
+- Extends into web and mobile experiences for broader business access
 
-## Investor / client-facing summary
+## Product areas
 
-Kaarobar addresses a common operational problem for small businesses: fragmented tools for sales, inventory, customer tracking, and payments. The platform is designed to bring these systems together into one cohesive experience, helping owners and staff work faster with less manual effort.
+### Desktop
 
-Key value points:
+- [desktop/local](desktop/local) — primary local desktop application for shop operations
+- [desktop/cloud](desktop/cloud) — cloud-connected or hosted companion desktop product
 
-- Offline-first desktop operation for reliable local selling
-- Inventory and purchase workflows for better stock control
-- Customer credit and sales tracking for simplified business accountability
-- Role-based access for staff, managers, and owners
-- Multi-platform presence across desktop, web, and mobile
-- A practical focus on everyday shop operations, not just showroom dashboards
+### Web
 
-## Repository structure
+- [web/landing](web/landing) — public-facing marketing and brand experience
+- [web/main](web/main) — main business web application
+
+### Mobile
+
+- [mobile/customer](mobile/customer) — customer-facing mobile experience
+- [mobile/staff](mobile/staff) — staff-first operations experience
+
+## Why it matters
+
+Small businesses often juggle disconnected systems for POS, stock control, and customer management. Kaarobar is designed to reduce that fragmentation by unifying the core workflows that matter most in day-to-day operations.
+
+## Monorepo structure
 
 ```text
 kaarobar/
@@ -45,56 +55,22 @@ kaarobar/
 └── ...
 ```
 
-## Applications
-
-### Desktop
-
-- [desktop/local](desktop/local) — local/offline desktop application for core shop operations
-- [desktop/cloud](desktop/cloud) — cloud-connected desktop or hosted companion platform
-
-### Web
-
-- [web/landing](web/landing) — public-facing landing page or marketing experience
-- [web/main](web/main) — main web application for management and digital access
-
-### Mobile
-
-- [mobile/customer](mobile/customer) — customer-facing mobile app
-- [mobile/staff](mobile/staff) — staff-focused mobile operations app
-
 ## Tech stack
 
-The project uses a modern multi-platform stack:
+Kaarobar is built with a multi-platform modern stack:
 
-- Electron for desktop native experiences
-- React + Vite + Next.js for web interfaces
-- React Native / Expo for mobile apps
-- TypeScript across application layers
-- Node.js tooling and package-based project management
-- Local-first and cloud-ready architecture depending on app needs
+- Electron for desktop-native app experiences
+- React and Vite for web interfaces
+- Next.js for web application surfaces
+- React Native and Expo for mobile experiences
+- TypeScript across frontend and application logic
+- Node.js tooling for development and packaging
 
-## Developer onboarding guide
+## Quick start
 
-### Prerequisites
+Each app in the repo has its own setup and runtime requirements. Start with the app you want to work on.
 
-Install the latest stable versions of the following tools:
-
-- Node.js
-- npm
-- Git
-- A code editor such as VS Code
-
-### Recommended workflow
-
-1. Clone the repository
-2. Open the app you want to work on
-3. Install dependencies in that app folder
-4. Run the local development command for that app
-5. Keep each app isolated by platform and service responsibility
-
-### Run the apps
-
-Desktop local app:
+### Desktop app
 
 ```bash
 cd desktop/local
@@ -102,7 +78,7 @@ npm install
 npm run dev
 ```
 
-Web main app:
+### Web app
 
 ```bash
 cd web/main
@@ -110,7 +86,7 @@ npm install
 npm run dev
 ```
 
-Mobile staff app:
+### Mobile app
 
 ```bash
 cd mobile/staff
@@ -118,33 +94,21 @@ npm install
 npm start
 ```
 
-### Development conventions
-
-- Keep app-specific logic inside each package folder
-- Avoid mixing web, mobile, and desktop concerns in one project folder
-- Use environment variables for secrets and local configuration
-- Treat generated build and output folders as non-source artifacts
-- Verify app-specific docs before changing behavior or build configuration
-
-### Useful project notes
-
-- This repository is structured as a multi-project monorepo, not a single app.
-- Not every app shares the same runtime and tooling requirements.
-- Generated files, local secrets, cache folders, and environment files should not be committed.
-
 ## Documentation
 
-The detailed docs for the desktop implementation live in the local app package:
+Relevant package-level documentation is maintained inside each app folder:
 
 - [desktop/local/README.md](desktop/local/README.md)
 - [desktop/local/FEATURES.md](desktop/local/FEATURES.md)
 - [desktop/local/PHASE_GATES.md](desktop/local/PHASE_GATES.md)
 - [desktop/local/WINDOWS_RELEASE_SMOKE_TEST.md](desktop/local/WINDOWS_RELEASE_SMOKE_TEST.md)
 
-## Notes
+## Development notes
 
-This project is designed to support real business operations, especially within retail and service environments. The platform evolves around practical workflows such as sales, inventory, customer management, and everyday staff coordination.
+- This repository is a multi-project monorepo, not a single app.
+- Each platform has its own requirements and setup flow.
+- Secrets, local env files, generated builds, and platform artifacts should remain out of source control.
 
 ## License
 
-Please refer to each package for its own licensing and release details where applicable.
+Please refer to each package for specific licensing and distribution details where applicable.
