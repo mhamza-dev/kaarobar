@@ -1,0 +1,1 @@
+export { KaarobarLogo } from './KaarobarLogo'

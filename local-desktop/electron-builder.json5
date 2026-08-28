@@ -1,0 +1,75 @@
+{
+  $schema: "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
+  appId: "com.kaarobar.pos",
+  asar: true,
+  productName: "Kaarobar",
+  directories: {
+    output: "release/${version}",
+    buildResources: "build",
+  },
+  files: ["dist/**/*", "dist-electron/**/*"],
+  asarUnpack: [
+    "**/*.node",
+    "**/better-sqlite3/**",
+  ],
+  npmRebuild: true,
+  mac: {
+    category: "public.app-category.business",
+    icon: "public/kaarobar-icon.png",
+    target: [
+      {
+        target: "dmg",
+        arch: ["x64"],
+      },
+    ],
+    artifactName: "${productName}-Mac-${version}-Installer.${ext}",
+    identity: null,
+    hardenedRuntime: false,
+    gatekeeperAssess: false,
+  },
+  dmg: {
+    artifactName: "${productName}-Mac-${version}-Installer.${ext}",
+  },
+  win: {
+    icon: "public/kaarobar-icon.png",
+    target: [
+      {
+        target: "nsis",
+        arch: ["x64"],
+      },
+      {
+        target: "portable",
+        arch: ["x64"],
+      },
+    ],
+    artifactName: "${productName}-Windows-${version}-${arch}-Setup.${ext}",
+  },
+  nsis: {
+    oneClick: false,
+    perMachine: false,
+    allowToChangeInstallationDirectory: true,
+    deleteAppDataOnUninstall: false,
+    artifactName: "${productName}-Windows-${version}-Setup.${ext}",
+    createDesktopShortcut: "always",
+    createStartMenuShortcut: true,
+  },
+  portable: {
+    artifactName: "${productName}-Windows-${version}-Portable.${ext}",
+  },
+  linux: {
+    category: "Office",
+    icon: "public/kaarobar-icon.png",
+    maintainer: "Kaarobar Team <support.kaarobar@gmail.com>",
+    target: [
+      {
+        target: "AppImage",
+        arch: ["x64"],
+      },
+      {
+        target: "deb",
+        arch: ["x64"],
+      },
+    ],
+    artifactName: "${productName}-Linux-${version}-${arch}.${ext}",
+  },
+}
