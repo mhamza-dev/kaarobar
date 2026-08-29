@@ -476,7 +476,16 @@
     "saleTotal": "Verkaufssumme",
     "deleteSale": "Verkauf löschen",
     "deleteSaleTitle": "{{count}} Verkauf/Verkäufe löschen?",
-    "deleteSaleConfirm": "Der Bestand wird zurückgebucht und offene Guthaben auf dem Konto werden storniert. Der Verkauf lässt sich nicht wiederherstellen — erstatten Sie ihn, wenn der Beleg erhalten bleiben soll."
+    "deleteSaleConfirm": "Der Bestand wird zurückgebucht und offene Guthaben auf dem Konto werden storniert. Der Verkauf lässt sich nicht wiederherstellen — erstatten Sie ihn, wenn der Beleg erhalten bleiben soll.",
+    "deleteCustomer": "Kunde löschen",
+    "deleteCustomerTitle": "{{count}} Kunde(n) löschen?",
+    "deleteCustomerConfirm": "Die Verkäufe werden mitgelöscht — der Bestand wird zurückgebucht, Guthaben auf dem Konto storniert und die Einnahmen dieser Tage sinken. Das Kontobuch geht mit. Soll die Historie erhalten bleiben, deaktivieren Sie den Kunden stattdessen.",
+    "deleteSupplier": "Lieferant löschen",
+    "deleteSupplierTitle": "{{count}} Lieferant(en) löschen?",
+    "deleteSupplierConfirm": "Bestellungen, Preisliste und Kontobuch werden mitgelöscht. Eine Bestellung mit bereits eingebuchtem Wareneingang bricht den Vorgang ab. Soll die Historie erhalten bleiben, deaktivieren Sie den Lieferanten stattdessen.",
+    "deletePo": "Bestellung löschen",
+    "deletePoTitle": "{{count}} Bestellung(en) löschen?",
+    "deletePoConfirm": "Die Bestellung und ihre Positionen werden entfernt. Eine Bestellung mit eingebuchtem Wareneingang lässt sich nicht löschen — stornieren Sie sie stattdessen."
   },
   "barcode": {
     "generate": "Generieren",
@@ -713,7 +722,13 @@
     "invoiceNotFound": "Kein Verkauf zur Rechnung {{invoice}} gefunden",
     "invoiceScanInvalid": "Scannen Sie einen Kaarobar-Rechnungsbarcode (KB-…)",
     "salesDeleted": "{{count}} Verkauf/Verkäufe gelöscht",
-    "salesDeleteFailed": "Nicht gelöscht: {{invoices}}"
+    "salesDeleteFailed": "Nicht gelöscht: {{names}}",
+    "customersDeleted": "{{count}} Kunde(n) gelöscht",
+    "customersDeleteFailed": "Nicht gelöscht: {{names}}",
+    "suppliersDeleted": "{{count}} Lieferant(en) gelöscht",
+    "suppliersDeleteFailed": "Nicht gelöscht: {{names}}",
+    "purchaseOrdersDeleted": "{{count}} Bestellung(en) gelöscht",
+    "purchaseOrdersDeleteFailed": "Nicht gelöscht: {{names}}"
   },
   "inventory": {
     "daysLeft": "{{days}}T verbleibend",

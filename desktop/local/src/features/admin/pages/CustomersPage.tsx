@@ -1,4 +1,4 @@
-import { Pencil, Plus } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Form, Formik } from "formik";
 import { useTranslation } from "react-i18next";
@@ -6,6 +6,7 @@ import { useFormatMoney } from "../../../lib/useFormatMoney";
 import {
   Button,
   Card,
+  ConfirmDialog,
   EmptyState,
   Modal,
   Table,
@@ -18,6 +19,7 @@ import { hasLicenseFeature, useLicenseFeatures } from "../../../lib/license";
 import { RowActionsMenu } from "../components/RowActionsMenu";
 import type { Customer, SessionUser } from "../../../../shared/types/api";
 import type { AdminData } from "../hooks/useAdminData";
+import { useBulkDelete } from "../hooks/useBulkDelete";
 import * as yup from "yup";
 
 type Props = {
@@ -58,6 +60,16 @@ export function CustomersPage({ user, data, onOpenCustomer }: Props) {
   );
   const withBalance = customers.filter((c) => c.currentBalance > 0).length;
 
+  const bulkDelete = useBulkDelete({
+    remove: (id) => window.api.customers.remove({ customerId: id }),
+    label: (id) => customers.find((row) => row.id === id)?.name ?? id,
+    refresh: () => data.refreshAll(),
+    messages: {
+      success: "toast.customersDeleted",
+      failure: "toast.customersDeleteFailed",
+    },
+  });
+
   const customerActions = (row: Customer) => [
     ...(actions.canEditCustomers
       ? [
@@ -69,6 +81,17 @@ export function CustomersPage({ user, data, onOpenCustomer }: Props) {
               setEditingCustomer(row);
               setCustomerOpen(true);
             },
+          },
+        ]
+      : []),
+    ...(actions.canDeleteCustomers
+      ? [
+          {
+            id: "delete",
+            label: t("forms.deleteCustomer"),
+            icon: <Trash2 className="size-4" />,
+            danger: true,
+            onSelect: () => bulkDelete.askOne(row.id),
           },
         ]
       : []),
@@ -126,6 +149,18 @@ export function CustomersPage({ user, data, onOpenCustomer }: Props) {
             rowKey={(row) => row.id}
             rows={customers}
             onRowClick={(row) => onOpenCustomer(row.id)}
+            selectable={actions.canDeleteCustomers}
+            bulkActions={({ keys, clear }) => (
+              <Button
+                type="button"
+                variant="danger"
+                size="sm"
+                onClick={() => bulkDelete.askMany(keys, clear)}
+              >
+                <Trash2 className="size-4" />
+                {t("table.bulkDelete")}
+              </Button>
+            )}
             search={{
               getText: (row) => `${row.name} ${row.phone ?? ""}`,
             }}
@@ -203,6 +238,17 @@ export function CustomersPage({ user, data, onOpenCustomer }: Props) {
           />
         )}
       </Card>
+
+      <ConfirmDialog
+        open={bulkDelete.open}
+        loading={bulkDelete.busy}
+        danger
+        onClose={bulkDelete.cancel}
+        onConfirm={bulkDelete.confirm}
+        title={t("forms.deleteCustomerTitle", { count: bulkDelete.count })}
+        description={t("forms.deleteCustomerConfirm")}
+        confirmLabel={t("forms.deleteCustomer")}
+      />
 
       <Modal
         open={customerOpen}

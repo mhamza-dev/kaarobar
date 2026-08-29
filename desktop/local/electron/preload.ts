@@ -83,12 +83,14 @@ const api: KaarobarApi = {
     unlinkProduct: (payload) => ipcRenderer.invoke(IPC_CHANNELS.SUPPLIER_UNLINK_PRODUCT, payload),
     updateLinkedProduct: (payload) =>
       ipcRenderer.invoke(IPC_CHANNELS.SUPPLIER_UPDATE_LINKED_PRODUCT, payload),
+    remove: (payload) => ipcRenderer.invoke(IPC_CHANNELS.SUPPLIER_DELETE, payload),
   },
   purchaseOrders: {
     list: (businessId) => ipcRenderer.invoke(IPC_CHANNELS.PO_LIST, businessId),
     getDetail: (poId) => ipcRenderer.invoke(IPC_CHANNELS.PO_GET_DETAIL, poId),
     create: (payload) => ipcRenderer.invoke(IPC_CHANNELS.PO_CREATE, payload),
     print: (poId) => ipcRenderer.invoke(IPC_CHANNELS.PO_PRINT, poId),
+    remove: (payload) => ipcRenderer.invoke(IPC_CHANNELS.PO_DELETE, payload),
   },
   customers: {
     list: (businessId) => ipcRenderer.invoke(IPC_CHANNELS.CUSTOMER_LIST, businessId),
@@ -97,6 +99,7 @@ const api: KaarobarApi = {
     update: (payload) => ipcRenderer.invoke(IPC_CHANNELS.CUSTOMER_UPDATE, payload),
     recordPayment: (payload) => ipcRenderer.invoke(IPC_CHANNELS.CUSTOMER_RECORD_PAYMENT, payload),
     printLedger: (payload) => ipcRenderer.invoke(IPC_CHANNELS.CUSTOMER_PRINT_LEDGER, payload),
+    remove: (payload) => ipcRenderer.invoke(IPC_CHANNELS.CUSTOMER_DELETE, payload),
   },
   printer: {
     list: () => ipcRenderer.invoke(IPC_CHANNELS.PRINTER_LIST),

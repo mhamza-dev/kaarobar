@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Form, Formik } from 'formik'
-import { Pencil, Plus } from 'lucide-react'
+import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import {
   Badge,
   Button,
   Card,
+  ConfirmDialog,
   EmptyState,
   Modal,
   Table,
@@ -18,6 +19,7 @@ import { hasLicenseFeature, useLicenseFeatures } from '../../../lib/license'
 import { RowActionsMenu } from '../components/RowActionsMenu'
 import type { SessionUser, Supplier } from '../../../../shared/types/api'
 import type { AdminData } from '../hooks/useAdminData'
+import { useBulkDelete } from '../hooks/useBulkDelete'
 
 type Props = {
   user: SessionUser
@@ -33,6 +35,36 @@ export function SuppliersPage({ user, data, onOpenSupplier }: Props) {
   const [editing, setEditing] = useState<Supplier | null>(null)
   const { suppliers, activeBusinessId, refreshScopedData } = data
   const licenseFeatures = useLicenseFeatures()
+
+  const bulkDelete = useBulkDelete({
+    remove: (id) => window.api.suppliers.remove({ supplierId: id }),
+    label: (id) => suppliers.find((row) => row.id === id)?.name ?? id,
+    refresh: () => data.refreshAll(),
+    messages: {
+      success: 'toast.suppliersDeleted',
+      failure: 'toast.suppliersDeleteFailed' },
+  })
+
+  const supplierActions = (row: Supplier) => [
+    {
+      id: 'edit',
+      label: t('common.edit'),
+      icon: <Pencil className="size-4" />,
+      onSelect: () => {
+        setEditing(row)
+        setSupplierOpen(true)
+      } },
+    ...(actions.canDeleteSuppliers
+      ? [
+          {
+            id: 'delete',
+            label: t('forms.deleteSupplier'),
+            icon: <Trash2 className="size-4" />,
+            danger: true,
+            onSelect: () => bulkDelete.askOne(row.id) },
+        ]
+      : []),
+  ]
 
   if (!actions.canEditSuppliers) return null
   if (!hasLicenseFeature(licenseFeatures, 'suppliers')) return null
@@ -66,6 +98,18 @@ export function SuppliersPage({ user, data, onOpenSupplier }: Props) {
             rowKey={(row) => row.id}
             rows={suppliers}
             onRowClick={(row) => onOpenSupplier(row.id)}
+            selectable={actions.canDeleteSuppliers}
+            bulkActions={({ keys, clear }) => (
+              <Button
+                type="button"
+                variant="danger"
+                size="sm"
+                onClick={() => bulkDelete.askMany(keys, clear)}
+              >
+                <Trash2 className="size-4" />
+                {t('table.bulkDelete')}
+              </Button>
+            )}
             search={{
               getText: (row) => `${row.name} ${row.phone ?? ''}` }}
             filters={[
@@ -88,20 +132,7 @@ export function SuppliersPage({ user, data, onOpenSupplier }: Props) {
                   </Badge>
                 ) },
             ]}
-            mobileCardActions={(row) => (
-              <RowActionsMenu
-                actions={[
-                  {
-                    id: 'edit',
-                    label: t('common.edit'),
-                    icon: <Pencil className="size-4" />,
-                    onSelect: () => {
-                      setEditing(row)
-                      setSupplierOpen(true)
-                    } },
-                ]}
-              />
-            )}
+            mobileCardActions={(row) => <RowActionsMenu actions={supplierActions(row)} />}
             columns={[
               {
                 key: 'name',
@@ -123,24 +154,22 @@ export function SuppliersPage({ user, data, onOpenSupplier }: Props) {
                 header: <span className="sr-only">{t('forms.actions')}</span>,
                 width: 'w-28',
                 align: 'end',
-                render: (row) => (
-                  <RowActionsMenu
-                    actions={[
-                      {
-                        id: 'edit',
-                        label: t('common.edit'),
-                        icon: <Pencil className="size-4" />,
-                        onSelect: () => {
-                          setEditing(row)
-                          setSupplierOpen(true)
-                        } },
-                    ]}
-                  />
-                ) },
+                render: (row) => <RowActionsMenu actions={supplierActions(row)} /> },
             ]}
           />
         )}
       </Card>
+
+      <ConfirmDialog
+        open={bulkDelete.open}
+        loading={bulkDelete.busy}
+        danger
+        onClose={bulkDelete.cancel}
+        onConfirm={bulkDelete.confirm}
+        title={t('forms.deleteSupplierTitle', { count: bulkDelete.count })}
+        description={t('forms.deleteSupplierConfirm')}
+        confirmLabel={t('forms.deleteSupplier')}
+      />
 
       <Modal
         open={supplierOpen}

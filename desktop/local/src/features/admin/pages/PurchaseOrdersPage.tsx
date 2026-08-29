@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import {
   Badge,
   Button,
   Card,
+  ConfirmDialog,
   EmptyState,
   Table,
 } from '../../../components/ui'
@@ -12,6 +13,8 @@ import { PageHeader } from '../../../components/layout'
 import { useActionVisibility } from '../../../lib/nav'
 import { hasLicenseFeature, useLicenseFeatures } from '../../../lib/license'
 import { CreatePoModal } from '../modals/CreatePoModal'
+import { RowActionsMenu } from '../components/RowActionsMenu'
+import { useBulkDelete } from '../hooks/useBulkDelete'
 import { poStatusTone, statusLabel } from '../../../lib/statusLabel'
 import type { SessionUser } from '../../../../shared/types/api'
 import type { AdminData } from '../hooks/useAdminData'
@@ -34,6 +37,29 @@ export function PurchaseOrdersPage({ user, data, onOpenPo }: Props) {
     refreshScopedData,
   } = data
   const licenseFeatures = useLicenseFeatures()
+
+  const bulkDelete = useBulkDelete({
+    remove: (id) => window.api.purchaseOrders.remove({ poId: id }),
+    label: (id) => purchaseOrders.find((row) => row.id === id)?.poNumber ?? id,
+    refresh: () => data.refreshAll(),
+    messages: {
+      success: 'toast.purchaseOrdersDeleted',
+      failure: 'toast.purchaseOrdersDeleteFailed',
+    },
+  })
+
+  const poActions = (row: (typeof purchaseOrders)[number]) =>
+    actions.canDeletePurchaseOrders
+      ? [
+          {
+            id: 'delete',
+            label: t('forms.deletePo'),
+            icon: <Trash2 className="size-4" />,
+            danger: true,
+            onSelect: () => bulkDelete.askOne(row.id),
+          },
+        ]
+      : []
 
   if (!actions.canEditPurchaseOrders) return null
   if (!hasLicenseFeature(licenseFeatures, 'purchase_orders')) return null
@@ -62,6 +88,18 @@ export function PurchaseOrdersPage({ user, data, onOpenPo }: Props) {
             rowKey={(row) => row.id}
             rows={purchaseOrders}
             onRowClick={(row) => onOpenPo(row.id)}
+            selectable={actions.canDeletePurchaseOrders}
+            bulkActions={({ keys, clear }) => (
+              <Button
+                type="button"
+                variant="danger"
+                size="sm"
+                onClick={() => bulkDelete.askMany(keys, clear)}
+              >
+                <Trash2 className="size-4" />
+                {t('table.bulkDelete')}
+              </Button>
+            )}
             search={{
               getText: (row) => `${row.poNumber} ${statusLabel(t, 'po', row.status)}`,
             }}
@@ -88,6 +126,11 @@ export function PurchaseOrdersPage({ user, data, onOpenPo }: Props) {
             mobileCardFields={[
               { key: 'date', label: t('forms.orderDate'), render: (row) => row.orderDate },
             ]}
+            mobileCardActions={
+              actions.canDeletePurchaseOrders
+                ? (row) => <RowActionsMenu actions={poActions(row)} />
+                : undefined
+            }
             columns={[
               {
                 key: 'poNumber',
@@ -108,10 +151,34 @@ export function PurchaseOrdersPage({ user, data, onOpenPo }: Props) {
                 width: 'w-36',
                 render: (row) => row.orderDate,
               },
+              ...(actions.canDeletePurchaseOrders
+                ? [
+                    {
+                      key: 'actions',
+                      header: <span className="sr-only">{t('forms.actions')}</span>,
+                      width: 'w-28',
+                      align: 'end' as const,
+                      render: (row: (typeof purchaseOrders)[number]) => (
+                        <RowActionsMenu actions={poActions(row)} />
+                      ),
+                    },
+                  ]
+                : []),
             ]}
           />
         )}
       </Card>
+
+      <ConfirmDialog
+        open={bulkDelete.open}
+        loading={bulkDelete.busy}
+        danger
+        onClose={bulkDelete.cancel}
+        onConfirm={bulkDelete.confirm}
+        title={t('forms.deletePoTitle', { count: bulkDelete.count })}
+        description={t('forms.deletePoConfirm')}
+        confirmLabel={t('forms.deletePo')}
+      />
 
       <CreatePoModal
         open={poOpen}

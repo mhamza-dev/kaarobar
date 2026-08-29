@@ -476,7 +476,16 @@
     "saleTotal": "Total de la venta",
     "deleteSale": "Eliminar venta",
     "deleteSaleTitle": "¿Eliminar {{count}} venta(s)?",
-    "deleteSaleConfirm": "El stock vuelve a la estantería y se revierte cualquier crédito en la cuenta. La venta no se puede recuperar: haz una devolución si quieres conservar el registro."
+    "deleteSaleConfirm": "El stock vuelve a la estantería y se revierte cualquier crédito en la cuenta. La venta no se puede recuperar: haz una devolución si quieres conservar el registro.",
+    "deleteCustomer": "Eliminar cliente",
+    "deleteCustomerTitle": "¿Eliminar {{count}} cliente(s)?",
+    "deleteCustomerConfirm": "Sus ventas también se eliminan: el stock vuelve a la estantería, se revierte el crédito de la cuenta y bajan los ingresos de esos días. Su libro de cuenta se va con él. Para conservar el historial, desactiva el cliente en su lugar.",
+    "deleteSupplier": "Eliminar proveedor",
+    "deleteSupplierTitle": "¿Eliminar {{count}} proveedor(es)?",
+    "deleteSupplierConfirm": "Sus pedidos de compra, lista de precios y libro de cuenta también se eliminan. Un pedido con stock ya recibido detendrá la eliminación. Para conservar el historial, desactiva el proveedor en su lugar.",
+    "deletePo": "Eliminar pedido de compra",
+    "deletePoTitle": "¿Eliminar {{count}} pedido(s) de compra?",
+    "deletePoConfirm": "Se eliminan el pedido y sus líneas. Un pedido con stock ya recibido no se puede eliminar: cancélalo en su lugar."
   },
   "barcode": {
     "generate": "Generar",
@@ -713,7 +722,13 @@
     "invoiceNotFound": "No se encontró ninguna venta para la factura {{invoice}}",
     "invoiceScanInvalid": "Escanea un código de barras de factura Kaarobar (KB-…)",
     "salesDeleted": "{{count}} venta(s) eliminada(s)",
-    "salesDeleteFailed": "No se pudo eliminar: {{invoices}}"
+    "salesDeleteFailed": "No se pudo eliminar: {{names}}",
+    "customersDeleted": "{{count}} cliente(s) eliminado(s)",
+    "customersDeleteFailed": "No se pudo eliminar: {{names}}",
+    "suppliersDeleted": "{{count}} proveedor(es) eliminado(s)",
+    "suppliersDeleteFailed": "No se pudo eliminar: {{names}}",
+    "purchaseOrdersDeleted": "{{count}} pedido(s) de compra eliminado(s)",
+    "purchaseOrdersDeleteFailed": "No se pudo eliminar: {{names}}"
   },
   "inventory": {
     "daysLeft": "{{days}}d restantes",

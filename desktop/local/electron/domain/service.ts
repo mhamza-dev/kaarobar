@@ -3014,13 +3014,34 @@ export function deleteSale(payload: { saleId: string; reason?: string }): {
 } {
   requireValidLicense();
   const session = requirePermission("sales:delete");
+  let invoiceNo = "";
+  db().transaction(() => {
+    invoiceNo = deleteSaleWithin(payload.saleId, session.id, payload.reason);
+  })();
+  return { ok: true, invoiceNo };
+}
 
+/**
+ * The body of a sale deletion, without the permission check or a transaction of
+ * its own.
+ *
+ * Split out so that deleting a customer can remove their sales in the *same*
+ * transaction as their ledger and their record. SQLite has no nested
+ * transactions: calling the public `deleteSale` in a loop would either throw or,
+ * worse, commit each sale separately — leaving a half-deleted customer behind if
+ * the fifth sale failed.
+ */
+function deleteSaleWithin(
+  saleId: string,
+  actorUserId: string,
+  reasonInput?: string,
+): string {
   const sale = db()
     .prepare(
-      `SELECT id, business_id, branch_id, invoice_no, customer_id, total, status, table_id
+      `SELECT id, business_id, branch_id, invoice_no, customer_id, total, status
        FROM sales WHERE id = ?`,
     )
-    .get(payload.saleId) as
+    .get(saleId) as
     | {
         id: string;
         business_id: string;
@@ -3029,16 +3050,15 @@ export function deleteSale(payload: { saleId: string; reason?: string }): {
         customer_id: string | null;
         total: number;
         status: Sale["status"];
-        table_id: string | null;
       }
     | undefined;
   if (!sale) throw new Error("Sale not found");
   assertBusinessAccess(sale.business_id);
 
-  const reason = payload.reason?.trim() || null;
+  const reason = reasonInput?.trim() || null;
   const at = nowIso();
 
-  db().transaction(() => {
+  {
     const items = db()
       .prepare(
         "SELECT id, product_id, qty, refunded_qty FROM sale_items WHERE sale_id = ?",
@@ -3099,7 +3119,7 @@ export function deleteSale(payload: { saleId: string; reason?: string }): {
           -outstandingCredit,
           newBalance,
           `Sale ${sale.invoice_no} deleted${reason ? `: ${reason}` : ""}`,
-          session.id,
+          actorUserId,
           at,
         );
     }
@@ -3128,7 +3148,7 @@ export function deleteSale(payload: { saleId: string; reason?: string }): {
     // The sale rows are gone; this is the only record that it ever existed.
     writeActivity({
       businessId: sale.business_id,
-      actorUserId: session.id,
+      actorUserId,
       entityType: "sale",
       entityId: sale.id,
       action: "sale_deleted",
@@ -3146,9 +3166,248 @@ export function deleteSale(payload: { saleId: string; reason?: string }): {
         reason,
       },
     });
+  }
+
+  return sale.invoice_no;
+}
+
+/**
+ * Delete a customer and everything hanging off them.
+ *
+ * Owner-only, and genuinely destructive: every sale they were ever attached to
+ * is deleted too, which puts the stock back and takes the revenue out of the
+ * day it was rung. That is what "delete the customer and their data" has to
+ * mean if the customer record is going — a sale pointing at a customer that no
+ * longer exists is worse than either outcome, and `sales.customer_id` is
+ * ON DELETE RESTRICT, so the database would refuse it anyway.
+ *
+ * Anyone who wants the sales kept should deactivate the customer instead. The
+ * confirm dialog says so.
+ *
+ * All of it lands in one transaction. A customer whose sales went but whose
+ * ledger survived would leave a balance nothing explains.
+ */
+export function deleteCustomer(payload: {
+  customerId: string;
+  reason?: string;
+}): { ok: true; name: string; salesDeleted: number } {
+  requireValidLicense();
+  const session = requirePermission("customers:delete");
+
+  const customer = db()
+    .prepare(
+      "SELECT id, business_id, name, current_balance FROM customers WHERE id = ?",
+    )
+    .get(payload.customerId) as
+    | { id: string; business_id: string; name: string; current_balance: number }
+    | undefined;
+  if (!customer) throw new Error("Customer not found");
+  assertBusinessAccess(customer.business_id);
+
+  const reason = payload.reason?.trim() || null;
+  let salesDeleted = 0;
+
+  db().transaction(() => {
+    const saleIds = (
+      db()
+        .prepare("SELECT id FROM sales WHERE customer_id = ?")
+        .all(customer.id) as Array<{ id: string }>
+    ).map((row) => row.id);
+
+    // Each one restocks and reverses its own credit on the way out, so the
+    // balance is already unwound by the time the ledger rows are removed.
+    for (const saleId of saleIds) {
+      deleteSaleWithin(
+        saleId,
+        session.id,
+        `Customer ${customer.name} deleted${reason ? `: ${reason}` : ""}`,
+      );
+      salesDeleted += 1;
+    }
+
+    // The ledger goes with them. It is kept when a *sale* is deleted, because
+    // the customer stays and their running balance has to keep adding up; here
+    // there is no one left for it to add up for.
+    db()
+      .prepare("DELETE FROM ledger_entries WHERE customer_id = ?")
+      .run(customer.id);
+    db().prepare("DELETE FROM customers WHERE id = ?").run(customer.id);
+
+    writeActivity({
+      businessId: customer.business_id,
+      actorUserId: session.id,
+      entityType: "customer",
+      entityId: customer.id,
+      action: "customer_deleted",
+      summary: `Customer ${customer.name} deleted with ${salesDeleted} sale(s)${reason ? `: ${reason}` : ""}`,
+      payload: {
+        name: customer.name,
+        balance: customer.current_balance,
+        salesDeleted,
+        reason,
+      },
+    });
   })();
 
-  return { ok: true, invoiceNo: sale.invoice_no };
+  return { ok: true, name: customer.name, salesDeleted };
+}
+
+/**
+ * Delete a purchase order.
+ *
+ * Owner-only. Refuses once anything has been received against it: booked-in
+ * stock would have to come back off the shelf, and this app has no receiving
+ * flow yet — nothing writes `received_qty` or `supplier_ledger_entries` — so
+ * there is no recorded movement to reverse. Refusing is the honest answer;
+ * deleting anyway would leave the stock figure wrong with no trace of why.
+ * When receiving lands, this is where the reversal belongs.
+ */
+export function deletePurchaseOrder(payload: {
+  poId: string;
+  reason?: string;
+}): { ok: true; poNumber: string } {
+  requireValidLicense();
+  const session = requirePermission("purchaseOrders:delete");
+  let poNumber = "";
+  db().transaction(() => {
+    poNumber = deletePurchaseOrderWithin(
+      payload.poId,
+      session.id,
+      payload.reason,
+    );
+  })();
+  return { ok: true, poNumber };
+}
+
+/** The body of a PO deletion, for callers already inside a transaction. */
+function deletePurchaseOrderWithin(
+  poId: string,
+  actorUserId: string,
+  reasonInput?: string,
+): string {
+  const po = db()
+    .prepare(
+      "SELECT id, business_id, supplier_id, po_number, status FROM purchase_orders WHERE id = ?",
+    )
+    .get(poId) as
+    | {
+        id: string;
+        business_id: string;
+        supplier_id: string;
+        po_number: string;
+        status: string;
+      }
+    | undefined;
+  if (!po) throw new Error("Purchase order not found");
+  assertBusinessAccess(po.business_id);
+
+  const received = (
+    db()
+      .prepare(
+        "SELECT COALESCE(SUM(received_qty), 0) as qty FROM purchase_order_items WHERE po_id = ?",
+      )
+      .get(po.id) as { qty: number }
+  ).qty;
+  if (received > 0) {
+    throw new Error(
+      `${po.po_number} has stock received against it and cannot be deleted. Cancel it instead.`,
+    );
+  }
+
+  const reason = reasonInput?.trim() || null;
+
+  // Keep the supplier's running balance intact and just drop the link, for the
+  // same reason the customer ledger keeps its rows when a sale is deleted:
+  // `balance_after` is a snapshot, and removing one falsifies every later row.
+  db()
+    .prepare(
+      "UPDATE supplier_ledger_entries SET reference_po_id = NULL WHERE reference_po_id = ?",
+    )
+    .run(po.id);
+  db().prepare("DELETE FROM purchase_order_items WHERE po_id = ?").run(po.id);
+  db().prepare("DELETE FROM purchase_orders WHERE id = ?").run(po.id);
+
+  writeActivity({
+    businessId: po.business_id,
+    actorUserId,
+    entityType: "purchase_order",
+    entityId: po.id,
+    action: "purchase_order_deleted",
+    summary: `Purchase order ${po.po_number} deleted${reason ? `: ${reason}` : ""}`,
+    payload: {
+      poNumber: po.po_number,
+      status: po.status,
+      supplierId: po.supplier_id,
+      reason,
+    },
+  });
+
+  return po.po_number;
+}
+
+/**
+ * Delete a supplier and everything hanging off them.
+ *
+ * Owner-only. Takes their purchase orders, their price list and their ledger
+ * with it — every one of those is ON DELETE RESTRICT and meaningless without
+ * the supplier. A PO with stock already received against it stops the whole
+ * deletion, deliberately: the transaction rolls back and the supplier stays,
+ * rather than half their history disappearing.
+ */
+export function deleteSupplier(payload: {
+  supplierId: string;
+  reason?: string;
+}): { ok: true; name: string; purchaseOrdersDeleted: number } {
+  requireValidLicense();
+  const session = requirePermission("suppliers:delete");
+
+  const supplier = db()
+    .prepare("SELECT id, business_id, name FROM suppliers WHERE id = ?")
+    .get(payload.supplierId) as
+    | { id: string; business_id: string; name: string }
+    | undefined;
+  if (!supplier) throw new Error("Supplier not found");
+  assertBusinessAccess(supplier.business_id);
+
+  const reason = payload.reason?.trim() || null;
+  let purchaseOrdersDeleted = 0;
+
+  db().transaction(() => {
+    const poIds = (
+      db()
+        .prepare("SELECT id FROM purchase_orders WHERE supplier_id = ?")
+        .all(supplier.id) as Array<{ id: string }>
+    ).map((row) => row.id);
+
+    for (const poId of poIds) {
+      deletePurchaseOrderWithin(
+        poId,
+        session.id,
+        `Supplier ${supplier.name} deleted${reason ? `: ${reason}` : ""}`,
+      );
+      purchaseOrdersDeleted += 1;
+    }
+
+    db()
+      .prepare("DELETE FROM supplier_products WHERE supplier_id = ?")
+      .run(supplier.id);
+    db()
+      .prepare("DELETE FROM supplier_ledger_entries WHERE supplier_id = ?")
+      .run(supplier.id);
+    db().prepare("DELETE FROM suppliers WHERE id = ?").run(supplier.id);
+
+    writeActivity({
+      businessId: supplier.business_id,
+      actorUserId: session.id,
+      entityType: "supplier",
+      entityId: supplier.id,
+      action: "supplier_deleted",
+      summary: `Supplier ${supplier.name} deleted with ${purchaseOrdersDeleted} purchase order(s)${reason ? `: ${reason}` : ""}`,
+      payload: { name: supplier.name, purchaseOrdersDeleted, reason },
+    });
+  })();
+
+  return { ok: true, name: supplier.name, purchaseOrdersDeleted };
 }
 
 export function getSaleDetail(saleId: string): SaleDetail {

@@ -844,6 +844,11 @@ export type KaarobarApi = {
       productId: string;
       unitCost: number;
     }) => Promise<SupplierProduct>;
+    /** Owner only. Deletes their purchase orders, price list and ledger too. */
+    remove: (payload: {
+      supplierId: string;
+      reason?: string;
+    }) => Promise<{ ok: true; name: string; purchaseOrdersDeleted: number }>;
   };
   purchaseOrders: {
     list: (businessId: string) => Promise<PurchaseOrder[]>;
@@ -857,6 +862,11 @@ export type KaarobarApi = {
       items: Array<{ productId: string; orderedQty: number; unitCost: number }>;
     }) => Promise<PurchaseOrder>;
     print: (poId: string) => Promise<{ ok: true }>;
+    /** Owner only. Refused once stock has been received against the order. */
+    remove: (payload: {
+      poId: string;
+      reason?: string;
+    }) => Promise<{ ok: true; poNumber: string }>;
   };
   customers: {
     list: (businessId: string) => Promise<Customer[]>;
@@ -887,6 +897,11 @@ export type KaarobarApi = {
       from?: string | null;
       to?: string | null;
     }) => Promise<{ ok: true }>;
+    /** Owner only. Deletes their sales (restocking) and their ledger too. */
+    remove: (payload: {
+      customerId: string;
+      reason?: string;
+    }) => Promise<{ ok: true; name: string; salesDeleted: number }>;
   };
   printer: {
     list: () => Promise<PrinterDevice[]>;
@@ -1148,16 +1163,19 @@ export const IPC_CHANNELS = {
   SUPPLIER_LINK_PRODUCT: "supplier:linkProduct",
   SUPPLIER_UNLINK_PRODUCT: "supplier:unlinkProduct",
   SUPPLIER_UPDATE_LINKED_PRODUCT: "supplier:updateLinkedProduct",
+  SUPPLIER_DELETE: "supplier:delete",
   PO_LIST: "po:list",
   PO_GET_DETAIL: "po:getDetail",
   PO_CREATE: "po:create",
   PO_PRINT: "po:print",
+  PO_DELETE: "po:delete",
   CUSTOMER_LIST: "customer:list",
   CUSTOMER_GET_DETAIL: "customer:getDetail",
   CUSTOMER_CREATE: "customer:create",
   CUSTOMER_UPDATE: "customer:update",
   CUSTOMER_RECORD_PAYMENT: "customer:recordPayment",
   CUSTOMER_PRINT_LEDGER: "customer:printLedger",
+  CUSTOMER_DELETE: "customer:delete",
   SALES_LIST: "sales:list",
   SALES_GET_DETAIL: "sales:getDetail",
   SALES_FIND_BY_INVOICE: "sales:findByInvoice",

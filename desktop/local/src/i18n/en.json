@@ -476,7 +476,16 @@
     "discount": "Discount",
     "deleteSale": "Delete sale",
     "deleteSaleTitle": "Delete {{count}} sale(s)?",
-    "deleteSaleConfirm": "Stock goes back on the shelf and any credit on the account is reversed. The sale itself cannot be recovered — refund it instead if the record should be kept."
+    "deleteSaleConfirm": "Stock goes back on the shelf and any credit on the account is reversed. The sale itself cannot be recovered — refund it instead if the record should be kept.",
+    "deleteCustomer": "Delete customer",
+    "deleteCustomerTitle": "Delete {{count}} customer(s)?",
+    "deleteCustomerConfirm": "Their sales are deleted too — stock goes back on the shelf, credit on the account is reversed, and the takings for those days drop. Their ledger goes with them. To keep the history, deactivate the customer instead.",
+    "deleteSupplier": "Delete supplier",
+    "deleteSupplierTitle": "Delete {{count}} supplier(s)?",
+    "deleteSupplierConfirm": "Their purchase orders, price list and ledger are deleted too. A purchase order with stock already received against it will stop the deletion. To keep the history, deactivate the supplier instead.",
+    "deletePo": "Delete purchase order",
+    "deletePoTitle": "Delete {{count}} purchase order(s)?",
+    "deletePoConfirm": "The order and its lines are removed. An order with stock already received against it cannot be deleted — cancel it instead."
   },
   "barcode": {
     "generate": "Generate",
@@ -713,7 +722,13 @@
     "restockNeededDesc": "Based on recent daily sales: {{products}}",
     "actionFailed": "Action failed",
     "salesDeleted": "{{count}} sale(s) deleted",
-    "salesDeleteFailed": "Could not delete: {{invoices}}"
+    "salesDeleteFailed": "Could not delete: {{names}}",
+    "customersDeleted": "{{count}} customer(s) deleted",
+    "customersDeleteFailed": "Could not delete: {{names}}",
+    "suppliersDeleted": "{{count}} supplier(s) deleted",
+    "suppliersDeleteFailed": "Could not delete: {{names}}",
+    "purchaseOrdersDeleted": "{{count}} purchase order(s) deleted",
+    "purchaseOrdersDeleteFailed": "Could not delete: {{names}}"
   },
   "inventory": {
     "daysLeft": "{{days}}d left",

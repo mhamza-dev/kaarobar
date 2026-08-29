@@ -476,7 +476,16 @@
     "saleTotal": "إجمالي البيع",
     "deleteSale": "حذف البيع",
     "deleteSaleTitle": "حذف {{count}} عملية بيع؟",
-    "deleteSaleConfirm": "يعود المخزون إلى الرف ويُعكس أي رصيد آجل على الحساب. لا يمكن استرجاع عملية البيع — استخدم الاسترداد إذا أردت الاحتفاظ بالسجل."
+    "deleteSaleConfirm": "يعود المخزون إلى الرف ويُعكس أي رصيد آجل على الحساب. لا يمكن استرجاع عملية البيع — استخدم الاسترداد إذا أردت الاحتفاظ بالسجل.",
+    "deleteCustomer": "حذف العميل",
+    "deleteCustomerTitle": "حذف {{count}} عميل؟",
+    "deleteCustomerConfirm": "ستُحذف مبيعاته أيضًا — يعود المخزون إلى الرف، ويُعكس الرصيد الآجل، وتنخفض إيرادات تلك الأيام. ويُحذف سجل حسابه معه. للاحتفاظ بالسجل، عطّل العميل بدلًا من حذفه.",
+    "deleteSupplier": "حذف المورّد",
+    "deleteSupplierTitle": "حذف {{count}} مورّد؟",
+    "deleteSupplierConfirm": "ستُحذف أوامر الشراء وقائمة الأسعار وسجل الحساب أيضًا. أمر شراء استُلم عليه مخزون سيوقف الحذف. للاحتفاظ بالسجل، عطّل المورّد بدلًا من حذفه.",
+    "deletePo": "حذف أمر الشراء",
+    "deletePoTitle": "حذف {{count}} أمر شراء؟",
+    "deletePoConfirm": "سيُحذف الأمر وبنوده. لا يمكن حذف أمر استُلم عليه مخزون — ألغِه بدلًا من ذلك."
   },
   "barcode": {
     "generate": "إنشاء",
@@ -713,7 +722,13 @@
     "invoiceNotFound": "لا يوجد بيع للفاتورة {{invoice}}",
     "invoiceScanInvalid": "امسح باركود فاتورة كاروبار (KB-…)",
     "salesDeleted": "تم حذف {{count}} عملية بيع",
-    "salesDeleteFailed": "تعذّر الحذف: {{invoices}}"
+    "salesDeleteFailed": "تعذّر الحذف: {{names}}",
+    "customersDeleted": "تم حذف {{count}} عميل",
+    "customersDeleteFailed": "تعذّر الحذف: {{names}}",
+    "suppliersDeleted": "تم حذف {{count}} مورّد",
+    "suppliersDeleteFailed": "تعذّر الحذف: {{names}}",
+    "purchaseOrdersDeleted": "تم حذف {{count}} أمر شراء",
+    "purchaseOrdersDeleteFailed": "تعذّر الحذف: {{names}}"
   },
   "inventory": {
     "daysLeft": "متبقي {{days}}ي",

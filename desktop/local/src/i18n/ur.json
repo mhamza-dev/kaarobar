@@ -476,7 +476,16 @@
     "discount": "رعایت",
     "deleteSale": "سیل حذف کریں",
     "deleteSaleTitle": "{{count}} سیل حذف کریں؟",
-    "deleteSaleConfirm": "اسٹاک واپس شامل ہو جائے گا اور اکاؤنٹ پر ادھار بھی واپس ہو جائے گا۔ سیل واپس نہیں لائی جا سکتی — ریکارڈ رکھنا ہو تو ریفنڈ کریں۔"
+    "deleteSaleConfirm": "اسٹاک واپس شامل ہو جائے گا اور اکاؤنٹ پر ادھار بھی واپس ہو جائے گا۔ سیل واپس نہیں لائی جا سکتی — ریکارڈ رکھنا ہو تو ریفنڈ کریں۔",
+    "deleteCustomer": "کسٹمر حذف کریں",
+    "deleteCustomerTitle": "{{count}} کسٹمر حذف کریں؟",
+    "deleteCustomerConfirm": "ان کی تمام سیلز بھی حذف ہو جائیں گی — اسٹاک واپس شامل ہو گا، ادھار واپس ہو گا، اور ان دنوں کی آمدنی کم ہو جائے گی۔ لیجر بھی ختم ہو جائے گا۔ ریکارڈ رکھنا ہو تو کسٹمر کو غیر فعال کر دیں۔",
+    "deleteSupplier": "سپلائر حذف کریں",
+    "deleteSupplierTitle": "{{count}} سپلائر حذف کریں؟",
+    "deleteSupplierConfirm": "ان کے پرچیز آرڈرز، قیمت کی فہرست اور لیجر بھی حذف ہو جائیں گے۔ جس آرڈر پر اسٹاک وصول ہو چکا ہو وہ حذف نہیں ہونے دے گا۔ ریکارڈ رکھنا ہو تو سپلائر کو غیر فعال کر دیں۔",
+    "deletePo": "پرچیز آرڈر حذف کریں",
+    "deletePoTitle": "{{count}} پرچیز آرڈر حذف کریں؟",
+    "deletePoConfirm": "آرڈر اور اس کی تمام لائنیں ختم ہو جائیں گی۔ جس آرڈر پر اسٹاک وصول ہو چکا ہو وہ حذف نہیں ہو سکتا — اسے منسوخ کریں۔"
   },
   "barcode": {
     "generate": "تیار کریں",
@@ -667,7 +676,13 @@
     "restockNeededTitle": "{{count}} پروڈکٹس کو جلد ری اسٹاک کی ضرورت ہے",
     "restockNeededDesc": "حالیہ روزانہ فروخت کے مطابق: {{products}}",
     "salesDeleted": "{{count}} سیل حذف ہو گئیں",
-    "salesDeleteFailed": "حذف نہیں ہو سکیں: {{invoices}}"
+    "salesDeleteFailed": "حذف نہیں ہو سکیں: {{names}}",
+    "customersDeleted": "{{count}} کسٹمر حذف ہو گئے",
+    "customersDeleteFailed": "حذف نہیں ہو سکے: {{names}}",
+    "suppliersDeleted": "{{count}} سپلائر حذف ہو گئے",
+    "suppliersDeleteFailed": "حذف نہیں ہو سکے: {{names}}",
+    "purchaseOrdersDeleted": "{{count}} پرچیز آرڈر حذف ہو گئے",
+    "purchaseOrdersDeleteFailed": "حذف نہیں ہو سکے: {{names}}"
   },
   "inventory": {
     "daysLeft": "{{days}} دن باقی",

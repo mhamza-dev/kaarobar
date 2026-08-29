@@ -8,8 +8,11 @@ export type PermissionAction =
   | 'products:edit'
   | 'products:view'
   | 'suppliers:edit'
+  | 'suppliers:delete'
   | 'purchaseOrders:edit'
+  | 'purchaseOrders:delete'
   | 'customers:edit'
+  | 'customers:delete'
   | 'sales:checkout'
   | 'sales:refund_request'
   | 'sales:refund_approve'
@@ -71,10 +74,13 @@ const ROLE_PERMISSIONS: Record<SessionUser['role'], PermissionAction[]> = {
     'sales:checkout',
     'sales:refund_request',
     'sales:refund_approve',
-    // Owner only, deliberately. Deleting a sale reverses stock, credit and the
-    // day's takings at once; a manager who can undo a shortfall without anyone
-    // else's sign-off is the gap every till fraud goes through.
+    // Owner only, deliberately. Every one of these reverses stock, credit and
+    // the day's takings at once; a manager who can undo a shortfall without
+    // anyone else's sign-off is the gap every till fraud goes through.
     'sales:delete',
+    'customers:delete',
+    'suppliers:delete',
+    'purchaseOrders:delete',
     'sales:print',
     'tables:edit',
     'system:backup_create',

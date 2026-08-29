@@ -33,8 +33,11 @@ import {
   createSale,
   createSupplier,
   createUser,
+  deleteCustomer,
   deleteProduct,
+  deletePurchaseOrder,
   deleteSale,
+  deleteSupplier,
   fireTicketItems,
   generateProductBarcode,
   findSaleByInvoice,
@@ -214,11 +217,13 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.SUPPLIER_UPDATE_LINKED_PRODUCT, async (_event, payload) =>
     updateLinkedSupplierProduct(payload),
   )
+  ipcMain.handle(IPC_CHANNELS.SUPPLIER_DELETE, async (_event, payload) => deleteSupplier(payload))
 
   ipcMain.handle(IPC_CHANNELS.PO_LIST, async (_event, businessId: string) => listPurchaseOrders(businessId))
   ipcMain.handle(IPC_CHANNELS.PO_GET_DETAIL, async (_event, poId: string) => getPurchaseOrderDetail(poId))
   ipcMain.handle(IPC_CHANNELS.PO_CREATE, async (_event, payload) => createPurchaseOrder(payload))
   ipcMain.handle(IPC_CHANNELS.PO_PRINT, async (_event, poId: string) => printPurchaseOrder(poId))
+  ipcMain.handle(IPC_CHANNELS.PO_DELETE, async (_event, payload) => deletePurchaseOrder(payload))
 
   ipcMain.handle(IPC_CHANNELS.CUSTOMER_LIST, async (_event, businessId: string) => listCustomers(businessId))
   ipcMain.handle(IPC_CHANNELS.CUSTOMER_GET_DETAIL, async (_event, customerId: string) => getCustomerDetail(customerId))
@@ -230,6 +235,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.CUSTOMER_PRINT_LEDGER, async (_event, payload) =>
     printCustomerLedger(payload),
   )
+  ipcMain.handle(IPC_CHANNELS.CUSTOMER_DELETE, async (_event, payload) => deleteCustomer(payload))
 
   ipcMain.handle(IPC_CHANNELS.SALES_LIST, async (_event, businessId: string) => listSales(businessId))
   ipcMain.handle(IPC_CHANNELS.SALES_GET_DETAIL, async (_event, saleId: string) => getSaleDetail(saleId))
