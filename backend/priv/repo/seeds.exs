@@ -1,11 +1,35 @@
-# Script for populating the database. You can run it as:
+# Seeds.
 #
-#     mix run priv/repo/seeds.exs
+#     mix run priv/repo/seeds.exs      # or: mix ecto.setup
 #
-# Inside the script, you can read and write to any of your
-# repositories directly:
+# Two parts:
 #
-#     Kaarobar.Repo.insert!(%Kaarobar.SomeSchema{})
+#   * **Reference data** — the permission catalogue and the system role
+#     templates. These are not sample data; the application does not work
+#     without them, because every membership points at a role row. Always run,
+#     idempotent, safe in production.
 #
-# We recommend using the bang functions (`insert!`, `update!`
-# and so on) as they will fail if something goes wrong.
+#   * **Demo data** — a worked example organization with one business per
+#     vertical. Only when SEED_DEMO=true, and refused outside dev and test.
+
+require Logger
+
+alias Kaarobar.AccessControl
+
+{:ok, permissions} = AccessControl.sync_permissions()
+{:ok, role_count} = AccessControl.sync_system_roles()
+
+Logger.info(
+  "Seeded #{permissions.inserted} permissions " <>
+    "(#{permissions.deleted} removed) and #{role_count} system roles."
+)
+
+if System.get_env("SEED_DEMO") in ~w(true 1) do
+  case Application.get_env(:backend, :env) do
+    env when env in [:dev, :test] ->
+      Code.eval_file(Path.join(__DIR__, "seeds/demo.exs"))
+
+    env ->
+      Logger.warning("Refusing to seed demo data in #{env}.")
+  end
+end

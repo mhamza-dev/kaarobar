@@ -10,6 +10,7 @@ defmodule Kaarobar.MixProject do
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
+      releases: releases(),
       listeners: [Phoenix.CodeReloader]
     ]
   end
@@ -39,27 +40,29 @@ defmodule Kaarobar.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      # --- Web / persistence -------------------------------------------------
       {:phoenix, "~> 1.8.13"},
       {:phoenix_ecto, "~> 4.5"},
       {:ecto_sql, "~> 3.13"},
       {:postgrex, ">= 0.0.0"},
       {:phoenix_live_dashboard, "~> 0.8.3"},
-      {:esbuild, "~> 0.10", runtime: Mix.env() == :dev},
-      {:tailwind, "~> 0.5", runtime: Mix.env() == :dev},
-      {:heroicons,
-       github: "tailwindlabs/heroicons",
-       tag: "v2.2.0",
-       sparse: "optimized",
-       app: false,
-       compile: false,
-       depth: 1},
-      {:daisyui,
-       github: "saadeghi/daisyui",
-       tag: "v5.5.20",
-       sparse: "packages/bundle",
-       app: false,
-       compile: false,
-       depth: 1},
+      {:bandit, "~> 1.5"},
+
+      # --- Platform ----------------------------------------------------------
+      # Password hashing for staff and owner accounts.
+      {:argon2_elixir, "~> 4.1"},
+      # Background jobs: rollups, alerts, webhooks, dunning, exports.
+      {:oban, "~> 2.19"},
+      # Field-level encryption for gateway credentials, TOTP secrets, PII.
+      {:cloak_ecto, "~> 1.3"},
+      # Browser clients (web/main, desktop/cloud) are cross-origin.
+      {:corsica, "~> 2.1"},
+      # Per-endpoint request throttling.
+      {:hammer, "~> 7.0"},
+      # OpenAPI 3 spec — the contract handed to the frontend apps.
+      {:open_api_spex, "~> 3.21"},
+
+      # --- Support -----------------------------------------------------------
       {:swoosh, "~> 1.16"},
       {:req, "~> 0.5"},
       {:telemetry_metrics, "~> 1.0"},
@@ -67,30 +70,42 @@ defmodule Kaarobar.MixProject do
       {:gettext, "~> 1.0"},
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.2.0"},
-      {:bandit, "~> 1.5"}
+
+      # --- Quality -----------------------------------------------------------
+      {:ex_machina, "~> 2.8", only: :test},
+      {:faker, "~> 0.18", only: :test},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:sobelow, "~> 0.14", only: [:dev, :test], runtime: false}
+    ]
+  end
+
+  defp releases do
+    [
+      backend: [
+        include_executables_for: [:unix],
+        applications: [runtime_tools: :permanent]
+      ]
     ]
   end
 
   # Aliases are shortcuts or tasks specific to the current project.
-  # For example, to install project dependencies and perform other setup tasks, run:
   #
-  #     $ mix setup
-  #
-  # See the documentation for `Mix` for more info on aliases.
+  # This is an API-only application: there is no asset pipeline.
   defp aliases do
     [
-      setup: ["deps.get", "ecto.setup", "assets.setup", "assets.build"],
+      setup: ["deps.get", "ecto.setup"],
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
-      "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
-      "assets.build": ["compile", "tailwind backend", "esbuild backend"],
-      "assets.deploy": [
-        "tailwind backend --minify",
-        "esbuild backend --minify",
-        "phx.digest"
-      ],
-      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
+      precommit: [
+        "compile --warnings-as-errors",
+        "deps.unlock --unused",
+        "format",
+        "credo --strict",
+        "sobelow --config",
+        "test"
+      ]
     ]
   end
 end

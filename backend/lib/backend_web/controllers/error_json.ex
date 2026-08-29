@@ -1,21 +1,24 @@
 defmodule KaarobarWeb.ErrorJSON do
   @moduledoc """
-  This module is invoked by your endpoint in case of errors on JSON requests.
+  Renders the errors Phoenix raises on our behalf — no matching route, an
+  unhandled exception, a malformed request body.
 
-  See config/config.exs.
+  Application-level failures come through `KaarobarWeb.FallbackController`
+  instead. Both use `KaarobarWeb.ErrorEnvelope`, so a client sees one error
+  shape no matter where the failure originated.
   """
 
-  # If you want to customize a particular status code,
-  # you may add your own clauses, such as:
-  #
-  # def render("500.json", _assigns) do
-  #   %{errors: %{detail: "Internal Server Error"}}
-  # end
+  alias KaarobarWeb.ErrorEnvelope
 
-  # By default, Phoenix returns the status message from
-  # the template name. For example, "404.json" becomes
-  # "Not Found".
   def render(template, _assigns) do
-    %{errors: %{detail: Phoenix.Controller.status_message_from_template(template)}}
+    message = Phoenix.Controller.status_message_from_template(template)
+    ErrorEnvelope.build(code_from(message), message)
+  end
+
+  defp code_from(message) do
+    message
+    |> String.downcase()
+    |> String.replace(~r/[^a-z0-9]+/, "_")
+    |> String.trim("_")
   end
 end

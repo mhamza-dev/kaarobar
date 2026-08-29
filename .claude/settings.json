@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(timeout 30 docker ps --format '{{.Names}} {{.Status}}')",
+      "Bash(timeout 60 docker logs kaarobar-backend-db-1)",
+      "Bash(timeout 60 docker inspect --format='{{json .State.Health}}' kaarobar-backend-db-1)",
+      "Bash(timeout 30 docker inspect --format='{{.State.Status}} started={{.State.StartedAt}}' kaarobar-backend-db-1)",
+      "WebFetch(domain:hexdocs.pm)",
+      "WebFetch(domain:corsica.hexdocs.pm)",
+      "WebFetch(domain:hammer.hexdocs.pm)",
+      "WebFetch(domain:oban.hexdocs.pm)",
+      "WebFetch(domain:ecto.hexdocs.pm)"
+    ]
+  }
+}

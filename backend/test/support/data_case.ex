@@ -1,17 +1,10 @@
 defmodule Kaarobar.DataCase do
   @moduledoc """
-  This module defines the setup for tests requiring
-  access to the application's data layer.
+  Setup for tests that touch the data layer.
 
-  You may define functions here to be used as helpers in
-  your tests.
-
-  Finally, if the test case interacts with the database,
-  we enable the SQL sandbox, so changes done to the database
-  are reverted at the end of every test. If you are using
-  PostgreSQL, you can even run database tests asynchronously
-  by setting `use Kaarobar.DataCase, async: true`, although
-  this option is not recommended for other databases.
+  Reference data — permissions and system roles — is already committed to the
+  test database by `test_helper.exs`, so the sandbox transaction here wraps only
+  the data a test creates for itself.
   """
 
   use ExUnit.CaseTemplate
@@ -24,6 +17,7 @@ defmodule Kaarobar.DataCase do
       import Ecto.Changeset
       import Ecto.Query
       import Kaarobar.DataCase
+      import Kaarobar.Factory
     end
   end
 
@@ -50,7 +44,7 @@ defmodule Kaarobar.DataCase do
   """
   def errors_on(changeset) do
     Ecto.Changeset.traverse_errors(changeset, fn {message, opts} ->
-      Regex.replace(~r"%{(\w+)}", message, fn _, key ->
+      Regex.replace(~r"%{(\w+)}", message, fn _whole, key ->
         opts |> Keyword.get(String.to_existing_atom(key), key) |> to_string()
       end)
     end)

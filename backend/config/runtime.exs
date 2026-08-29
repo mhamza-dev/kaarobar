@@ -5,7 +5,6 @@ import Config
 # system starts, so it is typically used to load production configuration
 # and secrets from environment variables or elsewhere. Do not define
 # any compile-time configuration in here, as it won't be applied.
-# The block below contains prod specific runtime configuration.
 
 # ## Using releases
 #
@@ -14,14 +13,66 @@ import Config
 #
 #     PHX_SERVER=true bin/backend start
 #
-# Alternatively, you can use `mix phx.gen.release` to generate a `bin/server`
-# script that automatically sets the env var above.
+# Alternatively, `bin/server` (see rel/overlays) does this for you.
 if System.get_env("PHX_SERVER") do
   config :backend, KaarobarWeb.Endpoint, server: true
 end
 
 config :backend, KaarobarWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PORT", "4000"))]
+
+# ----------------------------------------------------------------------------
+# Cross-origin access
+#
+# The API is consumed by browser clients on other origins (web/main,
+# desktop/cloud). Native clients (mobile/staff) are unaffected by CORS.
+# ----------------------------------------------------------------------------
+cors_origins =
+  System.get_env("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173")
+  |> String.split(",", trim: true)
+  |> Enum.map(&String.trim/1)
+  |> Enum.reject(&(&1 == ""))
+
+config :backend, :cors_origins, cors_origins
+
+# The client application that owns the pages behind emailed links — password
+# reset, email confirmation, invitation acceptance. The API sends people to the
+# frontend, never to itself: these flows end in a form, and this is a JSON API.
+config :backend,
+       :frontend_url,
+       System.get_env("FRONTEND_URL", List.first(cors_origins) || "http://localhost:3000")
+
+config :backend, :mail_from_name, System.get_env("MAIL_FROM_NAME", "Kaarobar")
+config :backend, :mail_from_address, System.get_env("MAIL_FROM_ADDRESS", "no-reply@kaarobar.app")
+
+# ----------------------------------------------------------------------------
+# Encryption at rest
+#
+# Used for gateway credentials, TOTP secrets and PII. The dev/test fallback is
+# a published constant and is NEVER acceptable in production, which is why the
+# prod branch below raises when CLOAK_KEY is absent.
+# ----------------------------------------------------------------------------
+dev_cloak_key = "e2xKQ0lWNjZmSmZqM2NWWXk1c2h1WHV3aVJqNGRnT0k9"
+
+cloak_key =
+  case System.get_env("CLOAK_KEY") do
+    nil when config_env() == :prod ->
+      raise """
+      environment variable CLOAK_KEY is missing.
+      Generate one with: openssl rand -base64 32
+      """
+
+    nil ->
+      dev_cloak_key
+
+    value ->
+      value
+  end
+
+config :backend, Kaarobar.Vault,
+  ciphers: [
+    default: {Cloak.Ciphers.AES.GCM, tag: "AES.GCM.V1", key: Base.decode64!(cloak_key)}
+  ]
 
 if config_env() == :prod do
   database_url =
@@ -37,15 +88,9 @@ if config_env() == :prod do
     # ssl: true,
     url: database_url,
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
-    # For machines with several cores, consider starting multiple pools of `pool_size`
-    # pool_count: 4,
     socket_options: maybe_ipv6
 
   # The secret key base is used to sign/encrypt cookies and other secrets.
-  # A default value is used in config/dev.exs and config/test.exs but you
-  # want to use a different value for prod and you most likely don't want
-  # to check this value into version control, so we use an environment
-  # variable instead.
   secret_key_base =
     System.get_env("SECRET_KEY_BASE") ||
       raise """
@@ -61,60 +106,16 @@ if config_env() == :prod do
     url: [host: host, port: 443, scheme: "https"],
     http: [
       # Enable IPv6 and bind on all interfaces.
-      # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
-      # See the documentation on https://bandit.hexdocs.pm/Bandit.html#t:options/0
-      # for details about using IPv6 vs IPv4 and loopback vs public addresses.
       ip: {0, 0, 0, 0, 0, 0, 0, 0}
     ],
     secret_key_base: secret_key_base
 
-  # ## SSL Support
-  #
-  # To get SSL working, you will need to add the `https` key
-  # to your endpoint configuration:
-  #
-  #     config :backend, KaarobarWeb.Endpoint,
-  #       https: [
-  #         ...,
-  #         port: 443,
-  #         cipher_suite: :strong,
-  #         keyfile: System.get_env("SOME_APP_SSL_KEY_PATH"),
-  #         certfile: System.get_env("SOME_APP_SSL_CERT_PATH")
-  #       ]
-  #
-  # The `cipher_suite` is set to `:strong` to support only the
-  # latest and more secure SSL ciphers. This means old browsers
-  # and clients may not be supported. You can set it to
-  # `:compatible` for wider support.
-  #
-  # `:keyfile` and `:certfile` expect an absolute path to the key
-  # and cert in disk or a relative path inside priv, for example
-  # "priv/ssl/server.key". For all supported SSL configuration
-  # options, see https://plug.hexdocs.pm/Plug.SSL.html#configure/1
-  #
-  # We also recommend setting `force_ssl` in your config/prod.exs,
-  # ensuring no data is ever sent via http, always redirecting to https:
-  #
-  #     config :backend, KaarobarWeb.Endpoint,
-  #       force_ssl: [hsts: true]
-  #
-  # Check `Plug.SSL` for all available options in `force_ssl`.
-
   # ## Configuring the mailer
-  #
-  # In production you need to configure the mailer to use a different adapter.
-  # Here is an example configuration for Mailgun:
   #
   #     config :backend, Kaarobar.Mailer,
   #       adapter: Swoosh.Adapters.Mailgun,
   #       api_key: System.get_env("MAILGUN_API_KEY"),
   #       domain: System.get_env("MAILGUN_DOMAIN")
-  #
-  # Most non-SMTP adapters require an API client. Swoosh supports Req, Hackney,
-  # and Finch out-of-the-box. This configuration is typically done at
-  # compile-time in your config/prod.exs:
-  #
-  #     config :swoosh, :api_client, Swoosh.ApiClient.Req
   #
   # See https://swoosh.hexdocs.pm/Swoosh.html#module-installation for details.
 end

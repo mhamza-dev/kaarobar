@@ -1,0 +1,67 @@
+name: kaarobar-backend
+
+services:
+  db:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-backend_dev}
+      # Skip the initdb fsync pass. On Docker Desktop's virtualised filesystem
+      # it can take minutes and it buys nothing for a disposable database.
+      POSTGRES_INITDB_ARGS: --no-sync
+    # Durability is deliberately traded away here. This is a development
+    # database that `mix ecto.reset` throws away; losing it to a crash costs
+    # nothing, while fsync on this filesystem costs every test run.
+    # Production runs a managed Postgres with all of these at their defaults.
+    command: >
+      postgres
+      -c fsync=off
+      -c full_page_writes=off
+      -c synchronous_commit=off
+      -c max_connections=200
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      # First boot has to run initdb before it can answer anything.
+      start_period: 120s
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      target: dev
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      MIX_ENV: ${MIX_ENV:-dev}
+      DATABASE_HOST: db
+      DATABASE_USER: ${POSTGRES_USER:-postgres}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      DATABASE_NAME: ${POSTGRES_DB:-backend_dev}
+      PHX_HOST: ${PHX_HOST:-localhost}
+      PORT: 4000
+      CLOAK_KEY: ${CLOAK_KEY:-e2xKQ0lWNjZmSmZqM2NWWXk1c2h1WHV3aVJqNGRnT0k9}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:5173}
+    ports:
+      - "${PORT:-4000}:4000"
+    volumes:
+      # Source is bind-mounted; build artefacts live in named volumes so
+      # Linux-compiled BEAM files never collide with the Windows host tree.
+      - .:/app
+      - build:/app/_build
+      - deps:/app/deps
+    stdin_open: true
+    tty: true
+
+volumes:
+  pgdata:
+  build:
+  deps:

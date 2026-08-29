@@ -75,6 +75,30 @@ defmodule KaarobarWeb.Telemetry do
           "The time the connection spent waiting before being checked out for the query"
       ),
 
+      # Background Job Metrics
+      #
+      # A stalled queue is invisible from the request path: receipts stop
+      # emailing, rollups go stale, gateway webhooks pile up, and every HTTP
+      # endpoint still returns 200. These are the metrics that surface it.
+      summary("oban.job.stop.duration",
+        tags: [:queue, :worker],
+        unit: {:native, :millisecond},
+        description: "How long jobs take, by queue and worker"
+      ),
+      summary("oban.job.exception.duration",
+        tags: [:queue, :worker],
+        unit: {:native, :millisecond},
+        description: "How long failing jobs run before raising"
+      ),
+      counter("oban.job.exception.count",
+        tags: [:queue, :worker],
+        description: "Jobs that raised"
+      ),
+      summary("oban.job.start.system_time",
+        tags: [:queue],
+        unit: {:native, :millisecond}
+      ),
+
       # VM Metrics
       summary("vm.memory.total", unit: {:byte, :kilobyte}),
       summary("vm.total_run_queue_lengths.total"),

@@ -31,7 +31,18 @@ backend-*.tar
 # Ignore digested assets cache.
 /priv/static/cache_manifest.json
 
-# In case you use Node.js/npm, you want to ignore these.
-npm-debug.log
-/assets/node_modules/
+# Local environment. .env.example is the committed template.
+.env
+.env.*
+!.env.example
+
+# Editor language servers.
+/.elixir_ls/
+/.lexical/
+
+# Locally uploaded media (product images, logos, job photos).
+/priv/uploads/
+
+# Dialyzer PLTs.
+/priv/plts/
 

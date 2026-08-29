@@ -1,0 +1,14 @@
+[
+  verbose: false,
+  private: false,
+  skip: true,
+  router: "lib/backend_web/router.ex",
+  exit: "low",
+  format: "compact",
+  # CSRF protection does not apply here. This is a token-authenticated JSON API
+  # with no cookie-based session on any API route; the only session in the
+  # endpoint exists for the development LiveDashboard, which is already behind
+  # :protect_from_forgery in the router.
+  ignore: ["Config.CSRF", "Config.CSRFRoute"],
+  ignore_files: []
+]

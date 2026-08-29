@@ -10,10 +10,13 @@ defmodule Kaarobar.Application do
     children = [
       KaarobarWeb.Telemetry,
       Kaarobar.Repo,
+      # The vault must be running before any schema with an encrypted field is
+      # loaded, and before Oban picks up a job that touches one.
+      Kaarobar.Vault,
       {DNSCluster, query: Application.get_env(:backend, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Kaarobar.PubSub},
-      # Start a worker by calling: Kaarobar.Worker.start_link(arg)
-      # {Kaarobar.Worker, arg},
+      {Oban, Application.fetch_env!(:backend, Oban)},
+      {Kaarobar.RateLimiter, [clean_period: :timer.minutes(1)]},
       # Start to serve requests, typically the last entry
       KaarobarWeb.Endpoint
     ]
