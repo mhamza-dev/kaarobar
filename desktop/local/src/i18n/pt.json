@@ -66,7 +66,12 @@
     "barcodeMissing": "Sem código de barras",
     "customerType": "Cliente",
     "walkIn": "Avulso (sem cliente)",
-    "withCustomer": "Cliente vinculado"
+    "withCustomer": "Cliente vinculado",
+    "selectedCount": "{{count}} selecionados",
+    "clearSelection": "Limpar seleção",
+    "selectAllOnPage": "Selecionar todas as linhas desta página",
+    "selectRow": "Selecionar linha",
+    "bulkDelete": "Eliminar selecionados"
   },
   "roles": {
     "owner": "Proprietário",
@@ -468,7 +473,10 @@
     "receiptFooterDefault": "OBRIGADO!",
     "receiptPreview": "Pré-visualização do recibo",
     "refundedAmount": "Valor reembolsado",
-    "saleTotal": "Total da venda"
+    "saleTotal": "Total da venda",
+    "deleteSale": "Eliminar venda",
+    "deleteSaleTitle": "Eliminar {{count}} venda(s)?",
+    "deleteSaleConfirm": "O stock volta à prateleira e qualquer crédito na conta é revertido. A venda não pode ser recuperada — faça um reembolso se o registo tiver de ser mantido."
   },
   "barcode": {
     "generate": "Gerar",
@@ -703,7 +711,9 @@
     "actionFailed": "Ação falhou",
     "invoiceOpened": "Fatura {{invoice}} aberta",
     "invoiceNotFound": "Nenhuma venda encontrada para a fatura {{invoice}}",
-    "invoiceScanInvalid": "Escaneie um código de barras de fatura Kaarobar (KB-…)"
+    "invoiceScanInvalid": "Escaneie um código de barras de fatura Kaarobar (KB-…)",
+    "salesDeleted": "{{count}} venda(s) eliminada(s)",
+    "salesDeleteFailed": "Não foi possível eliminar: {{invoices}}"
   },
   "inventory": {
     "daysLeft": "{{days}}d restantes",

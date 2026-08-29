@@ -2975,6 +2975,182 @@ export function reviewRefundRequest(payload: {
   return loadRefundRequest(payload.id);
 }
 
+/**
+ * Delete a sale outright, putting back everything it took.
+ *
+ * Owner-only, and the blunt instrument of last resort: a refund is the right
+ * tool for goods coming back, because it leaves the original sale standing next
+ * to the reversal. This is for the sale that should never have existed — a
+ * training ring-up, a duplicate, a test transaction someone left in the day's
+ * takings — where the goal is for it to be gone rather than explained.
+ *
+ * Everything the checkout did is undone in one transaction:
+ *
+ *  - **Stock** goes back, but only the units still held: anything already
+ *    refunded was restocked when the refund was approved, and adding it a
+ *    second time would invent inventory that never came back through the door.
+ *  - **Credit** is reversed by what the customer still owes on this sale, which
+ *    is the credit taken less any part a refund already reversed.
+ *  - **Ledger entries are kept, not deleted.** Each carries a `balance_after`
+ *    snapshot, so removing one silently falsifies every entry after it. The
+ *    entries are unlinked from the sale and a reversing entry is appended
+ *    instead — the same way a ledger has always been corrected.
+ *
+ * The sale rows go, but the deletion itself is written to the activity log with
+ * the invoice number and total, so "where did invoice 1043 go?" has an answer.
+ *
+ * ## What this does not undo
+ *
+ * A restaurant ticket billed by this sale stays billed. `sales` records no
+ * ticket id and `sale_items` no ticket-item id, so there is nothing to follow
+ * back to the lines whose `billed_qty` was raised — and matching on product and
+ * quantity would guess wrong on any table that ordered the same dish twice.
+ * Deleting a sale that came off a ticket therefore needs the ticket reopened by
+ * hand. Persisting the link at checkout is what would fix this properly.
+ */
+export function deleteSale(payload: { saleId: string; reason?: string }): {
+  ok: true;
+  invoiceNo: string;
+} {
+  requireValidLicense();
+  const session = requirePermission("sales:delete");
+
+  const sale = db()
+    .prepare(
+      `SELECT id, business_id, branch_id, invoice_no, customer_id, total, status, table_id
+       FROM sales WHERE id = ?`,
+    )
+    .get(payload.saleId) as
+    | {
+        id: string;
+        business_id: string;
+        branch_id: string;
+        invoice_no: string;
+        customer_id: string | null;
+        total: number;
+        status: Sale["status"];
+        table_id: string | null;
+      }
+    | undefined;
+  if (!sale) throw new Error("Sale not found");
+  assertBusinessAccess(sale.business_id);
+
+  const reason = payload.reason?.trim() || null;
+  const at = nowIso();
+
+  db().transaction(() => {
+    const items = db()
+      .prepare(
+        "SELECT id, product_id, qty, refunded_qty FROM sale_items WHERE sale_id = ?",
+      )
+      .all(sale.id) as Array<{
+      id: string;
+      product_id: string;
+      qty: number;
+      refunded_qty: number;
+    }>;
+
+    // Only the units still with the customer. Refunded ones came back already.
+    const restock = db().prepare(
+      "UPDATE products SET stock_qty = stock_qty + ? WHERE id = ? AND tracks_stock = 1",
+    );
+    for (const item of items) {
+      const outstanding = item.qty - (item.refunded_qty || 0);
+      if (outstanding > 0) restock.run(outstanding, item.product_id);
+    }
+
+    // Credit still riding on this sale: what was taken on account, less
+    // whatever a refund has already handed back.
+    const creditTaken = (
+      db()
+        .prepare(
+          "SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE sale_id = ? AND method = 'credit'",
+        )
+        .get(sale.id) as { total: number }
+    ).total;
+    const alreadyReversed = -(
+      db()
+        .prepare(
+          `SELECT COALESCE(SUM(amount), 0) as total FROM ledger_entries
+            WHERE reference_sale_id = ? AND amount < 0`,
+        )
+        .get(sale.id) as { total: number }
+    ).total;
+    const outstandingCredit = Math.max(creditTaken - alreadyReversed, 0);
+
+    if (sale.customer_id && outstandingCredit > 0) {
+      const customer = db()
+        .prepare("SELECT current_balance FROM customers WHERE id = ?")
+        .get(sale.customer_id) as { current_balance: number };
+      const newBalance = customer.current_balance - outstandingCredit;
+      db()
+        .prepare("UPDATE customers SET current_balance = ? WHERE id = ?")
+        .run(newBalance, sale.customer_id);
+      db()
+        .prepare(
+          `INSERT INTO ledger_entries (id, customer_id, business_id, branch_id, type, amount, balance_after, reference_sale_id, note, created_by, created_at)
+           VALUES (?, ?, ?, ?, 'adjustment', ?, ?, NULL, ?, ?, ?)`,
+        )
+        .run(
+          uuidv4(),
+          sale.customer_id,
+          sale.business_id,
+          sale.branch_id,
+          -outstandingCredit,
+          newBalance,
+          `Sale ${sale.invoice_no} deleted${reason ? `: ${reason}` : ""}`,
+          session.id,
+          at,
+        );
+    }
+
+    // Keep the history, drop the link: `balance_after` on every one of these is
+    // a snapshot, so deleting them would falsify every later entry. The FK is
+    // ON DELETE RESTRICT, so this also has to happen before the sale can go.
+    db()
+      .prepare(
+        "UPDATE ledger_entries SET reference_sale_id = NULL WHERE reference_sale_id = ?",
+      )
+      .run(sale.id);
+
+    // Children first — every one of these is ON DELETE RESTRICT.
+    db()
+      .prepare(
+        `DELETE FROM refund_request_items
+          WHERE refund_request_id IN (SELECT id FROM refund_requests WHERE sale_id = ?)`,
+      )
+      .run(sale.id);
+    db().prepare("DELETE FROM refund_requests WHERE sale_id = ?").run(sale.id);
+    db().prepare("DELETE FROM payments WHERE sale_id = ?").run(sale.id);
+    db().prepare("DELETE FROM sale_items WHERE sale_id = ?").run(sale.id);
+    db().prepare("DELETE FROM sales WHERE id = ?").run(sale.id);
+
+    // The sale rows are gone; this is the only record that it ever existed.
+    writeActivity({
+      businessId: sale.business_id,
+      actorUserId: session.id,
+      entityType: "sale",
+      entityId: sale.id,
+      action: "sale_deleted",
+      summary: `Sale ${sale.invoice_no} deleted (${sale.total.toFixed(2)})${reason ? `: ${reason}` : ""}`,
+      payload: {
+        invoiceNo: sale.invoice_no,
+        total: sale.total,
+        status: sale.status,
+        customerId: sale.customer_id,
+        creditReversed: outstandingCredit,
+        restocked: items.map((item) => ({
+          productId: item.product_id,
+          qty: item.qty - (item.refunded_qty || 0),
+        })),
+        reason,
+      },
+    });
+  })();
+
+  return { ok: true, invoiceNo: sale.invoice_no };
+}
+
 export function getSaleDetail(saleId: string): SaleDetail {
   requireValidLicense();
   requireSession();

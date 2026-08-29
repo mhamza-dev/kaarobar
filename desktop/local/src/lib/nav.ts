@@ -86,6 +86,7 @@ export function useActionVisibility(user: SessionUser | null) {
     canCheckout: can(user, 'sales:checkout'),
     canRequestRefund: can(user, 'sales:refund_request'),
     canApproveRefund: can(user, 'sales:refund_approve'),
+    canDeleteSales: can(user, 'sales:delete'),
     canPrint: can(user, 'sales:print'),
     canEditTables: can(user, 'tables:edit'),
     canBackupCreate: can(user, 'system:backup_create'),

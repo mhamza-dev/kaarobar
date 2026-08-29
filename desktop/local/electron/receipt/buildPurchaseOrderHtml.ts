@@ -9,6 +9,7 @@ import {
   type PrintLanguage,
 } from './printLocale'
 import { currencyPrefix } from '../../shared/currencies'
+import { PRINT_PAGE_RESET_CSS } from "./receiptTemplates";
 
 export type PurchaseOrderPrintInput = {
   businessName: string
@@ -89,6 +90,7 @@ export function buildPurchaseOrderHtml(input: PurchaseOrderPrintInput): string {
   <meta charset="utf-8" />
   <style>
     * { box-sizing: border-box; }
+    ${PRINT_PAGE_RESET_CSS}
     body {
       margin: 0;
       padding: 24px;

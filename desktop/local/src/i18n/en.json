@@ -66,7 +66,12 @@
     "barcodeMissing": "No barcode",
     "customerType": "Customer",
     "walkIn": "Walk-in (no customer)",
-    "withCustomer": "Linked customer"
+    "withCustomer": "Linked customer",
+    "selectedCount": "{{count}} selected",
+    "clearSelection": "Clear selection",
+    "selectAllOnPage": "Select all rows on this page",
+    "selectRow": "Select row",
+    "bulkDelete": "Delete selected"
   },
   "roles": {
     "owner": "Owner",
@@ -468,7 +473,10 @@
     "amount": "Amount",
     "type": "Type",
     "subtotal": "Subtotal",
-    "discount": "Discount"
+    "discount": "Discount",
+    "deleteSale": "Delete sale",
+    "deleteSaleTitle": "Delete {{count}} sale(s)?",
+    "deleteSaleConfirm": "Stock goes back on the shelf and any credit on the account is reversed. The sale itself cannot be recovered — refund it instead if the record should be kept."
   },
   "barcode": {
     "generate": "Generate",
@@ -703,7 +711,9 @@
     "paymentRecorded": "Payment recorded",
     "restockNeededTitle": "{{count}} products need restock soon",
     "restockNeededDesc": "Based on recent daily sales: {{products}}",
-    "actionFailed": "Action failed"
+    "actionFailed": "Action failed",
+    "salesDeleted": "{{count}} sale(s) deleted",
+    "salesDeleteFailed": "Could not delete: {{invoices}}"
   },
   "inventory": {
     "daysLeft": "{{days}}d left",

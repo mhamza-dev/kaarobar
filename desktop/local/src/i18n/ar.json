@@ -66,7 +66,12 @@
     "barcodeMissing": "بدون باركود",
     "customerType": "العميل",
     "walkIn": "زائر (بدون عميل)",
-    "withCustomer": "عميل مرتبط"
+    "withCustomer": "عميل مرتبط",
+    "selectedCount": "{{count}} محدد",
+    "clearSelection": "إلغاء التحديد",
+    "selectAllOnPage": "تحديد كل الصفوف في هذه الصفحة",
+    "selectRow": "تحديد الصف",
+    "bulkDelete": "حذف المحدد"
   },
   "roles": {
     "owner": "المالك",
@@ -468,7 +473,10 @@
     "receiptFooterDefault": "شكراً لك!",
     "receiptPreview": "معاينة الإيصال المباشرة",
     "refundedAmount": "المبلغ المسترد",
-    "saleTotal": "إجمالي البيع"
+    "saleTotal": "إجمالي البيع",
+    "deleteSale": "حذف البيع",
+    "deleteSaleTitle": "حذف {{count}} عملية بيع؟",
+    "deleteSaleConfirm": "يعود المخزون إلى الرف ويُعكس أي رصيد آجل على الحساب. لا يمكن استرجاع عملية البيع — استخدم الاسترداد إذا أردت الاحتفاظ بالسجل."
   },
   "barcode": {
     "generate": "إنشاء",
@@ -703,7 +711,9 @@
     "actionFailed": "فشل الإجراء",
     "invoiceOpened": "تم فتح الفاتورة {{invoice}}",
     "invoiceNotFound": "لا يوجد بيع للفاتورة {{invoice}}",
-    "invoiceScanInvalid": "امسح باركود فاتورة كاروبار (KB-…)"
+    "invoiceScanInvalid": "امسح باركود فاتورة كاروبار (KB-…)",
+    "salesDeleted": "تم حذف {{count}} عملية بيع",
+    "salesDeleteFailed": "تعذّر الحذف: {{invoices}}"
   },
   "inventory": {
     "daysLeft": "متبقي {{days}}ي",

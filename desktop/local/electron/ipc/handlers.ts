@@ -34,6 +34,7 @@ import {
   createSupplier,
   createUser,
   deleteProduct,
+  deleteSale,
   fireTicketItems,
   generateProductBarcode,
   findSaleByInvoice,
@@ -240,6 +241,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.SALES_CREATE, async (_event, payload) => createSale(payload))
   ipcMain.handle(IPC_CHANNELS.SALES_REFUND_REQUEST, async (_event, payload) => createRefundRequest(payload))
   ipcMain.handle(IPC_CHANNELS.SALES_REFUND_REVIEW, async (_event, payload) => reviewRefundRequest(payload))
+  ipcMain.handle(IPC_CHANNELS.SALES_DELETE, async (_event, payload) => deleteSale(payload))
   ipcMain.handle(IPC_CHANNELS.SALES_PRINT, async (_event, saleId: string) => printSaleReceipt(saleId))
 
   ipcMain.handle(IPC_CHANNELS.PRINTER_LIST, async () => listPrinters())

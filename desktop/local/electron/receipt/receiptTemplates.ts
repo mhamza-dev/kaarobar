@@ -13,6 +13,53 @@ import type { PosReceiptTemplate } from './posPrinterSettings'
 export type TemplateCssCtx = {
   dir: 'ltr' | 'rtl'
   brandHex: string
+  /** Printable content width of the document, in mm. */
+  contentMm: number
+}
+
+/**
+ * CSS every printable document must carry.
+ *
+ * Two things Chromium gets wrong for us by default:
+ *
+ * `@page { margin: 0 }` — without it the print engine adds its own page margin
+ * (~10mm a side) *on top of* the body padding the layout already sets. On A4
+ * that is merely too much whitespace; on a 72mm roll it leaves ~52mm of usable
+ * width for a document laid out at 72mm, so every row wraps and the right-hand
+ * column is cut off. That is the single biggest cause of a receipt printing
+ * "broken" while looking correct in the preview window.
+ *
+ * `print-color-adjust: exact` — Chromium drops background fills when printing
+ * unless asked not to. The silent transport passes `printBackground: true`, but
+ * the preview window prints through the OS dialog, where "Background graphics"
+ * is off by default. Without this the banded headers, boxed totals and shaded
+ * table heads print as blank white space and the layout falls apart.
+ */
+export const PRINT_PAGE_RESET_CSS = `
+    @page { margin: 0; }
+    html, body {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    @media print {
+      html, body { margin: 0 !important; }
+    }`
+
+/**
+ * A run of characters long enough to span the paper, whatever its width.
+ *
+ * Character dividers used to be a hard-coded 32 characters, which fitted only
+ * 80mm paper: 58mm rolls overflowed and clipped mid-pattern, 76mm left a gap at
+ * both ends. This deliberately over-generates and lets the divider's
+ * `overflow: hidden` trim the excess — because the elements are centred, a
+ * repeating pattern clips symmetrically and reads as a full-width rule.
+ *
+ * `mmPerChar` is the advance width of one character at the divider's own font
+ * size and letter-spacing, which differs per template.
+ */
+function fillChars(pattern: string, contentMm: number, mmPerChar: number): string {
+  const needed = Math.ceil(contentMm / Math.max(mmPerChar, 0.1) / pattern.length) + 2
+  return pattern.repeat(Math.max(needed, 4))
 }
 
 export type HtmlTemplateStyle = {
@@ -21,8 +68,13 @@ export type HtmlTemplateStyle = {
    * stack from printDocumentChrome — Courier and friends have no Arabic glyphs.
    */
   fontFamilyLtr?: string
-  /** Self-contained divider element used by the roll layout. */
-  rollDividerHtml: string
+  /**
+   * Self-contained divider element used by the roll layout.
+   *
+   * A function rather than a string because character-based dividers have to
+   * know how wide the paper is; see `fillChars`.
+   */
+  rollDividerHtml: (ctx: TemplateCssCtx) => string
   /** Appended after the base CSS of the roll <style>; later rules win. */
   rollCss: (ctx: TemplateCssCtx) => string
   /** Appended after the base CSS of the sheet (A4/Letter) <style>. */
@@ -59,14 +111,25 @@ export function yiqText(hex: string): string {
   return (r * 299 + g * 587 + b * 114) / 1000 >= 128 ? '#111111' : '#ffffff'
 }
 
-const CHAR_DIVIDER_STARS = `<div class="stars">${'*'.repeat(32)}</div>`
-const CHAR_DIVIDER_EQUALS = `<div class="stars">${'='.repeat(32)}</div>`
+/** Advance width of one character in the `.stars` divider, at 11px + 1px tracking. */
+const STARS_MM_PER_CHAR = 1.7
+
+const charDivider = (pattern: string, mmPerChar: number, className = 'stars') =>
+  ({ contentMm }: TemplateCssCtx) =>
+    `<div class="${className}">${fillChars(pattern, contentMm, mmPerChar)}</div>`
 
 const HTML_STYLES: Record<PosReceiptTemplate, HtmlTemplateStyle> = {
-  // The pre-template look, byte for byte: star dividers, default fonts.
+  // The default look: a plain hairline rule between sections.
+  //
+  // This used to draw its dividers as a row of asterisks, which is why an
+  // out-of-the-box receipt printed rows of `*` where a line belonged. A rule is
+  // what the other nineteen templates draw and what people expect a divider to
+  // look like; the character dividers below are kept only where they are the
+  // point of the template (mono's typewriter `=`, ticket's tear-off line).
   classic: {
-    rollDividerHtml: CHAR_DIVIDER_STARS,
-    rollCss: () => '',
+    rollDividerHtml: () => '<div class="hr-cl"></div>',
+    rollCss: () => `
+    .hr-cl { border-top: 1px solid #555; margin: 10px 0; }`,
     sheetCss: () => '',
     bannerHeader: false,
     boxedTotal: false,
@@ -75,7 +138,7 @@ const HTML_STYLES: Record<PosReceiptTemplate, HtmlTemplateStyle> = {
 
   // Clean and airy: thin dashed rules, small tracked-out title.
   minimal: {
-    rollDividerHtml: '<div class="hr"></div>',
+    rollDividerHtml: () => '<div class="hr"></div>',
     rollCss: ({ dir }) => `
     .hr { border-top: 1px dashed #999; margin: 10px 0; }
     .shop { font-weight: 600; }
@@ -92,7 +155,7 @@ const HTML_STYLES: Record<PosReceiptTemplate, HtmlTemplateStyle> = {
 
   // Cash-receipt style: dotted rules and dot leaders between label and value.
   dotted: {
-    rollDividerHtml: '<div class="hr"></div>',
+    rollDividerHtml: () => '<div class="hr"></div>',
     rollCss: () => `
     .hr { border-top: 2px dotted #444; margin: 9px 0; }
     .row .leader { flex: 1 1 auto; border-bottom: 1px dotted #555; margin: 0 3px 3px; min-width: 8px; }`,
@@ -108,7 +171,7 @@ const HTML_STYLES: Record<PosReceiptTemplate, HtmlTemplateStyle> = {
   // Retro typewriter: monospace stack, '=' dividers, uppercase headings.
   mono: {
     fontFamilyLtr: "'Courier New', Consolas, 'Liberation Mono', monospace",
-    rollDividerHtml: CHAR_DIVIDER_EQUALS,
+    rollDividerHtml: charDivider('=', STARS_MM_PER_CHAR),
     rollCss: ({ dir }) =>
       dir === 'ltr' ? `
     .shop, .title, .thanks { text-transform: uppercase; }` : '',
@@ -124,7 +187,7 @@ const HTML_STYLES: Record<PosReceiptTemplate, HtmlTemplateStyle> = {
   // The roll band is near-black rather than the brand color — thermal printers
   // dither color fills into muddy gray, and solid black prints crisp.
   bold: {
-    rollDividerHtml: '<div class="hr-heavy"></div>',
+    rollDividerHtml: () => '<div class="hr-heavy"></div>',
     rollCss: () => `
     .hr-heavy { border-top: 2.5px solid #111; margin: 9px 0; }
     .band { background: #111; color: #fff; padding: 6px 4px; margin: 6px 0 4px; border-radius: 3px; }
@@ -146,7 +209,7 @@ const HTML_STYLES: Record<PosReceiptTemplate, HtmlTemplateStyle> = {
   // Formal serif: hairline rules, underlined title, italic thank-you.
   elegant: {
     fontFamilyLtr: "Georgia, 'Times New Roman', 'Noto Serif', serif",
-    rollDividerHtml: '<div class="hr-el"></div>',
+    rollDividerHtml: () => '<div class="hr-el"></div>',
     rollCss: ({ dir }) => `
     .hr-el { border-top: 1px solid #333; margin: 10px 0; }
     .title { text-decoration: underline; text-underline-offset: 3px; ${dir === 'ltr' ? 'letter-spacing: 1px;' : ''} }
@@ -162,7 +225,7 @@ const HTML_STYLES: Record<PosReceiptTemplate, HtmlTemplateStyle> = {
 
   // Full grid: bordered items table, ruled sections, boxed grand total.
   boxed: {
-    rollDividerHtml: '<div class="hr-bx"></div>',
+    rollDividerHtml: () => '<div class="hr-bx"></div>',
     rollCss: () => `
     .hr-bx { border-top: 1.5px solid #111; margin: 10px 0; }
     table { border: 1.5px solid #111; }
@@ -181,7 +244,7 @@ const HTML_STYLES: Record<PosReceiptTemplate, HtmlTemplateStyle> = {
 
   // High contrast: the receipt title sits on a dark strip, thick solid rules.
   stripe: {
-    rollDividerHtml: '<div class="hr-st"></div>',
+    rollDividerHtml: () => '<div class="hr-st"></div>',
     rollCss: ({ dir }) => `
     .hr-st { border-top: 3px solid #111; margin: 10px 0; }
     .title { background: #111; color: #fff; padding: 4px 6px; ${dir === 'ltr' ? 'text-transform: uppercase; letter-spacing: 2px;' : ''} }`,
@@ -196,7 +259,7 @@ const HTML_STYLES: Record<PosReceiptTemplate, HtmlTemplateStyle> = {
   // Airy and modern: no ruled dividers at all — soft gray rounded panels
   // carry the title and totals, everything else floats on whitespace.
   soft: {
-    rollDividerHtml: '<div class="sp"></div>',
+    rollDividerHtml: () => '<div class="sp"></div>',
     rollCss: () => `
     .sp { height: 9px; }
     .title { background: #f1f2f4; border-radius: 6px; padding: 5px 6px; }
@@ -214,7 +277,7 @@ const HTML_STYLES: Record<PosReceiptTemplate, HtmlTemplateStyle> = {
 
   // Boutique: handwritten-style shop name, dainty spaced-dot dividers.
   script: {
-    rollDividerHtml: `<div class="dots-sm">${'·'.repeat(20)}</div>`,
+    rollDividerHtml: charDivider('·', 3.1, 'dots-sm'),
     rollCss: ({ dir }) => `
     .dots-sm { text-align: center; font-size: 10px; letter-spacing: 6px; margin: 10px 0; overflow: hidden; white-space: nowrap; color: #666; }
     ${dir === 'ltr' ? ".shop { font-family: 'Segoe Script', 'Brush Script MT', cursive; font-size: 20px; font-weight: 400; }" : ''}
@@ -233,7 +296,7 @@ const HTML_STYLES: Record<PosReceiptTemplate, HtmlTemplateStyle> = {
   // Thermal printing renders the color as gray; driver prints and previews
   // show it in full color.
   accent: {
-    rollDividerHtml: '<div class="hr-acc"></div>',
+    rollDividerHtml: () => '<div class="hr-acc"></div>',
     rollCss: ({ brandHex }) => `
     .hr-acc { border-top: 2px solid ${brandHex}; margin: 10px 0; }
     .shop { color: ${brandHex}; }
@@ -250,7 +313,7 @@ const HTML_STYLES: Record<PosReceiptTemplate, HtmlTemplateStyle> = {
 
   // Framed: the whole receipt sits inside a delicate rounded border.
   framed: {
-    rollDividerHtml: '<div class="hr-fr"></div>',
+    rollDividerHtml: () => '<div class="hr-fr"></div>',
     rollCss: () => `
     .wrap { border: 1.5px solid #333; border-radius: 10px; padding: 9px 7px; }
     .hr-fr { border-top: 1px solid #aaa; margin: 9px 0; }`,
@@ -265,7 +328,7 @@ const HTML_STYLES: Record<PosReceiptTemplate, HtmlTemplateStyle> = {
 
   // Two-tone: zebra-striped item rows and an inverted (dark) grand total.
   duo: {
-    rollDividerHtml: '<div class="hr-duo"></div>',
+    rollDividerHtml: () => '<div class="hr-duo"></div>',
     rollCss: () => `
     .hr-duo { border-top: 2px solid #111; margin: 10px 0; }
     tbody tr:nth-child(even) td { background: #f0f1f3; }
@@ -282,7 +345,7 @@ const HTML_STYLES: Record<PosReceiptTemplate, HtmlTemplateStyle> = {
   // Vintage: old-print feel — double rules, small-caps headings, book serif.
   vintage: {
     fontFamilyLtr: "'Book Antiqua', Palatino, 'Palatino Linotype', Georgia, serif",
-    rollDividerHtml: '<div class="hr-vt"></div>',
+    rollDividerHtml: () => '<div class="hr-vt"></div>',
     rollCss: () => `
     .hr-vt { border-top: 4px double #333; margin: 10px 0; }
     .shop, .title { font-variant: small-caps; }`,
@@ -297,7 +360,8 @@ const HTML_STYLES: Record<PosReceiptTemplate, HtmlTemplateStyle> = {
 
   // Event ticket: scissor tear-lines, dashed side edges, pill-shaped title.
   ticket: {
-    rollDividerHtml: `<div class="tear">8&lt;${' -'.repeat(14)}</div>`,
+    rollDividerHtml: ({ contentMm }) =>
+      `<div class="tear">8&lt;${fillChars(' -', contentMm, 2.1)}</div>`,
     rollCss: ({ dir }) => `
     .tear { text-align: center; font-size: 10px; letter-spacing: 2px; margin: 10px 0; overflow: hidden; white-space: nowrap; color: #555; }
     .wrap { border-inline: 1.5px dashed #999; padding-inline: 6px; }
@@ -313,7 +377,7 @@ const HTML_STYLES: Record<PosReceiptTemplate, HtmlTemplateStyle> = {
 
   // Ledger book: a brand-colored margin line and faint baselines under rows.
   ledger: {
-    rollDividerHtml: '<div class="hr-lg"></div>',
+    rollDividerHtml: () => '<div class="hr-lg"></div>',
     rollCss: ({ brandHex }) => `
     .hr-lg { border-top: 1px solid #999; margin: 9px 0; }
     .wrap { border-inline-start: 2px solid ${brandHex}; padding-inline-start: 7px; }
@@ -332,7 +396,7 @@ const HTML_STYLES: Record<PosReceiptTemplate, HtmlTemplateStyle> = {
 
   // Deluxe: double picture-frame border, small-caps, diamond chain dividers.
   deluxe: {
-    rollDividerHtml: `<div class="stars">${'<>'.repeat(15)}</div>`,
+    rollDividerHtml: charDivider('&lt;&gt;', STARS_MM_PER_CHAR),
     rollCss: ({ dir }) => `
     .wrap { border: 1px solid #333; outline: 1px solid #333; outline-offset: 3px; padding: 9px 7px; margin: 4px; }
     .shop { font-variant: small-caps; ${dir === 'ltr' ? 'letter-spacing: 1px;' : ''} }
@@ -348,7 +412,7 @@ const HTML_STYLES: Record<PosReceiptTemplate, HtmlTemplateStyle> = {
 
   // Wave: relaxed squiggle dividers with italic headings.
   wave: {
-    rollDividerHtml: `<div class="wave-hr">${'~'.repeat(24)}</div>`,
+    rollDividerHtml: charDivider('~', 3.4, 'wave-hr'),
     rollCss: () => `
     .wave-hr { text-align: center; font-size: 13px; letter-spacing: 3px; margin: 8px 0; overflow: hidden; white-space: nowrap; color: #444; }
     .title { font-style: italic; }
@@ -364,7 +428,7 @@ const HTML_STYLES: Record<PosReceiptTemplate, HtmlTemplateStyle> = {
 
   // Market stall: rustic morse dividers and a hand-stamped tilted title.
   market: {
-    rollDividerHtml: `<div class="stars">${'-.'.repeat(16)}</div>`,
+    rollDividerHtml: charDivider('-.', STARS_MM_PER_CHAR),
     rollCss: () => `
     .title { border: 1.5px dashed #444; padding: 4px 10px; display: inline-block; transform: rotate(-1.5deg); }
     .thanks { letter-spacing: 1px; }`,
@@ -380,7 +444,7 @@ const HTML_STYLES: Record<PosReceiptTemplate, HtmlTemplateStyle> = {
   // Regal: accounting thin-over-thick rules with a formal serif.
   regal: {
     fontFamilyLtr: "Cambria, 'Palatino Linotype', Georgia, serif",
-    rollDividerHtml: '<div class="hr-rgl"></div>',
+    rollDividerHtml: () => '<div class="hr-rgl"></div>',
     rollCss: ({ dir }) => `
     .hr-rgl { border-top: 1px solid #333; border-bottom: 3px solid #333; height: 2px; margin: 10px 0; }
     .shop { font-variant: small-caps; }
@@ -398,7 +462,10 @@ const HTML_STYLES: Record<PosReceiptTemplate, HtmlTemplateStyle> = {
 
 // Every character here must survive CP437 — plain ASCII by construction.
 const ESCPOS_STYLES: Record<PosReceiptTemplate, EscPosTemplateStyle> = {
-  classic: { dividerChar: '*', pairLeader: null, boxTotal: false },
+  // '-' rather than '*': on the thermal path a divider can only be characters,
+  // and a run of hyphens reads as the rule it stands in for. Stars read as
+  // stars.
+  classic: { dividerChar: '-', pairLeader: null, boxTotal: false },
   minimal: { dividerChar: '-', pairLeader: null, boxTotal: false },
   dotted: { dividerChar: '.', pairLeader: '.', boxTotal: false },
   mono: { dividerChar: '=', pairLeader: null, boxTotal: false },

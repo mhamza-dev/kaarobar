@@ -66,7 +66,12 @@
     "barcodeMissing": "Sans code-barres",
     "customerType": "Client",
     "walkIn": "Sans client",
-    "withCustomer": "Client lié"
+    "withCustomer": "Client lié",
+    "selectedCount": "{{count}} sélectionnés",
+    "clearSelection": "Effacer la sélection",
+    "selectAllOnPage": "Sélectionner toutes les lignes de cette page",
+    "selectRow": "Sélectionner la ligne",
+    "bulkDelete": "Supprimer la sélection"
   },
   "roles": {
     "owner": "Propriétaire",
@@ -468,7 +473,10 @@
     "receiptFooterDefault": "MERCI !",
     "receiptPreview": "Aperçu du reçu en direct",
     "refundedAmount": "Montant remboursé",
-    "saleTotal": "Total de la vente"
+    "saleTotal": "Total de la vente",
+    "deleteSale": "Supprimer la vente",
+    "deleteSaleTitle": "Supprimer {{count}} vente(s) ?",
+    "deleteSaleConfirm": "Le stock est réintégré et tout crédit sur le compte est annulé. La vente est irrécupérable — faites plutôt un remboursement si le justificatif doit être conservé."
   },
   "barcode": {
     "generate": "Générer",
@@ -703,7 +711,9 @@
     "actionFailed": "Action échouée",
     "invoiceOpened": "Facture {{invoice}} ouverte",
     "invoiceNotFound": "Aucune vente trouvée pour la facture {{invoice}}",
-    "invoiceScanInvalid": "Scannez un code-barres de facture Kaarobar (KB-…)"
+    "invoiceScanInvalid": "Scannez un code-barres de facture Kaarobar (KB-…)",
+    "salesDeleted": "{{count}} vente(s) supprimée(s)",
+    "salesDeleteFailed": "Suppression impossible : {{invoices}}"
   },
   "inventory": {
     "daysLeft": "{{days}}j restants",

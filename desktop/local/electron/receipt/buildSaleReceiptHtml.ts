@@ -21,7 +21,11 @@ import {
   type PosPaperWidth,
   type PosReceiptTemplate,
 } from "./posPrinterSettings";
-import { htmlTemplateStyle, type HtmlTemplateStyle } from "./receiptTemplates";
+import {
+  htmlTemplateStyle,
+  PRINT_PAGE_RESET_CSS,
+  type HtmlTemplateStyle,
+} from "./receiptTemplates";
 
 export type ReceiptSaleInput = {
   invoiceNo: string;
@@ -75,6 +79,9 @@ export type ReceiptLayoutOptions = {
  * (58mm paper prints ~48mm, 80mm paper prints ~72mm). CSS mm units let the
  * driver print at physical scale instead of guessing from a px width.
  */
+/** Body width of the A4/Letter layout, matching the `max-width` in its CSS. */
+const SHEET_CONTENT_MM = 180;
+
 const ROLL_CONTENT_MM: Record<string, number> = {
   "58mm": 48,
   "76mm": 64,
@@ -284,7 +291,8 @@ function rollDocument(
     heightReporter,
   } = s;
 
-  const divider = style.rollDividerHtml;
+  const cssCtx = { dir: chrome.dir, brandHex, contentMm };
+  const divider = style.rollDividerHtml(cssCtx);
   // Label/value row; the dotted template fills the gap with a leader element.
   const leader = style.dotLeaders ? '<span class="leader"></span>' : "";
   const row = (label: string, value: string, cls = ""): string =>
@@ -337,6 +345,7 @@ function rollDocument(
   <meta charset="utf-8" />
   <style>
     * { box-sizing: border-box; }
+    ${PRINT_PAGE_RESET_CSS}
     body {
       margin: 0;
       padding: 2mm;
@@ -372,7 +381,7 @@ function rollDocument(
     .brand img { width: 28px; height: 28px; display: block; margin: 0 auto 4px; }
     .brand-name { font-size: 11px; font-weight: 700; color: ${brandHex}; }
     .support-line { font-size: 9px; color: #444; margin-top: 8px; line-height: 1.4; }
-    ${style.rollCss({ dir: chrome.dir, brandHex })}
+    ${style.rollCss(cssCtx)}
   </style>
 </head>
 <body>
@@ -530,6 +539,7 @@ function sheetDocument(input: ReceiptSaleInput, s: SharedParts): string {
   <meta charset="utf-8" />
   <style>
     * { box-sizing: border-box; }
+    ${PRINT_PAGE_RESET_CSS}
     body {
       margin: 0 auto;
       padding: 12mm 10mm;
@@ -578,7 +588,7 @@ function sheetDocument(input: ReceiptSaleInput, s: SharedParts): string {
     .brand { margin-top: 20px; text-align: center; }
     .brand img { width: 26px; height: 26px; display: block; margin: 0 auto 4px; }
     .brand-name { font-size: 11px; font-weight: 700; color: ${brandHex}; }
-    ${style.sheetCss({ dir: chrome.dir, brandHex })}
+    ${style.sheetCss({ dir: chrome.dir, brandHex, contentMm: SHEET_CONTENT_MM })}
   </style>
 </head>
 <body>

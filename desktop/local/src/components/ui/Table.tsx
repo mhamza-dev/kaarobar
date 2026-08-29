@@ -96,6 +96,22 @@ export type TableProps<T> = {
   mobileCardFields?: Array<{ key: string; label: ReactNode; render: (row: T) => ReactNode }>
   mobileCardActions?: (row: T) => ReactNode
   onRowClick?: (row: T) => void
+  /**
+   * Show a checkbox column and a bulk-action bar.
+   *
+   * Selection is keyed by `rowKey`, not by index, so it survives sorting,
+   * filtering and paging — a row picked on page one is still picked after the
+   * user searches for something else and comes back.
+   */
+  selectable?: boolean
+  /** Rows that may not be picked (an already-settled invoice, say). */
+  isRowSelectable?: (row: T) => boolean
+  /**
+   * Rendered in the bar that replaces the toolbar while rows are selected.
+   * `clear` empties the selection — call it after the action succeeds.
+   */
+  bulkActions?: (context: { rows: T[]; keys: string[]; clear: () => void }) => ReactNode
+  onSelectionChange?: (keys: string[]) => void
 }
 
 const alignClass = {
@@ -222,6 +238,10 @@ export function Table<T>({
   mobileCardFields,
   mobileCardActions,
   onRowClick,
+  selectable = false,
+  isRowSelectable,
+  bulkActions,
+  onSelectionChange,
 }: TableProps<T>) {
   const { t } = useTranslation()
   const filterDefs = (filters ?? EMPTY_FILTERS) as TableFilterDef<T>[]
@@ -364,6 +384,85 @@ export function Table<T>({
     const start = (safePage - 1) * pageSize
     return filteredRows.slice(start, start + pageSize)
   }, [filteredRows, safePage, pageSize, controlledTotal])
+
+  // Selection lives as a set of row keys rather than row objects: rows are
+  // re-created on every parent render, so identity comparison would drop the
+  // selection the moment anything upstream refetched.
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(() => new Set())
+
+  const canSelect = (row: T) => !isRowSelectable || isRowSelectable(row)
+
+  // A key that no longer matches any row — because it was deleted, or filtered
+  // out by a search the user has since typed — must not stay in the selection,
+  // or a bulk action would fire on rows nobody can see.
+  //
+  // Pruning is only safe when `rows` holds the whole set. Under server-side
+  // pagination it holds one page, so anything picked on another page would be
+  // quietly discarded here and the bulk action would silently do less than the
+  // count promised. There, keys are kept and only the rows we can actually see
+  // are handed to `bulkActions`.
+  const prunable = controlledTotal === undefined
+  const liveSelectedRows = useMemo(
+    () => (selectable ? filteredRows.filter((row) => selectedKeys.has(rowKey(row))) : []),
+    [selectable, filteredRows, selectedKeys, rowKey],
+  )
+  const liveSelectedKeys = useMemo(
+    () => (prunable ? liveSelectedRows.map(rowKey) : [...selectedKeys]),
+    [prunable, liveSelectedRows, selectedKeys, rowKey],
+  )
+  const selectionCount = liveSelectedKeys.length
+
+  const clearSelection = () => setSelectedKeys(new Set())
+
+  function toggleRow(row: T) {
+    const key = rowKey(row)
+    setSelectedKeys((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
+  // The header checkbox acts on the page in front of the user, not the whole
+  // filtered set — "select all" meaning 4,000 invoices the user never looked at
+  // is how bulk deletes go wrong.
+  const selectablePageRows = useMemo(
+    () => (selectable ? visibleRows.filter(canSelect) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selectable, visibleRows, isRowSelectable],
+  )
+  const pageAllSelected =
+    selectablePageRows.length > 0 &&
+    selectablePageRows.every((row) => selectedKeys.has(rowKey(row)))
+  const pageSomeSelected =
+    !pageAllSelected && selectablePageRows.some((row) => selectedKeys.has(rowKey(row)))
+
+  function togglePage() {
+    setSelectedKeys((prev) => {
+      const next = new Set(prev)
+      if (pageAllSelected) {
+        for (const row of selectablePageRows) next.delete(rowKey(row))
+      } else {
+        for (const row of selectablePageRows) next.add(rowKey(row))
+      }
+      return next
+    })
+  }
+
+  const headerCheckboxRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    if (headerCheckboxRef.current) headerCheckboxRef.current.indeterminate = pageSomeSelected
+  }, [pageSomeSelected])
+
+  const lastReportedRef = useRef<string>('')
+  useEffect(() => {
+    if (!onSelectionChange) return
+    const signature = liveSelectedKeys.join(',')
+    if (signature === lastReportedRef.current) return
+    lastReportedRef.current = signature
+    onSelectionChange(liveSelectedKeys)
+  }, [liveSelectedKeys, onSelectionChange])
 
   const showPagination = Boolean(pageSize)
   const from = totalCount === 0 ? 0 : (safePage - 1) * (pageSize ?? 10) + 1
@@ -613,6 +712,18 @@ export function Table<T>({
     onRowClick(row)
   }
 
+  // Once a selection is under way, clicking a row extends it rather than
+  // navigating away — losing a half-built selection to a stray click is the
+  // fastest way to make people distrust bulk actions.
+  function handleRowActivate(row: T, event: MouseEvent<HTMLElement>) {
+    if (isInteractiveTarget(event.target)) return
+    if (selectable && selectionCount > 0) {
+      if (canSelect(row)) toggleRow(row)
+      return
+    }
+    handleRowClick(row, event)
+  }
+
   return (
     <div
       className={cn(
@@ -624,6 +735,24 @@ export function Table<T>({
         className,
       )}
     >
+      {selectable && selectionCount > 0 ? (
+        <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-brand-primary/30 bg-brand-tint/70 px-3.5 py-3 backdrop-blur-md">
+          <span className="text-sm font-semibold text-ink">
+            {t('table.selectedCount', { count: selectionCount })}
+          </span>
+          <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
+            {bulkActions?.({
+              rows: liveSelectedRows,
+              keys: liveSelectedKeys,
+              clear: clearSelection,
+            })}
+            <Button type="button" variant="ghost" size="sm" onClick={clearSelection}>
+              {t('table.clearSelection')}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
       {showToolbar ? (
         <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-white/30 bg-surface-raised/60 px-3.5 py-3.5 backdrop-blur-md">
           {search ? (
@@ -671,12 +800,29 @@ export function Table<T>({
         <div className="hidden sm:block">
           <table className="w-full table-fixed border-collapse text-sm">
             <colgroup>
+              {selectable ? <col className="w-12" /> : null}
               {columns.map((column) => (
                 <col key={column.key} className={column.width} />
               ))}
             </colgroup>
             <thead>
               <tr className="border-b border-line/80">
+                {selectable ? (
+                  <th
+                    scope="col"
+                    className="sticky top-0 z-[1] bg-surface-muted/95 px-4 py-3.5 backdrop-blur-sm"
+                  >
+                    <input
+                      ref={headerCheckboxRef}
+                      type="checkbox"
+                      className="size-4 rounded border-line accent-brand-primary"
+                      aria-label={t('table.selectAllOnPage')}
+                      checked={pageAllSelected}
+                      disabled={selectablePageRows.length === 0}
+                      onChange={togglePage}
+                    />
+                  </th>
+                ) : null}
                 {columns.map((column) => {
                   const align = column.align ?? 'start'
                   return (
@@ -716,7 +862,10 @@ export function Table<T>({
             <tbody>
               {visibleRows.length === 0 ? (
                 <tr>
-                  <td colSpan={columns.length} className="px-4 py-12 text-center text-ink-muted">
+                  <td
+                    colSpan={columns.length + (selectable ? 1 : 0)}
+                    className="px-4 py-12 text-center text-ink-muted"
+                  >
                     {empty ?? t('empty.noRecords')}
                   </td>
                 </tr>
@@ -727,9 +876,23 @@ export function Table<T>({
                     className={cn(
                       'border-b border-line/70 last:border-b-0 transition-colors duration-pos hover:bg-brand-tint/45',
                       onRowClick ? 'cursor-pointer' : undefined,
+                      selectable && selectedKeys.has(rowKey(row)) ? 'bg-brand-tint/55' : undefined,
                     )}
-                    onClick={(event) => handleRowClick(row, event)}
+                    onClick={(event) => handleRowActivate(row, event)}
                   >
+                    {selectable ? (
+                      <td className="px-4 py-3.5 align-middle">
+                        <input
+                          type="checkbox"
+                          className="size-4 rounded border-line accent-brand-primary"
+                          aria-label={t('table.selectRow')}
+                          checked={selectedKeys.has(rowKey(row))}
+                          disabled={!canSelect(row)}
+                          onChange={() => toggleRow(row)}
+                          onClick={(event) => event.stopPropagation()}
+                        />
+                      </td>
+                    ) : null}
                     {columns.map((column) => {
                       const align = column.align ?? 'start'
                       return (
@@ -763,10 +926,22 @@ export function Table<T>({
                   className={cn(
                     'space-y-2.5 px-4 py-3.5 transition-colors duration-pos hover:bg-brand-tint/35',
                     onRowClick ? 'cursor-pointer' : undefined,
+                    selectable && selectedKeys.has(rowKey(row)) ? 'bg-brand-tint/55' : undefined,
                   )}
-                  onClick={(event) => handleRowClick(row, event)}
+                  onClick={(event) => handleRowActivate(row, event)}
                 >
                   <div className="flex items-start justify-between gap-2">
+                    {selectable ? (
+                      <input
+                        type="checkbox"
+                        className="mt-1 size-4 shrink-0 rounded border-line accent-brand-primary"
+                        aria-label={t('table.selectRow')}
+                        checked={selectedKeys.has(rowKey(row))}
+                        disabled={!canSelect(row)}
+                        onChange={() => toggleRow(row)}
+                        onClick={(event) => event.stopPropagation()}
+                      />
+                    ) : null}
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold tracking-tight text-ink">
                         {mobileCardTitle ? mobileCardTitle(row) : resolvedMobileFields[0]?.render(row)}

@@ -937,6 +937,11 @@ export type KaarobarApi = {
       decision: "approve" | "reject";
       note?: string;
     }) => Promise<RefundRequest>;
+    /** Owner only. Reverses stock and customer credit, then removes the sale. */
+    remove: (payload: {
+      saleId: string;
+      reason?: string;
+    }) => Promise<{ ok: true; invoiceNo: string }>;
     printReceipt: (saleId: string) => Promise<SalePrintResult>;
     updateDelivery: (payload: {
       saleId: string;
@@ -1159,6 +1164,7 @@ export const IPC_CHANNELS = {
   SALES_CREATE: "sales:create",
   SALES_REFUND_REQUEST: "sales:refundRequest",
   SALES_REFUND_REVIEW: "sales:refundReview",
+  SALES_DELETE: "sales:delete",
   SALES_PRINT: "sales:print",
   PRINTER_LIST: "printer:list",
   PRINTER_GET_SETTINGS: "printer:getSettings",

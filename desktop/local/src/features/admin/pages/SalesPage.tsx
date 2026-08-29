@@ -1,10 +1,13 @@
-import { Printer, RotateCcw } from 'lucide-react'
+import { useState } from 'react'
+import { Printer, RotateCcw, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useFormatMoney } from '../../../lib/useFormatMoney'
 import { useFormatDate } from '../../../lib/useFormatDate'
 import {
   Badge,
+  Button,
   Card,
+  ConfirmDialog,
   EmptyState,
   Table,
   useToast,
@@ -32,6 +35,41 @@ export function SalesPage({ user, data, onOpenSale }: Props) {
   const toast = useToast()
   const actions = useActionVisibility(user)
   const { sales, activeBusinessId } = data
+
+  // Held as ids rather than rows: the sales list is refetched after a delete,
+  // so anything holding row objects would be pointing at rows that no longer
+  // exist by the time the confirm dialog closes.
+  const [pendingDelete, setPendingDelete] = useState<{
+    ids: string[]
+    clear: () => void
+  } | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  async function deleteSelected(ids: string[], clearSelection: () => void) {
+    setDeleting(true)
+    const failures: string[] = []
+    // One at a time, and deliberately not aborted on the first failure: a sale
+    // that refuses to delete should not strand the rest, and the cashier needs
+    // to be told which ones are still there.
+    for (const id of ids) {
+      try {
+        await window.api.sales.remove({ saleId: id })
+      } catch (_e) {
+        const sale = sales.find((row) => row.id === id)
+        failures.push(sale?.invoiceNo ?? id)
+      }
+    }
+    setDeleting(false)
+    setPendingDelete(null)
+    clearSelection()
+    await data.refreshAll()
+
+    const deleted = ids.length - failures.length
+    if (deleted > 0) toast.success(t('toast.salesDeleted', { count: deleted }))
+    if (failures.length > 0) {
+      toast.error(t('toast.salesDeleteFailed', { invoices: failures.join(', ') }))
+    }
+  }
 
   useBarcodeScanner({
     enabled: Boolean(activeBusinessId),
@@ -90,6 +128,17 @@ export function SalesPage({ user, data, onOpenSale }: Props) {
           },
         ]
       : []),
+    ...(actions.canDeleteSales
+      ? [
+          {
+            id: 'delete',
+            label: t('forms.deleteSale'),
+            icon: <Trash2 className="size-4" />,
+            danger: true,
+            onSelect: () => setPendingDelete({ ids: [row.id], clear: () => undefined }),
+          },
+        ]
+      : []),
   ]
 
   return (
@@ -110,6 +159,18 @@ export function SalesPage({ user, data, onOpenSale }: Props) {
             rowKey={(row) => row.id}
             rows={sales}
             onRowClick={(row) => onOpenSale(row.id)}
+            selectable={actions.canDeleteSales}
+            bulkActions={({ keys, clear }) => (
+              <Button
+                type="button"
+                variant="danger"
+                size="sm"
+                onClick={() => setPendingDelete({ ids: keys, clear })}
+              >
+                <Trash2 className="size-4" />
+                {t('table.bulkDelete')}
+              </Button>
+            )}
             search={{
               getText: (row) => row.invoiceNo,
             }}
@@ -210,6 +271,19 @@ export function SalesPage({ user, data, onOpenSale }: Props) {
           />
         )}
       </Card>
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        loading={deleting}
+        danger
+        onClose={() => setPendingDelete(null)}
+        onConfirm={() => {
+          if (pendingDelete) void deleteSelected(pendingDelete.ids, pendingDelete.clear)
+        }}
+        title={t('forms.deleteSaleTitle', { count: pendingDelete?.ids.length ?? 0 })}
+        description={t('forms.deleteSaleConfirm')}
+        confirmLabel={t('forms.deleteSale')}
+      />
     </div>
   )
 }

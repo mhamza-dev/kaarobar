@@ -66,7 +66,12 @@
     "barcodeMissing": "Kein Barcode",
     "customerType": "Kunde",
     "walkIn": "Laufkundschaft (kein Kunde)",
-    "withCustomer": "Verknüpfter Kunde"
+    "withCustomer": "Verknüpfter Kunde",
+    "selectedCount": "{{count}} ausgewählt",
+    "clearSelection": "Auswahl aufheben",
+    "selectAllOnPage": "Alle Zeilen dieser Seite auswählen",
+    "selectRow": "Zeile auswählen",
+    "bulkDelete": "Auswahl löschen"
   },
   "roles": {
     "owner": "Inhaber",
@@ -468,7 +473,10 @@
     "receiptFooterDefault": "VIELEN DANK!",
     "receiptPreview": "Live-Belegvorschau",
     "refundedAmount": "Erstatteter Betrag",
-    "saleTotal": "Verkaufssumme"
+    "saleTotal": "Verkaufssumme",
+    "deleteSale": "Verkauf löschen",
+    "deleteSaleTitle": "{{count}} Verkauf/Verkäufe löschen?",
+    "deleteSaleConfirm": "Der Bestand wird zurückgebucht und offene Guthaben auf dem Konto werden storniert. Der Verkauf lässt sich nicht wiederherstellen — erstatten Sie ihn, wenn der Beleg erhalten bleiben soll."
   },
   "barcode": {
     "generate": "Generieren",
@@ -703,7 +711,9 @@
     "actionFailed": "Aktion fehlgeschlagen",
     "invoiceOpened": "Rechnung {{invoice}} geöffnet",
     "invoiceNotFound": "Kein Verkauf zur Rechnung {{invoice}} gefunden",
-    "invoiceScanInvalid": "Scannen Sie einen Kaarobar-Rechnungsbarcode (KB-…)"
+    "invoiceScanInvalid": "Scannen Sie einen Kaarobar-Rechnungsbarcode (KB-…)",
+    "salesDeleted": "{{count}} Verkauf/Verkäufe gelöscht",
+    "salesDeleteFailed": "Nicht gelöscht: {{invoices}}"
   },
   "inventory": {
     "daysLeft": "{{days}}T verbleibend",

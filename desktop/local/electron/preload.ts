@@ -113,6 +113,7 @@ const api: KaarobarApi = {
     create: (payload) => ipcRenderer.invoke(IPC_CHANNELS.SALES_CREATE, payload),
     createRefundRequest: (payload) => ipcRenderer.invoke(IPC_CHANNELS.SALES_REFUND_REQUEST, payload),
     reviewRefundRequest: (payload) => ipcRenderer.invoke(IPC_CHANNELS.SALES_REFUND_REVIEW, payload),
+    remove: (payload) => ipcRenderer.invoke(IPC_CHANNELS.SALES_DELETE, payload),
     printReceipt: (saleId) => ipcRenderer.invoke(IPC_CHANNELS.SALES_PRINT, saleId),
     updateDelivery: (payload) => ipcRenderer.invoke(IPC_CHANNELS.SALES_UPDATE_DELIVERY, payload),
   },

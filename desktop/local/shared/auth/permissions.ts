@@ -13,6 +13,7 @@ export type PermissionAction =
   | 'sales:checkout'
   | 'sales:refund_request'
   | 'sales:refund_approve'
+  | 'sales:delete'
   | 'sales:print'
   | 'tables:edit'
   | 'system:backup_create'
@@ -70,6 +71,10 @@ const ROLE_PERMISSIONS: Record<SessionUser['role'], PermissionAction[]> = {
     'sales:checkout',
     'sales:refund_request',
     'sales:refund_approve',
+    // Owner only, deliberately. Deleting a sale reverses stock, credit and the
+    // day's takings at once; a manager who can undo a shortfall without anyone
+    // else's sign-off is the gap every till fraud goes through.
+    'sales:delete',
     'sales:print',
     'tables:edit',
     'system:backup_create',

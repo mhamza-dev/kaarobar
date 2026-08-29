@@ -66,7 +66,12 @@
     "barcodeMissing": "بارکوڈ نہیں",
     "customerType": "کسٹمر",
     "walkIn": "واک اِن (بغیر کسٹمر)",
-    "withCustomer": "منسلک کسٹمر"
+    "withCustomer": "منسلک کسٹمر",
+    "selectedCount": "{{count}} منتخب",
+    "clearSelection": "انتخاب ہٹائیں",
+    "selectAllOnPage": "اس صفحے کی تمام قطاریں منتخب کریں",
+    "selectRow": "قطار منتخب کریں",
+    "bulkDelete": "منتخب حذف کریں"
   },
   "roles": {
     "owner": "مالک",
@@ -468,7 +473,10 @@
     "productKind": "پروڈکٹ قسم",
     "stockNotTracked": "اس پروڈکٹ قسم کے لیے اسٹاک ٹریک نہیں ہوتا۔",
     "subtotal": "ذیلی کل",
-    "discount": "رعایت"
+    "discount": "رعایت",
+    "deleteSale": "سیل حذف کریں",
+    "deleteSaleTitle": "{{count}} سیل حذف کریں؟",
+    "deleteSaleConfirm": "اسٹاک واپس شامل ہو جائے گا اور اکاؤنٹ پر ادھار بھی واپس ہو جائے گا۔ سیل واپس نہیں لائی جا سکتی — ریکارڈ رکھنا ہو تو ریفنڈ کریں۔"
   },
   "barcode": {
     "generate": "تیار کریں",
@@ -657,7 +665,9 @@
     "ticketCancelled": "ٹکٹ منسوخ ہوا",
     "paymentRecorded": "ادائیگی درج ہو گئی",
     "restockNeededTitle": "{{count}} پروڈکٹس کو جلد ری اسٹاک کی ضرورت ہے",
-    "restockNeededDesc": "حالیہ روزانہ فروخت کے مطابق: {{products}}"
+    "restockNeededDesc": "حالیہ روزانہ فروخت کے مطابق: {{products}}",
+    "salesDeleted": "{{count}} سیل حذف ہو گئیں",
+    "salesDeleteFailed": "حذف نہیں ہو سکیں: {{invoices}}"
   },
   "inventory": {
     "daysLeft": "{{days}} دن باقی",
