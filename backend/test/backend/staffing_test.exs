@@ -166,7 +166,8 @@ defmodule Kaarobar.StaffingTest do
 
       assert {:ok, %{user: user}} = Staffing.accept_invitation(token, %{})
       assert user.id == existing.id
-      assert Repo.aggregate(from(u in Kaarobar.Accounts.User, where: u.email == "existing@shop.pk"), :count) == 1
+      matching = from(u in Kaarobar.Accounts.User, where: u.email == "existing@shop.pk")
+      assert Repo.aggregate(matching, :count) == 1
     end
 
     test "a token works once", %{token: token} do

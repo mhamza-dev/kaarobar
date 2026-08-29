@@ -195,11 +195,7 @@ defmodule Kaarobar.AccessControl do
   end
 
   defp upsert_system_role(template) do
-    role =
-      case Repo.get_by(Role, key: template.key, organization_id: nil) do
-        nil -> %Role{}
-        existing -> existing
-      end
+    role = fetch_system_role_struct(template.key) || %Role{}
 
     {:ok, role} =
       role
@@ -276,10 +272,22 @@ defmodule Kaarobar.AccessControl do
   @doc "Fetches a system role template by key."
   @spec fetch_system_role(String.t()) :: {:ok, Role.t()} | {:error, :not_found}
   def fetch_system_role(key) do
-    case Repo.get_by(Role, key: key, organization_id: nil) do
+    case fetch_system_role_struct(key) do
       nil -> {:error, :not_found}
       role -> {:ok, role}
     end
+  end
+
+  # A system role is identified by a NULL organization_id. Ecto refuses `nil`
+  # in `get_by`, because `= NULL` is never true and silently matching nothing
+  # is worse than an error — so the comparison is spelled out with is_nil/1.
+  defp fetch_system_role_struct(key) do
+    Repo.one(
+      from role in Role,
+        where: role.key == ^key,
+        where: is_nil(role.organization_id),
+        where: is_nil(role.deleted_at)
+    )
   end
 
   @doc """

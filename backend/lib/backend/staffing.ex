@@ -470,6 +470,8 @@ defmodule Kaarobar.Staffing do
 
   defp validate_branch_ids(_scope, _branch_ids), do: {:error, :not_found}
 
+  defp lookup_branch_ids(%Scope{organization: nil}, _branch_ids), do: {:error, :not_found}
+
   defp lookup_branch_ids(%Scope{} = scope, branch_ids) do
     organization_id = Scope.organization_id(scope)
 
