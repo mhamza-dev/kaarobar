@@ -82,7 +82,7 @@ defmodule Kaarobar.Catalog.Unit do
     |> validate_inclusion(:dimension, @dimensions)
     |> validate_number(:factor_to_base, greater_than: 0)
     |> validate_number(:precision, greater_than_or_equal_to: 0, less_than_or_equal_to: 6)
-    |> unique_constraint([:business_id, :code],
+    |> unique_constraint(:code,
       name: :units_business_id_code_index,
       message: "is already used by another unit"
     )

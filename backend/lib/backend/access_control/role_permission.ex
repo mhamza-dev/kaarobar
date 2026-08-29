@@ -24,6 +24,6 @@ defmodule Kaarobar.AccessControl.RolePermission do
     |> validate_required([:role_id, :permission_key])
     |> foreign_key_constraint(:role_id)
     |> foreign_key_constraint(:permission_key, message: "is not a known permission")
-    |> unique_constraint([:role_id, :permission_key])
+    |> unique_constraint(:permission_key, name: :role_permissions_role_id_permission_key_index)
   end
 end

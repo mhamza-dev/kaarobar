@@ -57,7 +57,7 @@ defmodule Kaarobar.Catalog.Modifier do
     |> validate_consumption()
     |> foreign_key_constraint(:modifier_group_id)
     |> foreign_key_constraint(:consumes_variant_id)
-    |> unique_constraint([:modifier_group_id, :name],
+    |> unique_constraint(:name,
       name: :modifiers_modifier_group_id_name_index,
       message: "is already an option in this group"
     )

@@ -70,7 +70,10 @@ defmodule Kaarobar.Purchasing.SupplierPayment do
       message: "must be a three-letter ISO 4217 code"
     )
     |> validate_length(:reference, max: 120)
-    |> unique_constraint([:business_id, :number], message: "is already used")
+    |> unique_constraint(:number,
+      name: :supplier_payments_business_id_number_index,
+      message: "is already used"
+    )
     |> foreign_key_constraint(:supplier_id)
   end
 

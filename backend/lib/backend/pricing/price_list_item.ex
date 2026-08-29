@@ -30,7 +30,7 @@ defmodule Kaarobar.Pricing.PriceListItem do
     |> validate_number(:min_quantity, greater_than: 0)
     |> foreign_key_constraint(:price_list_id)
     |> foreign_key_constraint(:variant_id)
-    |> unique_constraint([:price_list_id, :variant_id, :min_quantity],
+    |> unique_constraint(:min_quantity, name: :price_list_items_price_list_id_variant_id_min_quantity_index,
       message: "already has a price at this quantity"
     )
   end

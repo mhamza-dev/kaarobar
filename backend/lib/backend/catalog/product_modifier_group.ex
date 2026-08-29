@@ -28,7 +28,8 @@ defmodule Kaarobar.Catalog.ProductModifierGroup do
     |> validate_required([:product_id, :modifier_group_id])
     |> foreign_key_constraint(:product_id)
     |> foreign_key_constraint(:modifier_group_id)
-    |> unique_constraint([:product_id, :modifier_group_id],
+    |> unique_constraint(:modifier_group_id,
+      name: :product_modifier_groups_product_id_modifier_group_id_index,
       message: "is already attached to this product"
     )
   end

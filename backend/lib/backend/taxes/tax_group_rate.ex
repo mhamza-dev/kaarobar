@@ -27,7 +27,7 @@ defmodule Kaarobar.Taxes.TaxGroupRate do
     |> validate_number(:position, greater_than_or_equal_to: 0)
     |> foreign_key_constraint(:tax_group_id)
     |> foreign_key_constraint(:tax_id)
-    |> unique_constraint([:tax_group_id, :tax_id],
+    |> unique_constraint(:tax_id, name: :tax_group_rates_tax_group_id_tax_id_index,
       message: "is already in this tax group"
     )
   end

@@ -29,7 +29,7 @@ defmodule Kaarobar.Purchasing.SupplierPaymentAllocation do
     |> cast(attrs, [:business_id, :supplier_payment_id, :supplier_bill_id, :amount])
     |> validate_required([:business_id, :supplier_payment_id, :supplier_bill_id, :amount])
     |> validate_number(:amount, greater_than: 0)
-    |> unique_constraint([:supplier_payment_id, :supplier_bill_id],
+    |> unique_constraint(:supplier_bill_id, name: :supplier_payment_allocations_payment_bill_index,
       message: "is already allocated to this bill"
     )
     |> foreign_key_constraint(:supplier_bill_id)

@@ -59,7 +59,7 @@ defmodule Kaarobar.Inventory.SerialNumber do
     |> update_change(:serial, &String.trim/1)
     |> validate_length(:serial, min: 1, max: 120)
     |> validate_inclusion(:status, @statuses)
-    |> unique_constraint([:business_id, :serial],
+    |> unique_constraint(:serial, name: :serial_numbers_business_id_serial_index,
       message: "is already recorded against another unit"
     )
     |> foreign_key_constraint(:variant_id)

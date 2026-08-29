@@ -59,7 +59,7 @@ defmodule Kaarobar.Taxes.Tax do
     |> validate_inclusion(:kind, @kinds)
     |> validate_number(:rate, greater_than_or_equal_to: 0)
     |> validate_percentage_bounds()
-    |> unique_constraint([:business_id, :code],
+    |> unique_constraint(:code,
       name: :taxes_business_id_code_index,
       message: "is already used by another tax"
     )

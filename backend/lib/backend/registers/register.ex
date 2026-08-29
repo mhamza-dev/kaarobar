@@ -50,11 +50,11 @@ defmodule Kaarobar.Registers.Register do
       message: "may only contain uppercase letters, numbers and hyphens"
     )
     |> validate_length(:invoice_prefix, max: 12)
-    |> unique_constraint([:branch_id, :name],
+    |> unique_constraint(:name,
       name: :registers_branch_id_name_index,
       message: "is already used by another register at this branch"
     )
-    |> unique_constraint([:business_id, :code],
+    |> unique_constraint(:code,
       name: :registers_business_id_code_index,
       message: "is already used by another register"
     )

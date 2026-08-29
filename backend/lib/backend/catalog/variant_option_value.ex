@@ -26,7 +26,7 @@ defmodule Kaarobar.Catalog.VariantOptionValue do
     |> validate_required([:variant_id, :option_value_id])
     |> foreign_key_constraint(:variant_id)
     |> foreign_key_constraint(:option_value_id)
-    |> unique_constraint([:variant_id, :option_value_id],
+    |> unique_constraint(:option_value_id, name: :variant_option_values_variant_id_option_value_id_index,
       message: "is already set on this variant"
     )
   end

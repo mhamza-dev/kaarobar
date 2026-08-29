@@ -59,7 +59,7 @@ defmodule Kaarobar.Purchasing.SupplierProduct do
     |> validate_number(:pack_size, greater_than: 0)
     |> validate_number(:lead_time_days, greater_than_or_equal_to: 0, less_than: 366)
     |> validate_length(:supplier_sku, max: 64)
-    |> unique_constraint([:supplier_id, :variant_id],
+    |> unique_constraint(:variant_id, name: :supplier_products_supplier_id_variant_id_index,
       message: "is already listed for this supplier"
     )
     |> unique_constraint(:is_preferred,

@@ -98,7 +98,7 @@ defmodule Kaarobar.Sales.Order do
     |> validate_inclusion(:channel, @channels)
     |> validate_inclusion(:service_mode, @service_modes)
     |> validate_length(:label, max: 80)
-    |> unique_constraint([:business_id, :number],
+    |> unique_constraint(:number,
       name: :orders_business_id_number_index
     )
     |> foreign_key_constraint(:branch_id)

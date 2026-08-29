@@ -76,11 +76,11 @@ defmodule Kaarobar.Catalog.ProductVariant do
     |> validate_number(:cost, greater_than_or_equal_to: 0)
     |> validate_number(:compare_at_price, greater_than_or_equal_to: 0)
     |> validate_number(:weight_grams, greater_than_or_equal_to: 0)
-    |> unique_constraint([:business_id, :sku],
+    |> unique_constraint(:sku,
       name: :product_variants_business_id_sku_index,
       message: "is already used by another product"
     )
-    |> unique_constraint([:business_id, :barcode],
+    |> unique_constraint(:barcode,
       name: :product_variants_business_id_barcode_index,
       message: "is already used by another product"
     )

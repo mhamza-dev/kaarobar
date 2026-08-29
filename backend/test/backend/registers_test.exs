@@ -51,7 +51,7 @@ defmodule Kaarobar.RegistersTest do
       _first = register_fixture(scope, %{"name" => "Counter"})
 
       assert {:error, changeset} = Registers.create_register(scope, %{"name" => "Counter"})
-      assert errors_on(changeset).branch_id != []
+      assert errors_on(changeset).name != []
     end
 
     test "cannot be removed while a shift is open on it", %{scope: scope} do

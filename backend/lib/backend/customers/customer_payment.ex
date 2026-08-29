@@ -65,7 +65,7 @@ defmodule Kaarobar.Customers.CustomerPayment do
     |> validate_inclusion(:method, @methods)
     |> validate_number(:amount, greater_than: 0)
     |> put_default_paid_on()
-    |> unique_constraint([:business_id, :number],
+    |> unique_constraint(:number,
       name: :customer_payments_business_id_number_index
     )
     |> foreign_key_constraint(:customer_id)

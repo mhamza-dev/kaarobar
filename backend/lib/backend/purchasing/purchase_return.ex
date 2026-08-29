@@ -61,7 +61,10 @@ defmodule Kaarobar.Purchasing.PurchaseReturn do
     |> validate_required([:branch_id, :supplier_id, :returned_on])
     |> validate_length(:reason, max: 200)
     |> validate_length(:notes, max: 2000)
-    |> unique_constraint([:business_id, :number], message: "is already used")
+    |> unique_constraint(:number,
+      name: :purchase_returns_business_id_number_index,
+      message: "is already used"
+    )
     |> foreign_key_constraint(:supplier_id)
   end
 

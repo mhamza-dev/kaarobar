@@ -136,7 +136,7 @@ defmodule Kaarobar.Sales.Sale do
     |> validate_inclusion(:service_mode, ~w(dine_in takeaway delivery))
     |> validate_number(:total, greater_than_or_equal_to: 0)
     |> validate_number(:subtotal, greater_than_or_equal_to: 0)
-    |> unique_constraint([:business_id, :number], message: "has already been issued")
+    |> unique_constraint(:number, name: :sales_business_id_number_index, message: "has already been issued")
     |> foreign_key_constraint(:branch_id)
     |> foreign_key_constraint(:customer_id)
   end

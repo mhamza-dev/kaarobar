@@ -846,7 +846,7 @@ defmodule Kaarobar.Inventory do
 
   @doc "Submits a finished count for approval, with its variance summarised."
   @spec submit_count(Scope.t(), StockCount.t()) :: {:ok, StockCount.t()} | {:error, term()}
-  def submit_count(%Scope{} = scope, %StockCount{} = count) do
+  def submit_count(%Scope{} = _scope, %StockCount{} = count) do
     if StockCount.open?(count) do
       summary = summarise_count(count)
 

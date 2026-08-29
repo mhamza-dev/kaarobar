@@ -65,7 +65,7 @@ defmodule Kaarobar.Inventory.StockCount do
     |> validate_required([:branch_id, :kind])
     |> validate_inclusion(:kind, @kinds)
     |> validate_length(:notes, max: 1000)
-    |> unique_constraint([:business_id, :number], message: "is already used")
+    |> unique_constraint(:number, name: :stock_counts_business_id_number_index, message: "is already used")
     |> foreign_key_constraint(:branch_id)
   end
 

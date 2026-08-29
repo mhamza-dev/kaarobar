@@ -141,7 +141,7 @@ defmodule Kaarobar.Tenancy.Invitation do
     |> foreign_key_constraint(:organization_id)
     |> foreign_key_constraint(:business_id)
     |> foreign_key_constraint(:role_id)
-    |> unique_constraint([:organization_id, :email],
+    |> unique_constraint(:email,
       name: :invitations_pending_unique_index,
       message: "already has a pending invitation"
     )

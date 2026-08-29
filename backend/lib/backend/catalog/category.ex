@@ -67,7 +67,7 @@ defmodule Kaarobar.Catalog.Category do
     |> validate_number(:depth, less_than_or_equal_to: @max_depth,
       message: "would nest categories more than #{@max_depth} levels deep"
     )
-    |> unique_constraint([:business_id, :slug],
+    |> unique_constraint(:slug,
       name: :categories_business_id_slug_index,
       message: "is already taken"
     )

@@ -84,8 +84,8 @@ defmodule Kaarobar.Purchasing.SupplierBill do
     |> validate_number(:exchange_rate, greater_than: 0)
     |> validate_number(:shipping_total, greater_than_or_equal_to: 0)
     |> validate_due_date()
-    |> unique_constraint([:business_id, :number], message: "is already used")
-    |> unique_constraint([:supplier_id, :supplier_invoice_number],
+    |> unique_constraint(:number, message: "is already used")
+    |> unique_constraint(:supplier_invoice_number,
       name: :supplier_bills_unique_supplier_invoice_index,
       message: "has already been entered for this supplier"
     )

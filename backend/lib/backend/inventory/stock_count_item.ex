@@ -50,7 +50,7 @@ defmodule Kaarobar.Inventory.StockCountItem do
     |> validate_required([:business_id, :stock_count_id, :variant_id, :expected_quantity])
     |> validate_number(:unit_cost, greater_than_or_equal_to: 0)
     |> foreign_key_constraint(:variant_id)
-    |> unique_constraint([:stock_count_id, :variant_id],
+    |> unique_constraint(:variant_id,
       name: :stock_count_items_variant_unique_index,
       message: "is already on this count"
     )

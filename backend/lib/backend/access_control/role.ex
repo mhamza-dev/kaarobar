@@ -124,7 +124,7 @@ defmodule Kaarobar.AccessControl.Role do
       name: :roles_system_key_index,
       message: "is already the name of a built-in role"
     )
-    |> unique_constraint([:organization_id, :key],
+    |> unique_constraint(:key,
       name: :roles_organization_key_index,
       message: "is already taken"
     )

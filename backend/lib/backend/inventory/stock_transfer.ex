@@ -54,7 +54,7 @@ defmodule Kaarobar.Inventory.StockTransfer do
     |> validate_required([:source_branch_id, :destination_branch_id])
     |> validate_distinct_branches()
     |> validate_length(:notes, max: 1000)
-    |> unique_constraint([:business_id, :number], message: "is already used")
+    |> unique_constraint(:number, name: :stock_transfers_business_id_number_index, message: "is already used")
     |> foreign_key_constraint(:source_branch_id)
     |> foreign_key_constraint(:destination_branch_id)
   end

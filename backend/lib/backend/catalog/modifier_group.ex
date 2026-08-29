@@ -56,7 +56,7 @@ defmodule Kaarobar.Catalog.ModifierGroup do
     |> validate_number(:min_select, greater_than_or_equal_to: 0)
     |> apply_single_select_ceiling()
     |> validate_selection_bounds()
-    |> unique_constraint([:business_id, :name],
+    |> unique_constraint(:name,
       name: :modifier_groups_business_id_name_index,
       message: "is already defined"
     )

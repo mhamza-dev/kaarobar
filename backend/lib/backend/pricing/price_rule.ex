@@ -138,7 +138,7 @@ defmodule Kaarobar.Pricing.PriceRule do
     |> validate_time_window()
     |> validate_date_window()
     |> validate_number(:priority, greater_than_or_equal_to: 0)
-    |> unique_constraint([:business_id, :code],
+    |> unique_constraint(:code,
       name: :price_rules_business_id_code_index,
       message: "is already used by another promotion"
     )

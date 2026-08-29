@@ -75,11 +75,11 @@ defmodule Kaarobar.Customers.Customer do
     |> validate_length(:country_code, is: 2)
     |> validate_number(:credit_limit, greater_than_or_equal_to: 0)
     |> validate_credit_limit_implies_credit()
-    |> unique_constraint([:business_id, :phone],
+    |> unique_constraint(:phone,
       name: :customers_business_id_phone_index,
       message: "is already used by another customer"
     )
-    |> unique_constraint([:business_id, :code],
+    |> unique_constraint(:code,
       name: :customers_business_id_code_index,
       message: "is already used by another customer"
     )

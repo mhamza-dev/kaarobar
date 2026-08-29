@@ -173,15 +173,15 @@ defmodule Kaarobar.Tenancy.Membership do
     |> validate_length(:employee_code, max: 32)
     |> validate_length(:job_title, max: 120)
     |> validate_dates()
-    |> unique_constraint([:organization_id, :user_id],
+    |> unique_constraint(:user_id,
       name: :memberships_org_wide_unique_index,
       message: "is already a member of this organization"
     )
-    |> unique_constraint([:organization_id, :user_id, :business_id],
+    |> unique_constraint(:business_id,
       name: :memberships_business_unique_index,
       message: "is already a member of this business"
     )
-    |> unique_constraint([:business_id, :employee_code],
+    |> unique_constraint(:employee_code,
       name: :memberships_business_id_employee_code_index,
       message: "is already used by another staff member"
     )

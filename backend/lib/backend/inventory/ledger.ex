@@ -232,7 +232,7 @@ defmodule Kaarobar.Inventory.Ledger do
       variant_id: variant.id
     }
 
-    case %StockItem{} |> StockItem.new(attrs) |> Repo.insert() do
+    case attrs |> StockItem.new() |> Repo.insert() do
       {:ok, item} ->
         {:ok, item}
 

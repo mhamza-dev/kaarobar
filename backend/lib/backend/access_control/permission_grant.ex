@@ -58,7 +58,7 @@ defmodule Kaarobar.AccessControl.PermissionGrant do
     |> validate_expiry_in_future()
     |> foreign_key_constraint(:membership_id)
     |> foreign_key_constraint(:permission_key, message: "is not a known permission")
-    |> unique_constraint([:membership_id, :permission_key],
+    |> unique_constraint(:permission_key, name: :permission_grants_membership_id_permission_key_index,
       message: "already has an override for this permission"
     )
   end

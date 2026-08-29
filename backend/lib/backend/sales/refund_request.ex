@@ -75,7 +75,7 @@ defmodule Kaarobar.Sales.RefundRequest do
     |> validate_number(:requested_amount, greater_than: 0)
     |> put_change(:status, "pending")
     |> put_change(:requested_at, DateTime.utc_now())
-    |> unique_constraint([:business_id, :number],
+    |> unique_constraint(:number,
       name: :refund_requests_business_id_number_index
     )
     |> foreign_key_constraint(:sale_id)

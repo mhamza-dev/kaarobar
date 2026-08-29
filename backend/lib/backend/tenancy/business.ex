@@ -172,7 +172,7 @@ defmodule Kaarobar.Tenancy.Business do
     |> validate_inclusion(:status, @statuses)
     |> validate_inclusion(:costing_method, ~w(weighted_average fifo))
     |> validate_number(:cash_rounding_increment, greater_than: 0)
-    |> unique_constraint([:organization_id, :slug],
+    |> unique_constraint(:slug,
       name: :businesses_organization_id_slug_index,
       message: "is already taken in this organization"
     )

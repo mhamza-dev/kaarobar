@@ -68,7 +68,7 @@ defmodule Kaarobar.Idempotency.Key do
     |> put_change(:locked_at, DateTime.utc_now())
     |> put_change(:expires_at, DateTime.add(DateTime.utc_now(), @retention_days * 86_400, :second))
     |> foreign_key_constraint(:organization_id)
-    |> unique_constraint([:organization_id, :key],
+    |> unique_constraint(:key, name: :idempotency_keys_organization_id_key_index,
       message: "has already been used for a different request"
     )
   end

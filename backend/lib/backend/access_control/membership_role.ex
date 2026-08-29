@@ -31,7 +31,7 @@ defmodule Kaarobar.AccessControl.MembershipRole do
     |> validate_required([:membership_id, :role_id])
     |> foreign_key_constraint(:membership_id)
     |> foreign_key_constraint(:role_id)
-    |> unique_constraint([:membership_id, :role_id],
+    |> unique_constraint(:role_id, name: :membership_roles_membership_id_role_id_index,
       message: "is already assigned to this staff member"
     )
   end

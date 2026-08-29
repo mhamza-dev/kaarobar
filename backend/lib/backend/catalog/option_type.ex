@@ -41,7 +41,7 @@ defmodule Kaarobar.Catalog.OptionType do
     |> update_change(:name, &String.trim/1)
     |> validate_length(:name, min: 1, max: 60)
     |> validate_inclusion(:presentation, @presentations)
-    |> unique_constraint([:business_id, :name],
+    |> unique_constraint(:name,
       name: :option_types_business_id_name_index,
       message: "is already defined"
     )

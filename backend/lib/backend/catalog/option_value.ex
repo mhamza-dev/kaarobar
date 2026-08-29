@@ -31,7 +31,7 @@ defmodule Kaarobar.Catalog.OptionValue do
       message: "must be a hex colour such as #2d6df6"
     )
     |> foreign_key_constraint(:option_type_id)
-    |> unique_constraint([:option_type_id, :value],
+    |> unique_constraint(:value, name: :option_values_option_type_id_value_index,
       message: "is already defined for this option"
     )
   end

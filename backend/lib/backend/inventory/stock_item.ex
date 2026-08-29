@@ -67,7 +67,7 @@ defmodule Kaarobar.Inventory.StockItem do
     %__MODULE__{}
     |> cast(attrs, [:organization_id, :business_id, :branch_id, :variant_id])
     |> validate_required([:organization_id, :business_id, :branch_id, :variant_id])
-    |> unique_constraint([:branch_id, :variant_id],
+    |> unique_constraint(:variant_id,
       name: :stock_items_branch_id_variant_id_index
     )
   end

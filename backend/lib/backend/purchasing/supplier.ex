@@ -82,7 +82,7 @@ defmodule Kaarobar.Purchasing.Supplier do
     |> validate_number(:payment_terms_days, greater_than_or_equal_to: 0, less_than: 366)
     |> validate_number(:credit_limit, greater_than_or_equal_to: 0)
     |> validate_length(:notes, max: 2000)
-    |> unique_constraint([:business_id, :code],
+    |> unique_constraint(:code,
       name: :suppliers_business_id_code_index,
       message: "is already used by another supplier"
     )

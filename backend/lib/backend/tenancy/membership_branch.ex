@@ -26,7 +26,7 @@ defmodule Kaarobar.Tenancy.MembershipBranch do
     |> validate_required([:membership_id, :branch_id])
     |> foreign_key_constraint(:membership_id)
     |> foreign_key_constraint(:branch_id)
-    |> unique_constraint([:membership_id, :branch_id],
+    |> unique_constraint(:branch_id, name: :membership_branches_membership_id_branch_id_index,
       message: "is already assigned to this staff member"
     )
   end

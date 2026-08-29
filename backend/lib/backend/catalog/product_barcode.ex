@@ -49,7 +49,7 @@ defmodule Kaarobar.Catalog.ProductBarcode do
     |> validate_inclusion(:kind, @kinds)
     |> validate_inclusion(:embedded_value, @embedded_values)
     |> foreign_key_constraint(:variant_id)
-    |> unique_constraint([:business_id, :barcode],
+    |> unique_constraint(:barcode, name: :product_barcodes_business_id_barcode_index,
       message: "is already used by another product"
     )
   end

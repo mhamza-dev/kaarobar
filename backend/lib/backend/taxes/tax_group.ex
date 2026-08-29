@@ -40,7 +40,7 @@ defmodule Kaarobar.Taxes.TaxGroup do
     |> validate_required([:name])
     |> update_change(:name, &String.trim/1)
     |> validate_length(:name, min: 1, max: 80)
-    |> unique_constraint([:business_id, :code],
+    |> unique_constraint(:code,
       name: :tax_groups_business_id_code_index,
       message: "is already used by another tax group"
     )

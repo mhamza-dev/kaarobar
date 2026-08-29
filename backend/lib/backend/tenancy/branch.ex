@@ -151,7 +151,7 @@ defmodule Kaarobar.Tenancy.Branch do
     |> validate_number(:latitude, greater_than_or_equal_to: -90, less_than_or_equal_to: 90)
     |> validate_number(:longitude, greater_than_or_equal_to: -180, less_than_or_equal_to: 180)
     |> validate_inclusion(:status, @statuses)
-    |> unique_constraint([:business_id, :code],
+    |> unique_constraint(:code,
       name: :branches_business_id_code_index,
       message: "is already used by another branch"
     )

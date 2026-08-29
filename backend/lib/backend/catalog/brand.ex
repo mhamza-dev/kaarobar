@@ -38,7 +38,7 @@ defmodule Kaarobar.Catalog.Brand do
     |> validate_format(:slug, ~r/^[a-z0-9]+(?:-[a-z0-9]+)*$/,
       message: "may only contain lowercase letters, numbers and hyphens"
     )
-    |> unique_constraint([:business_id, :slug],
+    |> unique_constraint(:slug,
       name: :brands_business_id_slug_index,
       message: "is already taken"
     )

@@ -28,7 +28,7 @@ defmodule Kaarobar.Sales.RefundRequestItem do
     |> cast(attrs, [:refund_request_id, :sale_item_id, :quantity, :restock, :reason])
     |> validate_required([:sale_item_id, :quantity])
     |> validate_number(:quantity, greater_than: 0)
-    |> unique_constraint([:refund_request_id, :sale_item_id],
+    |> unique_constraint(:sale_item_id,
       name: :refund_request_items_refund_request_id_sale_item_id_index,
       message: "is already on this request"
     )

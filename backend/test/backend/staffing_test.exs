@@ -105,7 +105,7 @@ defmodule Kaarobar.StaffingTest do
                  &invite_url/1
                )
 
-      assert "already has a pending invitation" in errors_on(changeset).organization_id
+      assert "already has a pending invitation" in errors_on(changeset).email
     end
   end
 

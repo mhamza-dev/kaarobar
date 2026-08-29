@@ -197,7 +197,11 @@ defmodule Kaarobar.Repo.Migrations.CreateSupplierBills do
       timestamps(type: :utc_datetime_usec, updated_at: false)
     end
 
-    create unique_index(:supplier_payment_allocations, [:supplier_payment_id, :supplier_bill_id])
+    # Named explicitly — the derived name is 71 characters, past the 63 that
+    # Postgres keeps. See the note on product_components.
+    create unique_index(:supplier_payment_allocations, [:supplier_payment_id, :supplier_bill_id],
+             name: :supplier_payment_allocations_payment_bill_index
+           )
     create index(:supplier_payment_allocations, [:supplier_bill_id])
 
     create constraint(:supplier_payment_allocations, :supplier_payment_allocations_amount_check,

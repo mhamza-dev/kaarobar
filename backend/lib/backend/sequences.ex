@@ -178,7 +178,10 @@ defmodule Kaarobar.Sequences do
     end
   end
 
-  defp period_for(:never, _date), do: ""
+  # A `reset: :never` series — one unbroken run, no period in the number —
+  # would add `defp period_for(:never, _date), do: ""` back here. It is not
+  # carried unused: with every entry in @defaults resetting yearly or monthly,
+  # the compiler proves the clause unreachable and fails the build on it.
   defp period_for(:yearly, date), do: Integer.to_string(date.year)
 
   defp period_for(:monthly, date),

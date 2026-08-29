@@ -70,7 +70,13 @@ defmodule Kaarobar.Repo.Migrations.CreateProductComponents do
       timestamps(type: :utc_datetime_usec)
     end
 
-    create unique_index(:product_components, [:parent_variant_id, :component_variant_id, :kind])
+    # Named explicitly: the derived name would be 68 characters, and Postgres
+    # truncates identifiers at 63 — so Ecto's `unique_constraint` would look
+    # for a name the database does not have, and the violation would surface as
+    # a 500 instead of a validation error.
+    create unique_index(:product_components, [:parent_variant_id, :component_variant_id, :kind],
+             name: :product_components_parent_component_kind_index
+           )
     create index(:product_components, [:parent_variant_id])
     create index(:product_components, [:component_variant_id])
     create index(:product_components, [:business_id])

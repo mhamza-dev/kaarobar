@@ -69,7 +69,7 @@ defmodule Kaarobar.Inventory.Batch do
     |> validate_number(:remaining_quantity, greater_than_or_equal_to: 0)
     |> validate_number(:unit_cost, greater_than_or_equal_to: 0)
     |> validate_dates()
-    |> unique_constraint([:business_id, :variant_id, :batch_number],
+    |> unique_constraint(:batch_number, name: :batches_business_id_variant_id_batch_number_index,
       message: "already exists for this product"
     )
     |> foreign_key_constraint(:variant_id)

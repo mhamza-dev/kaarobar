@@ -75,7 +75,7 @@ defmodule Kaarobar.Pricing.PriceList do
     |> validate_number(:priority, greater_than_or_equal_to: 0)
     |> validate_window()
     |> foreign_key_constraint(:branch_id)
-    |> unique_constraint([:business_id, :code],
+    |> unique_constraint(:code,
       name: :price_lists_business_id_code_index,
       message: "is already used by another price list"
     )

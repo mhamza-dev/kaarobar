@@ -114,7 +114,7 @@ defmodule Kaarobar.Catalog.Product do
     |> validate_number(:rental_period_minutes, greater_than: 0)
     |> validate_number(:membership_days, greater_than: 0)
     |> validate_length(:image_url, max: 2048)
-    |> unique_constraint([:business_id, :slug],
+    |> unique_constraint(:slug,
       name: :products_business_id_slug_index,
       message: "is already taken"
     )

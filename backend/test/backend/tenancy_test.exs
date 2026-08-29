@@ -229,7 +229,7 @@ defmodule Kaarobar.TenancyTest do
       assert {:error, changeset} =
                Tenancy.create_branch(owner, %{"name" => "Two", "code" => "DUP"})
 
-      assert errors_on(changeset).code != []
+      assert "is already used by another branch" in errors_on(changeset).code
     end
 
     test "promoting demotes the previous main", %{owner: owner} do

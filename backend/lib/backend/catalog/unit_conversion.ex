@@ -29,7 +29,7 @@ defmodule Kaarobar.Catalog.UnitConversion do
     |> validate_required([:business_id, :from_unit_id, :to_unit_id, :factor])
     |> validate_number(:factor, greater_than: 0)
     |> validate_distinct_units()
-    |> unique_constraint([:from_unit_id, :to_unit_id],
+    |> unique_constraint(:to_unit_id, name: :unit_conversions_from_unit_id_to_unit_id_index,
       message: "already has a conversion"
     )
     |> foreign_key_constraint(:from_unit_id)

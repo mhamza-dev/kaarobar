@@ -84,7 +84,7 @@ defmodule Kaarobar.Sales.SaleReturn do
       :returned_at
     ])
     |> validate_number(:total, greater_than_or_equal_to: 0)
-    |> unique_constraint([:business_id, :number],
+    |> unique_constraint(:number,
       name: :sale_returns_business_id_number_index
     )
     |> foreign_key_constraint(:sale_id)
