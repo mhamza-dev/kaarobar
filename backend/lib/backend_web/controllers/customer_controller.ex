@@ -2,17 +2,23 @@ defmodule KaarobarWeb.CustomerController do
   @moduledoc """
   Customers, what they owe, and what they have paid.
 
-  Deliberately narrow at this stage: the full CRM — groups, loyalty, gift
-  cards, store credit, follow-ups — arrives with its own phase. What is here is
-  what a till needs before it can let anyone leave without paying.
+  The customer record itself, plus the things attached to one: addresses,
+  contacts and notes. What they owe lives in `KaarobarWeb.CreditController`,
+  points in `KaarobarWeb.LoyaltyController`, prepaid balances in
+  `KaarobarWeb.PrepaidController`.
 
   Credit is gated separately from customer records, because seeing who a
-  customer is and deciding how much they may owe are different jobs.
+  customer is and deciding how much they may owe are different jobs. Addresses
+  and contacts ride on `customer:edit` — they are part of the record, not a
+  financial decision.
   """
 
   use KaarobarWeb, :controller
 
   alias Kaarobar.Customers
+  alias Kaarobar.Customers.CustomerAddress
+  alias Kaarobar.Customers.CustomerContact
+  alias Kaarobar.Customers.CustomerNote
   alias KaarobarWeb.Pagination
 
   plug KaarobarWeb.Plugs.Authorize,
@@ -27,6 +33,22 @@ defmodule KaarobarWeb.CustomerController do
 
   plug KaarobarWeb.Plugs.Authorize,
        [permission: "credit:payment"] when action in [:record_payment]
+
+  plug KaarobarWeb.Plugs.Authorize,
+       [permission: "customer:view"] when action in [:addresses, :contacts, :notes]
+
+  plug KaarobarWeb.Plugs.Authorize,
+       [permission: "customer:edit"]
+       when action in [
+              :add_address,
+              :update_address,
+              :delete_address,
+              :add_contact,
+              :update_contact,
+              :delete_contact,
+              :add_note,
+              :delete_note
+            ]
 
   def index(conn, params) do
     {customers, meta} =
@@ -116,6 +138,109 @@ defmodule KaarobarWeb.CustomerController do
 
   # Booleans arrive as strings on a query string; "true" is the only value that
   # should switch a filter on.
+  # --- Addresses --------------------------------------------------------------
+
+  def addresses(conn, %{"customer_id" => customer_id}) do
+    scope = conn.assigns.scope
+
+    with {:ok, customer} <- Customers.fetch_customer(scope, customer_id) do
+      render(conn, :addresses, addresses: Customers.list_addresses(scope, customer))
+    end
+  end
+
+  def add_address(conn, %{"customer_id" => customer_id} = params) do
+    scope = conn.assigns.scope
+
+    with {:ok, customer} <- Customers.fetch_customer(scope, customer_id),
+         {:ok, address} <- Customers.add_address(scope, customer, params) do
+      conn |> put_status(:created) |> render(:address, address: address)
+    end
+  end
+
+  def update_address(conn, %{"id" => id} = params) do
+    scope = conn.assigns.scope
+
+    with {:ok, address} <- Customers.fetch_child(scope, CustomerAddress, id),
+         {:ok, updated} <- Customers.update_address(scope, address, params) do
+      render(conn, :address, address: updated)
+    end
+  end
+
+  def delete_address(conn, %{"id" => id}) do
+    scope = conn.assigns.scope
+
+    with {:ok, address} <- Customers.fetch_child(scope, CustomerAddress, id),
+         {:ok, deleted} <- Customers.delete_address(scope, address) do
+      render(conn, :address, address: deleted)
+    end
+  end
+
+  # --- Contacts ---------------------------------------------------------------
+
+  def contacts(conn, %{"customer_id" => customer_id}) do
+    scope = conn.assigns.scope
+
+    with {:ok, customer} <- Customers.fetch_customer(scope, customer_id) do
+      render(conn, :contacts, contacts: Customers.list_contacts(scope, customer))
+    end
+  end
+
+  def add_contact(conn, %{"customer_id" => customer_id} = params) do
+    scope = conn.assigns.scope
+
+    with {:ok, customer} <- Customers.fetch_customer(scope, customer_id),
+         {:ok, contact} <- Customers.add_contact(scope, customer, params) do
+      conn |> put_status(:created) |> render(:contact, contact: contact)
+    end
+  end
+
+  def update_contact(conn, %{"id" => id} = params) do
+    scope = conn.assigns.scope
+
+    with {:ok, contact} <- Customers.fetch_child(scope, CustomerContact, id),
+         {:ok, updated} <- Customers.update_contact(scope, contact, params) do
+      render(conn, :contact, contact: updated)
+    end
+  end
+
+  def delete_contact(conn, %{"id" => id}) do
+    scope = conn.assigns.scope
+
+    with {:ok, contact} <- Customers.fetch_child(scope, CustomerContact, id),
+         {:ok, deleted} <- Customers.delete_contact(scope, contact) do
+      render(conn, :contact, contact: deleted)
+    end
+  end
+
+  # --- Notes ------------------------------------------------------------------
+
+  def notes(conn, %{"customer_id" => customer_id}) do
+    scope = conn.assigns.scope
+
+    with {:ok, customer} <- Customers.fetch_customer(scope, customer_id) do
+      render(conn, :notes, notes: Customers.list_notes(scope, customer))
+    end
+  end
+
+  def add_note(conn, %{"customer_id" => customer_id} = params) do
+    scope = conn.assigns.scope
+
+    with {:ok, customer} <- Customers.fetch_customer(scope, customer_id),
+         {:ok, note} <- Customers.add_note(scope, customer, params) do
+      conn |> put_status(:created) |> render(:note, note: note)
+    end
+  end
+
+  def delete_note(conn, %{"id" => id}) do
+    scope = conn.assigns.scope
+
+    with {:ok, note} <- Customers.fetch_child(scope, CustomerNote, id),
+         {:ok, deleted} <- Customers.delete_note(scope, note) do
+      render(conn, :note, note: deleted)
+    end
+  end
+
+
   defp customer_filters(params) do
     params
     |> Map.take(~w(q credit_allowed owing))

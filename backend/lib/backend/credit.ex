@@ -392,7 +392,9 @@ defmodule Kaarobar.Credit do
     remaining = outstanding_on(scope, sale)
 
     if Decimal.compare(amount, remaining) == :gt do
-      {:error, {:exceeds_outstanding, sale.number, remaining}}
+      # A two-element tuple on purpose: the fallback controller renders
+      # `{:error, {reason, detail}}` and would crash on a wider one.
+      {:error, {:exceeds_outstanding, %{invoice: sale.number, outstanding: remaining}}}
     else
       :ok
     end

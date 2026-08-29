@@ -27,6 +27,11 @@ defmodule Kaarobar.Customers do
 
   alias Kaarobar.Audit
   alias Kaarobar.Customers.Customer
+  alias Kaarobar.Customers.CustomerAddress
+  alias Kaarobar.Customers.CustomerContact
+  alias Kaarobar.Customers.CustomerGroup
+  alias Kaarobar.Customers.CustomerNote
+  alias Kaarobar.Customers.FollowUp
   alias Kaarobar.Customers.CustomerLedgerEntry
   alias Kaarobar.Customers.CustomerPayment
   alias Kaarobar.Money
@@ -309,6 +314,24 @@ defmodule Kaarobar.Customers do
     end)
   end
 
+  @doc "Fetches one payment, for allocating it afterwards."
+  @spec fetch_payment(Scope.t(), Ecto.UUID.t()) ::
+          {:ok, CustomerPayment.t()} | {:error, :not_found}
+  def fetch_payment(%Scope{} = scope, id) do
+    if Kaarobar.Ecto.UUIDv7.valid?(id) do
+      CustomerPayment
+      |> Scoped.for_business(scope)
+      |> where([payment], payment.id == ^id)
+      |> Repo.one()
+      |> case do
+        nil -> {:error, :not_found}
+        payment -> {:ok, payment}
+      end
+    else
+      {:error, :not_found}
+    end
+  end
+
   @doc "Payments a customer has made, most recent first."
   @spec list_payments(Scope.t(), Customer.t()) :: [CustomerPayment.t()]
   def list_payments(%Scope{} = scope, %Customer{} = customer) do
@@ -344,6 +367,360 @@ defmodule Kaarobar.Customers do
       end)
 
     Map.put(buckets, :total, buckets |> Map.values() |> Money.sum())
+  end
+
+  # ===========================================================================
+  # Groups
+  # ===========================================================================
+
+  @doc "The business's customer groups."
+  @spec list_groups(Scope.t()) :: [CustomerGroup.t()]
+  def list_groups(%Scope{} = scope) do
+    CustomerGroup
+    |> Scoped.for_business(scope)
+    |> Scoped.active()
+    |> order_by([group], asc: group.name)
+    |> Repo.all()
+  end
+
+  @doc "Fetches a group."
+  @spec fetch_group(Scope.t(), Ecto.UUID.t()) :: {:ok, CustomerGroup.t()} | {:error, :not_found}
+  def fetch_group(%Scope{} = scope, id) do
+    if Kaarobar.Ecto.UUIDv7.valid?(id) do
+      CustomerGroup
+      |> Scoped.for_business(scope)
+      |> Scoped.active()
+      |> where([group], group.id == ^id)
+      |> Repo.one()
+      |> case do
+        nil -> {:error, :not_found}
+        group -> {:ok, group}
+      end
+    else
+      {:error, :not_found}
+    end
+  end
+
+  @doc "The group new customers fall into, if the shop has named one."
+  @spec default_group(Scope.t()) :: CustomerGroup.t() | nil
+  def default_group(%Scope{} = scope) do
+    CustomerGroup
+    |> Scoped.for_business(scope)
+    |> Scoped.active()
+    |> where([group], group.is_default)
+    |> Repo.one()
+  end
+
+  @doc "Creates a customer group."
+  @spec create_group(Scope.t(), map()) :: {:ok, CustomerGroup.t()} | {:error, term()}
+  def create_group(%Scope{} = scope, attrs) do
+    changeset =
+      %CustomerGroup{
+        organization_id: Scope.organization_id(scope),
+        business_id: Scope.business_id(scope)
+      }
+      |> CustomerGroup.changeset(attrs)
+
+    with {:ok, group} <- Repo.insert(changeset) do
+      Audit.log(scope, "customer_group.created", group,
+        entity_type: "customer_group",
+        label: group.name
+      )
+
+      {:ok, group}
+    end
+  end
+
+  @doc "Updates a group. Members inherit the change immediately."
+  @spec update_group(Scope.t(), CustomerGroup.t(), map()) ::
+          {:ok, CustomerGroup.t()} | {:error, Ecto.Changeset.t()}
+  def update_group(%Scope{} = scope, %CustomerGroup{} = group, attrs) do
+    with {:ok, updated} <- group |> CustomerGroup.changeset(attrs) |> Repo.update() do
+      Audit.log(scope, "customer_group.updated", updated,
+        entity_type: "customer_group",
+        label: updated.name,
+        changes: %{before: group, after: updated}
+      )
+
+      {:ok, updated}
+    end
+  end
+
+  @doc """
+  Soft-deletes a group.
+
+  Members are left pointing at nothing rather than being moved: silently
+  reassigning a hundred trade buyers to retail prices because someone tidied up
+  a group is not a cleanup, it is a pricing incident.
+  """
+  @spec delete_group(Scope.t(), CustomerGroup.t()) ::
+          {:ok, CustomerGroup.t()} | {:error, Ecto.Changeset.t()}
+  def delete_group(%Scope{} = scope, %CustomerGroup{} = group) do
+    with {:ok, deleted} <- group |> CustomerGroup.soft_delete_changeset() |> Repo.update() do
+      Audit.log(scope, "customer_group.deleted", deleted,
+        entity_type: "customer_group",
+        label: deleted.name
+      )
+
+      {:ok, deleted}
+    end
+  end
+
+  # ===========================================================================
+  # Addresses and contacts
+  # ===========================================================================
+
+  @doc "A customer's addresses, the default one first."
+  @spec list_addresses(Scope.t(), Customer.t()) :: [CustomerAddress.t()]
+  def list_addresses(%Scope{} = scope, %Customer{} = customer) do
+    CustomerAddress
+    |> Scoped.for_business(scope)
+    |> where([address], address.customer_id == ^customer.id)
+    |> order_by([address], desc: address.is_default, asc: address.id)
+    |> Repo.all()
+  end
+
+  @doc """
+  Adds an address.
+
+  The first one is made the default automatically — a customer with exactly one
+  address and no default is a state that only ever causes a delivery to ask
+  which address it should go to.
+  """
+  @spec add_address(Scope.t(), Customer.t(), map()) ::
+          {:ok, CustomerAddress.t()} | {:error, term()}
+  def add_address(%Scope{} = scope, %Customer{} = customer, attrs) do
+    Repo.transaction(fn ->
+      first? = list_addresses(scope, customer) == []
+
+      attrs =
+        attrs
+        |> stringify()
+        |> Map.merge(%{
+          "business_id" => Scope.business_id(scope),
+          "customer_id" => customer.id
+        })
+        |> then(&if first?, do: Map.put(&1, "is_default", true), else: &1)
+
+      if truthy?(Map.get(attrs, "is_default")) do
+        clear_default(CustomerAddress, customer.id, nil, :is_default)
+      end
+
+      case %CustomerAddress{} |> CustomerAddress.changeset(attrs) |> Repo.insert() do
+        {:ok, address} -> address
+        {:error, reason} -> Repo.rollback(reason)
+      end
+    end)
+  end
+
+  @doc "Updates an address."
+  @spec update_address(Scope.t(), CustomerAddress.t(), map()) ::
+          {:ok, CustomerAddress.t()} | {:error, term()}
+  def update_address(%Scope{} = scope, %CustomerAddress{} = address, attrs) do
+    Repo.transaction(fn ->
+      if truthy?(fetch_attr(attrs, :is_default)) do
+        clear_default(CustomerAddress, address.customer_id, address.id, :is_default)
+      end
+
+      case address |> CustomerAddress.changeset(stringify(attrs)) |> Repo.update() do
+        {:ok, updated} -> updated
+        {:error, reason} -> Repo.rollback(reason)
+      end
+    end)
+  end
+
+  @doc "Removes an address."
+  @spec delete_address(Scope.t(), CustomerAddress.t()) ::
+          {:ok, CustomerAddress.t()} | {:error, Ecto.Changeset.t()}
+  def delete_address(%Scope{}, %CustomerAddress{} = address), do: Repo.delete(address)
+
+  @doc "A customer's contacts, the primary one first."
+  @spec list_contacts(Scope.t(), Customer.t()) :: [CustomerContact.t()]
+  def list_contacts(%Scope{} = scope, %Customer{} = customer) do
+    CustomerContact
+    |> Scoped.for_business(scope)
+    |> where([contact], contact.customer_id == ^customer.id)
+    |> order_by([contact], desc: contact.is_primary, asc: contact.name)
+    |> Repo.all()
+  end
+
+  @doc "Adds a contact. The first becomes the primary one."
+  @spec add_contact(Scope.t(), Customer.t(), map()) ::
+          {:ok, CustomerContact.t()} | {:error, term()}
+  def add_contact(%Scope{} = scope, %Customer{} = customer, attrs) do
+    Repo.transaction(fn ->
+      first? = list_contacts(scope, customer) == []
+
+      attrs =
+        attrs
+        |> stringify()
+        |> Map.merge(%{
+          "business_id" => Scope.business_id(scope),
+          "customer_id" => customer.id
+        })
+        |> then(&if first?, do: Map.put(&1, "is_primary", true), else: &1)
+
+      if truthy?(Map.get(attrs, "is_primary")) do
+        clear_default(CustomerContact, customer.id, nil, :is_primary)
+      end
+
+      case %CustomerContact{} |> CustomerContact.changeset(attrs) |> Repo.insert() do
+        {:ok, contact} -> contact
+        {:error, reason} -> Repo.rollback(reason)
+      end
+    end)
+  end
+
+  @doc "Updates a contact."
+  @spec update_contact(Scope.t(), CustomerContact.t(), map()) ::
+          {:ok, CustomerContact.t()} | {:error, term()}
+  def update_contact(%Scope{}, %CustomerContact{} = contact, attrs) do
+    Repo.transaction(fn ->
+      if truthy?(fetch_attr(attrs, :is_primary)) do
+        clear_default(CustomerContact, contact.customer_id, contact.id, :is_primary)
+      end
+
+      case contact |> CustomerContact.changeset(stringify(attrs)) |> Repo.update() do
+        {:ok, updated} -> updated
+        {:error, reason} -> Repo.rollback(reason)
+      end
+    end)
+  end
+
+  @doc "Removes a contact."
+  @spec delete_contact(Scope.t(), CustomerContact.t()) ::
+          {:ok, CustomerContact.t()} | {:error, Ecto.Changeset.t()}
+  def delete_contact(%Scope{}, %CustomerContact{} = contact), do: Repo.delete(contact)
+
+  @doc "Fetches one address, contact or note by id, within this business."
+  @spec fetch_child(Scope.t(), module(), Ecto.UUID.t()) :: {:ok, struct()} | {:error, :not_found}
+  def fetch_child(%Scope{} = scope, schema, id)
+      when schema in [CustomerAddress, CustomerContact, CustomerNote] do
+    if Kaarobar.Ecto.UUIDv7.valid?(id) do
+      schema
+      |> Scoped.for_business(scope)
+      |> where([record], record.id == ^id)
+      |> Repo.one()
+      |> case do
+        nil -> {:error, :not_found}
+        record -> {:ok, record}
+      end
+    else
+      {:error, :not_found}
+    end
+  end
+
+  # ===========================================================================
+  # Notes and follow-ups
+  # ===========================================================================
+
+  @doc "A customer's notes, pinned first, then newest."
+  @spec list_notes(Scope.t(), Customer.t()) :: [CustomerNote.t()]
+  def list_notes(%Scope{} = scope, %Customer{} = customer) do
+    CustomerNote
+    |> Scoped.for_business(scope)
+    |> where([note], note.customer_id == ^customer.id)
+    |> order_by([note], desc: note.is_pinned, desc: note.inserted_at)
+    |> Repo.all()
+  end
+
+  @doc "Adds a note, stamped with who wrote it."
+  @spec add_note(Scope.t(), Customer.t(), map()) :: {:ok, CustomerNote.t()} | {:error, term()}
+  def add_note(%Scope{} = scope, %Customer{} = customer, attrs) do
+    attrs =
+      attrs
+      |> stringify()
+      |> Map.merge(%{
+        "business_id" => Scope.business_id(scope),
+        "customer_id" => customer.id,
+        "author_user_id" => Scope.user_id(scope),
+        "author_label" => scope.user && scope.user.name
+      })
+
+    %CustomerNote{} |> CustomerNote.changeset(attrs) |> Repo.insert()
+  end
+
+  @doc "Removes a note."
+  @spec delete_note(Scope.t(), CustomerNote.t()) ::
+          {:ok, CustomerNote.t()} | {:error, Ecto.Changeset.t()}
+  def delete_note(%Scope{}, %CustomerNote{} = note), do: Repo.delete(note)
+
+  @doc """
+  Follow-ups, filtered.
+
+  ## Filters
+
+    * `"status"` — defaults to `"open"`, because a list of finished tasks is
+      not what anyone opens this for.
+    * `"customer_id"`, `"assigned_to_id"`
+    * `"due_before"` — a `Date`. What is due today, or overdue.
+  """
+  @spec list_follow_ups(Scope.t(), map()) :: [FollowUp.t()]
+  def list_follow_ups(%Scope{} = scope, filters \\ %{}) do
+    FollowUp
+    |> Scoped.for_business(scope)
+    |> apply_follow_up_filters(filters)
+    |> order_by([task], asc: task.due_on, asc: task.id)
+    |> preload(:customer)
+    |> Repo.all()
+  end
+
+  @doc "Fetches a follow-up."
+  @spec fetch_follow_up(Scope.t(), Ecto.UUID.t()) :: {:ok, FollowUp.t()} | {:error, :not_found}
+  def fetch_follow_up(%Scope{} = scope, id) do
+    if Kaarobar.Ecto.UUIDv7.valid?(id) do
+      FollowUp
+      |> Scoped.for_business(scope)
+      |> where([task], task.id == ^id)
+      |> Repo.one()
+      |> case do
+        nil -> {:error, :not_found}
+        task -> {:ok, task}
+      end
+    else
+      {:error, :not_found}
+    end
+  end
+
+  @doc "Books something to be done about a customer."
+  @spec create_follow_up(Scope.t(), Customer.t(), map()) ::
+          {:ok, FollowUp.t()} | {:error, Ecto.Changeset.t()}
+  def create_follow_up(%Scope{} = scope, %Customer{} = customer, attrs) do
+    attrs =
+      attrs
+      |> stringify()
+      |> Map.merge(%{
+        "organization_id" => Scope.organization_id(scope),
+        "business_id" => Scope.business_id(scope),
+        "customer_id" => customer.id,
+        "created_by_id" => Scope.user_id(scope)
+      })
+
+    %FollowUp{} |> FollowUp.changeset(attrs) |> Repo.insert()
+  end
+
+  @doc "Updates an open follow-up."
+  @spec update_follow_up(Scope.t(), FollowUp.t(), map()) ::
+          {:ok, FollowUp.t()} | {:error, Ecto.Changeset.t()}
+  def update_follow_up(%Scope{}, %FollowUp{} = task, attrs),
+    do: task |> FollowUp.changeset(stringify(attrs)) |> Repo.update()
+
+  @doc "Closes a follow-up with what came of it."
+  @spec complete_follow_up(Scope.t(), FollowUp.t(), String.t()) ::
+          {:ok, FollowUp.t()} | {:error, Ecto.Changeset.t()}
+  def complete_follow_up(%Scope{} = scope, %FollowUp{} = task, outcome) do
+    task
+    |> FollowUp.complete_changeset(Scope.user_id(scope), outcome)
+    |> Repo.update()
+  end
+
+  @doc "Abandons a follow-up without doing it."
+  @spec cancel_follow_up(Scope.t(), FollowUp.t(), String.t()) ::
+          {:ok, FollowUp.t()} | {:error, Ecto.Changeset.t()}
+  def cancel_follow_up(%Scope{} = scope, %FollowUp{} = task, reason) do
+    task
+    |> FollowUp.cancel_changeset(Scope.user_id(scope), reason)
+    |> Repo.update()
   end
 
   # ===========================================================================
@@ -510,6 +887,41 @@ defmodule Kaarobar.Customers do
   defp bucket_for(days) when days <= 60, do: :days_60
   defp bucket_for(days) when days <= 90, do: :days_90
   defp bucket_for(_days), do: :days_over_90
+
+  # Only one address may be the default and only one contact primary, and the
+  # database enforces it with a partial unique index — so the old holder has to
+  # be stood down in the same transaction, not after the insert fails.
+  defp clear_default(schema, customer_id, except_id, field) do
+    query = from record in schema, where: record.customer_id == ^customer_id
+
+    query = if except_id, do: where(query, [r], r.id != ^except_id), else: query
+
+    Repo.update_all(query, set: [{field, false}])
+    :ok
+  end
+
+  defp apply_follow_up_filters(query, filters) do
+    status = Map.get(filters, "status", "open")
+
+    query = if status in ["all", nil], do: query, else: where(query, [t], t.status == ^status)
+
+    Enum.reduce(filters, query, fn
+      {"customer_id", id}, acc when is_binary(id) -> where(acc, [t], t.customer_id == ^id)
+      {"assigned_to_id", id}, acc when is_binary(id) -> where(acc, [t], t.assigned_to_id == ^id)
+      {"due_before", %Date{} = on}, acc -> where(acc, [t], t.due_on <= ^on)
+      _other, acc -> acc
+    end)
+  end
+
+  defp stringify(attrs) when is_map(attrs) do
+    Map.new(attrs, fn {key, value} ->
+      {if(is_atom(key), do: Atom.to_string(key), else: key), value}
+    end)
+  end
+
+  defp truthy?(true), do: true
+  defp truthy?("true"), do: true
+  defp truthy?(_other), do: false
 
   # Controllers hand over string keys; internal callers use atoms. Accepting
   # both here is cheaper than making every caller normalise first.

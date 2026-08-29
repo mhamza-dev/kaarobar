@@ -128,6 +128,24 @@ defmodule Kaarobar.Prepaid do
     end)
   end
 
+  @doc "Fetches one store credit."
+  @spec fetch_store_credit(Scope.t(), Ecto.UUID.t()) ::
+          {:ok, StoreCredit.t()} | {:error, :not_found}
+  def fetch_store_credit(%Scope{} = scope, id) do
+    if Kaarobar.Ecto.UUIDv7.valid?(id) do
+      StoreCredit
+      |> Scoped.for_business(scope)
+      |> where([credit], credit.id == ^id)
+      |> Repo.one()
+      |> case do
+        nil -> {:error, :not_found}
+        credit -> {:ok, credit}
+      end
+    else
+      {:error, :not_found}
+    end
+  end
+
   @doc "Movements against one store credit, oldest first."
   @spec store_credit_history(Scope.t(), StoreCredit.t()) :: [StoreCreditTransaction.t()]
   def store_credit_history(%Scope{} = scope, %StoreCredit{} = credit) do

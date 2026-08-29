@@ -317,6 +317,69 @@ defmodule KaarobarWeb.Router do
     patch "/customers/:id", CustomerController, :update
     delete "/customers/:id", CustomerController, :delete
 
+    # Attached to a customer record: part of who they are, not what they owe.
+    get "/customers/:customer_id/addresses", CustomerController, :addresses
+    post "/customers/:customer_id/addresses", CustomerController, :add_address
+    patch "/customer-addresses/:id", CustomerController, :update_address
+    delete "/customer-addresses/:id", CustomerController, :delete_address
+
+    get "/customers/:customer_id/contacts", CustomerController, :contacts
+    post "/customers/:customer_id/contacts", CustomerController, :add_contact
+    patch "/customer-contacts/:id", CustomerController, :update_contact
+    delete "/customer-contacts/:id", CustomerController, :delete_contact
+
+    get "/customers/:customer_id/notes", CustomerController, :notes
+    post "/customers/:customer_id/notes", CustomerController, :add_note
+    delete "/customer-notes/:id", CustomerController, :delete_note
+
+    # Groups: what a class of customer is charged and allowed.
+    get "/customer-groups", CustomerGroupController, :index
+    post "/customer-groups", CustomerGroupController, :create
+    get "/customer-groups/:id", CustomerGroupController, :show
+    patch "/customer-groups/:id", CustomerGroupController, :update
+    delete "/customer-groups/:id", CustomerGroupController, :delete
+
+    # Credit: which invoices are unpaid, and what settled them.
+    get "/credit/invoices", CreditController, :invoices
+    get "/credit/overdue", CreditController, :overdue
+    get "/credit/ageing", CreditController, :ageing
+    get "/credit/ageing/by-customer", CreditController, :by_customer
+    get "/credit/statement/:customer_id", CreditController, :statement
+    get "/credit/sales/:sale_id/allocations", CreditController, :allocations
+    post "/credit/payments/:payment_id/allocate", CreditController, :allocate
+
+    # Follow-ups: what somebody has to do next, by when.
+    get "/follow-ups", FollowUpController, :index
+    get "/follow-ups/:id", FollowUpController, :show
+    post "/customers/:customer_id/follow-ups", FollowUpController, :create
+    patch "/follow-ups/:id", FollowUpController, :update
+    post "/follow-ups/:id/complete", FollowUpController, :complete
+    post "/follow-ups/:id/cancel", FollowUpController, :cancel
+
+    # Loyalty.
+    get "/loyalty/program", LoyaltyController, :program
+    post "/loyalty/program", LoyaltyController, :create_program
+    patch "/loyalty/program", LoyaltyController, :update_program
+    post "/loyalty/expire", LoyaltyController, :expire
+    get "/loyalty/customers/:customer_id", LoyaltyController, :account
+    get "/loyalty/customers/:customer_id/transactions", LoyaltyController, :transactions
+    post "/loyalty/customers/:customer_id/redeem", LoyaltyController, :redeem
+    post "/loyalty/customers/:customer_id/adjust", LoyaltyController, :adjust
+
+    # Gift cards. The code is only ever returned by the issuing call.
+    post "/gift-cards", PrepaidController, :issue_gift_card
+    get "/gift-cards/:code", PrepaidController, :show_gift_card
+    get "/gift-cards/:code/history", PrepaidController, :gift_card_history
+    post "/gift-cards/:code/activate", PrepaidController, :activate_gift_card
+    post "/gift-cards/:code/redeem", PrepaidController, :redeem_gift_card
+    post "/gift-cards/:code/top-up", PrepaidController, :top_up_gift_card
+
+    # Store credit.
+    get "/customers/:customer_id/store-credit", PrepaidController, :list_store_credit
+    post "/customers/:customer_id/store-credit", PrepaidController, :issue_store_credit
+    get "/store-credit/:id/history", PrepaidController, :store_credit_history
+    post "/store-credit/:id/redeem", PrepaidController, :redeem_store_credit
+
     # --- Audit ---
     get "/audit-logs", AuditController, :index
   end

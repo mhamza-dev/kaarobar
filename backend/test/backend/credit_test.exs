@@ -148,11 +148,11 @@ defmodule Kaarobar.CreditTest do
     test "refuses to allocate more than the invoice still owes", ctx do
       {:ok, payment} = Customers.record_payment(ctx.scope, ctx.customer, %{"amount" => "5000.00"})
 
-      assert {:error, {:exceeds_outstanding, number, remaining}} =
+      assert {:error, {:exceeds_outstanding, detail}} =
                Credit.allocate(ctx.scope, payment, %{ctx.first.id => "4000.00"})
 
-      assert number == ctx.first.number
-      assert Decimal.equal?(remaining, Decimal.new("2500.00"))
+      assert detail.invoice == ctx.first.number
+      assert Decimal.equal?(detail.outstanding, Decimal.new("2500.00"))
     end
 
     test "refuses to allocate more than the payment is worth", ctx do

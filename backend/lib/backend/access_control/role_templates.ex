@@ -82,7 +82,11 @@ defmodule Kaarobar.AccessControl.RoleTemplates do
             product:view inventory:view stock:adjust stock:count stock:wastage stock:receive
             discount:apply discount:override
             customer:view customer:create customer:edit
-            credit:view credit:sell credit:payment loyalty:redeem gift_card:redeem
+            credit:view credit:sell credit:payment credit:allocate
+            customer_group:view customer_group:manage
+            follow_up:view follow_up:manage
+            loyalty:view loyalty:redeem gift_card:view gift_card:redeem
+            store_credit:issue store_credit:redeem
             purchase_order:view purchase_order:create purchase_order:receive
             attendance:view attendance:record commission:view
             report:sales
@@ -101,7 +105,8 @@ defmodule Kaarobar.AccessControl.RoleTemplates do
             organization:view business:view branch:view
             sale:view sale:view_all shift:view_all
             product:view product:cost_view inventory:view valuation:view
-            customer:view credit:view credit:payment credit:adjust
+            customer:view credit:view credit:payment credit:adjust credit:allocate
+            customer_group:view follow_up:view loyalty:view gift_card:view
             supplier:view purchase_order:view supplier_bill:manage supplier_payment:record
             expense:view expense:create expense:approve bank_account:manage
             tax:manage fiscal:manage
@@ -134,7 +139,10 @@ defmodule Kaarobar.AccessControl.RoleTemplates do
         order:view order:create order:edit
         register:view shift:open shift:close shift:view cash:movement cash:count
         customer:view customer:create customer:edit
-        credit:view credit:sell credit:payment loyalty:redeem gift_card:redeem gift_card:issue
+        credit:view credit:sell credit:payment
+        customer_group:view follow_up:view
+        loyalty:view loyalty:redeem gift_card:view gift_card:redeem gift_card:issue
+        store_credit:redeem
         table:view kitchen:view
         appointment:view appointment:manage
         service_job:view service_job:create service_job:update service_job:deliver
