@@ -120,6 +120,71 @@ defmodule KaarobarWeb.Router do
     get "/roles", RoleController, :index
     resources "/roles", RoleController, only: [:show, :create, :update, :delete]
 
+    # --- Catalog ---
+    # Declared before the :id route so "scan" is not read as a product id.
+    get "/products/scan/:barcode", ProductController, :scan
+    post "/products/:product_id/variants/matrix", VariantController, :matrix
+    get "/products/:product_id/variants", VariantController, :index
+    post "/products/:product_id/variants", VariantController, :create
+    resources "/products", ProductController, except: [:new, :edit]
+
+    patch "/variants/:id", VariantController, :update
+    delete "/variants/:id", VariantController, :delete
+    post "/variants/:variant_id/barcodes", VariantController, :add_barcode
+    delete "/barcodes/:id", VariantController, :delete_barcode
+
+    resources "/categories", CategoryController, except: [:new, :edit]
+    resources "/brands", BrandController, only: [:index, :create, :update, :delete]
+    resources "/units", UnitController, only: [:index, :create]
+
+    post "/option-types/:option_type_id/values", OptionTypeController, :create_value
+    get "/option-types", OptionTypeController, :index
+    post "/option-types", OptionTypeController, :create
+    get "/option-types/:id", OptionTypeController, :show
+
+    post "/modifier-groups/:modifier_group_id/modifiers",
+         ModifierGroupController,
+         :create_modifier
+
+    get "/modifier-groups", ModifierGroupController, :index
+    post "/modifier-groups", ModifierGroupController, :create
+    get "/modifier-groups/:id", ModifierGroupController, :show
+    patch "/modifier-groups/:id", ModifierGroupController, :update
+    delete "/modifier-groups/:id", ModifierGroupController, :delete
+
+    post "/products/:product_id/modifier-groups/:modifier_group_id",
+         ModifierGroupController,
+         :attach
+
+    delete "/products/:product_id/modifier-groups/:modifier_group_id",
+           ModifierGroupController,
+           :detach
+
+    # --- Tax ---
+    post "/tax-groups/:id/default", TaxController, :set_default_group
+    get "/tax-groups", TaxController, :groups
+    post "/tax-groups", TaxController, :create_group
+    get "/tax-groups/:id", TaxController, :show_group
+    patch "/tax-groups/:id", TaxController, :update_group
+    delete "/tax-groups/:id", TaxController, :delete_group
+    resources "/taxes", TaxController, only: [:index, :create, :update, :delete]
+
+    # --- Pricing ---
+    post "/pricing/quote", PricingController, :quote
+
+    put "/price-lists/:price_list_id/prices", PricingController, :put_price
+    delete "/price-lists/:price_list_id/prices/:variant_id", PricingController, :delete_price
+    get "/price-lists", PricingController, :index_lists
+    post "/price-lists", PricingController, :create_list
+    get "/price-lists/:id", PricingController, :show_list
+    patch "/price-lists/:id", PricingController, :update_list
+    delete "/price-lists/:id", PricingController, :delete_list
+
+    get "/promotions", PricingController, :index_rules
+    post "/promotions", PricingController, :create_rule
+    patch "/promotions/:id", PricingController, :update_rule
+    delete "/promotions/:id", PricingController, :delete_rule
+
     # --- Audit ---
     get "/audit-logs", AuditController, :index
   end

@@ -205,6 +205,110 @@ defmodule Kaarobar.Factory do
     role
   end
 
+  # --- Catalog helpers --------------------------------------------------------
+
+  @doc """
+  Creates a product through the context, so its default variant exists.
+
+  Tests never insert products directly: the whole catalog rests on every
+  product having a variant, and a fixture that skips that would let a broken
+  invariant pass.
+  """
+  def product_fixture(scope, attrs \\ %{}) do
+    defaults = %{
+      "name" => sequence(:product_name, &"Product #{&1}"),
+      "price" => "100.00",
+      "kind" => "item"
+    }
+
+    {:ok, product} =
+      Kaarobar.Catalog.create_product(scope, Map.merge(defaults, stringify_keys(attrs)))
+
+    product
+  end
+
+  @doc "The default variant of a freshly created product."
+  def variant_fixture(scope, attrs \\ %{}) do
+    scope |> product_fixture(attrs) |> Kaarobar.Catalog.Product.default_variant()
+  end
+
+  @doc "A tax rate, expressed as a fraction: 0.17 for 17%."
+  def tax_fixture(scope, attrs \\ %{}) do
+    defaults = %{
+      "name" => sequence(:tax_name, &"Tax #{&1}"),
+      "rate" => "0.17",
+      "label" => "GST"
+    }
+
+    {:ok, tax} = Kaarobar.Taxes.create_tax(scope, Map.merge(defaults, stringify_keys(attrs)))
+    tax
+  end
+
+  @doc "A tax group holding the given rates, made the business default."
+  def tax_group_fixture(scope, taxes, attrs \\ %{}) do
+    defaults = %{
+      "name" => sequence(:tax_group_name, &"Group #{&1}"),
+      "tax_ids" => Enum.map(List.wrap(taxes), & &1.id)
+    }
+
+    {:ok, group} =
+      Kaarobar.Taxes.create_tax_group(scope, Map.merge(defaults, stringify_keys(attrs)))
+
+    group
+  end
+
+  @doc "A category, optionally under a parent."
+  def category_fixture(scope, attrs \\ %{}) do
+    defaults = %{"name" => sequence(:category_name, &"Category #{&1}")}
+
+    {:ok, category} =
+      Kaarobar.Catalog.create_category(scope, Map.merge(defaults, stringify_keys(attrs)))
+
+    category
+  end
+
+  @doc "An option type with its values, for building a variant matrix."
+  def option_type_fixture(scope, name, values) do
+    {:ok, option_type} =
+      Kaarobar.Catalog.create_option_type(scope, %{"name" => name, "values" => values})
+
+    option_type
+  end
+
+  @doc "A promotion."
+  def price_rule_fixture(scope, attrs) do
+    defaults = %{
+      "name" => sequence(:rule_name, &"Promotion #{&1}"),
+      "kind" => "percent_off",
+      "scope" => "all",
+      "value" => "10"
+    }
+
+    {:ok, rule} =
+      Kaarobar.Pricing.create_rule(scope, Map.merge(defaults, stringify_keys(attrs)))
+
+    rule
+  end
+
+  @doc "A price list with the given variant prices."
+  def price_list_fixture(scope, attrs \\ %{}, prices \\ []) do
+    defaults = %{"name" => sequence(:price_list_name, &"List #{&1}"), "kind" => "custom"}
+
+    {:ok, list} =
+      Kaarobar.Pricing.create_price_list(scope, Map.merge(defaults, stringify_keys(attrs)))
+
+    Enum.each(prices, fn price ->
+      {:ok, _item} = Kaarobar.Pricing.put_price(scope, list, stringify_keys(price))
+    end)
+
+    {:ok, reloaded} = Kaarobar.Pricing.fetch_price_list(scope, list.id)
+    reloaded
+  end
+
+  defp stringify_keys(attrs) when is_map(attrs) do
+    Map.new(attrs, fn {key, value} -> {to_string(key), value} end)
+  end
+
   @doc "A bearer token for a user, ready to put in an Authorization header."
   def bearer_token(%User{} = user) do
     {plaintext, _token} = Kaarobar.Accounts.create_bearer_token(user, device_name: "test")

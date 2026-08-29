@@ -16,10 +16,12 @@ defmodule Kaarobar.Tenancy do
   alias Kaarobar.AccessControl
   alias Kaarobar.AccessControl.MembershipRole
   alias Kaarobar.Accounts.User
+  alias Kaarobar.Catalog
   alias Kaarobar.Ecto.UUIDv7
   alias Kaarobar.Repo
   alias Kaarobar.Repo.Scoped
   alias Kaarobar.Scope
+  alias Kaarobar.Taxes
   alias Kaarobar.Tenancy.Branch
   alias Kaarobar.Tenancy.Business
   alias Kaarobar.Tenancy.Membership
@@ -103,6 +105,28 @@ defmodule Kaarobar.Tenancy do
         "is_main" => true
       })
     end)
+    |> Ecto.Multi.run(:provision, fn _repo, changes ->
+      scope =
+        changes.user
+        |> Scope.for_user()
+        |> Scope.put_organization(changes.organization)
+        |> Scope.put_business(changes.business)
+
+      provision(scope, changes.business)
+    end)
+  end
+
+  # A business that cannot sell anything the moment it exists is a setup wizard,
+  # not a business. Both creation paths seed the standard units of measure and a
+  # default tax group, so the first product can be added without configuring
+  # anything first.
+  defp provision(%Scope{} = scope, %Business{} = business) do
+    scope = Scope.put_business(scope, business)
+
+    with {:ok, _units} <- Catalog.seed_units(scope),
+         {:ok, tax_group} <- Taxes.seed_defaults(scope) do
+      {:ok, %{tax_group: tax_group}}
+    end
   end
 
   defp default_business_attrs(attrs, %Organization{} = organization) do
@@ -312,6 +336,9 @@ defmodule Kaarobar.Tenancy do
         "code" => attrs["branch_code"] || "MAIN",
         "is_main" => true
       })
+    end)
+    |> Ecto.Multi.run(:provision, fn _repo, %{business: business} ->
+      provision(scope, business)
     end)
     |> Repo.transaction()
     |> case do

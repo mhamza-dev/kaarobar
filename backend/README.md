@@ -72,8 +72,8 @@ development only.
 
 ## What is built
 
-Phases 0 and 1 of the plan. Everything below is implemented, migrated and
-tested; the later phases build on these foundations without changing them.
+Phases 0, 1 and 2 of the plan. Everything marked done below is implemented,
+migrated and tested; later phases build on it without changing it.
 
 | Area | State |
 |---|---|
@@ -85,7 +85,9 @@ tested; the later phases build on these foundations without changing them.
 | Audit trail: append-only, database-enforced | done |
 | Idempotency: per-organization keys with replay | done |
 | Vertical registry: 30 business types → modules, product kinds, required sale fields | done |
-| Catalog, pricing, tax | phase 2 |
+| Catalog: 30-vertical product model, variants/option matrix, barcodes, modifiers, bundles and recipes | done |
+| Tax engine: groups, compound and fixed rates, inclusive and exclusive pricing | done |
+| Pricing: price lists with quantity breaks, promotions, BOGO, coupons, cart quoting | done |
 | Inventory, purchasing | phase 3 |
 | POS checkout, registers, shifts | phase 4 |
 | Customers, credit, loyalty | phase 5 |
