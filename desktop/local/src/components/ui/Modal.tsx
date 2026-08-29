@@ -108,21 +108,27 @@ export function Modal({
             )}
           >
             <div className="flex items-start justify-between gap-3 border-b border-white/30 bg-surface-raised/60 px-5 py-4 backdrop-blur-md">
-              <div>
+              <div className="min-w-0">
                 {title ? (
-                  <h2 id={titleId} className="text-lg font-semibold text-ink">
+                  <h2 id={titleId} className="text-lg font-semibold leading-snug text-ink">
                     {title}
                   </h2>
                 ) : null}
                 {description ? <p className="mt-1 text-sm text-ink-muted">{description}</p> : null}
               </div>
-              <Button variant="ghost" size="sm" aria-label={t('common.close')} onClick={onClose}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="shrink-0"
+                aria-label={t('common.close')}
+                onClick={onClose}
+              >
                 <X className="size-4" />
               </Button>
             </div>
             <div className="overflow-y-auto px-5 py-4">{children}</div>
             {footer ? (
-              <div className="flex items-center justify-end gap-2 border-t border-white/30 bg-surface-raised/60 px-5 py-4 backdrop-blur-md">
+              <div className="flex flex-col-reverse gap-2 border-t border-white/30 bg-surface-raised/60 px-5 py-4 backdrop-blur-md sm:flex-row sm:items-center sm:justify-end">
                 {footer}
               </div>
             ) : null}
