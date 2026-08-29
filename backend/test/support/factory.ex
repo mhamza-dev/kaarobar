@@ -309,6 +309,57 @@ defmodule Kaarobar.Factory do
     Map.new(attrs, fn {key, value} -> {to_string(key), value} end)
   end
 
+  # --- Inventory helpers ------------------------------------------------------
+
+  @doc "A supplier."
+  def supplier_fixture(scope, attrs \\ %{}) do
+    defaults = %{"name" => sequence(:supplier_name, &"Supplier #{&1}")}
+
+    {:ok, supplier} =
+      Kaarobar.Purchasing.create_supplier(scope, Map.merge(defaults, stringify_keys(attrs)))
+
+    supplier
+  end
+
+  @doc """
+  Puts stock on the shelf through the ledger.
+
+  Never inserts a stock_items row directly: the projection has to stay equal to
+  the sum of the moves, and a fixture that wrote around that would let a broken
+  ledger pass its own reconciliation test.
+  """
+  def stock_fixture(scope, variant, quantity, opts \\ []) do
+    {:ok, move} =
+      Kaarobar.Inventory.set_opening_stock(scope, %{
+        "variant_id" => variant.id,
+        "branch_id" => Keyword.get(opts, :branch_id, scope.branch.id),
+        "quantity" => quantity,
+        "unit_cost" => Keyword.get(opts, :unit_cost, "100.00"),
+        "batch_id" => Keyword.get(opts, :batch_id)
+      })
+
+    move
+  end
+
+  @doc "A batch, for the verticals that must track lots and expiry."
+  def batch_fixture(scope, variant, attrs \\ %{}) do
+    defaults = %{
+      "variant_id" => variant.id,
+      "batch_number" => sequence(:batch_number, &"LOT-#{&1}")
+    }
+
+    {:ok, batch} =
+      Kaarobar.Inventory.create_batch(scope, Map.merge(defaults, stringify_keys(attrs)))
+
+    batch
+  end
+
+  @doc "A second branch, for transfer tests."
+  def branch_fixture(scope, name) do
+    {:ok, branch} = Kaarobar.Tenancy.create_branch(scope, %{"name" => name})
+    branch
+  end
+
   @doc "A bearer token for a user, ready to put in an Authorization header."
   def bearer_token(%User{} = user) do
     {plaintext, _token} = Kaarobar.Accounts.create_bearer_token(user, device_name: "test")

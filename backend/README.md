@@ -72,7 +72,7 @@ development only.
 
 ## What is built
 
-Phases 0, 1 and 2 of the plan. Everything marked done below is implemented,
+Phases 0 through 3 of the plan. Everything marked done below is implemented,
 migrated and tested; later phases build on it without changing it.
 
 | Area | State |
@@ -88,7 +88,10 @@ migrated and tested; later phases build on it without changing it.
 | Catalog: 30-vertical product model, variants/option matrix, barcodes, modifiers, bundles and recipes | done |
 | Tax engine: groups, compound and fixed rates, inclusive and exclusive pricing | done |
 | Pricing: price lists with quantity breaks, promotions, BOGO, coupons, cart quoting | done |
-| Inventory, purchasing | phase 3 |
+| Inventory: append-only stock ledger, batches with expiry, serials, FIFO and weighted-average costing | done |
+| Stock operations: branch transfers with in-transit state, cycle counts with variance approval, valuation reconciliation | done |
+| Purchasing: suppliers, orders, goods receipts, bills, payments with allocation, returns, payables ageing | done |
+| Gapless document numbering (PO-2026-0042) | done |
 | POS checkout, registers, shifts | phase 4 |
 | Customers, credit, loyalty | phase 5 |
 | Vertical modules (tables, KDS, appointments, service jobs, rentals) | phase 6 |

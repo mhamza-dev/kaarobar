@@ -185,6 +185,78 @@ defmodule KaarobarWeb.Router do
     patch "/promotions/:id", PricingController, :update_rule
     delete "/promotions/:id", PricingController, :delete_rule
 
+    # --- Inventory ---
+    get "/stock", InventoryController, :index
+    get "/stock/valuation", InventoryController, :valuation
+    get "/stock/reconcile", InventoryController, :reconcile
+    get "/stock/reorder", InventoryController, :reorder
+    get "/stock/moves", InventoryController, :moves
+    post "/stock/adjust", InventoryController, :adjust
+    post "/stock/write-off", InventoryController, :write_off
+    post "/stock/opening", InventoryController, :opening
+    get "/stock/:branch_id/:variant_id", InventoryController, :show
+    put "/stock/:branch_id/:variant_id", InventoryController, :update_settings
+    get "/stock/:branch_id/:variant_id/ledger", InventoryController, :ledger
+
+    get "/batches/expiring", InventoryController, :expiring
+    get "/batches", InventoryController, :batches
+    post "/batches", InventoryController, :create_batch
+    put "/batches/:id/status", InventoryController, :set_batch_status
+
+    get "/serials", InventoryController, :serials
+
+    # --- Transfers and counts ---
+    post "/stock-transfers/:id/dispatch", StockOperationsController, :dispatch_transfer
+    post "/stock-transfers/:id/receive", StockOperationsController, :receive_transfer
+    post "/stock-transfers/:id/cancel", StockOperationsController, :cancel_transfer
+    get "/stock-transfers", StockOperationsController, :index_transfers
+    post "/stock-transfers", StockOperationsController, :create_transfer
+    get "/stock-transfers/:id", StockOperationsController, :show_transfer
+
+    put "/stock-counts/:id/items/:item_id", StockOperationsController, :record_count
+    post "/stock-counts/:id/submit", StockOperationsController, :submit_count
+    post "/stock-counts/:id/approve", StockOperationsController, :approve_count
+    post "/stock-counts/:id/cancel", StockOperationsController, :cancel_count
+    get "/stock-counts", StockOperationsController, :index_counts
+    post "/stock-counts", StockOperationsController, :create_count
+    get "/stock-counts/:id", StockOperationsController, :show_count
+
+    # --- Purchasing ---
+    get "/suppliers/:id/ledger", PurchasingController, :supplier_ledger
+    get "/suppliers/:id/products", PurchasingController, :supplier_products
+    put "/suppliers/:id/products", PurchasingController, :put_supplier_product
+    get "/suppliers", PurchasingController, :index_suppliers
+    post "/suppliers", PurchasingController, :create_supplier
+    get "/suppliers/:id", PurchasingController, :show_supplier
+    patch "/suppliers/:id", PurchasingController, :update_supplier
+    delete "/suppliers/:id", PurchasingController, :archive_supplier
+
+    post "/purchase-orders/:id/approve", PurchasingController, :approve_order
+    post "/purchase-orders/:id/cancel", PurchasingController, :cancel_order
+    post "/purchase-orders/:id/close", PurchasingController, :close_order
+    get "/purchase-orders", PurchasingController, :index_orders
+    post "/purchase-orders", PurchasingController, :create_order
+    get "/purchase-orders/:id", PurchasingController, :show_order
+    patch "/purchase-orders/:id", PurchasingController, :update_order
+
+    post "/goods-receipts/:id/post", PurchasingController, :post_receipt
+    get "/goods-receipts", PurchasingController, :index_receipts
+    post "/goods-receipts", PurchasingController, :create_receipt
+    get "/goods-receipts/:id", PurchasingController, :show_receipt
+
+    get "/supplier-bills/ageing", PurchasingController, :ageing
+    post "/supplier-bills/:id/post", PurchasingController, :post_bill
+    get "/supplier-bills", PurchasingController, :index_bills
+    post "/supplier-bills", PurchasingController, :create_bill
+    get "/supplier-bills/:id", PurchasingController, :show_bill
+
+    post "/supplier-payments", PurchasingController, :record_payment
+
+    post "/purchase-returns/:id/post", PurchasingController, :post_return
+    get "/purchase-returns", PurchasingController, :index_returns
+    post "/purchase-returns", PurchasingController, :create_return
+    get "/purchase-returns/:id", PurchasingController, :show_return
+
     # --- Audit ---
     get "/audit-logs", AuditController, :index
   end
