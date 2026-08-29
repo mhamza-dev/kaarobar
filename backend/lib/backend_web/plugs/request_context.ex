@@ -16,8 +16,6 @@ defmodule KaarobarWeb.Plugs.RequestContext do
 
   import Plug.Conn
 
-  require Logger
-
   @impl Plug
   def init(opts), do: opts
 

@@ -26,7 +26,10 @@ defmodule KaarobarWeb.ClientLinks do
   defp build(segments) do
     base = base_url()
 
-    encoded = Enum.map_join(segments, "/", &URI.encode(&1, &URI.char_unreserved?/1))
+    encoded =
+      Enum.map_join(segments, "/", fn segment ->
+        URI.encode(segment, &URI.char_unreserved?/1)
+      end)
 
     base <> "/" <> encoded
   end

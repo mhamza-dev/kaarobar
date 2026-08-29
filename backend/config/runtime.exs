@@ -56,14 +56,15 @@ dev_cloak_key = "e2xKQ0lWNjZmSmZqM2NWWXk1c2h1WHV3aVJqNGRnT0k9"
 
 cloak_key =
   case System.get_env("CLOAK_KEY") do
-    nil when config_env() == :prod ->
-      raise """
-      environment variable CLOAK_KEY is missing.
-      Generate one with: openssl rand -base64 32
-      """
-
     nil ->
-      dev_cloak_key
+      if config_env() == :prod do
+        raise """
+        environment variable CLOAK_KEY is missing.
+        Generate one with: openssl rand -base64 32
+        """
+      else
+        dev_cloak_key
+      end
 
     value ->
       value

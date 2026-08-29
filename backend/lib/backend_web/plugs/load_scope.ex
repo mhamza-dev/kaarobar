@@ -22,8 +22,6 @@ defmodule KaarobarWeb.Plugs.LoadScope do
 
   import Plug.Conn
 
-  require Logger
-
   alias Kaarobar.Scope
   alias Kaarobar.Scopes
   alias KaarobarWeb.ErrorEnvelope
