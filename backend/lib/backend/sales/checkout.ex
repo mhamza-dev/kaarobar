@@ -768,6 +768,11 @@ defmodule Kaarobar.Sales.Checkout do
       total: totals.total,
       paid_total: tenders.paid,
       change_due: tenders.change,
+      # What this sale put on the account, frozen here. Nothing else about
+      # settlement lives on the sale — how much is left comes from the
+      # allocations — but the original charge can never change, so summing the
+      # credit tenders on every ageing query would be work for no reason.
+      credit_total: credit_total(tenders.tenders),
       prices_include_tax: request.prices_include_tax,
       service_mode: request.service_mode,
       served_by_user_id: request.served_by_user_id,

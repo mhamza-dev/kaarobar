@@ -46,6 +46,9 @@ defmodule Kaarobar.Sales.Sale do
     field :change_due, :decimal, default: Decimal.new(0)
     field :refunded_total, :decimal, default: Decimal.new(0)
     field :cost_total, :decimal, default: Decimal.new(0)
+    # What this sale put on the customer's account. Frozen at checkout; what is
+    # still owed on it comes from `Kaarobar.Credit`, not from here.
+    field :credit_total, :decimal, default: Decimal.new(0)
 
     field :prices_include_tax, :boolean, default: false
 
@@ -112,6 +115,7 @@ defmodule Kaarobar.Sales.Sale do
       :paid_total,
       :change_due,
       :cost_total,
+      :credit_total,
       :prices_include_tax,
       :service_mode,
       :served_by_user_id,
@@ -171,6 +175,16 @@ defmodule Kaarobar.Sales.Sale do
 
   def refundable_amount(%__MODULE__{total: total, refunded_total: refunded}),
     do: total |> Money.sub(refunded) |> Money.clamp_non_negative()
+
+  @doc """
+  True when this sale was, wholly or partly, sold on account.
+
+  What is still owed on it is `Kaarobar.Credit.outstanding_on/2` — a voided
+  sale owes nothing regardless of what it charged.
+  """
+  @spec on_credit?(t()) :: boolean()
+  def on_credit?(%__MODULE__{status: "voided"}), do: false
+  def on_credit?(%__MODULE__{credit_total: total}), do: Money.positive?(total)
 
   @doc "True when the sale still counts towards the day's takings."
   @spec counts_towards_takings?(t()) :: boolean()

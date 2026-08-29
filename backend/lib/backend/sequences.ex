@@ -43,6 +43,7 @@ defmodule Kaarobar.Sequences do
     "sale_return" => %{prefix: "RET", reset: :yearly},
     "refund_request" => %{prefix: "RR", reset: :yearly},
     "customer_payment" => %{prefix: "RCPT", reset: :yearly},
+    "store_credit" => %{prefix: "SC", reset: :yearly},
     # Tickets and shifts are working documents, not tax ones. They restart
     # monthly so the number stays short enough to read out across a counter.
     "order" => %{prefix: "ORD", reset: :monthly},

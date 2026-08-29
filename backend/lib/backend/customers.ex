@@ -2,18 +2,25 @@ defmodule Kaarobar.Customers do
   @moduledoc """
   Who the shop sells to, and what they owe.
 
-  The minimum a till needs. The full CRM — groups, loyalty, gift cards, store
-  credit, addresses, follow-ups — arrives with its own phase; what is here is
-  the part checkout cannot work without, because a shop that sells on account
-  has to know who owes what before it can let anyone leave without paying.
+  The customer record and their running balance. What sits alongside it:
+
+    * `Kaarobar.Credit` — which invoices are unpaid, what settled them, ageing.
+    * `Kaarobar.Loyalty` — points.
+    * `Kaarobar.Prepaid` — store credit and gift cards.
+
+  The split is deliberate. This module answers "what does this customer owe?"
+  with one number; `Kaarobar.Credit` answers "owe for what?", which needs the
+  invoices and is a different query every time.
 
   ## The ledger is the truth; the balance is a projection
 
   `customers.balance` is maintained in the same transaction as the entries that
   move it, under a row lock, exactly as `stock_items.on_hand` mirrors the stock
-  ledger and `suppliers.balance` mirrors the purchase one. Three ledgers, one
-  pattern — so that when a statement does not add up, it shows the row where it
-  stopped adding up rather than only the wrong total.
+  ledger and `suppliers.balance` mirrors the purchase one. Five ledgers now
+  share this pattern — stock, suppliers, customers, points and prepaid balances
+  — so that when any of them is disputed, the answer is the same shape: the
+  movements, each with the balance that followed it, and the row where it
+  stopped adding up.
   """
 
   import Ecto.Query, warn: false
@@ -267,6 +274,16 @@ defmodule Kaarobar.Customers do
 
   Pass `shift_id` when the money was taken at a till, so it lands in that
   drawer's count.
+
+  ## Allocating it
+
+  `"allocations"` maps sale ids to amounts, settling named invoices in the same
+  transaction that writes the ledger entry. `"auto_allocate" => true` spreads it
+  over the oldest invoices instead — a guess, and an explicit one; see
+  `Kaarobar.Credit.auto_allocate/2` for why it is not the default.
+
+  Anything unallocated stays as money on account, which is a normal state: a
+  customer paying a round figure usually leaves some over.
   """
   @spec record_payment(Scope.t(), Customer.t(), map()) ::
           {:ok, CustomerPayment.t()} | {:error, term()}
@@ -277,7 +294,8 @@ defmodule Kaarobar.Customers do
       with :ok <- validate_payment_amount(amount),
            {:ok, number} <- Sequences.next(scope, "customer_payment"),
            {:ok, payment} <- insert_payment(scope, customer, attrs, amount, number),
-           {:ok, _entry} <- post_payment_entry(scope, customer, payment) do
+           {:ok, _entry} <- post_payment_entry(scope, customer, payment),
+           {:ok, _allocations} <- apply_allocations(scope, payment, attrs) do
         Audit.log(scope, "customer_payment.recorded", payment,
           entity_type: "customer_payment",
           label: payment.number,
@@ -408,6 +426,39 @@ defmodule Kaarobar.Customers do
     }
 
     %CustomerPayment{} |> CustomerPayment.changeset(payment_attrs) |> Repo.insert()
+  end
+
+  # Runs inside the caller's transaction, so a bad allocation takes the payment
+  # with it rather than leaving money recorded against the wrong invoice.
+  defp apply_allocations(%Scope{} = scope, %CustomerPayment{} = payment, attrs) do
+    explicit = fetch_attr(attrs, :allocations)
+
+    cond do
+      is_map(explicit) and map_size(explicit) > 0 ->
+        Kaarobar.Credit.allocate_within(scope, payment, explicit)
+
+      fetch_attr(attrs, :auto_allocate) == true ->
+        invoices = Kaarobar.Credit.open_invoices(scope, customer_id: payment.customer_id)
+        Kaarobar.Credit.allocate_within(scope, payment, spread_oldest_first(invoices, payment))
+
+      true ->
+        {:ok, []}
+    end
+  end
+
+  defp spread_oldest_first(invoices, %CustomerPayment{amount: amount}) do
+    {plan, _left} =
+      Enum.reduce(invoices, {%{}, amount}, fn invoice, {acc, remaining} ->
+        take = Money.min(invoice.outstanding, remaining)
+
+        if Money.positive?(take) do
+          {Map.put(acc, invoice.sale_id, take), Money.sub(remaining, take)}
+        else
+          {acc, remaining}
+        end
+      end)
+
+    plan
   end
 
   defp post_payment_entry(%Scope{} = scope, %Customer{} = customer, %CustomerPayment{} = payment) do
