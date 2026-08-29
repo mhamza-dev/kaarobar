@@ -38,8 +38,22 @@ defmodule KaarobarWeb.FallbackController do
     respond({status, put_in(body, [:error, :message], message)}, conn)
   end
 
+  # Contexts that can say *which* thing went wrong return `{:error, {reason,
+  # detail}}` — which item ran out, how much is missing, which permission is
+  # needed. The detail is carried through so the client can point at it rather
+  # than making the cashier guess.
+  def call(conn, {:error, {reason, detail}}) when is_atom(reason) do
+    {status, body} = ErrorEnvelope.for_reason(reason)
+    respond({status, put_in(body, [:error, :details], %{"value" => describe(detail)})}, conn)
+  end
+
   def call(conn, nil), do: :not_found |> ErrorEnvelope.for_reason() |> respond(conn)
   def call(conn, :error), do: :unprocessable_entity |> ErrorEnvelope.for_reason() |> respond(conn)
+
+  defp describe(%Decimal{} = value), do: Decimal.to_string(value, :normal)
+  defp describe(value) when is_binary(value) or is_number(value), do: value
+  defp describe(value) when is_atom(value), do: to_string(value)
+  defp describe(value), do: inspect(value)
 
   defp respond({status, body}, conn) do
     conn

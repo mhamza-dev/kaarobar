@@ -83,6 +83,80 @@ defmodule KaarobarWeb.ErrorEnvelope do
   def for_reason(:unprocessable_entity),
     do: {:unprocessable_entity, build("unprocessable_entity", "The request could not be processed")}
 
+  # --- Selling ---------------------------------------------------------------
+  #
+  # These are the messages a cashier reads with a customer standing in front of
+  # them. Each says what happened and what to do about it, because "422
+  # unprocessable entity" is a message that gets someone else called over.
+
+  def for_reason(:insufficient_stock),
+    do:
+      {:conflict,
+       build("insufficient_stock", "There is not enough stock to complete this sale")}
+
+  def for_reason(:underpaid),
+    do: {:unprocessable_entity, build("underpaid", "The tenders do not cover the total")}
+
+  def for_reason(:overpaid),
+    do:
+      {:unprocessable_entity,
+       build("overpaid", "The tenders exceed the total. Only cash may be over-tendered.")}
+
+  def for_reason(:no_payment),
+    do: {:unprocessable_entity, build("no_payment", "A sale needs at least one tender")}
+
+  def for_reason(:no_lines),
+    do: {:unprocessable_entity, build("no_lines", "A sale needs at least one line")}
+
+  def for_reason(:credit_not_allowed),
+    do: {:forbidden, build("credit_not_allowed", "This customer may not buy on credit")}
+
+  def for_reason(:credit_limit_exceeded),
+    do:
+      {:unprocessable_entity,
+       build("credit_limit_exceeded", "This sale would take the customer past their credit limit")}
+
+  def for_reason(:credit_customer_required),
+    do:
+      {:unprocessable_entity,
+       build("credit_customer_required", "A sale on credit has to name the customer")}
+
+  def for_reason(:shift_not_open),
+    do: {:conflict, build("shift_not_open", "This register has no open shift")}
+
+  def for_reason(:shift_already_open),
+    do: {:conflict, build("shift_already_open", "This register already has an open shift")}
+
+  def for_reason(:shift_open),
+    do: {:conflict, build("shift_open", "Close the open shift on this register first")}
+
+  def for_reason(:variant_not_found),
+    do: {:not_found, build("variant_not_found", "One of the items is no longer available")}
+
+  def for_reason(:already_voided),
+    do: {:conflict, build("already_voided", "This sale has already been voided")}
+
+  def for_reason(:already_refunded),
+    do:
+      {:conflict,
+       build("already_refunded", "Part of this sale has been refunded, so it cannot be voided")}
+
+  def for_reason(:already_billed),
+    do: {:conflict, build("already_billed", "Part of this order has already been paid for")}
+
+  def for_reason(:order_closed),
+    do: {:conflict, build("order_closed", "This order is no longer open")}
+
+  def for_reason(:exceeds_refundable),
+    do:
+      {:unprocessable_entity,
+       build("exceeds_refundable", "More is being returned than was sold on that line")}
+
+  def for_reason(:balance_outstanding),
+    do:
+      {:conflict,
+       build("balance_outstanding", "This customer still owes money and cannot be removed")}
+
   def for_reason(other) when is_atom(other),
     do: {:unprocessable_entity, build(to_string(other), humanize(other))}
 

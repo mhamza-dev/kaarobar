@@ -257,6 +257,66 @@ defmodule KaarobarWeb.Router do
     post "/purchase-returns", PurchasingController, :create_return
     get "/purchase-returns/:id", PurchasingController, :show_return
 
+    # --- Registers, shifts and the drawer ---
+    # Shift routes are declared before "/registers/:id" so the literal segments
+    # are never read as a register id.
+    get "/shifts/:id/x-report", RegisterController, :x_report
+    get "/shifts/:id/reconcile", RegisterController, :reconcile
+    get "/shifts/:id/cash-movements", RegisterController, :cash_movements
+    post "/shifts/:id/cash-movements", RegisterController, :cash_movement
+    post "/shifts/:id/close", RegisterController, :close_shift
+    get "/shifts", RegisterController, :index_shifts
+    get "/shifts/:id", RegisterController, :show_shift
+
+    get "/registers/:id/shift", RegisterController, :current_shift
+    post "/registers/:id/shift", RegisterController, :open_shift
+    get "/registers", RegisterController, :index
+    post "/registers", RegisterController, :create
+    get "/registers/:id", RegisterController, :show
+    patch "/registers/:id", RegisterController, :update
+    delete "/registers/:id", RegisterController, :delete
+
+    # --- Selling ---
+    # "quote", "returns", "refund-requests" and "by-number" all precede the
+    # "/sales/:id" route so none of them is mistaken for a sale id.
+    post "/sales/quote", SalesController, :preview
+    get "/sales/returns", SalesController, :returns
+    get "/sales/by-number/:number", SalesController, :by_number
+
+    get "/refund-requests", SalesController, :index_refund_requests
+    get "/refund-requests/:id", SalesController, :show_refund_request
+    post "/refund-requests/:id/approve", SalesController, :approve_refund
+    post "/refund-requests/:id/reject", SalesController, :reject_refund
+    post "/sales/:sale_id/refund-requests", SalesController, :create_refund_request
+
+    post "/sales/:id/void", SalesController, :void
+    post "/sales/:id/refund", SalesController, :refund
+    get "/sales", SalesController, :index
+    post "/sales", SalesController, :create
+    get "/sales/:id", SalesController, :show
+
+    # --- Open tickets ---
+    post "/orders/:id/items", OrderController, :add_items
+    delete "/orders/:id/items/:item_id", OrderController, :remove_item
+    post "/orders/:id/hold", OrderController, :hold
+    post "/orders/:id/resume", OrderController, :resume
+    post "/orders/:id/cancel", OrderController, :cancel
+    get "/orders", OrderController, :index
+    post "/orders", OrderController, :create
+    get "/orders/:id", OrderController, :show
+
+    # --- Customers and credit ---
+    get "/customers/ageing", CustomerController, :ageing
+    get "/customers/lookup/:phone", CustomerController, :lookup
+    get "/customers/:id/ledger", CustomerController, :ledger
+    get "/customers/:id/payments", CustomerController, :payments
+    post "/customers/:id/payments", CustomerController, :record_payment
+    get "/customers", CustomerController, :index
+    post "/customers", CustomerController, :create
+    get "/customers/:id", CustomerController, :show
+    patch "/customers/:id", CustomerController, :update
+    delete "/customers/:id", CustomerController, :delete
+
     # --- Audit ---
     get "/audit-logs", AuditController, :index
   end

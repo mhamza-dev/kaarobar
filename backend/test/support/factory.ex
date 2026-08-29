@@ -360,6 +360,78 @@ defmodule Kaarobar.Factory do
     branch
   end
 
+  # --- Till helpers -----------------------------------------------------------
+
+  @doc "A register at the scope's branch."
+  def register_fixture(scope, attrs \\ %{}) do
+    defaults = %{"name" => sequence(:register_name, &"Till #{&1}")}
+
+    {:ok, register} =
+      Kaarobar.Registers.create_register(scope, Map.merge(defaults, stringify_keys(attrs)))
+
+    register
+  end
+
+  @doc """
+  A register with an open shift on it, which is what a till needs before it can
+  ring anything up.
+
+  Returns `%{register: register, shift: shift}` because almost every checkout
+  test needs both.
+  """
+  def open_till(scope, attrs \\ %{}) do
+    register = register_fixture(scope, Map.get(attrs, :register, %{}))
+
+    {:ok, shift} =
+      Kaarobar.Registers.open_shift(scope, register, %{
+        "opening_float" => Map.get(attrs, :opening_float, "1000.00")
+      })
+
+    %{register: register, shift: shift}
+  end
+
+  @doc "A customer. Pass `credit_allowed` and `credit_limit` to sell on account."
+  def customer_fixture(scope, attrs \\ %{}) do
+    defaults = %{
+      "name" => sequence(:customer_name, &"Customer #{&1}"),
+      "phone" => sequence(:customer_phone, &"0300#{1_000_000 + &1}")
+    }
+
+    {:ok, customer} =
+      Kaarobar.Customers.create_customer(scope, Map.merge(defaults, stringify_keys(attrs)))
+
+    customer
+  end
+
+  @doc """
+  Rings up a sale through the checkout, which is the only thing that may write
+  one.
+
+  Defaults to a single line paid in cash, so a test that only needs *a sale to
+  exist* does not have to spell out a whole basket.
+  """
+  def sale_fixture(scope, variant, opts \\ []) do
+    quantity = Keyword.get(opts, :quantity, "1")
+    amount = Keyword.get(opts, :amount, "100.00")
+
+    params = %{
+      "register_id" => Keyword.get(opts, :register_id),
+      "shift_id" => Keyword.get(opts, :shift_id),
+      "customer_id" => Keyword.get(opts, :customer_id),
+      "lines" => [%{"variant_id" => variant.id, "quantity" => quantity}],
+      "payments" => [
+        %{
+          "method" => Keyword.get(opts, :method, "cash"),
+          "amount" => amount,
+          "tendered_amount" => amount
+        }
+      ]
+    }
+
+    {:ok, sale} = Kaarobar.Sales.Checkout.run(scope, params)
+    sale
+  end
+
   @doc "A bearer token for a user, ready to put in an Authorization header."
   def bearer_token(%User{} = user) do
     {plaintext, _token} = Kaarobar.Accounts.create_bearer_token(user, device_name: "test")

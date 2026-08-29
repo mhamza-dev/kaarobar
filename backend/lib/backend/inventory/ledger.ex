@@ -121,6 +121,49 @@ defmodule Kaarobar.Inventory.Ledger do
     end)
   end
 
+  @doc """
+  Posts one movement without opening a transaction of its own.
+
+  For callers already inside a transaction that need the error back rather than
+  an aborted transaction. See `post_many_within/2` for why that distinction
+  matters, and order your posts by `{branch_id, variant_id}` when you make
+  several — this function does no ordering of its own.
+  """
+  @spec post_within(Scope.t(), post_attrs()) :: {:ok, StockMove.t()} | {:error, error()}
+  def post_within(%Scope{} = scope, attrs), do: do_post(scope, attrs)
+
+  @doc """
+  Posts several movements without opening a transaction of its own.
+
+  For callers that are already inside one and need to react to a failure rather
+  than have it abort everything — checkout, principally, which turns
+  `:insufficient_stock` into a message naming the item that ran out.
+
+  Ecto has no nested transactions: `post_many/2` called from inside another
+  transaction would roll the *outer* one back on failure, past any code hoping
+  to handle it. This returns the error instead and leaves the decision to the
+  caller.
+
+  The same ordering rule applies, for the same reason: two checkouts touching
+  the same pair of stock lines in opposite orders deadlock, and a deadlock at
+  the till looks like the system hanging.
+  """
+  @spec post_many_within(Scope.t(), [post_attrs()]) :: {:ok, [StockMove.t()]} | {:error, error()}
+  def post_many_within(%Scope{} = scope, moves) do
+    moves
+    |> Enum.sort_by(&{&1.branch_id, &1.variant_id})
+    |> Enum.reduce_while({:ok, []}, fn attrs, {:ok, acc} ->
+      case post_within(scope, attrs) do
+        {:ok, move} -> {:cont, {:ok, [move | acc]}}
+        {:error, reason} -> {:halt, {:error, reason}}
+      end
+    end)
+    |> case do
+      {:ok, posted} -> {:ok, Enum.reverse(posted)}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
   # ===========================================================================
   # The core
   # ===========================================================================

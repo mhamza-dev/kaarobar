@@ -39,7 +39,14 @@ defmodule Kaarobar.Sequences do
     "stock_transfer" => %{prefix: "TRF", reset: :yearly},
     "stock_count" => %{prefix: "CNT", reset: :yearly},
     "sale" => %{prefix: "INV", reset: :yearly},
-    "credit_note" => %{prefix: "CN", reset: :yearly}
+    "credit_note" => %{prefix: "CN", reset: :yearly},
+    "sale_return" => %{prefix: "RET", reset: :yearly},
+    "refund_request" => %{prefix: "RR", reset: :yearly},
+    "customer_payment" => %{prefix: "RCPT", reset: :yearly},
+    # Tickets and shifts are working documents, not tax ones. They restart
+    # monthly so the number stays short enough to read out across a counter.
+    "order" => %{prefix: "ORD", reset: :monthly},
+    "shift" => %{prefix: "SH", reset: :monthly}
   }
 
   @doc """
@@ -86,7 +93,7 @@ defmodule Kaarobar.Sequences do
     prefix = Keyword.get(opts, :prefix, defaults.prefix)
     period = period_for(defaults.reset, Keyword.get(opts, :at, Date.utc_today()))
 
-    case find_sequence(scope, document_type, period, Keyword.get(opts, :branch_id)) do
+    case find_sequence(scope, document_type, prefix, period, Keyword.get(opts, :branch_id)) do
       nil -> format(prefix, period, 1, 4)
       sequence -> format(sequence.prefix, period, sequence.next_number, sequence.padding)
     end
@@ -95,19 +102,23 @@ defmodule Kaarobar.Sequences do
   # --- Internal ---------------------------------------------------------------
 
   defp ensure_sequence(%Scope{} = scope, document_type, prefix, period, branch_id) do
-    case find_sequence(scope, document_type, period, branch_id) do
+    case find_sequence(scope, document_type, prefix, period, branch_id) do
       nil -> create_sequence(scope, document_type, prefix, period, branch_id)
       sequence -> {:ok, sequence}
     end
   end
 
-  defp find_sequence(%Scope{} = scope, document_type, period, branch_id) do
+  # The prefix is part of what identifies a series. Two tills issuing as `C1`
+  # and `C2` must draw from two counters, or each of their series ends up with
+  # the other's numbers missing from it.
+  defp find_sequence(%Scope{} = scope, document_type, prefix, period, branch_id) do
     business_id = Scope.business_id(scope)
 
     query =
       from sequence in "document_sequences",
         where: sequence.business_id == type(^business_id, :binary_id),
         where: sequence.document_type == ^document_type,
+        where: sequence.prefix == ^prefix,
         where: sequence.period == ^period,
         select: %{
           id: sequence.id,
@@ -147,7 +158,7 @@ defmodule Kaarobar.Sequences do
     # index arbitrates and the loser simply re-reads.
     Repo.insert_all("document_sequences", [entry], on_conflict: :nothing)
 
-    case find_sequence(scope, document_type, period, branch_id) do
+    case find_sequence(scope, document_type, prefix, period, branch_id) do
       nil -> {:error, :sequence_unavailable}
       sequence -> {:ok, sequence}
     end

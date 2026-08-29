@@ -27,9 +27,9 @@ defmodule Kaarobar.Tenancy.Membership do
 
   use Kaarobar.Schema
 
-  alias Kaarobar.Accounts.User
   alias Kaarobar.AccessControl.MembershipRole
   alias Kaarobar.AccessControl.PermissionGrant
+  alias Kaarobar.Accounts.User
   alias Kaarobar.Tenancy.Business
   alias Kaarobar.Tenancy.MembershipBranch
   alias Kaarobar.Tenancy.Organization

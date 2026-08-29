@@ -91,6 +91,75 @@ case Accounts.get_user_by_email(owner_email) do
       |> Repo.insert!()
     end
 
+    # --- A shop that can actually sell something ------------------------------
+    #
+    # Catalog, stock, a till with an open shift, a credit customer and one
+    # completed sale. Without these, "the backend works" can only be taken on
+    # trust: with them, the whole checkout path can be walked by hand within a
+    # minute of `mix ecto.setup`.
+
+    {:ok, shop} = Scopes.build(result.user, %{business_id: grocery.id})
+
+    demo_products = [
+      %{"name" => "Basmati rice 5kg", "price" => "1850.00", "cost" => "1600.00", "stock" => "40"},
+      %{"name" => "Cooking oil 1L", "price" => "620.00", "cost" => "540.00", "stock" => "80"},
+      %{"name" => "Tea 250g", "price" => "480.00", "cost" => "400.00", "stock" => "120"},
+      %{"name" => "Sugar 1kg", "price" => "165.00", "cost" => "142.00", "stock" => "200"}
+    ]
+
+    stocked =
+      for attrs <- demo_products do
+        {:ok, product} =
+          Kaarobar.Catalog.create_product(shop, Map.take(attrs, ~w(name price cost)))
+
+        variant = Kaarobar.Catalog.Product.default_variant(product)
+
+        {:ok, _move} =
+          Kaarobar.Inventory.set_opening_stock(shop, %{
+            "variant_id" => variant.id,
+            "branch_id" => shop.branch.id,
+            "quantity" => attrs["stock"],
+            "unit_cost" => attrs["cost"]
+          })
+
+        variant
+      end
+
+    {:ok, register} =
+      Kaarobar.Registers.create_register(shop, %{
+        "name" => "Front counter",
+        "invoice_prefix" => "FC"
+      })
+
+    {:ok, _shift} =
+      Kaarobar.Registers.open_shift(shop, register, %{"opening_float" => "5000.00"})
+
+    # A wholesale customer who buys on account, which is how a kiryana store
+    # actually does much of its trade.
+    {:ok, _customer} =
+      Kaarobar.Customers.create_customer(shop, %{
+        "name" => "Hotel Shalimar",
+        "phone" => "03001234567",
+        "credit_allowed" => true,
+        "credit_limit" => "50000.00"
+      })
+
+    [rice, oil | _rest] = stocked
+
+    {:ok, sale} =
+      Kaarobar.Sales.Checkout.run(shop, %{
+        "register_id" => register.id,
+        "lines" => [
+          %{"variant_id" => rice.id, "quantity" => "2"},
+          %{"variant_id" => oil.id, "quantity" => "1"}
+        ],
+        "payments" => [
+          %{"method" => "cash", "amount" => "4320.00", "tendered_amount" => "5000.00"}
+        ]
+      })
+
+    Logger.info("  rang sale #{sale.number} on #{register.name}")
+
     Logger.info("""
 
     Demo data ready.

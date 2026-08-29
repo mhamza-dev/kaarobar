@@ -44,6 +44,18 @@ defmodule Kaarobar.Tenancy.Business do
     field :enabled_modules, {:array, :string}
     field :prices_include_tax, :boolean, default: false
 
+    # How stock is valued, and whether it may go below zero. Both are read by
+    # `Kaarobar.Inventory.Ledger` on every movement.
+    field :costing_method, :string, default: "weighted_average"
+    field :allow_negative_stock, :boolean, default: false
+    field :default_stock_branch_id, Kaarobar.Ecto.UUIDv7
+
+    # The smallest coin the shop can actually hand over. Where it is larger
+    # than the smallest unit of account — no 1-rupee coins in circulation — a
+    # cash total has to be rounded to something payable, and the difference
+    # recorded rather than absorbed.
+    field :cash_rounding_increment, :decimal
+
     field :settings, :map, default: %{}
     field :receipt_settings, :map, default: %{}
     field :social, :map, default: %{}
@@ -126,6 +138,10 @@ defmodule Kaarobar.Tenancy.Business do
       :logo_url,
       :brand_color,
       :prices_include_tax,
+      :costing_method,
+      :allow_negative_stock,
+      :default_stock_branch_id,
+      :cash_rounding_increment,
       :settings,
       :receipt_settings,
       :social
@@ -154,6 +170,8 @@ defmodule Kaarobar.Tenancy.Business do
     |> validate_length(:website, max: 2048)
     |> validate_length(:logo_url, max: 2048)
     |> validate_inclusion(:status, @statuses)
+    |> validate_inclusion(:costing_method, ~w(weighted_average fifo))
+    |> validate_number(:cash_rounding_increment, greater_than: 0)
     |> unique_constraint([:organization_id, :slug],
       name: :businesses_organization_id_slug_index,
       message: "is already taken in this organization"
