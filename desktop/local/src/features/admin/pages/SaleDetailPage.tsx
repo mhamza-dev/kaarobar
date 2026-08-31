@@ -186,46 +186,75 @@ export function SaleDetailPage({ user, data, saleId, onBack }: Props) {
 
       {detail ? (
         <div className="space-y-6">
-          <div className="overflow-hidden rounded-lg border border-brand-primary/15 bg-gradient-to-br from-brand-tint/70 via-surface-raised to-surface-raised p-5 shadow-soft">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge tone={saleStatusTone(detail.sale.status)}>
-                {statusLabel(t, 'sale', detail.sale.status)}
-              </Badge>
-              <span className="text-sm text-ink-muted">
-                {formatDateTime(detail.sale.createdAt)}
-              </span>
-            </div>
-            <p className="mt-2 text-2xl font-bold tracking-tight text-ink">{detail.sale.invoiceNo}</p>
-            <div className="mt-3 flex flex-wrap gap-3 text-sm text-ink-muted">
-              {customerLabel ? (
-                <span>{t('forms.customer')}: <span className="font-medium text-ink">{customerLabel}</span></span>
-              ) : null}
-              {detail.sale.servedByName ? (
-                <span>{t('pos.servedBy')}: <span className="font-medium text-ink">{detail.sale.servedByName}</span></span>
-              ) : null}
-              {detail.sale.serviceMode ? (
-                <span>{t('pos.serviceMode')}: <span className="font-medium text-ink">{t(`serviceModes.${detail.sale.serviceMode}`)}</span></span>
-              ) : null}
-              {detail.sale.tableName ? (
-                <span>{t('tables.name')}: <span className="font-medium text-ink">{detail.sale.tableName}</span></span>
-              ) : null}
-              {detail.sale.riderName ? (
-                <span>{t('pos.rider')}: <span className="font-medium text-ink">{detail.sale.riderName}</span></span>
-              ) : null}
-              {detail.sale.deliveryStatus ? (
-                <span>
-                  {t('pos.deliveryStatus')}:{' '}
-                  <span className="font-medium text-ink">
-                    {t(`deliveryStatus.${detail.sale.deliveryStatus}`)}
-                  </span>
-                </span>
-              ) : null}
-            </div>
-          </div>
+          {/* The invoice number is the thing a shopkeeper is looking for when
+              they open this page — a customer is standing there holding the
+              paper one. It gets the display weight; everything else on the
+              header is the context that makes it identifiable.
 
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              A single brand rule down the edge instead of a gradient wash: the
+              old `brand-tint` gradient has no dark-mode value, so it fell back
+              to a pale band with near-invisible text on it. */}
+          <header className="overflow-hidden rounded-xl border border-line bg-surface-raised shadow-soft">
+            <div className="border-s-4 border-brand-primary p-5">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <p className="text-2xl font-bold tracking-tight text-ink">
+                  {detail.sale.invoiceNo}
+                </p>
+                <Badge tone={saleStatusTone(detail.sale.status)}>
+                  {statusLabel(t, 'sale', detail.sale.status)}
+                </Badge>
+                <span className="text-sm text-ink-muted">
+                  {formatDateTime(detail.sale.createdAt)}
+                </span>
+              </div>
+
+              {/* Who and how, as separated facts rather than a run-on sentence.
+                  Only what this sale actually has: a retail sale carries none
+                  of the table or rider fields, and empty labels are noise. */}
+              <dl className="mt-4 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                {[
+                  customerLabel ? { label: t('forms.customer'), value: customerLabel } : null,
+                  detail.sale.servedByName
+                    ? { label: t('pos.servedBy'), value: detail.sale.servedByName }
+                    : null,
+                  detail.sale.serviceMode
+                    ? {
+                        label: t('pos.serviceMode'),
+                        value: t(`serviceModes.${detail.sale.serviceMode}`),
+                      }
+                    : null,
+                  detail.sale.tableName
+                    ? { label: t('tables.name'), value: detail.sale.tableName }
+                    : null,
+                  detail.sale.riderName
+                    ? { label: t('pos.rider'), value: detail.sale.riderName }
+                    : null,
+                  detail.sale.deliveryStatus
+                    ? {
+                        label: t('pos.deliveryStatus'),
+                        value: t(`deliveryStatus.${detail.sale.deliveryStatus}`),
+                      }
+                    : null,
+                ]
+                  .filter((fact): fact is { label: string; value: string } => fact !== null)
+                  .map((fact) => (
+                    <div key={fact.label} className="flex items-baseline gap-2">
+                      <dt className="shrink-0 text-ink-muted">{fact.label}</dt>
+                      <dd className="truncate font-medium text-ink">{fact.value}</dd>
+                    </div>
+                  ))}
+              </dl>
+            </div>
+          </header>
+
+          {/* One headline figure, three supporting ones. All four used to be
+              equal-weight cards, which made "what is this sale worth?" and
+              "what is still owed?" compete for the same glance. */}
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,2fr)]">
             <Card title={t('forms.netSaleTotal')}>
-              <p className="text-xl font-bold text-ink">{formatMoney(paymentSummary.netTotal)}</p>
+              <p className="text-3xl font-bold tracking-tight tabular-nums text-ink">
+                {formatMoney(paymentSummary.netTotal)}
+              </p>
               {paymentSummary.discount > 0 || paymentSummary.refundedAmount > 0 ? (
                 <p className="mt-1 text-xs text-ink-muted">
                   {paymentSummary.discount > 0
@@ -238,24 +267,45 @@ export function SaleDetailPage({ user, data, saleId, onBack }: Props) {
                 </p>
               ) : null}
             </Card>
-            <Card title={t('forms.paymentAfterRefund')} accent="success">
-              <p className="text-xl font-bold text-ink">{formatMoney(paymentSummary.netPayment)}</p>
-              {paymentSummary.refundedAmount > 0 ? (
-                <p className="mt-1 text-xs text-ink-muted">
-                  {t('forms.totalPayment')}: {formatMoney(paymentSummary.totalPaid)}
+
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Card title={t('forms.paymentAfterRefund')} accent="success">
+                <p className="text-xl font-bold tabular-nums text-ink">
+                  {formatMoney(paymentSummary.netPayment)}
                 </p>
-              ) : null}
-            </Card>
-            <Card title={t('forms.remainingToPay')} accent="warning">
-              <p className="text-xl font-bold text-ink">{formatMoney(paymentSummary.remainingSalePayment)}</p>
-            </Card>
-            <Card title={t('forms.refundedPayment')} accent="danger">
-              <p className="text-xl font-bold text-ink">{formatMoney(paymentSummary.refundedAmount)}</p>
-            </Card>
+                {paymentSummary.refundedAmount > 0 ? (
+                  <p className="mt-1 text-xs text-ink-muted">
+                    {t('forms.totalPayment')}: {formatMoney(paymentSummary.totalPaid)}
+                  </p>
+                ) : null}
+              </Card>
+              {/* Owing and refunded are only interesting when they are not zero,
+                  but they stay on screen either way: a blank where a number
+                  should be reads as missing data, not as nothing owed. */}
+              <Card
+                title={t('forms.remainingToPay')}
+                accent={paymentSummary.remainingSalePayment > 0 ? 'warning' : 'none'}
+              >
+                <p className="text-xl font-bold tabular-nums text-ink">
+                  {formatMoney(paymentSummary.remainingSalePayment)}
+                </p>
+              </Card>
+              <Card
+                title={t('forms.refundedPayment')}
+                accent={paymentSummary.refundedAmount > 0 ? 'danger' : 'none'}
+              >
+                <p className="text-xl font-bold tabular-nums text-ink">
+                  {formatMoney(paymentSummary.refundedAmount)}
+                </p>
+              </Card>
+            </div>
           </div>
 
+          {/* The same shape as the basket in the checkout modal: name and
+              arithmetic on the left, one column of money down the right edge.
+              A cashier who just rang this sale up should recognise it. */}
           <Card title={t('forms.lineItems')}>
-            <div className="space-y-2">
+            <ul className="divide-y divide-line">
               {detail.items.map((item) => {
                 const netQty = Math.max(0, item.qty - item.refundedQty)
                 // Pro-rated from what was actually charged, not from the list
@@ -263,103 +313,145 @@ export function SaleDetailPage({ user, data, saleId, onBack }: Props) {
                 // customer paid for those units, not what they were ticketed at.
                 const netLineTotal = item.qty > 0 ? (item.lineTotal * netQty) / item.qty : 0
                 const perUnitDiscount = item.qty > 0 ? item.discount / item.qty : 0
+                const gross = item.qty * item.unitPrice
                 return (
-                <div
-                  key={item.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line px-3 py-2 text-sm"
-                >
-                  <div>
+                  <li
+                    key={item.id}
+                    className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 py-3 first:pt-0 last:pb-0"
+                  >
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-medium text-ink">{item.productName}</p>
-                      {item.refundedQty > 0 ? <Badge tone="warning">{t('forms.refunded')}</Badge> : null}
+                      <span className="truncate font-medium text-ink">{item.productName}</span>
+                      {item.refundedQty > 0 ? (
+                        <Badge tone="warning">{t('forms.refunded')}</Badge>
+                      ) : null}
                     </div>
-                    <p className="text-xs text-ink-muted">
-                      {item.qty} × {formatMoney(item.unitPrice)} · {t('forms.refunded')}: {item.refundedQty} ·{' '}
-                      {t('forms.refundable')}: {item.refundableQty}
-                    </p>
-                    {item.discount > 0 ? (
-                      <p className="text-xs text-ink-muted">
-                        {t('table.itemDiscount')}: −{formatMoney(perUnitDiscount)}{' '}
-                        {t('pos.discountPerUnitApplied', {
-                          qty: item.qty,
-                          total: formatMoney(item.discount),
-                        })}
-                      </p>
-                    ) : null}
-                  </div>
-                  <div className="text-end">
-                    <span className="font-medium text-ink">{formatMoney(netLineTotal)}</span>
-                    {/* The gross, struck through, whenever what was charged is
-                        not what the line was ticketed at — because it was
-                        discounted, because part of it came back, or both. */}
+                    <span className="min-w-[6rem] text-end font-semibold tabular-nums text-ink">
+                      {formatMoney(netLineTotal)}
+                    </span>
+
+                    <div className="col-start-1 mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-muted">
+                      <span className="tabular-nums">
+                        {item.qty} × {formatMoney(item.unitPrice)}
+                      </span>
+                      {item.discount > 0 ? (
+                        <>
+                          <span aria-hidden className="text-ink-subtle">
+                            ·
+                          </span>
+                          <span className="font-medium tabular-nums text-danger">
+                            {t('table.itemDiscount')} −{formatMoney(perUnitDiscount)}{' '}
+                            {t('pos.discountPerUnitApplied', {
+                              qty: item.qty,
+                              total: formatMoney(item.discount),
+                            })}
+                          </span>
+                        </>
+                      ) : null}
+                      {item.refundedQty > 0 ? (
+                        <>
+                          <span aria-hidden className="text-ink-subtle">
+                            ·
+                          </span>
+                          <span className="tabular-nums">
+                            {t('forms.refunded')}: {item.refundedQty} · {t('forms.refundable')}:{' '}
+                            {item.refundableQty}
+                          </span>
+                        </>
+                      ) : null}
+                    </div>
+
+                    {/* The ticketed value, struck through, only when it differs
+                        from what was charged — because the line was discounted,
+                        because part of it came back, or both. */}
                     {item.refundedQty > 0 || item.discount > 0 ? (
-                      <p className="text-xs text-ink-subtle line-through">
-                        {formatMoney(item.qty * item.unitPrice)}
-                      </p>
+                      <span className="col-start-2 mt-1 text-end text-xs tabular-nums text-ink-subtle line-through">
+                        {formatMoney(gross)}
+                      </span>
                     ) : null}
-                  </div>
-                </div>
+                  </li>
                 )
               })}
-            </div>
+            </ul>
           </Card>
 
+
+          {/* Two questions, answered side by side: what the customer was
+              charged, and what the shop has actually got. These were one
+              undifferentiated ladder of eight rows, where the figure somebody
+              came for sat in the middle of seven others. */}
           {detail.payments.length > 0 ? (
             <Card title={t('forms.paymentType')}>
-              <div className="mb-3 space-y-1 rounded-lg border border-line bg-surface-muted px-3 py-2 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-ink-muted">{t('forms.subtotal')}</span>
-                  <span className="font-medium text-ink">{formatMoney(paymentSummary.subtotal)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-ink-muted">{t('forms.discount')}</span>
-                  <span className="font-medium text-ink">
-                    {paymentSummary.discount > 0
-                      ? `−${formatMoney(paymentSummary.discount)}`
-                      : formatMoney(0)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-ink-muted">{t('forms.saleTotal')}</span>
-                  <span className="font-medium text-ink">{formatMoney(paymentSummary.saleTotal)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-ink-muted">{t('forms.refundedAmount')}</span>
-                  <span className="font-medium text-ink">
-                    {paymentSummary.refundedAmount > 0
-                      ? `−${formatMoney(paymentSummary.refundedAmount)}`
-                      : formatMoney(0)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between border-t border-line pt-1">
-                  <span className="text-ink-muted">{t('forms.netSaleTotal')}</span>
-                  <span className="font-semibold text-ink">{formatMoney(paymentSummary.netTotal)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-ink-muted">{t('forms.totalPayment')}</span>
-                  <span className="font-medium text-ink">{formatMoney(paymentSummary.totalPaid)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-ink-muted">{t('forms.paymentAfterRefund')}</span>
-                  <span className="font-semibold text-ink">{formatMoney(paymentSummary.netPayment)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-ink-muted">{t('forms.remainingSalePayment')}</span>
-                  <span className="font-medium text-ink">
-                    {formatMoney(paymentSummary.remainingSalePayment)}
-                  </span>
-                </div>
+              <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
+                <dl className="space-y-1.5 text-sm">
+                  <p className="pb-1 text-xs font-semibold uppercase tracking-wide text-ink-subtle">
+                    {t('forms.saleTotal')}
+                  </p>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <dt className="text-ink-muted">{t('forms.subtotal')}</dt>
+                    <dd className="tabular-nums text-ink">
+                      {formatMoney(paymentSummary.subtotal)}
+                    </dd>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <dt className="text-ink-muted">{t('forms.discount')}</dt>
+                    <dd className="tabular-nums text-ink">
+                      {paymentSummary.discount > 0
+                        ? `−${formatMoney(paymentSummary.discount)}`
+                        : formatMoney(0)}
+                    </dd>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <dt className="text-ink-muted">{t('forms.refundedAmount')}</dt>
+                    <dd className="tabular-nums text-ink">
+                      {paymentSummary.refundedAmount > 0
+                        ? `−${formatMoney(paymentSummary.refundedAmount)}`
+                        : formatMoney(0)}
+                    </dd>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3 border-t border-line pt-1.5 font-semibold text-ink">
+                    <dt>{t('forms.netSaleTotal')}</dt>
+                    <dd className="tabular-nums">{formatMoney(paymentSummary.netTotal)}</dd>
+                  </div>
+                </dl>
+
+                <dl className="space-y-1.5 text-sm">
+                  <p className="pb-1 text-xs font-semibold uppercase tracking-wide text-ink-subtle">
+                    {t('forms.totalPayment')}
+                  </p>
+                  {/* How it was tendered, before the arithmetic — the answer to
+                      "was this cash or card?" is the one people ask this card
+                      for most often. */}
+                  {detail.payments.map((payment) => (
+                    <div key={payment.id} className="flex items-baseline justify-between gap-3">
+                      <dt className="text-ink-muted">
+                        {t(paymentMethodI18nKey(payment.method), {
+                          defaultValue: payment.method,
+                        })}
+                      </dt>
+                      <dd className="tabular-nums text-ink">{formatMoney(payment.amount)}</dd>
+                    </div>
+                  ))}
+                  <div className="flex items-baseline justify-between gap-3 border-t border-line pt-1.5 font-semibold text-ink">
+                    <dt>{t('forms.paymentAfterRefund')}</dt>
+                    <dd className="tabular-nums">{formatMoney(paymentSummary.netPayment)}</dd>
+                  </div>
+                  <div
+                    className={`flex items-baseline justify-between gap-3 ${
+                      paymentSummary.remainingSalePayment > 0
+                        ? 'font-semibold text-warning'
+                        : 'text-ink-muted'
+                    }`}
+                  >
+                    <dt>{t('forms.remainingSalePayment')}</dt>
+                    <dd className="tabular-nums">
+                      {formatMoney(paymentSummary.remainingSalePayment)}
+                    </dd>
+                  </div>
+                </dl>
               </div>
-              <ul className="space-y-1 text-sm">
-                {detail.payments.map((payment) => (
-                  <li key={payment.id} className="flex justify-between">
-                    <span>{t(paymentMethodI18nKey(payment.method), { defaultValue: payment.method })}</span>
-                    <span>{formatMoney(payment.amount)}</span>
-                  </li>
-                ))}
-              </ul>
             </Card>
           ) : null}
+
 
           <Card title={t('forms.refundRequests')}>
             {detail.refundRequests.length === 0 ? (
