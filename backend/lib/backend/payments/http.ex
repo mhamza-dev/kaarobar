@@ -24,10 +24,6 @@ defmodule Kaarobar.Payments.HTTP do
 
   alias Kaarobar.Payments.Provider
 
-  require Logger
-
-  @timeout 15_000
-
   @doc "POSTs a form-encoded body and decodes the JSON response."
   @spec post_form(Provider.t(), String.t(), map(), list()) :: {:ok, map()} | {:error, term()}
   def post_form(%Provider{} = provider, url, body, headers) do
@@ -59,6 +55,8 @@ defmodule Kaarobar.Payments.HTTP do
     because the reason a card was declined is in that body and the cashier
     needs to be told it.
     """
+
+    require Logger
 
     @timeout 15_000
 

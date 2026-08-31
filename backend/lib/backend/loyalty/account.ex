@@ -72,4 +72,16 @@ defmodule Kaarobar.Loyalty.Account do
   @doc "True when there are points to spend."
   @spec has_points?(t()) :: boolean()
   def has_points?(%__MODULE__{points_balance: balance}), do: balance > 0
+
+  # When somebody joined is what tier anniversaries and dormancy rules are
+  # measured from, so it is stamped rather than left to the caller. It is
+  # castable because a shop migrating an existing loyalty scheme has to be able
+  # to bring the real join dates with it — enrolments backdated to the import
+  # would reset every member's standing.
+  defp put_enrolled_at(changeset) do
+    case get_field(changeset, :enrolled_at) do
+      nil -> put_change(changeset, :enrolled_at, DateTime.utc_now())
+      _already_set -> changeset
+    end
+  end
 end

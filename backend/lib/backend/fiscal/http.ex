@@ -24,10 +24,6 @@ defmodule Kaarobar.Fiscal.HTTP do
   body.
   """
 
-  require Logger
-
-  @timeout 20_000
-
   @doc "POSTs a JSON body and decodes the JSON response."
   @spec post_json(String.t(), map(), list()) :: {:ok, map()} | {:error, term()}
   def post_json(url, body, headers), do: client().post_json(url, body, headers)

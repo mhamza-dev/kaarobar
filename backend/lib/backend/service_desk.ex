@@ -360,7 +360,10 @@ defmodule Kaarobar.ServiceDesk do
     end
   end
 
-  defp advance(%Scope{} = scope, %Job{} = job, changeset, kind, summary) do
+  # The job is matched for its type but never read: the changeset already
+  # carries it, and taking the row again here would be reading a copy that the
+  # update in this transaction has already superseded.
+  defp advance(%Scope{} = scope, %Job{}, changeset, kind, summary) do
     Repo.transaction(fn ->
       with {:ok, updated} <- Repo.update(changeset),
            {:ok, _event} <- record(scope, updated, kind, summary) do
