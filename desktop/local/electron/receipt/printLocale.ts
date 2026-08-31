@@ -624,8 +624,17 @@ export function printDocumentChrome(lang: PrintLanguage = getPrintLanguage()): {
   return {
     lang,
     dir: rtl ? "rtl" : "ltr",
+    // The RTL stack names faces from all three platforms on purpose. Nastaliq
+    // first — it is what Urdu is read in, and a shopkeeper handed a Naskh
+    // receipt will say it looks wrong even though every letter is correct.
+    // Then the macOS Arabic faces (Geeza Pro ships with every Mac), then the
+    // Windows and Linux ones. Chromium would eventually fall back on its own,
+    // but implicit fallback is what produces text on one machine and empty
+    // boxes on the next.
     fontFamily: rtl
-      ? `'Noto Sans Arabic', 'Noto Naskh Arabic', 'Segoe UI', Tahoma, ui-sans-serif, sans-serif`
+      ? `'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', 'SF Arabic', 'Geeza Pro', ` +
+        `'Noto Sans Arabic', 'Noto Naskh Arabic', 'Al Nile', 'Segoe UI', Tahoma, ` +
+        `ui-sans-serif, sans-serif`
       : `'Poppins', 'Plus Jakarta Sans', 'Segoe UI', ui-sans-serif, system-ui, sans-serif`,
   };
 }

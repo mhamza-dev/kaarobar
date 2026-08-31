@@ -250,9 +250,13 @@ export function saleReceiptNeedsRaster(
  * Urdu and Arabic labels encode to a row of '?' — worse than useless on a
  * receipt — so those fall back to English rather than printing nothing legible.
  *
- * This is a floor, not a solution: product and customer names typed in Urdu
- * still cannot be rendered by the print head's character generator. Printing a
- * genuinely Urdu receipt means rasterising the text as an image instead.
+ * This is the floor, not the answer. It only covers the built-in labels —
+ * product and customer names typed in Urdu still reach the print head as '?'.
+ * The answer is `renderReceiptRaster.ts`, which draws the receipt and sends it
+ * as a bitmap; `saleReceiptNeedsRaster/2` above is what routes to it, and
+ * callers should ask that first. What is left here is what happens when the
+ * offscreen render is unavailable and something still has to come out of the
+ * printer.
  */
 function printableLanguage(language: PrintLanguage): PrintLanguage {
   const labels = getSalePrintLabels(language)

@@ -3766,21 +3766,30 @@ export async function printSaleReceipt(saleId: string): Promise<SalePrintResult>
         );
       }
       // A receipt whose language or data the print head has no glyphs for is
-      // rendered by Chromium and sent as a bitmap instead. The printer's own
-      // character generator holds one Latin code page; Urdu through it comes
-      // out as a row of '?'.
-      const bytes = saleReceiptNeedsRaster(receiptInput)
-        ? ((await buildSaleReceiptRaster(receiptInput, paper, template)) ??
-          buildSaleReceiptEscPos(receiptInput, paper, { template }))
+      // drawn by Chromium and sent as a bitmap instead. The printer's own
+      // character generator holds one Latin code page, so Urdu, Arabic and
+      // Chinese all come off it as a row of '?'.
+      const needsRaster = saleReceiptNeedsRaster(receiptInput);
+      const bytes = needsRaster
+        ? await buildSaleReceiptRaster(receiptInput, paper, template)
         : buildSaleReceiptEscPos(receiptInput, paper, { template });
-      for (let copy = 0; copy < settings.posCopies; copy += 1) {
-        await sendRawToPrinter(
-          printerName,
-          bytes,
-          `Receipt ${sale.invoice_no}`.trim(),
-        );
+
+      // Only when the receipt is Latin to begin with, or the raster worked.
+      // Sending ESC/POS text for an Urdu receipt would print a page of '?' and
+      // call it a success — so if the bitmap could not be made, this falls
+      // through to the driver path below rather than printing nonsense. The
+      // driver path is slower and needs a real printer driver, but it renders
+      // the same HTML with the same fonts, so what comes out is readable.
+      if (bytes) {
+        for (let copy = 0; copy < settings.posCopies; copy += 1) {
+          await sendRawToPrinter(
+            printerName,
+            bytes,
+            `Receipt ${sale.invoice_no}`.trim(),
+          );
+        }
+        return { ok: true, method: "printed" };
       }
-      return { ok: true, method: "printed" };
     }
 
     // Rendered: Chromium rasterises the receipt and hands the driver an
