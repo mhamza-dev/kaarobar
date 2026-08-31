@@ -2,10 +2,15 @@ defmodule Kaarobar.Customers.Customer do
   @moduledoc """
   Who the shop sells to, and what they owe.
 
-  Deliberately minimal at this stage: groups, loyalty, gift cards, store credit
-  and multiple addresses belong to the CRM phase. What checkout cannot work
-  without is here — a shop selling on account has to know who owes what, and a
-  "pay later" tender that posts to no ledger is a debt nobody is tracking.
+  The record itself stays small. Addresses, contacts, notes, follow-ups,
+  loyalty, gift cards and store credit are all their own tables, joined to this
+  one — what lives here is who they are and what they owe. A shop selling on
+  account has to know that much, because a "pay later" tender that posts to no
+  ledger is a debt nobody is tracking.
+
+  `payment_terms_days` and the group are the exception: terms are asked for on
+  every invoice, and `Kaarobar.Credit` falls back from the customer's own to
+  their group's. Null here means "whatever the group says".
 
   `balance` is a projection of `customer_ledger_entries`, maintained in the
   same transaction as the entries that move it — the same shape as
@@ -14,6 +19,7 @@ defmodule Kaarobar.Customers.Customer do
 
   use Kaarobar.Schema
 
+  alias Kaarobar.Customers.CustomerGroup
   alias Kaarobar.Money
   alias Kaarobar.Tenancy.Business
   alias Kaarobar.Tenancy.Organization
@@ -38,11 +44,18 @@ defmodule Kaarobar.Customers.Customer do
     field :credit_limit, :decimal
     field :credit_allowed, :boolean, default: false
 
+    # Null means "whatever the group says". Set here it overrides the group,
+    # because a shop always ends up with one customer on different terms.
+    field :payment_terms_days, :integer
+    field :is_tax_exempt, :boolean, default: false
+    field :tags, {:array, :string}, default: []
+
     field :is_active, :boolean, default: true
     field :deleted_at, :utc_datetime_usec
 
     belongs_to :organization, Organization
     belongs_to :business, Business
+    belongs_to :customer_group, CustomerGroup
 
     timestamps()
   end
@@ -64,6 +77,10 @@ defmodule Kaarobar.Customers.Customer do
       :notes,
       :credit_limit,
       :credit_allowed,
+      :customer_group_id,
+      :payment_terms_days,
+      :is_tax_exempt,
+      :tags,
       :is_active
     ])
     |> validate_required([:name])
@@ -74,7 +91,12 @@ defmodule Kaarobar.Customers.Customer do
     |> validate_format(:email, ~r/^[^\s]+@[^\s]+\.[^\s]+$/, message: "is not a valid address")
     |> validate_length(:country_code, is: 2)
     |> validate_number(:credit_limit, greater_than_or_equal_to: 0)
+    # Matches `customers_terms_check`. Caught here as a field error rather than
+    # left to the database, where it would surface as a 500 instead of telling
+    # somebody which box to fix.
+    |> validate_number(:payment_terms_days, greater_than_or_equal_to: 0)
     |> validate_credit_limit_implies_credit()
+    |> foreign_key_constraint(:customer_group_id)
     |> unique_constraint(:phone,
       name: :customers_business_id_phone_index,
       message: "is already used by another customer"

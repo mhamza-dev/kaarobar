@@ -307,8 +307,10 @@ defmodule Kaarobar.Prepaid do
   # Internal
   # ===========================================================================
 
-  defp validate_positive(nil), do: {:error, :amount_required}
-
+  # There was a `validate_positive(nil)` clause here. Every caller now resolves
+  # its amount through `Money.cast/1` before reaching this, so nil is
+  # unreachable and Elixir's type inference says so. Reinstate it if a caller
+  # ever passes an amount straight from params.
   defp validate_positive(amount) do
     if Money.positive?(amount), do: :ok, else: {:error, :amount_must_be_positive}
   end

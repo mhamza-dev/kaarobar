@@ -31,7 +31,10 @@ defmodule Kaarobar.Loyalty.Account do
     belongs_to :loyalty_program, Program
     belongs_to :customer, Customer
 
-    has_many :transactions, Transaction
+    # The column is `loyalty_account_id`, not the `account_id` Ecto would infer
+    # from this module's name. Left to infer, the association silently matches
+    # nothing and the ledger this balance is a projection of reads as empty.
+    has_many :transactions, Transaction, foreign_key: :loyalty_account_id
 
     timestamps()
   end
