@@ -51,7 +51,14 @@ defmodule Kaarobar.Catalog.Product do
 
     # Vertical-specific.
     field :service_duration_minutes, :integer
-    field :kitchen_station, :string
+
+    # Regulatory. The rule belongs to the substance, not to the sale, so it
+    # lives here and checkout enforces it rather than every caller remembering.
+    field :is_restricted, :boolean, default: false
+    field :requires_licence, :boolean, default: false
+    field :regulatory_class, :string
+    field :active_ingredient, :string
+    field :max_quantity_per_sale, :decimal
     field :hazard_class, :string
     field :registration_number, :string
     field :requires_prescription, :boolean, default: false
@@ -67,6 +74,7 @@ defmodule Kaarobar.Catalog.Product do
     field :is_featured, :boolean, default: false
     field :deleted_at, :utc_datetime_usec
 
+    belongs_to :kitchen_station, Kaarobar.Kitchen.Station
     belongs_to :organization, Organization
     belongs_to :business, Business
     belongs_to :category, Category
@@ -155,7 +163,12 @@ defmodule Kaarobar.Catalog.Product do
       :tracks_serial,
       :is_weighted,
       :service_duration_minutes,
-      :kitchen_station,
+      :is_restricted,
+      :requires_licence,
+      :regulatory_class,
+      :active_ingredient,
+      :max_quantity_per_sale,
+      :kitchen_station_id,
       :hazard_class,
       :registration_number,
       :requires_prescription,

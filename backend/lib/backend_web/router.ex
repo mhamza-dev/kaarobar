@@ -380,6 +380,103 @@ defmodule KaarobarWeb.Router do
     get "/store-credit/:id/history", PrepaidController, :store_credit_history
     post "/store-credit/:id/redeem", PrepaidController, :redeem_store_credit
 
+    # --- Food service -------------------------------------------------------
+    # The floor. `floor-plan` is the screen a restaurant leaves open.
+    get "/dining/floor-plan", DiningController, :floor_plan
+    get "/dining/floors", DiningController, :floors
+    post "/dining/floors", DiningController, :create_floor
+    patch "/dining/floors/:id", DiningController, :update_floor
+    delete "/dining/floors/:id", DiningController, :delete_floor
+
+    get "/dining/tables", DiningController, :tables
+    post "/dining/tables", DiningController, :create_table
+    patch "/dining/tables/:id", DiningController, :update_table
+    delete "/dining/tables/:id", DiningController, :delete_table
+
+    get "/dining/sessions", DiningController, :sessions
+    post "/dining/sessions", DiningController, :seat
+    get "/dining/sessions/:id", DiningController, :show_session
+    patch "/dining/sessions/:id", DiningController, :update_session
+    post "/dining/sessions/:id/transfer", DiningController, :transfer
+    post "/dining/sessions/:id/merge", DiningController, :merge
+    post "/dining/sessions/:id/bill", DiningController, :mark_billed
+    post "/dining/sessions/:id/close", DiningController, :close_session
+
+    # The kitchen display. `board` is polled all service.
+    get "/kitchen/board", KitchenController, :board
+    get "/kitchen/stations", KitchenController, :stations
+    post "/kitchen/stations", KitchenController, :create_station
+    patch "/kitchen/stations/:id", KitchenController, :update_station
+    delete "/kitchen/stations/:id", KitchenController, :delete_station
+
+    post "/kitchen/fire", KitchenController, :fire
+    get "/kitchen/tickets/:id", KitchenController, :show_ticket
+    post "/kitchen/tickets/:id/start", KitchenController, :start
+    post "/kitchen/tickets/:id/ready", KitchenController, :ready
+    post "/kitchen/tickets/:id/bump", KitchenController, :bump
+    post "/kitchen/tickets/:id/recall", KitchenController, :recall
+    post "/kitchen/tickets/:id/items/:item_id", KitchenController, :set_item_status
+
+    # Deliveries.
+    get "/deliveries", DeliveryController, :index
+    post "/deliveries", DeliveryController, :create
+    get "/deliveries/riders", DeliveryController, :rider_board
+    get "/deliveries/:id", DeliveryController, :show
+    post "/deliveries/:id/assign", DeliveryController, :assign
+    post "/deliveries/:id/pick-up", DeliveryController, :pick_up
+    post "/deliveries/:id/deliver", DeliveryController, :deliver
+    post "/deliveries/:id/fail", DeliveryController, :fail
+    post "/deliveries/:id/cancel", DeliveryController, :cancel
+
+    # --- Salon, spa, clinic -------------------------------------------------
+    get "/scheduling/resources", SchedulingController, :resources
+    post "/scheduling/resources", SchedulingController, :create_resource
+    patch "/scheduling/resources/:id", SchedulingController, :update_resource
+    delete "/scheduling/resources/:id", SchedulingController, :delete_resource
+    get "/scheduling/availability", SchedulingController, :availability
+    get "/scheduling/diary", SchedulingController, :diary
+
+    get "/appointments", SchedulingController, :index
+    post "/appointments", SchedulingController, :book
+    get "/appointments/:id", SchedulingController, :show
+    post "/appointments/:id/advance", SchedulingController, :advance
+    post "/appointments/:id/reschedule", SchedulingController, :reschedule
+    post "/appointments/:id/cancel", SchedulingController, :cancel
+    post "/appointments/:id/no-show", SchedulingController, :no_show
+
+    get "/queue", SchedulingController, :queue
+    post "/queue", SchedulingController, :join_queue
+    post "/queue/:id/call", SchedulingController, :call_from_queue
+    post "/queue/:id/seat", SchedulingController, :seat_from_queue
+    post "/queue/:id/leave", SchedulingController, :leave_queue
+
+    # --- Laundry, ironing, repair -------------------------------------------
+    get "/service-jobs", ServiceJobController, :index
+    post "/service-jobs", ServiceJobController, :create
+    get "/service-jobs/overdue", ServiceJobController, :overdue
+    get "/service-jobs/by-tag/:tag", ServiceJobController, :show_by_tag
+    get "/service-jobs/:id", ServiceJobController, :show
+    patch "/service-jobs/:id", ServiceJobController, :update
+    get "/service-jobs/:id/history", ServiceJobController, :history
+    post "/service-jobs/:id/start", ServiceJobController, :start
+    post "/service-jobs/:id/ready", ServiceJobController, :ready
+    post "/service-jobs/:id/deliver", ServiceJobController, :deliver
+    post "/service-jobs/:id/hold", ServiceJobController, :hold
+    post "/service-jobs/:id/cancel", ServiceJobController, :cancel
+    post "/service-jobs/:id/notes", ServiceJobController, :add_note
+    post "/service-jobs/:id/items/:item_id/move", ServiceJobController, :move_item
+    post "/service-jobs/:id/items/:item_id/incident", ServiceJobController, :report_incident
+
+    # --- Commissions --------------------------------------------------------
+    get "/commissions/rules", CommissionController, :rules
+    post "/commissions/rules", CommissionController, :create_rule
+    patch "/commissions/rules/:id", CommissionController, :update_rule
+    delete "/commissions/rules/:id", CommissionController, :delete_rule
+    get "/commissions/summary", CommissionController, :summary
+    get "/commissions/statement/:user_id", CommissionController, :statement
+    post "/commissions/approve", CommissionController, :approve
+    post "/commissions/pay", CommissionController, :pay
+
     # --- Audit ---
     get "/audit-logs", AuditController, :index
   end

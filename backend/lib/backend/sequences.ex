@@ -47,7 +47,16 @@ defmodule Kaarobar.Sequences do
     # Tickets and shifts are working documents, not tax ones. They restart
     # monthly so the number stays short enough to read out across a counter.
     "order" => %{prefix: "ORD", reset: :monthly},
-    "shift" => %{prefix: "SH", reset: :monthly}
+    "shift" => %{prefix: "SH", reset: :monthly},
+    # A kitchen ticket number is read out across a noisy pass, so it resets
+    # monthly to stay short. A delivery number is quoted to a customer on the
+    # phone, so it does the same.
+    "kitchen_ticket" => %{prefix: "KOT", reset: :monthly},
+    "delivery" => %{prefix: "DEL", reset: :monthly},
+    "appointment" => %{prefix: "APT", reset: :monthly},
+    # A job number is written on a laundry tag and read back weeks later, so it
+    # keeps the year: "SJ-2026-0104" survives being found in a coat pocket.
+    "service_job" => %{prefix: "SJ", reset: :yearly}
   }
 
   @doc """

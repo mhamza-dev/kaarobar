@@ -694,6 +694,44 @@ defmodule Kaarobar.Sales do
     end)
   end
 
+  @doc """
+  Points a ticket at the sitting it belongs to.
+
+  Set after both exist, because each wants the other's id and one of them has
+  to be written first.
+  """
+  @spec attach_order_to_session(Scope.t(), Order.t(), struct()) ::
+          {:ok, Order.t()} | {:error, Ecto.Changeset.t()}
+  def attach_order_to_session(%Scope{}, %Order{} = order, session) do
+    order |> Ecto.Changeset.change(table_session_id: session.id) |> Repo.update()
+  end
+
+  @doc """
+  Moves every unbilled line from one ticket to another.
+
+  Two tables pushed together become one bill. Lines already paid for stay where
+  they were — a split bill that has been part-settled must not have the settled
+  half follow the party to another table.
+  """
+  @spec move_order_items(Scope.t(), Ecto.UUID.t() | nil, Ecto.UUID.t() | nil) ::
+          :ok | {:error, term()}
+  def move_order_items(%Scope{}, nil, _target_id), do: :ok
+  def move_order_items(%Scope{}, _source_id, nil), do: {:error, :no_target_order}
+
+  def move_order_items(%Scope{} = scope, source_id, target_id) do
+    with {:ok, source} <- fetch_order(scope, source_id),
+         {:ok, _target} <- fetch_order(scope, target_id) do
+      movable = Enum.reject(source.items, &OrderItem.fully_billed?/1)
+
+      Enum.each(movable, fn item ->
+        {:ok, _moved} =
+          item |> Ecto.Changeset.change(order_id: target_id) |> Repo.update()
+      end)
+
+      :ok
+    end
+  end
+
   @doc "Lists open tickets at the branches the scope can see."
   @spec list_orders(Scope.t(), map()) :: [Order.t()]
   def list_orders(%Scope{} = scope, filters \\ %{}) do

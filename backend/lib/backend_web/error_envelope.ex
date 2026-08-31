@@ -152,6 +152,53 @@ defmodule KaarobarWeb.ErrorEnvelope do
       {:unprocessable_entity,
        build("exceeds_refundable", "More is being returned than was sold on that line")}
 
+  # --- Regulated goods --------------------------------------------------------
+  #
+  # Stricter than the rest of the system on purpose. Everywhere else a missing
+  # field is a warning; here it is the difference between a legal sale and one
+  # that costs the shop its licence, so each message names exactly what the
+  # counter has to collect before the sale can go through.
+
+  def for_reason(:buyer_required),
+    do:
+      {:unprocessable_entity,
+       build(
+         "buyer_required",
+         "This product is restricted. Record the buyer's name before selling it."
+       )}
+
+  def for_reason(:buyer_licence_required),
+    do:
+      {:unprocessable_entity,
+       build(
+         "buyer_licence_required",
+         "This product may only be sold to a licence holder. Record their licence number."
+       )}
+
+  def for_reason(:batch_required),
+    do:
+      {:unprocessable_entity,
+       build(
+         "batch_required",
+         "This product is batch-tracked. Choose the batch so a recall can trace it."
+       )}
+
+  def for_reason(:quantity_over_limit),
+    do:
+      {:unprocessable_entity,
+       build(
+         "quantity_over_limit",
+         "That is more of this product than may be sold in one transaction"
+       )}
+
+  def for_reason(:business_licence_invalid),
+    do:
+      {:forbidden,
+       build(
+         "business_licence_invalid",
+         "This shop has no valid licence on file for restricted goods"
+       )}
+
   def for_reason(:balance_outstanding),
     do:
       {:conflict,

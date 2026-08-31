@@ -34,6 +34,9 @@ defmodule Kaarobar.Tenancy.Business do
     field :legal_name, :string
     field :tax_number, :string
     field :license_number, :string
+    # Who issued it and when it lapses — a register has to name both.
+    field :license_authority, :string
+    field :license_expires_on, :date
 
     field :phone, :string
     field :email, :string
@@ -132,6 +135,8 @@ defmodule Kaarobar.Tenancy.Business do
       :legal_name,
       :tax_number,
       :license_number,
+      :license_authority,
+      :license_expires_on,
       :phone,
       :email,
       :website,

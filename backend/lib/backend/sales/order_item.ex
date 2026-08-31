@@ -30,6 +30,15 @@ defmodule Kaarobar.Sales.OrderItem do
     field :position, :integer, default: 0
     field :note, :string
 
+    # Which course this goes out with, and where the kitchen has got to with
+    # it. Firing starters before mains is the job of a kitchen ticket, and it
+    # cannot be inferred from the dish.
+    field :course, :integer, default: 1
+    field :kitchen_status, :string, default: "held"
+    field :fired_at, :utc_datetime_usec
+    field :ready_at, :utc_datetime_usec
+    field :served_at, :utc_datetime_usec
+
     belongs_to :business, Business
     belongs_to :order, Order
     belongs_to :variant, ProductVariant
@@ -51,12 +60,15 @@ defmodule Kaarobar.Sales.OrderItem do
       :line_total,
       :seat_number,
       :position,
-      :note
+      :note,
+      :course
     ])
     |> validate_required([:business_id, :variant_id, :name_snapshot, :quantity, :unit_price])
     |> validate_number(:quantity, greater_than: 0)
     |> validate_number(:unit_price, greater_than_or_equal_to: 0)
     |> validate_number(:seat_number, greater_than: 0)
+    |> validate_number(:course, greater_than: 0)
+    |> validate_inclusion(:kitchen_status, ~w(held fired preparing ready served cancelled))
     |> foreign_key_constraint(:order_id)
     |> foreign_key_constraint(:variant_id)
   end
@@ -94,6 +106,23 @@ defmodule Kaarobar.Sales.OrderItem do
     |> Money.mult(item.quantity)
     |> Money.round_working()
   end
+
+  @doc "Sends the line to the kitchen."
+  def fire_changeset(item),
+    do: change(item, kitchen_status: "fired", fired_at: DateTime.utc_now())
+
+  @doc "The kitchen has it up at the pass."
+  def ready_changeset(item),
+    do: change(item, kitchen_status: "ready", ready_at: DateTime.utc_now())
+
+  @doc "It has gone to the table."
+  def served_changeset(item),
+    do: change(item, kitchen_status: "served", served_at: DateTime.utc_now())
+
+  @doc "True when this line is still waiting to be sent to the kitchen."
+  @spec held?(t()) :: boolean()
+  def held?(%__MODULE__{kitchen_status: "held"}), do: true
+  def held?(%__MODULE__{}), do: false
 
   defp validate_not_over_billed(changeset) do
     quantity = get_field(changeset, :quantity)

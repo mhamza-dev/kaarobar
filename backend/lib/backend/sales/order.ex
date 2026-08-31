@@ -64,6 +64,7 @@ defmodule Kaarobar.Sales.Order do
     belongs_to :business, Business
     belongs_to :branch, Branch
     belongs_to :register, Register
+    belongs_to :table_session, Kaarobar.Dining.TableSession
     belongs_to :customer, Customer
     belongs_to :served_by_user, User
     belongs_to :opened_by, User
@@ -87,6 +88,7 @@ defmodule Kaarobar.Sales.Order do
     |> cast(attrs, [
       :branch_id,
       :register_id,
+      :table_session_id,
       :customer_id,
       :channel,
       :label,

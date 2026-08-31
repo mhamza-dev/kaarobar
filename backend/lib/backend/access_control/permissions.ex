@@ -176,7 +176,10 @@ defmodule Kaarobar.AccessControl.Permissions do
     {:verticals, "appointment:view", "View appointments"},
     {:verticals, "appointment:manage", "Book and reschedule appointments"},
     {:verticals, "appointment:cancel", "Cancel an appointment"},
+    {:verticals, "resource:view", "View bookable resources and availability"},
     {:verticals, "resource:manage", "Manage bookable resources"},
+    {:verticals, "queue:view", "View the walk-in queue"},
+    {:verticals, "queue:manage", "Add to and call from the walk-in queue"},
     {:verticals, "service_job:view", "View service jobs"},
     {:verticals, "service_job:create", "Take in a service job"},
     {:verticals, "service_job:update", "Update a service job"},
@@ -194,6 +197,7 @@ defmodule Kaarobar.AccessControl.Permissions do
     {:workforce, "attendance:record", "Clock staff in and out"},
     {:workforce, "commission:view", "View commissions"},
     {:workforce, "commission:manage", "Manage commission rules"},
+    {:workforce, "commission:pay", "Approve and pay out commission"},
     {:workforce, "timesheet:manage", "Manage timesheets"},
 
     # --- Money ----------------------------------------------------------------

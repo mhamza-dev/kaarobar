@@ -108,7 +108,7 @@ defmodule KaarobarWeb.CatalogSerializers do
       tracks_serial: product.tracks_serial,
       is_weighted: product.is_weighted,
       service_duration_minutes: product.service_duration_minutes,
-      kitchen_station: product.kitchen_station,
+      kitchen_station_id: product.kitchen_station_id,
       hazard_class: product.hazard_class,
       registration_number: product.registration_number,
       requires_prescription: product.requires_prescription,

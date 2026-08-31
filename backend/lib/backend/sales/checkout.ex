@@ -53,11 +53,13 @@ defmodule Kaarobar.Sales.Checkout do
   alias Kaarobar.Catalog.Modifier
   alias Kaarobar.Catalog.Product
   alias Kaarobar.Catalog.ProductVariant
+  alias Kaarobar.Commissions
   alias Kaarobar.Customers
   alias Kaarobar.Inventory.Ledger
   alias Kaarobar.Money
   alias Kaarobar.Pricing
   alias Kaarobar.Registers
+  alias Kaarobar.Regulated
   alias Kaarobar.Registers.Register
   alias Kaarobar.Registers.Shift
   alias Kaarobar.Repo
@@ -143,7 +145,8 @@ defmodule Kaarobar.Sales.Checkout do
   def run(%Scope{} = scope, params) do
     with {:ok, request} <- build_request(scope, params),
          priced = price(scope, request),
-         {:ok, tenders} <- resolve_tenders(request, priced) do
+         {:ok, tenders} <- resolve_tenders(request, priced),
+         :ok <- Regulated.check_sale(scope, request.lines) do
       case commit(scope, request, priced, tenders) do
         {:ok, sale} ->
           broadcast(scope, sale)
@@ -326,6 +329,11 @@ defmodule Kaarobar.Sales.Checkout do
            taxes: Taxes.rates_for(scope, variant.product),
            quantity: quantity_of(input),
            order_item_id: uuid_or_nil(Map.get(input, "order_item_id")),
+           batch_id: uuid_or_nil(Map.get(input, "batch_id")),
+           # What the counter collected for the register, when the product is
+           # a restricted one. Carried on the line so the check and the entry
+           # both see it without re-reading the request.
+           regulatory: Map.get(input, "regulatory", %{}),
            seat_number: Map.get(input, "seat_number"),
            note: Map.get(input, "note")
          }}
@@ -713,6 +721,8 @@ defmodule Kaarobar.Sales.Checkout do
            {:ok, sale, items} <- apply_costs(sale, items, costs),
            {:ok, payments} <- insert_payments(sale, tenders),
            :ok <- post_credit(scope, request, sale, tenders),
+           :ok <- accrue_commission(scope, %{sale | items: items}),
+           :ok <- record_register(scope, sale, request, items),
            :ok <- bill_order(request, priced),
            {:ok, _shift} <- Registers.apply_sale(sale, payments) do
         log(scope, sale, priced, tenders)
@@ -1045,6 +1055,40 @@ defmodule Kaarobar.Sales.Checkout do
   # Paying on account moves no money. It settles the sale from the shop's point
   # of view and moves the debt to the ledger, under the customer's row lock so
   # two tills cannot both squeeze under the same credit limit.
+  # In the sale's own transaction: a sale that commits without its commission
+  # is a stylist who has to notice and ask. A shop with no rules accrues
+  # nothing and pays no cost for the call.
+  # The register is written with the sale, not after it. A sale that commits
+  # without its entry is one the shop cannot account for to an inspector — and
+  # it cannot be added later, because the table refuses updates.
+  defp record_register(%Scope{} = scope, %Sale{} = sale, request, items) do
+    lines =
+      request.lines
+      |> Enum.with_index()
+      |> Enum.map(fn {line, index} ->
+        Map.put(line, :sale_item_id, item_id_at(items, index))
+      end)
+
+    case Regulated.record_sale(scope, sale, lines) do
+      {:ok, _entries} -> :ok
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp item_id_at(items, index) do
+    case Enum.at(items, index) do
+      nil -> nil
+      item -> item.id
+    end
+  end
+
+  defp accrue_commission(%Scope{} = scope, %Sale{} = sale) do
+    case Commissions.accrue_for_sale(scope, sale) do
+      {:ok, _entries} -> :ok
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
   defp post_credit(%Scope{} = scope, request, %Sale{} = sale, %{tenders: tenders}) do
     amount = credit_total(tenders)
 

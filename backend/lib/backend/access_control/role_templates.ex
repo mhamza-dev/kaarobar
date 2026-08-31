@@ -88,7 +88,9 @@ defmodule Kaarobar.AccessControl.RoleTemplates do
             loyalty:view loyalty:redeem gift_card:view gift_card:redeem
             store_credit:issue store_credit:redeem
             purchase_order:view purchase_order:create purchase_order:receive
-            attendance:view attendance:record commission:view
+            attendance:view attendance:record
+            commission:view commission:manage commission:pay
+            resource:view resource:manage queue:view queue:manage
             report:sales
           )
     },
@@ -146,6 +148,7 @@ defmodule Kaarobar.AccessControl.RoleTemplates do
         table:view kitchen:view
         appointment:view appointment:manage
         service_job:view service_job:create service_job:update service_job:deliver
+        resource:view queue:view
         delivery:view
       )
     },
@@ -158,6 +161,7 @@ defmodule Kaarobar.AccessControl.RoleTemplates do
       permissions: ~w(
         branch:view product:view
         appointment:view appointment:manage appointment:cancel
+        resource:view queue:view queue:manage
         sales:checkout sale:view sale:reprint discount:apply
         order:view order:create order:edit
         customer:view customer:create customer:edit
@@ -188,7 +192,7 @@ defmodule Kaarobar.AccessControl.RoleTemplates do
       permissions: ~w(
         branch:view product:view
         order:view order:create order:edit order:transfer order:split
-        table:view kitchen:view
+        table:view table:manage kitchen:view
         sale:view customer:view
         attendance:record
       )
