@@ -23,6 +23,7 @@ defmodule Kaarobar.Scheduling do
 
   alias Kaarobar.Audit
   alias Kaarobar.Catalog
+  alias Kaarobar.Catalog.ProductVariant
   alias Kaarobar.Repo
   alias Kaarobar.Repo.Scoped
   alias Kaarobar.Scheduling.Appointment
@@ -511,7 +512,10 @@ defmodule Kaarobar.Scheduling do
           "appointment_id" => appointment.id,
           "variant_id" => line.variant.id,
           "resource_id" => line.resource.id,
-          "name_snapshot" => line.variant.name,
+          # A default variant carries no name of its own — the product does — so
+          # this goes through the catalogue's own naming rather than reading
+          # `variant.name`, which is nil for most things a salon books.
+          "name_snapshot" => ProductVariant.display_name(line.variant, line.variant.product),
           "duration_minutes" => line.duration_minutes,
           "price" => line.price,
           "starts_at" => line.starts_at,

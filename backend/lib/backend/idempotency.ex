@@ -50,10 +50,23 @@ defmodule Kaarobar.Idempotency do
       })
 
     case Repo.insert(changeset) do
-      {:ok, claimed} -> {:ok, claimed}
-      {:error, _changeset} -> existing_verdict(organization_id, key, fingerprint)
+      {:ok, claimed} ->
+        {:ok, claimed}
+
+      # Only a clash on the key itself means somebody got here first. Any other
+      # rejection — a key too short to be worth anything, a missing tenant — is
+      # a bad request, and reporting it as a conflict sent the caller looking
+      # for a duplicate that was never there.
+      {:error, %Ecto.Changeset{errors: errors} = failed} ->
+        if Keyword.has_key?(errors, :key) and taken?(errors[:key]) do
+          existing_verdict(organization_id, key, fingerprint)
+        else
+          {:error, failed}
+        end
     end
   end
+
+  defp taken?({_message, opts}), do: Keyword.get(opts, :constraint) == :unique
 
   defp existing_verdict(organization_id, key, fingerprint) do
     case fetch(organization_id, key) do

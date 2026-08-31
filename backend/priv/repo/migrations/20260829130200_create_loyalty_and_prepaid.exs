@@ -294,7 +294,9 @@ defmodule Kaarobar.Repo.Migrations.CreateLoyaltyAndPrepaid do
       add :issued_amount, :decimal, precision: 16, scale: 4, null: false
       add :balance, :decimal, precision: 16, scale: 4, null: false
 
-      add :status, :string, null: false, default: "active"
+      # Inactive until the sale that bought it is paid for. The default matches
+      # the schema's: a row inserted outside Ecto must not arrive spendable.
+      add :status, :string, null: false, default: "inactive"
 
       # Who it was bought for, if anyone said. Not a restriction on who may
       # spend it — that is what makes it a gift.

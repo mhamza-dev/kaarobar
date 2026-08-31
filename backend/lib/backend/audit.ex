@@ -197,15 +197,37 @@ defmodule Kaarobar.Audit do
 
   defp redact(nil), do: nil
 
+  # Values, not records. Written as strings because `changes` is a jsonb column
+  # and these have no JSON form of their own — and because an audit trail
+  # arguing about float precision years later is an audit trail nobody trusts.
+  defp redact(%Decimal{} = value), do: Decimal.to_string(value, :normal)
+  defp redact(%DateTime{} = value), do: DateTime.to_iso8601(value)
+  defp redact(%NaiveDateTime{} = value), do: NaiveDateTime.to_iso8601(value)
+  defp redact(%Date{} = value), do: Date.to_iso8601(value)
+  defp redact(%Time{} = value), do: Time.to_iso8601(value)
+
+  # A whole schema struct is the common case — `changes: %{before: record,
+  # after: updated}`. Only its own fields are kept: `__meta__` and unloaded
+  # associations are not data, and neither survives JSON encoding.
+  defp redact(%module{} = record) do
+    if Code.ensure_loaded?(module) and function_exported?(module, :__schema__, 1) do
+      record |> Map.take(module.__schema__(:fields)) |> redact()
+    else
+      record |> Map.from_struct() |> redact()
+    end
+  end
+
   defp redact(changes) when is_map(changes) do
     Map.new(changes, fn {key, value} ->
-      cond do
-        to_string(key) in @redacted_keys -> {key, "[REDACTED]"}
-        is_map(value) -> {key, redact(value)}
-        true -> {key, value}
+      if to_string(key) in @redacted_keys do
+        {key, "[REDACTED]"}
+      else
+        {key, redact(value)}
       end
     end)
   end
+
+  defp redact(values) when is_list(values), do: Enum.map(values, &redact/1)
 
   defp redact(other), do: other
 end

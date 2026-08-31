@@ -221,8 +221,20 @@ defmodule Kaarobar.Factory do
       "kind" => "item"
     }
 
-    {:ok, product} =
-      Kaarobar.Catalog.create_product(scope, Map.merge(defaults, stringify_keys(attrs)))
+    attrs = Map.merge(defaults, stringify_keys(attrs))
+
+    # A service in a vertical that books people needs a duration, or the
+    # appointment book has nothing to allocate. The validation is deliberate,
+    # so the fixture supplies one rather than every test that happens to create
+    # a service having to know about it.
+    attrs =
+      if attrs["kind"] == "service" do
+        Map.put_new(attrs, "service_duration_minutes", 30)
+      else
+        attrs
+      end
+
+    {:ok, product} = Kaarobar.Catalog.create_product(scope, attrs)
 
     product
   end

@@ -81,7 +81,7 @@ defmodule Kaarobar.LoyaltyTest do
       assert transaction.points == 300
     end
 
-    test "a shop with no programme earns nothing and does not fail", ctx do
+    test "a shop with no programme earns nothing and does not fail", _ctx do
       {:ok, plain} = owner_scope() |> Map.fetch(:scope)
       other = customer_fixture(plain, %{"name" => "No Scheme"})
 

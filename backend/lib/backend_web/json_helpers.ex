@@ -5,11 +5,18 @@ defmodule KaarobarWeb.JSONHelpers do
   ## Money is rendered as a string
 
   Monetary values are `Decimal` on `numeric(16,4)` columns and are serialised
-  as strings — `"1499.5000"`, not `1499.5`. JSON numbers are IEEE-754 doubles
-  in every JavaScript client we ship to, and a POS that silently rounds a total
-  is not a POS. Clients parse these with a decimal library, exactly as they
-  would a currency amount from any payment API.
+  as strings — `"1499.50"`, not `1499.5`. JSON numbers are IEEE-754 doubles in
+  every JavaScript client we ship to, and a POS that silently rounds a total is
+  not a POS. Clients parse these with a decimal library, exactly as they would
+  a currency amount from any payment API.
+
+  They go out at the currency's precision, not the column's. The extra places
+  on `numeric(16,4)` exist so tax and prorated discounts stay exact while they
+  are being computed; a client rendering `1499.5000` on a receipt has been
+  handed working precision it cannot reconcile against a till.
   """
+
+  alias Kaarobar.Money
 
   @doc "Wraps a rendered payload in the standard success envelope."
   @spec data(term()) :: map()
@@ -19,10 +26,25 @@ defmodule KaarobarWeb.JSONHelpers do
   @spec data(list(), map()) :: map()
   def data(entries, meta) when is_list(entries), do: %{data: entries, meta: meta}
 
-  @doc "Serialises a `Decimal` as a lossless string. See the module note above."
-  @spec money(Decimal.t() | nil) :: String.t() | nil
-  def money(nil), do: nil
-  def money(%Decimal{} = value), do: Decimal.to_string(value, :normal)
+  @doc """
+  Serialises a `Decimal` as a string, at the currency's own precision.
+
+  Money is stored on `numeric(16,4)` because tax and prorated discounts need
+  the extra places while they are being computed, and reads back as `100.0000`.
+  What a client renders is the amount in the currency, so it is rounded here:
+  a receipt showing four decimal places is a receipt nobody can reconcile
+  against a till.
+
+  Pass the currency wherever it is known — two places is right for the rupee
+  and wrong for the dinar and the yen. Without one it falls back to two, which
+  is the default `Kaarobar.Money` already assumes for an unknown currency.
+  """
+  @spec money(Decimal.t() | nil, String.t() | nil) :: String.t() | nil
+  def money(value, currency \\ nil)
+  def money(nil, _currency), do: nil
+
+  def money(%Decimal{} = value, currency),
+    do: value |> Money.round(currency) |> Decimal.to_string(:normal)
 
   @doc "Serialises a quantity, which may be fractional (1.5 kg of pesticide)."
   @spec quantity(Decimal.t() | nil) :: String.t() | nil

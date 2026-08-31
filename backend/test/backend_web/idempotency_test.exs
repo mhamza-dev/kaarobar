@@ -177,7 +177,7 @@ defmodule KaarobarWeb.IdempotencyTest do
       {:ok, claimed} =
         Idempotency.claim(%{
           organization_id: business.organization_id,
-          key: "old-key",
+          key: "old-key-0001",
           request_method: "POST",
           request_path: "/api/v1/sales",
           body: %{}

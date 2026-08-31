@@ -52,7 +52,14 @@ config :backend, :mail_from_address, System.get_env("MAIL_FROM_ADDRESS", "no-rep
 # a published constant and is NEVER acceptable in production, which is why the
 # prod branch below raises when CLOAK_KEY is absent.
 # ----------------------------------------------------------------------------
-dev_cloak_key = "e2xKQ0lWNjZmSmZqM2NWWXk1c2h1WHV3aVJqNGRnT0k9"
+# Base64 of the 32 ASCII bytes "kaarobar-local-development-key!!", which is
+# deliberately readable: nothing encrypted with it is a secret, and a key
+# that looks random invites somebody to treat it as one.
+#
+# The previous value here was double-encoded, so it decoded to 33 bytes of
+# base64 text rather than a 32-byte key, and AES-GCM refused it deep inside
+# :crypto with "Unknown cipher or invalid key size".
+dev_cloak_key = "a2Fhcm9iYXItbG9jYWwtZGV2ZWxvcG1lbnQta2V5ISE="
 
 cloak_key =
   case System.get_env("CLOAK_KEY") do
@@ -70,9 +77,30 @@ cloak_key =
       value
   end
 
+# Checked here rather than left to AES-GCM. A wrong-sized key fails at the
+# first write of an encrypted field, from inside :crypto, with a message that
+# names neither the key nor where it came from.
+cloak_secret =
+  case Base.decode64(cloak_key) do
+    {:ok, <<secret::binary-size(32)>>} ->
+      secret
+
+    {:ok, other} ->
+      raise """
+      CLOAK_KEY decodes to #{byte_size(other)} bytes; AES-256 needs exactly 32.
+      Generate one with: openssl rand -base64 32
+      """
+
+    :error ->
+      raise """
+      CLOAK_KEY is not valid base64.
+      Generate one with: openssl rand -base64 32
+      """
+  end
+
 config :backend, Kaarobar.Vault,
   ciphers: [
-    default: {Cloak.Ciphers.AES.GCM, tag: "AES.GCM.V1", key: Base.decode64!(cloak_key)}
+    default: {Cloak.Ciphers.AES.GCM, tag: "AES.GCM.V1", key: cloak_secret}
   ]
 
 if config_env() == :prod do

@@ -61,6 +61,9 @@ defmodule KaarobarWeb.ErrorEnvelope do
   def for_reason(:not_found),
     do: {:not_found, build("not_found", "The requested resource was not found")}
 
+  def for_reason(:bad_request),
+    do: {:bad_request, build("bad_request", "The request could not be understood")}
+
   def for_reason(:conflict),
     do: {:conflict, build("conflict", "The request conflicts with the current state")}
 

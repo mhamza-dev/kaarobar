@@ -266,33 +266,40 @@ defmodule Kaarobar.Pricing do
     do: Decimal.compare(quantity, minimum) != :lt
 
   # Returns the per-unit discount, or nil when the rule produces nothing.
-  defp discount_for(%PriceRule{kind: "percent_off"} = rule, price, _quantity, currency) do
+  #
+  # These stay at working precision — four places — and are *not* rounded to the
+  # currency. A per-unit figure rounded to the penny and then multiplied back up
+  # cannot reproduce the line total it was derived from: buy-two-get-one on
+  # three units at 100 gives a saving of 33.33 each, and 66.67 x 3 is 200.01,
+  # not the 200.00 the shop advertised. Rounding happens once, on the line
+  # subtotal, where the customer is actually charged.
+  defp discount_for(%PriceRule{kind: "percent_off"} = rule, price, _quantity, _currency) do
     price
     |> Money.percent_of(rule.value)
     |> cap(rule.max_discount_amount)
-    |> Money.round(currency)
+    |> Money.round_working()
     |> nil_if_zero()
   end
 
-  defp discount_for(%PriceRule{kind: "amount_off"} = rule, price, _quantity, currency) do
+  defp discount_for(%PriceRule{kind: "amount_off"} = rule, price, _quantity, _currency) do
     rule.value
     |> Money.min(price)
-    |> Money.round(currency)
+    |> Money.round_working()
     |> nil_if_zero()
   end
 
-  defp discount_for(%PriceRule{kind: "override_price"} = rule, price, _quantity, currency) do
+  defp discount_for(%PriceRule{kind: "override_price"} = rule, price, _quantity, _currency) do
     price
     |> Money.sub(rule.value)
     |> Money.clamp_non_negative()
-    |> Money.round(currency)
+    |> Money.round_working()
     |> nil_if_zero()
   end
 
   # Buy-two-get-one is expressed per unit so it composes with everything else:
   # the total saving is spread across the whole line rather than zeroing one
   # unit, which keeps the unit price on the receipt honest.
-  defp discount_for(%PriceRule{kind: "bogo"} = rule, price, quantity, currency) do
+  defp discount_for(%PriceRule{kind: "bogo"} = rule, price, quantity, _currency) do
     group_size = Money.add(rule.buy_quantity, rule.get_quantity)
 
     if Decimal.compare(quantity, group_size) == :lt do
@@ -308,7 +315,7 @@ defmodule Kaarobar.Pricing do
 
       total_saving
       |> Money.div(quantity)
-      |> Money.round(currency)
+      |> Money.round_working()
       |> nil_if_zero()
     end
   end

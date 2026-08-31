@@ -845,8 +845,24 @@ defmodule Kaarobar.Customers do
       reference_type: "customer_payment",
       reference_id: payment.id,
       note: "Payment #{payment.number}",
-      occurred_at: DateTime.new!(payment.paid_on, ~T[00:00:00.000000], "Etc/UTC")
+      occurred_at: payment_occurred_at(payment)
     })
+  end
+
+  # A payment taken this afternoon happened this afternoon, not at midnight.
+  # Stamping every payment at the start of its day sorted it above the morning's
+  # sale, so a statement read as though the customer paid before they bought —
+  # and the snapshotted running balance beside it made the same claim.
+  #
+  # `paid_on` stays the accounting date, which is what period reporting needs.
+  # A payment entered for an earlier day keeps that day's midnight, so it sits
+  # in the right day without pretending to a time nobody recorded.
+  defp payment_occurred_at(%CustomerPayment{} = payment) do
+    if payment.paid_on == Date.utc_today() do
+      payment.inserted_at || DateTime.utc_now()
+    else
+      DateTime.new!(payment.paid_on, ~T[00:00:00.000000], "Etc/UTC")
+    end
   end
 
   defp apply_filters(query, filters) do

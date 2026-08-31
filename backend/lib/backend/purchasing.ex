@@ -916,7 +916,10 @@ defmodule Kaarobar.Purchasing do
           summary: "Paid #{Decimal.to_string(payment.amount, :normal)}"
         )
 
-        Repo.preload(payment, :allocations, force: true)
+        # Reloaded, not just re-preloaded: `allocate_payment/3` draws down
+        # `unallocated_amount` on the row, and the struct in hand still shows
+        # the whole payment sitting on account.
+        payment |> Repo.reload!() |> Repo.preload(:allocations)
       else
         {:error, reason} -> Repo.rollback(reason)
       end

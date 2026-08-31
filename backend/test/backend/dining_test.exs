@@ -125,7 +125,7 @@ defmodule Kaarobar.DiningTest do
       assert {:ok, []} = Kitchen.fire(ctx.scope, ctx.order, course: 2)
     end
 
-    test "a kitchen with no stations refuses rather than losing the food", ctx do
+    test "a kitchen with no stations refuses rather than losing the food", _ctx do
       %{scope: bare} = owner_scope(business_type: "restaurant")
       variant = variant_fixture(bare, %{"name" => "Soup", "price" => "200.00"})
       {:ok, order} = Sales.create_order(bare, %{})

@@ -80,11 +80,14 @@ defmodule Kaarobar.StaffingTest do
       {:ok, restricted_to} = Tenancy.create_branch(owner, %{"name" => "Assigned"})
       {:ok, other_branch} = Tenancy.create_branch(owner, %{"name" => "Elsewhere"})
 
-      %{scope: supervisor} = staff_scope(owner, "supervisor", branch_ids: [restricted_to.id])
+      # A manager, not a supervisor: a supervisor cannot assign roles at all, so
+      # they are refused for that reason before the branch is ever looked at,
+      # and the test would pass without proving anything about branch scoping.
+      %{scope: manager} = staff_scope(owner, "manager", branch_ids: [restricted_to.id])
 
       assert {:error, :not_found} =
                Staffing.invite(
-                 supervisor,
+                 manager,
                  %{
                    "email" => "new@shop.pk",
                    "role_id" => role.id,

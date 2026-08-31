@@ -149,11 +149,17 @@ defmodule Kaarobar.Prepaid.GiftCard do
   @spec masked(t()) :: String.t()
   def masked(%__MODULE__{code_last_four: last_four}), do: "····#{last_four}"
 
-  # A card that still has money on it stays active; one drained by a purchase
-  # is done. Neither expiry nor a void is decided here — those are events, not
-  # consequences of the balance.
-  defp status_for(%__MODULE__{status: status}, _balance) when status in ["voided", "expired"],
-    do: status
+  # A card that still has money on it stays active; one drained by a purchase is
+  # done. Expiry, voiding and activation are none of them decided here — those
+  # are events, not consequences of the balance.
+  #
+  # `inactive` is preserved for that reason. Posting the opening balance would
+  # otherwise activate every card the instant it was issued, which is exactly
+  # what `inactive` exists to prevent: a card sold on a sale that is then voided
+  # must not be left live in somebody's pocket.
+  defp status_for(%__MODULE__{status: status}, _balance)
+       when status in ["voided", "expired", "inactive"],
+       do: status
 
   defp status_for(%__MODULE__{}, balance) do
     if Money.positive?(balance), do: "active", else: "depleted"

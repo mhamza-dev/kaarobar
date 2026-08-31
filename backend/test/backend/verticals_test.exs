@@ -30,7 +30,7 @@ defmodule Kaarobar.VerticalsTest do
     test "every business type has a label and at least one product kind" do
       for type <- Verticals.business_types() do
         assert is_binary(Verticals.label(type))
-        assert Verticals.product_kinds_for(type) != []
+        refute Enum.empty?(Verticals.product_kinds_for(type))
       end
     end
 

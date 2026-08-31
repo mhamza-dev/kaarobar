@@ -88,6 +88,28 @@ defmodule Kaarobar.ServiceDesk.JobItem do
     |> foreign_key_constraint(:service_job_id)
   end
 
+  @doc """
+  The canonical form of a tag: upper case, separators removed.
+
+  "t-1001", "T 1001" and "T1001" are one tag on one garment. A counter writes
+  these by hand on a peel-off label and reads them back off a barcode gun, so
+  the two rarely agree character for character — and a shop that cannot find a
+  coat because of a hyphen has lost the coat.
+
+  Public so `Kaarobar.ServiceDesk.find_by_tag/2` can normalise a scanned tag
+  through the same function that wrote the stored one. Two normalisers is one
+  normaliser and a bug.
+  """
+  @spec normalize_tag_code(String.t() | nil) :: String.t() | nil
+  def normalize_tag_code(nil), do: nil
+
+  def normalize_tag_code(value) when is_binary(value) do
+    case value |> String.upcase() |> String.replace(~r/[^A-Z0-9]/, "") do
+      "" -> nil
+      code -> code
+    end
+  end
+
   @doc "This piece is finished and on the rack."
   def ready_changeset(item, rack_location) do
     change(item,
@@ -123,10 +145,7 @@ defmodule Kaarobar.ServiceDesk.JobItem do
   # Tags are scanned and read aloud, so casing and stray spaces have to stop
   # being a way for the same tag to exist twice.
   defp normalize_tag(changeset) do
-    update_change(changeset, :tag_code, fn
-      nil -> nil
-      value -> if String.trim(value) == "", do: nil, else: value |> String.trim() |> String.upcase()
-    end)
+    update_change(changeset, :tag_code, &normalize_tag_code/1)
   end
 
   defp put_line_total(changeset) do

@@ -12,6 +12,7 @@ defmodule KaarobarWeb.BillingJSON do
   alias Kaarobar.Billing.PlanFeature
   alias Kaarobar.Billing.Subscription
   alias Kaarobar.Billing.SubscriptionItem
+  alias KaarobarWeb.JSONHelpers, as: H
 
   def plans(%{plans: plans}), do: %{data: Enum.map(plans, &plan/1)}
 
@@ -141,6 +142,7 @@ defmodule KaarobarWeb.BillingJSON do
 
   defp limits(_not_loaded), do: %{}
 
-  defp money(nil), do: nil
-  defp money(%Decimal{} = amount), do: Decimal.to_string(amount, :normal)
+  # Through the shared helper, so a platform invoice renders its amounts the
+  # same way a shop's own receipt does.
+  defp money(amount), do: H.money(amount)
 end

@@ -118,7 +118,7 @@ defmodule Kaarobar.ServiceDesk do
   """
   @spec find_by_tag(Scope.t(), String.t()) :: {:ok, Job.t()} | {:error, :not_found}
   def find_by_tag(%Scope{} = scope, tag_code) when is_binary(tag_code) do
-    normalized = tag_code |> String.trim() |> String.upcase()
+    normalized = JobItem.normalize_tag_code(tag_code)
 
     JobItem
     |> Scoped.for_business(scope)

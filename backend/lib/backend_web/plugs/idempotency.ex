@@ -76,6 +76,17 @@ defmodule KaarobarWeb.Plugs.Idempotency do
           :conflict,
           "This idempotency key was already used for a different request."
         )
+
+      # The key itself was unusable — too short to be worth anything as a
+      # guard. Told apart from a conflict deliberately: a caller sent a bad
+      # header, and "already used" would send them hunting for a duplicate
+      # request they never made.
+      {:error, %Ecto.Changeset{}} ->
+        halt_with(
+          conn,
+          :bad_request,
+          "The Idempotency-Key header must be at least 8 characters."
+        )
     end
   end
 
@@ -89,11 +100,17 @@ defmodule KaarobarWeb.Plugs.Idempotency do
     conn
   end
 
-  defp decode_body(body) when is_binary(body) do
-    case Jason.decode(body) do
+  # `conn.resp_body` is iodata — Phoenix renders JSON through
+  # `Jason.encode_to_iodata!`, which returns a list. Matching only on a binary
+  # stored an empty body for every response, so a replayed request came back
+  # `{}` and the client saw its retry succeed with nothing in it.
+  defp decode_body(body) when is_binary(body) or is_list(body) do
+    case body |> IO.iodata_to_binary() |> Jason.decode() do
       {:ok, decoded} when is_map(decoded) -> decoded
       _other -> %{}
     end
+  rescue
+    ArgumentError -> %{}
   end
 
   defp decode_body(_body), do: %{}

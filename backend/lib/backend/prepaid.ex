@@ -73,7 +73,10 @@ defmodule Kaarobar.Prepaid do
           summary: "#{customer.name} issued #{Decimal.to_string(amount, :normal)}"
         )
 
-        credit
+        # Reloaded, because the balance is a projection maintained by the entry
+        # posted above and the struct in hand predates it. Returning this one
+        # unread told the caller their new credit was worth nothing.
+        Repo.reload!(credit)
       else
         {:error, reason} -> Repo.rollback(reason)
       end
