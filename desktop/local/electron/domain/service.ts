@@ -3468,7 +3468,8 @@ export function getSaleDetail(saleId: string): SaleDetail {
 
   const itemRows = db()
     .prepare(
-      `SELECT si.id, si.sale_id, si.product_id, si.product_name_snapshot, si.qty, si.unit_price, si.line_total,
+      `SELECT si.id, si.sale_id, si.product_id, si.product_name_snapshot, si.qty, si.unit_price,
+              si.discount, si.line_total,
               si.refunded_qty, si.price_rule_id, r.name as price_rule_name
        FROM sale_items si
        LEFT JOIN happy_hour_price_rules r ON r.id = si.price_rule_id
@@ -3481,6 +3482,7 @@ export function getSaleDetail(saleId: string): SaleDetail {
     product_name_snapshot: string;
     qty: number;
     unit_price: number;
+    discount: number;
     line_total: number;
     refunded_qty: number;
     price_rule_id: string | null;
@@ -3514,6 +3516,7 @@ export function getSaleDetail(saleId: string): SaleDetail {
         productName: row.product_name_snapshot,
         qty: row.qty,
         unitPrice: row.unit_price,
+        discount: row.discount || 0,
         lineTotal: row.line_total,
         refundedQty: row.refunded_qty || 0,
         refundableQty: row.qty - (row.refunded_qty || 0),
@@ -4017,14 +4020,30 @@ export function getAnalyticsSummary(payload: {
        WHERE s.business_id = ? AND s.created_at >= ? AND s.created_at < ? AND s.status != 'void'`,
     )
     .get(businessId, sinceIso, untilIso) as { gross: number };
+  // `sales.discount` is everything taken off: the per-line discounts plus any
+  // whole-sale one. The gross above is built from `sale_items.line_total`,
+  // which already nets the line discounts — so subtracting the whole of
+  // `sales.discount` here would take them off a second time and understate
+  // every discounted day's profit.
   const discountRow = db()
     .prepare(
-      `SELECT COALESCE(SUM(discount), 0) as total
-       FROM sales
-       WHERE business_id = ? AND created_at >= ? AND created_at < ? AND status != 'void'`,
+      `SELECT COALESCE(SUM(s.discount), 0) as sale_total,
+              COALESCE(SUM(
+                (SELECT COALESCE(SUM(si.discount), 0)
+                 FROM sale_items si WHERE si.sale_id = s.id)
+              ), 0) as line_total
+       FROM sales s
+       WHERE s.business_id = ? AND s.created_at >= ? AND s.created_at < ? AND s.status != 'void'`,
     )
-    .get(businessId, sinceIso, untilIso) as { total: number };
-  const profitTotal = profitRow.gross - discountRow.total;
+    .get(businessId, sinceIso, untilIso) as {
+    sale_total: number;
+    line_total: number;
+  };
+  const orderDiscountTotal = Math.max(
+    0,
+    discountRow.sale_total - discountRow.line_total,
+  );
+  const profitTotal = profitRow.gross - orderDiscountTotal;
 
   const creditBalances = db()
     .prepare(

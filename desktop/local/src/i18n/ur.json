@@ -71,7 +71,8 @@
     "clearSelection": "انتخاب ہٹائیں",
     "selectAllOnPage": "اس صفحے کی تمام قطاریں منتخب کریں",
     "selectRow": "قطار منتخب کریں",
-    "bulkDelete": "منتخب حذف کریں"
+    "bulkDelete": "منتخب حذف کریں",
+    "itemDiscount": "رعایت"
   },
   "roles": {
     "owner": "مالک",
@@ -594,7 +595,10 @@
     "discountWholeSale": "پوری فروخت پر",
     "discountPerItem": "فی آئٹم",
     "itemDiscount": "{{name}} پر رعایت",
-    "discountTotalLabel": "کل رعایت"
+    "discountTotalLabel": "کل رعایت",
+    "discountPerUnit": "فی عدد رعایت",
+    "discountPerUnitHint": "فی عدد",
+    "discountPerUnitApplied": "× {{qty}} = {{total}}"
   },
   "payment": {
     "cash": "نقد",

@@ -71,7 +71,8 @@
     "clearSelection": "Clear selection",
     "selectAllOnPage": "Select all rows on this page",
     "selectRow": "Select row",
-    "bulkDelete": "Delete selected"
+    "bulkDelete": "Delete selected",
+    "itemDiscount": "Discount"
   },
   "roles": {
     "owner": "Owner",
@@ -594,7 +595,10 @@
     "discountWholeSale": "Whole sale",
     "discountPerItem": "Per item",
     "itemDiscount": "Discount on {{name}}",
-    "discountTotalLabel": "Discount total"
+    "discountTotalLabel": "Discount total",
+    "discountPerUnit": "Off each",
+    "discountPerUnitHint": "per unit",
+    "discountPerUnitApplied": "× {{qty}} = {{total}}"
   },
   "natures": {
     "retail": {

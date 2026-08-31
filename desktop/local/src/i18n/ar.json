@@ -71,7 +71,8 @@
     "clearSelection": "إلغاء التحديد",
     "selectAllOnPage": "تحديد كل الصفوف في هذه الصفحة",
     "selectRow": "تحديد الصف",
-    "bulkDelete": "حذف المحدد"
+    "bulkDelete": "حذف المحدد",
+    "itemDiscount": "الخصم"
   },
   "roles": {
     "owner": "المالك",
@@ -594,7 +595,10 @@
     "discountWholeSale": "على الفاتورة كاملة",
     "discountPerItem": "لكل صنف",
     "itemDiscount": "خصم على {{name}}",
-    "discountTotalLabel": "إجمالي الخصم"
+    "discountTotalLabel": "إجمالي الخصم",
+    "discountPerUnit": "خصم لكل وحدة",
+    "discountPerUnitHint": "لكل وحدة",
+    "discountPerUnitApplied": "× {{qty}} = {{total}}"
   },
   "natures": {
     "retail": {

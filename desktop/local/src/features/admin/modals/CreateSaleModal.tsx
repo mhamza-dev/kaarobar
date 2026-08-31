@@ -89,12 +89,16 @@ export function CreateSaleModal({
   const subtotal = cartItems.reduce((acc, item) => acc + item.qty * item.unitPrice, 0)
   const totalItems = cartItems.reduce((acc, item) => acc + item.qty, 0)
 
-  // Each line's discount is clamped to that line, so a mistyped 5000 on a
-  // 500 item takes 500 off and not the rest of the basket with it.
+  // What the shopkeeper types is money off *one* of them — "50 off each shirt"
+  // — which is how the discount is actually given and argued about at the
+  // counter. Five shirts at 50 off is 250 off the line.
+  //
+  // Clamped to the line's own value, so a mistyped 5000 on a 500 item takes
+  // 500 off and not the rest of the basket with it.
   const lineDiscountFor = (item: CartLine) => {
-    const raw = Number(itemDiscounts[lineKey(item)] || 0)
-    if (!Number.isFinite(raw) || raw <= 0) return 0
-    return Math.min(raw, item.qty * item.unitPrice)
+    const perUnit = Number(itemDiscounts[lineKey(item)] || 0)
+    if (!Number.isFinite(perUnit) || perUnit <= 0) return 0
+    return Math.min(perUnit * item.qty, item.qty * item.unitPrice)
   }
 
   const perItemDiscounts =
@@ -270,23 +274,35 @@ export function CreateSaleModal({
                     </span>
                   </div>
                   {discountMode === 'item' ? (
-                    <input
-                      type="number"
-                      min={0}
-                      max={gross}
-                      step="any"
-                      inputMode="decimal"
-                      aria-label={t('pos.itemDiscount', { name: item.name })}
-                      placeholder={t('pos.discount')}
-                      className="mt-2 w-full rounded-md border border-line bg-surface px-2 py-1 text-sm tabular-nums"
-                      value={itemDiscounts[lineKey(item)] ?? ''}
-                      onChange={(e) =>
-                        setItemDiscounts((current) => ({
-                          ...current,
-                          [lineKey(item)]: e.target.value,
-                        }))
-                      }
-                    />
+                    <div className="mt-2 flex items-center gap-2">
+                      <input
+                        type="number"
+                        min={0}
+                        max={item.unitPrice}
+                        step="any"
+                        inputMode="decimal"
+                        aria-label={t('pos.itemDiscount', { name: item.name })}
+                        placeholder={t('pos.discountPerUnit')}
+                        className="w-full rounded-md border border-line bg-surface px-2 py-1 text-sm tabular-nums"
+                        value={itemDiscounts[lineKey(item)] ?? ''}
+                        onChange={(e) =>
+                          setItemDiscounts((current) => ({
+                            ...current,
+                            [lineKey(item)]: e.target.value,
+                          }))
+                        }
+                      />
+                      {/* What it comes to across the line, so nobody has to do
+                          the multiplication in their head with a queue waiting. */}
+                      <span className="shrink-0 whitespace-nowrap text-xs text-ink-muted tabular-nums">
+                        {off > 0
+                          ? t('pos.discountPerUnitApplied', {
+                              qty: item.qty,
+                              total: formatMoney(off),
+                            })
+                          : t('pos.discountPerUnitHint')}
+                      </span>
+                    </div>
                   ) : null}
                 </div>
               )

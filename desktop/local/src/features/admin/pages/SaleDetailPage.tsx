@@ -34,6 +34,18 @@ export function SaleDetailPage({ user, data, saleId, onBack }: Props) {
   const [reviewNote, setReviewNote] = useState('')
   const { activeBusinessId, refreshScopedData } = data
 
+  // A linked customer's name comes from their record; a walk-in's was written
+  // on the sale itself. Either way the question "who was this for?" has one
+  // answer, and it belongs at the top of the page next to the invoice number.
+  const customerLabel = useMemo(() => {
+    if (!detail) return null
+    if (detail.sale.customerId) {
+      const customer = data.customers.find((row) => row.id === detail.sale.customerId)
+      return customer?.name ?? detail.sale.customerName
+    }
+    return detail.sale.customerName
+  }, [detail, data.customers])
+
   async function load() {
     setLoading(true)
     try {
@@ -88,8 +100,12 @@ export function SaleDetailPage({ user, data, saleId, onBack }: Props) {
     const subtotal = detail.sale.subtotal
     const discount = detail.sale.discount
     const saleTotal = detail.sale.total
+    // Pro-rated from the line's own total, so a discounted line gives back what
+    // the customer actually paid for those units. Multiplying the ticket price
+    // by the refunded quantity would hand back more than was ever taken.
     const refundedAmount = detail.items.reduce(
-      (sum, item) => sum + item.refundedQty * item.unitPrice,
+      (sum, item) =>
+        sum + (item.qty > 0 ? (item.lineTotal * item.refundedQty) / item.qty : 0),
       0,
     )
     const totalPaid = detail.payments.reduce((sum, payment) => sum + payment.amount, 0)
@@ -181,6 +197,9 @@ export function SaleDetailPage({ user, data, saleId, onBack }: Props) {
             </div>
             <p className="mt-2 text-2xl font-bold tracking-tight text-ink">{detail.sale.invoiceNo}</p>
             <div className="mt-3 flex flex-wrap gap-3 text-sm text-ink-muted">
+              {customerLabel ? (
+                <span>{t('forms.customer')}: <span className="font-medium text-ink">{customerLabel}</span></span>
+              ) : null}
               {detail.sale.servedByName ? (
                 <span>{t('pos.servedBy')}: <span className="font-medium text-ink">{detail.sale.servedByName}</span></span>
               ) : null}
@@ -239,7 +258,11 @@ export function SaleDetailPage({ user, data, saleId, onBack }: Props) {
             <div className="space-y-2">
               {detail.items.map((item) => {
                 const netQty = Math.max(0, item.qty - item.refundedQty)
-                const netLineTotal = netQty * item.unitPrice
+                // Pro-rated from what was actually charged, not from the list
+                // price: a discounted line refunded in part gives back what the
+                // customer paid for those units, not what they were ticketed at.
+                const netLineTotal = item.qty > 0 ? (item.lineTotal * netQty) / item.qty : 0
+                const perUnitDiscount = item.qty > 0 ? item.discount / item.qty : 0
                 return (
                 <div
                   key={item.id}
@@ -254,11 +277,25 @@ export function SaleDetailPage({ user, data, saleId, onBack }: Props) {
                       {item.qty} × {formatMoney(item.unitPrice)} · {t('forms.refunded')}: {item.refundedQty} ·{' '}
                       {t('forms.refundable')}: {item.refundableQty}
                     </p>
+                    {item.discount > 0 ? (
+                      <p className="text-xs text-ink-muted">
+                        {t('table.itemDiscount')}: −{formatMoney(perUnitDiscount)}{' '}
+                        {t('pos.discountPerUnitApplied', {
+                          qty: item.qty,
+                          total: formatMoney(item.discount),
+                        })}
+                      </p>
+                    ) : null}
                   </div>
                   <div className="text-end">
                     <span className="font-medium text-ink">{formatMoney(netLineTotal)}</span>
-                    {item.refundedQty > 0 ? (
-                      <p className="text-xs text-ink-subtle line-through">{formatMoney(item.lineTotal)}</p>
+                    {/* The gross, struck through, whenever what was charged is
+                        not what the line was ticketed at — because it was
+                        discounted, because part of it came back, or both. */}
+                    {item.refundedQty > 0 || item.discount > 0 ? (
+                      <p className="text-xs text-ink-subtle line-through">
+                        {formatMoney(item.qty * item.unitPrice)}
+                      </p>
                     ) : null}
                   </div>
                 </div>

@@ -120,7 +120,12 @@ const alignClass = {
   end: 'text-end',
 } as const
 
-const DEFAULT_PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
+// The large sizes are here because the alternative is worse: somebody
+// reconciling a month of sales, or scanning a whole stock list for one product,
+// pages through forty screens instead. Rows are rendered eagerly, so 1000 is
+// noticeably heavier to draw than 100 — which is why it is a choice the user
+// makes for the job in hand rather than the default.
+const DEFAULT_PAGE_SIZE_OPTIONS = [10, 25, 50, 100, 500, 1000]
 
 /** Fits remaining viewport below shell header, page chrome, and card title. */
 const DEFAULT_BODY_MAX_HEIGHT = 'min(36rem, calc(100dvh - 14rem))'

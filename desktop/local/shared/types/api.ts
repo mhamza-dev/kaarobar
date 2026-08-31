@@ -451,6 +451,9 @@ export type SaleItem = {
   productName: string;
   qty: number;
   unitPrice: number;
+  /** Money off this line in total — the per-unit discount times the quantity. */
+  discount: number;
+  /** What was charged for the line: `qty * unitPrice - discount`. */
   lineTotal: number;
   refundedQty: number;
   refundableQty: number;
