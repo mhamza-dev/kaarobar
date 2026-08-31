@@ -586,7 +586,15 @@
     "riderNone": "No rider",
     "riderPlaceholder": "Assign rider…",
     "deliveryStatus": "Delivery status",
-    "serviceModeLabel": "Mode de service"
+    "serviceModeLabel": "Mode de service",
+    "walkInName": "Nom du client (facultatif)",
+    "walkInNamePlaceholder": "Nom à imprimer sur le reçu",
+    "walkInNameHint": "Inscrit sur cette vente uniquement. Aucune fiche client n'est créée.",
+    "discountMode": "Remise",
+    "discountWholeSale": "Vente entière",
+    "discountPerItem": "Par article",
+    "itemDiscount": "Remise sur {{name}}",
+    "discountTotalLabel": "Remise totale"
   },
   "natures": {
     "retail": {

@@ -140,6 +140,11 @@ CREATE TABLE IF NOT EXISTS sales (
   branch_id TEXT NOT NULL REFERENCES branches(id) ON DELETE RESTRICT,
   invoice_no TEXT NOT NULL,
   customer_id TEXT REFERENCES customers(id) ON DELETE RESTRICT,
+  -- A name written on a walk-in sale, with no customer record behind it. The
+  -- counter needs "who is this for?" on the receipt far more often than it
+  -- needs a saved customer, and forcing a record to be created for every
+  -- passing trade fills the customer list with people nobody will see again.
+  customer_name TEXT,
   cashier_id TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   subtotal REAL NOT NULL CHECK (subtotal >= 0),
   discount REAL NOT NULL DEFAULT 0 CHECK (discount >= 0),

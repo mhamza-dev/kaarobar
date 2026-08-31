@@ -423,8 +423,11 @@ export type Sale = {
   branchId: string;
   invoiceNo: string;
   customerId: string | null;
+  /** A walk-in's name, written on the sale with no customer record behind it. */
+  customerName: string | null;
   cashierId: string;
   subtotal: number;
+  /** Everything taken off: the per-line discounts plus any whole-sale one. */
   discount: number;
   total: number;
   amountPaid: number;
@@ -923,13 +926,18 @@ export type KaarobarApi = {
       businessId: string;
       branchId: string;
       customerId: string | null;
+      /** A name for a walk-in. Ignored when `customerId` is set. */
+      customerName?: string | null;
       items: Array<{
         productId: string;
         qty: number;
         unitPrice: number;
+        /** Amount off this line, before any whole-sale discount. */
+        discount?: number;
         ticketItemId?: string;
         priceRuleId?: string | null;
       }>;
+      /** Amount off the whole sale, on top of whatever the lines took off. */
       discount?: number;
       payments: Array<{ method: "cash" | "card" | "credit"; amount: number }>;
       servedByUserId?: string | null;

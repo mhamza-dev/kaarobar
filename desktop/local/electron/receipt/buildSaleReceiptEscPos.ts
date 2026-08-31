@@ -8,6 +8,7 @@ import {
   DOTS_PER_CHAR,
   EDGE_MARGIN_CHARS,
   EscPosBuilder,
+  containsUnprintable,
   isCp437Printable,
   usableChars,
 } from './escpos'
@@ -216,6 +217,30 @@ function kaarobarMarkPath(): string {
     path.join(appPath, 'public', 'kaarobar-icon.png'),
   ]
   return candidates.find((candidate) => fs.existsSync(candidate)) ?? candidates[0]
+}
+
+/**
+ * Does this receipt have to be sent as a picture rather than as text?
+ *
+ * True when either the chosen language or the shop's own data needs characters
+ * the print head has no glyph for. Both matter: a shop set to Urdu wants Urdu
+ * labels, and a shop set to English still sells "قمیض" to a customer whose
+ * name is in Urdu.
+ *
+ * The alternative — what this code did before — was to substitute English
+ * labels and print the data as a row of `?`, which is a receipt no customer
+ * can check and no shopkeeper can hand over.
+ */
+export function saleReceiptNeedsRaster(
+  input: ReceiptSaleInput,
+  language: PrintLanguage = input.language ?? getPrintLanguage(),
+): boolean {
+  const labels = getSalePrintLabels(language)
+
+  return (
+    Object.values(labels).some((label) => !isCp437Printable(label)) ||
+    containsUnprintable(input)
+  )
 }
 
 /**

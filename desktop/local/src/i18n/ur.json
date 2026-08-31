@@ -586,7 +586,15 @@
     "riderNone": "No rider",
     "riderPlaceholder": "Assign rider…",
     "deliveryStatus": "Delivery status",
-    "serviceModeLabel": "Service mode"
+    "serviceModeLabel": "Service mode",
+    "walkInName": "کسٹمر کا نام (اختیاری)",
+    "walkInNamePlaceholder": "رسید پر لکھا جانے والا نام",
+    "walkInNameHint": "صرف اسی فروخت پر لکھا جائے گا۔ کسٹمر کا ریکارڈ نہیں بنے گا۔",
+    "discountMode": "رعایت",
+    "discountWholeSale": "پوری فروخت پر",
+    "discountPerItem": "فی آئٹم",
+    "itemDiscount": "{{name}} پر رعایت",
+    "discountTotalLabel": "کل رعایت"
   },
   "payment": {
     "cash": "نقد",

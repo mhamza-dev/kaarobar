@@ -468,6 +468,17 @@ const MIGRATIONS: Migration[] = [
       `);
     },
   },
+  {
+    name: "014_walk_in_customer_name",
+    up: (db) => {
+      const cols = db.prepare(`PRAGMA table_info(sales)`).all() as Array<{
+        name: string;
+      }>;
+      if (!cols.some((c) => c.name === "customer_name")) {
+        db.exec(`ALTER TABLE sales ADD COLUMN customer_name TEXT`);
+      }
+    },
+  },
 ];
 
 /**

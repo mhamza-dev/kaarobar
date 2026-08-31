@@ -586,7 +586,15 @@
     "riderNone": "No rider",
     "riderPlaceholder": "Assign rider…",
     "deliveryStatus": "Delivery status",
-    "serviceModeLabel": "Service mode"
+    "serviceModeLabel": "Service mode",
+    "walkInName": "اسم العميل (اختياري)",
+    "walkInNamePlaceholder": "الاسم الذي يظهر على الإيصال",
+    "walkInNameHint": "يُكتب على هذه الفاتورة فقط. لن يُنشأ سجل عميل.",
+    "discountMode": "الخصم",
+    "discountWholeSale": "على الفاتورة كاملة",
+    "discountPerItem": "لكل صنف",
+    "itemDiscount": "خصم على {{name}}",
+    "discountTotalLabel": "إجمالي الخصم"
   },
   "natures": {
     "retail": {

@@ -60,12 +60,16 @@ import {
   parseInvoiceSequence,
 } from "../../shared/invoice";
 import { buildSaleReceiptHtml } from "../receipt/buildSaleReceiptHtml";
-import { buildSaleReceiptEscPos } from "../receipt/buildSaleReceiptEscPos";
+import {
+  buildSaleReceiptEscPos,
+  saleReceiptNeedsRaster,
+} from "../receipt/buildSaleReceiptEscPos";
 import { loadJsBarcodeScript } from "../receipt/jsBarcodeScript";
 import { buildPurchaseOrderHtml } from "../receipt/buildPurchaseOrderHtml";
 import { buildCustomerLedgerHtml } from "../receipt/buildCustomerLedgerHtml";
 import { openPrintPreview } from "../receipt/openPrintPreview";
 import { printHtmlSilent } from "../receipt/printHtmlSilent";
+import { buildSaleReceiptRaster } from "../receipt/renderReceiptRaster";
 import {
   effectiveTransport,
   getPosPrinterSettings,
@@ -2218,13 +2222,24 @@ export function createSale(payload: {
   businessId: string;
   branchId: string;
   customerId: string | null;
+  /**
+   * A name for a walk-in, with no customer record behind it.
+   *
+   * Ignored when `customerId` is set — a linked customer already has a name,
+   * and letting the sale carry a second one means two answers to "who was this
+   * for?" and no way to tell which is right.
+   */
+  customerName?: string | null;
   items: Array<{
     productId: string;
     qty: number;
     unitPrice: number;
+    /** Amount off this line, before any whole-sale discount. */
+    discount?: number;
     ticketItemId?: string;
     priceRuleId?: string | null;
   }>;
+  /** Amount off the whole sale, on top of whatever the lines took off. */
   discount?: number;
   payments: Array<{ method: "cash" | "card" | "credit"; amount: number }>;
   servedByUserId?: string | null;
@@ -2258,6 +2273,12 @@ export function createSale(payload: {
   let deliveryStatus: DeliveryStatus | null = payload.deliveryStatus ?? null;
   const deliveryNotes = payload.deliveryNotes?.trim() || null;
   const partialTicketBill = Boolean(payload.partialTicketBill);
+  // Only for a sale with nobody attached. A linked customer's name lives on
+  // their record, and copying it here would leave two names to disagree the
+  // first time somebody corrects a spelling.
+  const walkInName = payload.customerId
+    ? null
+    : payload.customerName?.trim().slice(0, 120) || null;
 
   if (showsServedBy(nature)) {
     if (!servedByUserId) throw new Error("Served by staff is required");
@@ -2354,13 +2375,37 @@ export function createSale(payload: {
   const id = uuidv4();
   const at = nowIso();
   const invoiceNo = nextInvoiceNumber(payload.businessId, payload.branchId);
+  // Gross, before any discount. `sales.subtotal` has always meant this, and
+  // reports, refunds and the receipt all read it that way.
   const subtotal = payload.items.reduce(
     (acc, item) => acc + item.qty * item.unitPrice,
     0,
   );
-  const discount = Math.max(0, Number(payload.discount ?? 0));
-  if (!Number.isFinite(discount))
+
+  // A discount can be given per line, on the whole sale, or both — a shopkeeper
+  // knocking 50 off a damaged shirt and then 100 off the bill is doing two
+  // different things, and neither should have to be expressed as the other.
+  //
+  // The two are summed into `sales.discount` so the invariant the rest of the
+  // system relies on still holds: total = subtotal - discount. The per-line
+  // amounts are also kept on `sale_items.discount`, which is what makes a
+  // partial refund of one line refundable at what was actually charged for it.
+  const lineDiscounts = payload.items.map((item) => {
+    const value = Number(item.discount ?? 0);
+    if (!Number.isFinite(value) || value < 0)
+      throw new Error("Item discount must be a positive number");
+    const gross = item.qty * item.unitPrice;
+    if (value > gross)
+      throw new Error("An item discount cannot exceed the line total");
+    return value;
+  });
+
+  const lineDiscountTotal = lineDiscounts.reduce((acc, value) => acc + value, 0);
+  const orderDiscount = Math.max(0, Number(payload.discount ?? 0));
+  if (!Number.isFinite(orderDiscount))
     throw new Error("Discount must be a valid number");
+
+  const discount = lineDiscountTotal + orderDiscount;
   if (discount > subtotal) throw new Error("Discount cannot exceed subtotal");
   const total = subtotal - discount;
   const amountPaid = payload.payments.reduce((acc, p) => acc + p.amount, 0);
@@ -2411,10 +2456,10 @@ export function createSale(payload: {
     db()
       .prepare(
         `INSERT INTO sales (
-           id, business_id, branch_id, invoice_no, customer_id, cashier_id,
+           id, business_id, branch_id, invoice_no, customer_id, customer_name, cashier_id,
            subtotal, discount, tax, total, amount_paid, change_due, status,
            served_by_user_id, service_mode, table_id, rider_user_id, delivery_status, delivery_notes, created_at
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, 0, 'completed', ?, ?, ?, ?, ?, ?, ?)`,
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, 0, 'completed', ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         id,
@@ -2422,6 +2467,7 @@ export function createSale(payload: {
         payload.branchId,
         invoiceNo,
         payload.customerId,
+        walkInName,
         session.id,
         subtotal,
         discount,
@@ -2438,7 +2484,7 @@ export function createSale(payload: {
 
     const insertSaleItem = db().prepare(
       `INSERT INTO sale_items (id, sale_id, product_id, product_name_snapshot, qty, unit_price, discount, line_total, refunded_qty, price_rule_id)
-       SELECT ?, ?, p.id, p.name, ?, ?, 0, ?, 0, ?
+       SELECT ?, ?, p.id, p.name, ?, ?, ?, ?, 0, ?
        FROM products p WHERE p.id = ?`,
     );
     const updateStock = db().prepare(
@@ -2447,13 +2493,15 @@ export function createSale(payload: {
     const bumpBilled = db().prepare(
       `UPDATE pos_ticket_items SET billed_qty = billed_qty + ? WHERE id = ? AND ticket_id = ?`,
     );
-    for (const item of payload.items) {
+    payload.items.forEach((item, index) => {
+      const lineDiscount = lineDiscounts[index] ?? 0;
       insertSaleItem.run(
         uuidv4(),
         id,
         item.qty,
         item.unitPrice,
-        item.qty * item.unitPrice,
+        lineDiscount,
+        item.qty * item.unitPrice - lineDiscount,
         item.priceRuleId ?? null,
         item.productId,
       );
@@ -2461,7 +2509,7 @@ export function createSale(payload: {
       if (ticketId && item.ticketItemId) {
         bumpBilled.run(item.qty, item.ticketItemId, ticketId);
       }
-    }
+    });
 
     const insertPayment = db().prepare(
       "INSERT INTO payments (id, sale_id, method, amount, created_at) VALUES (?, ?, ?, ?, ?)",
@@ -2552,6 +2600,7 @@ function mapSaleRow(row: {
   branch_id: string;
   invoice_no: string;
   customer_id: string | null;
+  customer_name?: string | null;
   cashier_id: string;
   subtotal: number;
   discount: number;
@@ -2575,6 +2624,7 @@ function mapSaleRow(row: {
     branchId: row.branch_id,
     invoiceNo: row.invoice_no,
     customerId: row.customer_id,
+    customerName: row.customer_name ?? null,
     cashierId: row.cashier_id,
     subtotal: row.subtotal,
     discount: row.discount,
@@ -2597,7 +2647,7 @@ function mapSaleRow(row: {
 function getSaleById(saleId: string): Sale {
   const row = db()
     .prepare(
-      `SELECT s.id, s.business_id, s.branch_id, s.invoice_no, s.customer_id, s.cashier_id,
+      `SELECT s.id, s.business_id, s.branch_id, s.invoice_no, s.customer_id, s.customer_name, s.cashier_id,
               s.subtotal, s.discount, s.total, s.amount_paid, s.status, s.created_at,
               s.served_by_user_id, u.name as served_by_name, s.service_mode, s.table_id, t.name as table_name,
               s.rider_user_id, r.name as rider_name, s.delivery_status, s.delivery_notes
@@ -2617,7 +2667,7 @@ export function listSales(businessId: string): Sale[] {
   assertBusinessAccess(businessId);
   const rows = db()
     .prepare(
-      `SELECT s.id, s.business_id, s.branch_id, s.invoice_no, s.customer_id, s.cashier_id,
+      `SELECT s.id, s.business_id, s.branch_id, s.invoice_no, s.customer_id, s.customer_name, s.cashier_id,
               s.subtotal, s.discount, s.total, s.amount_paid, s.status, s.created_at,
               s.served_by_user_id, u.name as served_by_name, s.service_mode, s.table_id, t.name as table_name,
               s.rider_user_id, r.name as rider_name, s.delivery_status, s.delivery_notes
@@ -3568,7 +3618,10 @@ export async function printSaleReceipt(saleId: string): Promise<SalePrintResult>
               b.name as business_name, b.currency, b.logo_path, b.brand_color,
               b.social_whatsapp, b.social_instagram, b.social_facebook, b.social_tiktok, b.social_website,
               b.receipt_header, b.receipt_footer,
-              c.name as customer_name,
+              -- The linked customer's name when there is one, the name written
+              -- on a walk-in otherwise. A receipt should say who it was for
+              -- either way.
+              COALESCE(c.name, s.customer_name) as customer_name,
               cashier.name as cashier_name
        FROM sales s
        JOIN businesses b ON b.id = s.business_id
@@ -3712,7 +3765,14 @@ export async function printSaleReceipt(saleId: string): Promise<SalePrintResult>
           "Raw ESC/POS printing needs a printer, and no printer is installed on this machine.",
         );
       }
-      const bytes = buildSaleReceiptEscPos(receiptInput, paper, { template });
+      // A receipt whose language or data the print head has no glyphs for is
+      // rendered by Chromium and sent as a bitmap instead. The printer's own
+      // character generator holds one Latin code page; Urdu through it comes
+      // out as a row of '?'.
+      const bytes = saleReceiptNeedsRaster(receiptInput)
+        ? ((await buildSaleReceiptRaster(receiptInput, paper, template)) ??
+          buildSaleReceiptEscPos(receiptInput, paper, { template }))
+        : buildSaleReceiptEscPos(receiptInput, paper, { template });
       for (let copy = 0; copy < settings.posCopies; copy += 1) {
         await sendRawToPrinter(
           printerName,

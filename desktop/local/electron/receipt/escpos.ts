@@ -55,6 +55,25 @@ function countQuestionMarks(value: string): number {
   return n
 }
 
+/**
+ * Does any text anywhere in this value need characters CP437 cannot print?
+ *
+ * Walks strings, arrays and plain objects, so a receipt field added later is
+ * covered without anybody remembering to list it here. Used to decide whether
+ * a receipt has to be rastered rather than sent as text — see
+ * `renderReceiptRaster.ts`.
+ */
+export function containsUnprintable(value: unknown): boolean {
+  if (typeof value === 'string') return !isCp437Printable(value)
+  if (Array.isArray(value)) return value.some(containsUnprintable)
+
+  if (value && typeof value === 'object') {
+    return Object.values(value as Record<string, unknown>).some(containsUnprintable)
+  }
+
+  return false
+}
+
 export class EscPosBuilder {
   private chunks: Buffer[] = []
 

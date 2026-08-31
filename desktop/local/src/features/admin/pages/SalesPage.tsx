@@ -43,6 +43,37 @@ export function SalesPage({ user, data, onOpenSale }: Props) {
     messages: { success: 'toast.salesDeleted', failure: 'toast.salesDeleteFailed' },
   })
 
+  // Scanning the barcode on a printed receipt opens that sale. This is how a
+  // counter handles "I want to return this": the customer hands over the
+  // receipt and nobody types an invoice number.
+  useBarcodeScanner({
+    enabled: Boolean(activeBusinessId),
+    onScan: (code) => {
+      void (async () => {
+        if (!activeBusinessId) return
+        const invoiceNo = code.trim()
+        if (!looksLikeInvoiceBarcode(invoiceNo)) {
+          toast.error(t('toast.invoiceScanInvalid'))
+          return
+        }
+        try {
+          const sale = await window.api.sales.findByInvoice({
+            businessId: activeBusinessId,
+            invoiceNo,
+          })
+          if (!sale) {
+            toast.error(t('toast.invoiceNotFound', { invoice: invoiceNo }))
+            return
+          }
+          toast.success(t('toast.invoiceOpened', { invoice: sale.invoiceNo }))
+          onOpenSale(sale.id)
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : t('toast.actionFailed'))
+        }
+      })()
+    },
+  })
+
   const saleActions = (row: (typeof sales)[number]) => [
     ...(actions.canPrint
       ? [

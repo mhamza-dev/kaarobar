@@ -586,7 +586,15 @@
     "riderNone": "No rider",
     "riderPlaceholder": "Assign rider…",
     "deliveryStatus": "Delivery status",
-    "serviceModeLabel": "Service mode"
+    "serviceModeLabel": "Service mode",
+    "walkInName": "Customer name (optional)",
+    "walkInNamePlaceholder": "Name for the receipt",
+    "walkInNameHint": "Written on this sale only. No customer record is created.",
+    "discountMode": "Discount",
+    "discountWholeSale": "Whole sale",
+    "discountPerItem": "Per item",
+    "itemDiscount": "Discount on {{name}}",
+    "discountTotalLabel": "Discount total"
   },
   "natures": {
     "retail": {

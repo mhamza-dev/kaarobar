@@ -37,6 +37,12 @@ type Props = {
 
 const CASH_SALE_VALUE = ''
 
+// The same product can appear twice at two prices — a happy-hour line and a
+// full-price one — so the line, not the product, is what a discount belongs to.
+function lineKey(item: CartLine): string {
+  return item.ticketItemId ?? `${item.productId}-${item.unitPrice}`
+}
+
 export function CreateSaleModal({
   open,
   onClose,
@@ -67,15 +73,41 @@ export function CreateSaleModal({
     creditEnabled ? 'credit' : 'cash',
   )
   const [walkInPayment, setWalkInPayment] = useState<'cash' | 'card'>('cash')
+  const [walkInName, setWalkInName] = useState('')
+  // A shopkeeper knocks money off one damaged shirt, or off the whole bill —
+  // rarely both in the same breath. One mode at a time keeps the arithmetic on
+  // screen something the customer can follow, which is the point of showing it.
+  const [discountMode, setDiscountMode] = useState<'total' | 'item'>('total')
   const [discountInput, setDiscountInput] = useState('0')
+  // Keyed by cart line, not by product: the same product can sit on two lines
+  // at two prices, and they can be discounted differently.
+  const [itemDiscounts, setItemDiscounts] = useState<Record<string, string>>({})
   // Which button is busy, so only that one shows a spinner.
   const [submitting, setSubmitting] = useState<'save' | 'print' | null>(null)
   const requireServedBy = showsServedBy(businessNature)
 
   const subtotal = cartItems.reduce((acc, item) => acc + item.qty * item.unitPrice, 0)
   const totalItems = cartItems.reduce((acc, item) => acc + item.qty, 0)
-  const discount = Math.max(0, Number(discountInput || 0))
-  const safeDiscount = Number.isFinite(discount) ? Math.min(discount, subtotal) : 0
+
+  // Each line's discount is clamped to that line, so a mistyped 5000 on a
+  // 500 item takes 500 off and not the rest of the basket with it.
+  const lineDiscountFor = (item: CartLine) => {
+    const raw = Number(itemDiscounts[lineKey(item)] || 0)
+    if (!Number.isFinite(raw) || raw <= 0) return 0
+    return Math.min(raw, item.qty * item.unitPrice)
+  }
+
+  const perItemDiscounts =
+    discountMode === 'item' ? cartItems.map(lineDiscountFor) : cartItems.map(() => 0)
+  const perItemTotal = perItemDiscounts.reduce((acc, value) => acc + value, 0)
+
+  const orderDiscountRaw = Math.max(0, Number(discountInput || 0))
+  const orderDiscount =
+    discountMode === 'total' && Number.isFinite(orderDiscountRaw)
+      ? Math.min(orderDiscountRaw, subtotal)
+      : 0
+
+  const safeDiscount = Math.min(perItemTotal + orderDiscount, subtotal)
   const total = Math.max(0, subtotal - safeDiscount)
 
   const customerOptions = useMemo(
@@ -121,14 +153,16 @@ export function CreateSaleModal({
         businessId,
         branchId,
         customerId: selectedCustomerId || null,
-        items: cartItems.map((item) => ({
+        customerName: selectedCustomerId ? null : walkInName.trim() || null,
+        items: cartItems.map((item, index) => ({
           productId: item.productId,
           qty: item.qty,
           unitPrice: item.unitPrice,
+          discount: perItemDiscounts[index] ?? 0,
           ticketItemId: item.ticketItemId,
           priceRuleId: item.priceRuleId,
         })),
-        discount: safeDiscount,
+        discount: orderDiscount,
         payments: [{ method: paymentMethod, amount: total }],
         servedByUserId: requireServedBy ? servedByUserId : null,
         serviceMode: serviceMode ?? undefined,
@@ -155,7 +189,10 @@ export function CreateSaleModal({
       setServedByUserId('')
       setPaymentChoice(creditEnabled ? 'credit' : 'cash')
       setWalkInPayment('cash')
+      setWalkInName('')
+      setDiscountMode('total')
       setDiscountInput('0')
+      setItemDiscounts({})
       await onCompleted(sale.id)
       onClose()
     } catch (e) {
@@ -206,35 +243,104 @@ export function CreateSaleModal({
               {t('pos.cartItemsCount', { count: totalItems })}
             </span>
           </div>
-          <div className="max-h-40 space-y-1 overflow-y-auto pe-1">
-            {cartItems.map((item) => (
-              <div
-                key={item.ticketItemId ?? `${item.productId}-${item.unitPrice}`}
-                className="flex items-center justify-between rounded-lg border border-line/70 px-3 py-2 text-sm"
-              >
-                <span className="truncate pe-3">
-                  {item.name} × {item.qty}
-                </span>
-                <span className="shrink-0">{formatMoney((item.qty * item.unitPrice))}</span>
-              </div>
-            ))}
+          <div className="max-h-52 space-y-1 overflow-y-auto pe-1">
+            {cartItems.map((item, index) => {
+              const gross = item.qty * item.unitPrice
+              const off = perItemDiscounts[index] ?? 0
+              return (
+                <div
+                  key={lineKey(item)}
+                  className="rounded-lg border border-line/70 px-3 py-2 text-sm"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="truncate pe-3">
+                      {item.name} × {item.qty}
+                    </span>
+                    <span className="shrink-0 tabular-nums">
+                      {off > 0 ? (
+                        <>
+                          <span className="me-2 text-ink-muted line-through">
+                            {formatMoney(gross)}
+                          </span>
+                          {formatMoney(gross - off)}
+                        </>
+                      ) : (
+                        formatMoney(gross)
+                      )}
+                    </span>
+                  </div>
+                  {discountMode === 'item' ? (
+                    <input
+                      type="number"
+                      min={0}
+                      max={gross}
+                      step="any"
+                      inputMode="decimal"
+                      aria-label={t('pos.itemDiscount', { name: item.name })}
+                      placeholder={t('pos.discount')}
+                      className="mt-2 w-full rounded-md border border-line bg-surface px-2 py-1 text-sm tabular-nums"
+                      value={itemDiscounts[lineKey(item)] ?? ''}
+                      onChange={(e) =>
+                        setItemDiscounts((current) => ({
+                          ...current,
+                          [lineKey(item)]: e.target.value,
+                        }))
+                      }
+                    />
+                  ) : null}
+                </div>
+              )
+            })}
           </div>
           <div className="grid gap-2 border-t border-line/60 pt-2 text-sm">
             <div className="flex items-center justify-between text-ink-muted">
               <span>{t('pos.subtotal')}</span>
-              <span>{formatMoney(subtotal)}</span>
+              <span className="tabular-nums">{formatMoney(subtotal)}</span>
             </div>
-            <TextField
-              label={t('pos.discount')}
-              type="number"
-              min={0}
-              step="any"
-              value={discountInput}
-              onChange={(e) => setDiscountInput(e.target.value)}
-            />
+
+            <fieldset className="grid gap-2">
+              <legend className="text-sm font-medium text-ink">{t('pos.discountMode')}</legend>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 text-sm text-ink">
+                  <input
+                    type="radio"
+                    name="create-sale-discount-mode"
+                    checked={discountMode === 'total'}
+                    onChange={() => setDiscountMode('total')}
+                  />
+                  {t('pos.discountWholeSale')}
+                </label>
+                <label className="flex items-center gap-2 text-sm text-ink">
+                  <input
+                    type="radio"
+                    name="create-sale-discount-mode"
+                    checked={discountMode === 'item'}
+                    onChange={() => setDiscountMode('item')}
+                  />
+                  {t('pos.discountPerItem')}
+                </label>
+              </div>
+            </fieldset>
+
+            {discountMode === 'total' ? (
+              <TextField
+                label={t('pos.discount')}
+                type="number"
+                min={0}
+                step="any"
+                value={discountInput}
+                onChange={(e) => setDiscountInput(e.target.value)}
+              />
+            ) : (
+              <div className="flex items-center justify-between text-ink-muted">
+                <span>{t('pos.discountTotalLabel')}</span>
+                <span className="tabular-nums">{formatMoney(safeDiscount)}</span>
+              </div>
+            )}
+
             <div className="flex items-center justify-between text-base font-semibold text-ink">
               <span>{t('pos.total')}</span>
-              <span>{formatMoney(total)}</span>
+              <span className="tabular-nums">{formatMoney(total)}</span>
             </div>
           </div>
         </div>
@@ -269,6 +375,19 @@ export function CreateSaleModal({
             if (next) setPaymentChoice(creditEnabled ? 'credit' : 'cash')
           }}
         />
+
+        {selectedCustomerId ? null : (
+          <div className="space-y-1">
+            <TextField
+              label={t('pos.walkInName')}
+              value={walkInName}
+              placeholder={t('pos.walkInNamePlaceholder')}
+              maxLength={120}
+              onChange={(e) => setWalkInName(e.target.value)}
+            />
+            <p className="text-xs text-ink-muted">{t('pos.walkInNameHint')}</p>
+          </div>
+        )}
 
         {selectedCustomerId ? (
           <fieldset className="space-y-2">
