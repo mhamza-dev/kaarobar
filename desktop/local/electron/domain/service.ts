@@ -2946,19 +2946,25 @@ export function reviewRefundRequest(payload: {
     for (const item of items) {
       const saleItem = db()
         .prepare(
-          "SELECT qty, refunded_qty, unit_price FROM sale_items WHERE id = ?",
+          "SELECT qty, refunded_qty, unit_price, line_total FROM sale_items WHERE id = ?",
         )
         .get(item.sale_item_id) as {
         qty: number;
         refunded_qty: number;
         unit_price: number;
+        line_total: number;
       };
       const remaining = saleItem.qty - (saleItem.refunded_qty || 0);
       if (item.qty > remaining)
         throw new Error("Refund qty no longer available");
       bumpRefunded.run(item.qty, item.sale_item_id);
       restock.run(item.qty, item.product_id);
-      refundAmount += item.qty * saleItem.unit_price;
+      // Pro-rated from what the line was actually charged at, not from the
+      // ticket price. A customer who bought five shirts at 50 off each paid
+      // 1450 for every one of them, and returning two must give back 2900 —
+      // refunding at 1500 hands over money the shop never took.
+      refundAmount +=
+        saleItem.qty > 0 ? (saleItem.line_total * item.qty) / saleItem.qty : 0;
     }
 
     const allItems = db()
@@ -3989,7 +3995,10 @@ export function getAnalyticsSummary(payload: {
     .prepare(
       `SELECT si.product_name_snapshot as product_name,
               SUM(si.qty - COALESCE(si.refunded_qty, 0)) as qty,
-              SUM((si.qty - COALESCE(si.refunded_qty, 0)) * si.unit_price) as revenue
+              -- From the line's own total, not the ticket price: a product
+              -- that only ever sells at a discount would otherwise top this
+              -- list on revenue it never earned.
+              SUM(si.line_total * (si.qty - COALESCE(si.refunded_qty, 0)) / si.qty) as revenue
        FROM sale_items si
        JOIN sales s ON s.id = si.sale_id
        WHERE s.business_id = ? AND s.created_at >= ? AND s.created_at < ? AND s.status != 'void'

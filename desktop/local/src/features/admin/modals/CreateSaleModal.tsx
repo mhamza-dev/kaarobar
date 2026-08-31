@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useFormatMoney } from '../../../lib/useFormatMoney'
 import { toastSalePrintResult } from '../../../lib/printReceipt'
@@ -82,6 +82,8 @@ export function CreateSaleModal({
   // Keyed by cart line, not by product: the same product can sit on two lines
   // at two prices, and they can be discounted differently.
   const [itemDiscounts, setItemDiscounts] = useState<Record<string, string>>({})
+  const discountModeLabelId = useId()
+  const orderDiscountId = useId()
   // Which button is busy, so only that one shows a spinner.
   const [submitting, setSubmitting] = useState<'save' | 'print' | null>(null)
   const requireServedBy = showsServedBy(businessNature)
@@ -240,126 +242,155 @@ export function CreateSaleModal({
       }
     >
       <div className="space-y-4">
-        <div className="space-y-2 rounded-lg border border-white/40 bg-surface-muted/30 p-3 backdrop-blur-sm">
-          <div className="flex flex-wrap items-center justify-between gap-2">
+        {/* The basket, laid out the way the receipt it becomes is: the name and
+            the arithmetic on the left, one column of money down the right edge
+            in tabular figures. A cashier scanning a basket with a customer
+            waiting reads down that column, so nothing else is allowed into it. */}
+        <section className="rounded-xl border border-line bg-surface-muted/40 p-3">
+          <header className="flex flex-wrap items-baseline justify-between gap-2 pb-2">
             <h4 className="text-sm font-semibold text-ink">{t('pos.cartCheckout')}</h4>
             <span className="text-xs font-medium text-ink-muted">
               {t('pos.cartItemsCount', { count: totalItems })}
             </span>
-          </div>
-          <div className="max-h-52 space-y-1 overflow-y-auto pe-1">
+          </header>
+
+          <ul className="max-h-64 divide-y divide-line/60 overflow-y-auto border-y border-line/60">
             {cartItems.map((item, index) => {
-              const gross = item.qty * item.unitPrice
               const off = perItemDiscounts[index] ?? 0
+              const charged = item.qty * item.unitPrice - off
               return (
-                <div
+                <li
                   key={lineKey(item)}
-                  className="rounded-lg border border-line/70 px-3 py-2 text-sm"
+                  className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 py-2"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="truncate pe-3">
-                      {item.name} × {item.qty}
+                  <span className="truncate text-sm font-medium text-ink">{item.name}</span>
+                  <span className="min-w-[5.5rem] text-end text-sm font-semibold tabular-nums text-ink">
+                    {formatMoney(charged)}
+                  </span>
+
+                  <div className="col-start-1 mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-muted">
+                    {/* The unit price, always. Without it a line of "× 5" tells
+                        a cashier nothing they can check a discount against. */}
+                    <span className="tabular-nums">
+                      {item.qty} × {formatMoney(item.unitPrice)}
                     </span>
-                    <span className="shrink-0 tabular-nums">
-                      {off > 0 ? (
-                        <>
-                          <span className="me-2 text-ink-muted line-through">
-                            {formatMoney(gross)}
+
+                    {discountMode === 'item' ? (
+                      <>
+                        <span aria-hidden className="text-ink-subtle">
+                          ·
+                        </span>
+                        <span className="inline-flex items-center rounded-md border border-line bg-surface focus-within:border-brand-primary focus-within:ring-2 focus-within:ring-brand-primary/25">
+                          <span aria-hidden className="ps-2 text-ink-subtle">
+                            −
                           </span>
-                          {formatMoney(gross - off)}
-                        </>
-                      ) : (
-                        formatMoney(gross)
-                      )}
-                    </span>
+                          <input
+                            type="number"
+                            min={0}
+                            max={item.unitPrice}
+                            step="any"
+                            inputMode="decimal"
+                            aria-label={t('pos.itemDiscount', { name: item.name })}
+                            placeholder="0"
+                            className="w-14 bg-transparent px-1 py-1 text-end text-xs tabular-nums text-ink outline-none"
+                            value={itemDiscounts[lineKey(item)] ?? ''}
+                            onChange={(e) =>
+                              setItemDiscounts((current) => ({
+                                ...current,
+                                [lineKey(item)]: e.target.value,
+                              }))
+                            }
+                          />
+                          <span className="pe-2 text-ink-subtle">
+                            {t('pos.discountPerUnitHint')}
+                          </span>
+                        </span>
+                        {/* What the per-unit figure came to across the line.
+                            Shown rather than left as mental arithmetic, because
+                            getting it wrong is money. */}
+                        {off > 0 ? (
+                          <span className="font-medium tabular-nums text-danger">
+                            −{formatMoney(off)}
+                          </span>
+                        ) : null}
+                      </>
+                    ) : null}
                   </div>
-                  {discountMode === 'item' ? (
-                    <div className="mt-2 flex items-center gap-2">
-                      <input
-                        type="number"
-                        min={0}
-                        max={item.unitPrice}
-                        step="any"
-                        inputMode="decimal"
-                        aria-label={t('pos.itemDiscount', { name: item.name })}
-                        placeholder={t('pos.discountPerUnit')}
-                        className="w-full rounded-md border border-line bg-surface px-2 py-1 text-sm tabular-nums"
-                        value={itemDiscounts[lineKey(item)] ?? ''}
-                        onChange={(e) =>
-                          setItemDiscounts((current) => ({
-                            ...current,
-                            [lineKey(item)]: e.target.value,
-                          }))
-                        }
-                      />
-                      {/* What it comes to across the line, so nobody has to do
-                          the multiplication in their head with a queue waiting. */}
-                      <span className="shrink-0 whitespace-nowrap text-xs text-ink-muted tabular-nums">
-                        {off > 0
-                          ? t('pos.discountPerUnitApplied', {
-                              qty: item.qty,
-                              total: formatMoney(off),
-                            })
-                          : t('pos.discountPerUnitHint')}
-                      </span>
-                    </div>
-                  ) : null}
-                </div>
+                </li>
               )
             })}
-          </div>
-          <div className="grid gap-2 border-t border-line/60 pt-2 text-sm">
-            <div className="flex items-center justify-between text-ink-muted">
+          </ul>
+
+          <div className="grid gap-2 pt-3 text-sm">
+            <div className="flex items-baseline justify-between text-ink-muted">
               <span>{t('pos.subtotal')}</span>
               <span className="tabular-nums">{formatMoney(subtotal)}</span>
             </div>
 
-            <fieldset className="grid gap-2">
-              <legend className="text-sm font-medium text-ink">{t('pos.discountMode')}</legend>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 text-sm text-ink">
-                  <input
-                    type="radio"
-                    name="create-sale-discount-mode"
-                    checked={discountMode === 'total'}
-                    onChange={() => setDiscountMode('total')}
-                  />
-                  {t('pos.discountWholeSale')}
-                </label>
-                <label className="flex items-center gap-2 text-sm text-ink">
-                  <input
-                    type="radio"
-                    name="create-sale-discount-mode"
-                    checked={discountMode === 'item'}
-                    onChange={() => setDiscountMode('item')}
-                  />
-                  {t('pos.discountPerItem')}
-                </label>
+            {/* The choice sits where its effect is shown. A segmented control
+                rather than two radios: it is one decision with two answers, and
+                it has to be hittable on a touchscreen till. */}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span id={discountModeLabelId} className="text-ink-muted">
+                {t('pos.discountMode')}
+              </span>
+              <div
+                role="radiogroup"
+                aria-labelledby={discountModeLabelId}
+                className="inline-flex rounded-lg border border-line bg-surface p-0.5"
+              >
+                {(['total', 'item'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    role="radio"
+                    aria-checked={discountMode === mode}
+                    onClick={() => setDiscountMode(mode)}
+                    className={`rounded-md px-3 py-1 text-xs font-medium transition-colors duration-pos ${
+                      discountMode === mode
+                        ? 'bg-brand-primary text-brand-on-primary'
+                        : 'text-ink-muted hover:text-ink'
+                    }`}
+                  >
+                    {mode === 'total' ? t('pos.discountWholeSale') : t('pos.discountPerItem')}
+                  </button>
+                ))}
               </div>
-            </fieldset>
+            </div>
 
             {discountMode === 'total' ? (
-              <TextField
-                label={t('pos.discount')}
-                type="number"
-                min={0}
-                step="any"
-                value={discountInput}
-                onChange={(e) => setDiscountInput(e.target.value)}
-              />
+              <div className="flex items-center justify-between gap-3">
+                <label htmlFor={orderDiscountId} className="text-ink-muted">
+                  {t('pos.discount')}
+                </label>
+                <input
+                  id={orderDiscountId}
+                  type="number"
+                  min={0}
+                  max={subtotal}
+                  step="any"
+                  inputMode="decimal"
+                  placeholder="0"
+                  className="w-32 rounded-lg border border-line bg-surface px-3 py-1.5 text-end text-sm tabular-nums text-ink outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/25"
+                  value={discountInput}
+                  onChange={(e) => setDiscountInput(e.target.value)}
+                />
+              </div>
             ) : (
-              <div className="flex items-center justify-between text-ink-muted">
-                <span>{t('pos.discountTotalLabel')}</span>
-                <span className="tabular-nums">{formatMoney(safeDiscount)}</span>
+              <div className="flex items-baseline justify-between">
+                <span className="text-ink-muted">{t('pos.discountTotalLabel')}</span>
+                <span className="tabular-nums text-ink">
+                  {safeDiscount > 0 ? `−${formatMoney(safeDiscount)}` : formatMoney(0)}
+                </span>
               </div>
             )}
 
-            <div className="flex items-center justify-between text-base font-semibold text-ink">
+            <div className="flex items-baseline justify-between border-t border-line pt-2 text-base font-semibold text-ink">
               <span>{t('pos.total')}</span>
               <span className="tabular-nums">{formatMoney(total)}</span>
             </div>
           </div>
-        </div>
+        </section>
 
         {hasOverstock ? (
           <p className="rounded-lg border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger">
