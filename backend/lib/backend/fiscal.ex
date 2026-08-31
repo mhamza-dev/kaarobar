@@ -428,8 +428,6 @@ defmodule Kaarobar.Fiscal do
     |> tap_audit(scope)
   end
 
-  defp audit_noop(_scope), do: {:error, :already_accepted}
-
   defp stamp_sale(%Submission{kind: "invoice"} = submission) do
     Sale
     |> where([s], s.id == ^submission.sale_id)

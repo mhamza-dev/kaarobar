@@ -20,6 +20,12 @@ defmodule KaarobarWeb.DiningSerializers do
   alias KaarobarWeb.JSONHelpers, as: H
   alias KaarobarWeb.SalesSerializers
 
+  # A dining floor, not `Kernel.floor/1`. Elixir will not let a module both
+  # define `floor/1` and refer to the name unqualified — `&floor/1` below is
+  # exactly that — so the arithmetic one is dropped rather than every
+  # reference to ours being qualified.
+  import Kernel, except: [floor: 1]
+
   # --- The floor --------------------------------------------------------------
 
   def floor(%Floor{} = floor) do

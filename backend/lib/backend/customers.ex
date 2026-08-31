@@ -516,7 +516,7 @@ defmodule Kaarobar.Customers do
   @doc "Updates an address."
   @spec update_address(Scope.t(), CustomerAddress.t(), map()) ::
           {:ok, CustomerAddress.t()} | {:error, term()}
-  def update_address(%Scope{} = scope, %CustomerAddress{} = address, attrs) do
+  def update_address(%Scope{}, %CustomerAddress{} = address, attrs) do
     Repo.transaction(fn ->
       if truthy?(fetch_attr(attrs, :is_default)) do
         clear_default(CustomerAddress, address.customer_id, address.id, :is_default)

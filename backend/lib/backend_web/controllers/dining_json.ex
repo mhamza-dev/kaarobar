@@ -3,6 +3,10 @@ defmodule KaarobarWeb.DiningJSON do
 
   alias KaarobarWeb.DiningSerializers, as: S
 
+  # `floor/1` here is a render target named after the resource, not
+  # `Kernel.floor/1`. See the same note in `KaarobarWeb.DiningSerializers`.
+  import Kernel, except: [floor: 1]
+
   def floor_plan(%{entries: entries}),
     do: %{data: Enum.map(entries, &S.floor_plan_entry/1)}
 
