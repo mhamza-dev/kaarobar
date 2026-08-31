@@ -56,7 +56,12 @@ defmodule Kaarobar.Sequences do
     "appointment" => %{prefix: "APT", reset: :monthly},
     # A job number is written on a laundry tag and read back weeks later, so it
     # keeps the year: "SJ-2026-0104" survives being found in a coat pocket.
-    "service_job" => %{prefix: "SJ", reset: :yearly}
+    "service_job" => %{prefix: "SJ", reset: :yearly},
+    "rental_agreement" => %{prefix: "HIRE", reset: :yearly},
+    "quote" => %{prefix: "QT", reset: :yearly},
+    # A payment reference is quoted to a gateway and echoed back in every
+    # callback it sends, so it stays unique for the whole year.
+    "payment_intent" => %{prefix: "PAY", reset: :yearly}
   }
 
   @doc """

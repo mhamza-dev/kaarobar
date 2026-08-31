@@ -83,6 +83,7 @@ defmodule Kaarobar.AccessControl.RoleTemplates do
             discount:apply discount:override
             customer:view customer:create customer:edit
             credit:view credit:sell credit:payment credit:allocate
+            payment:view payment:charge payment:refund payment:reconcile
             customer_group:view customer_group:manage
             follow_up:view follow_up:manage
             loyalty:view loyalty:redeem gift_card:view gift_card:redeem
@@ -91,6 +92,8 @@ defmodule Kaarobar.AccessControl.RoleTemplates do
             attendance:view attendance:record
             commission:view commission:manage commission:pay
             resource:view resource:manage queue:view queue:manage
+            rental:view rental:manage quote:view quote:manage
+            time_entry:view time_entry:record regulated:view
             report:sales
           )
     },
@@ -141,7 +144,7 @@ defmodule Kaarobar.AccessControl.RoleTemplates do
         order:view order:create order:edit
         register:view shift:open shift:close shift:view cash:movement cash:count
         customer:view customer:create customer:edit
-        credit:view credit:sell credit:payment
+        credit:view credit:sell credit:payment payment:view payment:charge
         customer_group:view follow_up:view
         loyalty:view loyalty:redeem gift_card:view gift_card:redeem gift_card:issue
         store_credit:redeem
@@ -149,6 +152,7 @@ defmodule Kaarobar.AccessControl.RoleTemplates do
         appointment:view appointment:manage
         service_job:view service_job:create service_job:update service_job:deliver
         resource:view queue:view
+        rental:view rental:manage time_entry:view time_entry:record
         delivery:view
       )
     },

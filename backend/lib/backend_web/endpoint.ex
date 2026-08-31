@@ -69,6 +69,9 @@ defmodule KaarobarWeb.Endpoint do
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],
+    # Keeps the raw bytes on webhook paths. A gateway signs what it sent, and
+    # re-encoding the parsed JSON produces different bytes that never verify.
+    body_reader: {KaarobarWeb.CacheBodyReader, :read_body, []},
     json_decoder: Phoenix.json_library(),
     # Receipts with embedded images and bulk catalog imports are the largest
     # bodies we accept.

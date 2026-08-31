@@ -54,6 +54,11 @@ defmodule KaarobarWeb.Router do
 
     # The signup form needs this before an account exists.
     get "/business-types", BusinessController, :types
+
+    # Gateway callbacks. Unauthenticated because a gateway has no bearer token
+    # and never will — the signature over the raw body is the credential, and
+    # `KaarobarWeb.CacheBodyReader` is what keeps those bytes intact.
+    post "/webhooks/:provider", PaymentController, :webhook
   end
 
   scope "/api/v1", KaarobarWeb do
@@ -476,6 +481,58 @@ defmodule KaarobarWeb.Router do
     get "/commissions/statement/:user_id", CommissionController, :statement
     post "/commissions/approve", CommissionController, :approve
     post "/commissions/pay", CommissionController, :pay
+
+    # --- Hire ---------------------------------------------------------------
+    get "/rentals/units", RentalController, :units
+    post "/rentals/units", RentalController, :create_unit
+    patch "/rentals/units/:id", RentalController, :update_unit
+    delete "/rentals/units/:id", RentalController, :delete_unit
+    get "/rentals/available", RentalController, :available
+
+    get "/rentals", RentalController, :index
+    post "/rentals", RentalController, :book
+    get "/rentals/overdue", RentalController, :overdue
+    get "/rentals/:id", RentalController, :show
+    post "/rentals/:id/issue", RentalController, :issue
+    post "/rentals/:id/return", RentalController, :take_back
+    post "/rentals/:id/cancel", RentalController, :cancel
+
+    # --- Professional services ----------------------------------------------
+    get "/quotes", QuoteController, :index
+    post "/quotes", QuoteController, :create
+    get "/quotes/win-rate", QuoteController, :win_rate
+    get "/quotes/:id", QuoteController, :show
+    put "/quotes/:id/lines", QuoteController, :set_lines
+    post "/quotes/:id/send", QuoteController, :send_quote
+    post "/quotes/:id/accept", QuoteController, :accept
+    post "/quotes/:id/decline", QuoteController, :decline
+
+    get "/time-entries", QuoteController, :time
+    post "/time-entries", QuoteController, :log_time
+    get "/time-entries/unbilled", QuoteController, :unbilled
+    get "/time-entries/utilisation", QuoteController, :utilisation
+    patch "/time-entries/:id", QuoteController, :update_time
+    delete "/time-entries/:id", QuoteController, :delete_time
+
+    # --- The regulated register (read-only; checkout writes it) --------------
+    get "/regulated/register", RegulatedController, :index
+    get "/regulated/register/batch/:batch_id", RegulatedController, :batch
+    get "/regulated/products", RegulatedController, :products
+
+    # --- Gateway payments ---------------------------------------------------
+    get "/payments/providers", PaymentController, :providers
+    post "/payments/providers", PaymentController, :configure
+    patch "/payments/providers/:id", PaymentController, :update_provider
+    delete "/payments/providers/:id", PaymentController, :delete_provider
+
+    get "/payments", PaymentController, :index
+    post "/payments", PaymentController, :charge
+    get "/payments/settlements", PaymentController, :settlements
+    post "/payments/settlements/:id/reconcile", PaymentController, :reconcile
+    get "/payments/:id", PaymentController, :show
+    post "/payments/:id/capture", PaymentController, :capture
+    post "/payments/:id/refund", PaymentController, :refund
+    post "/payments/:id/sync", PaymentController, :sync
 
     # --- Audit ---
     get "/audit-logs", AuditController, :index
