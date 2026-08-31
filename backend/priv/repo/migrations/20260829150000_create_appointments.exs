@@ -212,12 +212,17 @@ defmodule Kaarobar.Repo.Migrations.CreateAppointments do
     # four o'clock is the ordinary case, and a read-then-write check loses that
     # race every time. Cancelled services are excluded so a freed slot is
     # immediately rebookable.
+    # `tsrange`, not `tstzrange`: Ecto's `:utc_datetime_usec` is a
+    # `timestamp without time zone`, so a tstz range would need an implicit
+    # cast that depends on the session's TimeZone — which Postgres rejects
+    # outright in an index expression, and which would reinterpret the same
+    # stored instant differently per connection if it did not.
     execute """
             ALTER TABLE appointment_services
             ADD CONSTRAINT appointment_services_no_overlap
             EXCLUDE USING gist (
               resource_id WITH =,
-              tstzrange(starts_at, ends_at, '[)') WITH &&
+              tsrange(starts_at, ends_at, '[)') WITH &&
             ) WHERE (status <> 'cancelled')
             """,
             "ALTER TABLE appointment_services DROP CONSTRAINT appointment_services_no_overlap"

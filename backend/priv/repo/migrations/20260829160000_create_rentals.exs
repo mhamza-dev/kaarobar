@@ -206,12 +206,17 @@ defmodule Kaarobar.Repo.Migrations.CreateRentals do
     #
     # A returned line is excluded, so bringing something back early frees it
     # immediately rather than leaving it blocked until the date it was due.
+    # `tsrange`, not `tstzrange`: Ecto's `:utc_datetime_usec` is a
+    # `timestamp without time zone`, so a tstz range would need an implicit
+    # cast that depends on the session's TimeZone — which Postgres rejects
+    # outright in an index expression, and which would reinterpret the same
+    # stored instant differently per connection if it did not.
     execute """
             ALTER TABLE rental_agreement_lines
             ADD CONSTRAINT rental_lines_one_live_hire
             EXCLUDE USING gist (
               rental_unit_id WITH =,
-              tstzrange(held_from, held_until, '[)') WITH &&
+              tsrange(held_from, held_until, '[)') WITH &&
             ) WHERE (returned_at IS NULL)
             """,
             "ALTER TABLE rental_agreement_lines DROP CONSTRAINT rental_lines_one_live_hire"
