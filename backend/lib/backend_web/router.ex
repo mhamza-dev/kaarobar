@@ -30,6 +30,10 @@ defmodule KaarobarWeb.Router do
   pipeline :api_authenticated do
     plug KaarobarWeb.Plugs.RequireAuth
     plug KaarobarWeb.Plugs.LoadScope
+    # After LoadScope, because it reads the entitlements LoadScope resolves.
+    # Only ever refuses an organization whose subscription has actually
+    # expired — a failed payment keeps working through its grace period.
+    plug KaarobarWeb.Plugs.RequireSubscription
     plug KaarobarWeb.Plugs.Idempotency
 
     # Generous. A barcode scanner fires bursts and a busy counter rings a sale
@@ -533,6 +537,34 @@ defmodule KaarobarWeb.Router do
     post "/payments/:id/capture", PaymentController, :capture
     post "/payments/:id/refund", PaymentController, :refund
     post "/payments/:id/sync", PaymentController, :sync
+
+    # --- Platform billing ----------------------------------------------------
+    # Reachable even when the subscription has lapsed: see
+    # `KaarobarWeb.Plugs.RequireSubscription`, which exempts this controller.
+    # An organization that cannot reach the screen where it pays cannot become
+    # a paying customer again.
+    get "/billing/plans", BillingController, :plans
+    get "/billing/subscription", BillingController, :show
+    post "/billing/subscription", BillingController, :subscribe
+    put "/billing/subscription/plan", BillingController, :change_plan
+    put "/billing/subscription/quantity", BillingController, :set_quantity
+    delete "/billing/subscription", BillingController, :cancel
+    post "/billing/subscription/resume", BillingController, :resume
+    get "/billing/invoices", BillingController, :invoices
+    get "/billing/invoices/:id", BillingController, :invoice
+
+    # --- Fiscal compliance ---------------------------------------------------
+    # The literal segments come before "/fiscal/submissions/:id" so neither
+    # "status" nor "retry" is ever read as a submission id.
+    get "/fiscal/config", FiscalController, :config
+    put "/fiscal/config", FiscalController, :configure
+    delete "/fiscal/config", FiscalController, :disable
+
+    get "/fiscal/status", FiscalController, :status
+    post "/fiscal/retry", FiscalController, :retry_all
+    get "/fiscal/submissions", FiscalController, :index
+    get "/fiscal/submissions/:id", FiscalController, :show
+    post "/fiscal/submissions/:id/retry", FiscalController, :retry
 
     # --- Audit ---
     get "/audit-logs", AuditController, :index

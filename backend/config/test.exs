@@ -29,6 +29,12 @@ config :swoosh, :api_client, false
 # Jobs are asserted on explicitly rather than executed in the background.
 config :backend, Oban, testing: :manual
 
+# No test files a return with a revenue authority. The stub answers from the
+# test process's own dictionary, which keeps fiscal tests async — application
+# env is global, and two async tests configuring it would overwrite each
+# other's authority.
+config :backend, Kaarobar.Fiscal.HTTP, client: Kaarobar.FiscalStub
+
 # Argon2 is deliberately slow. Use the cheapest parameters in test.
 config :argon2_elixir, t_cost: 1, m_cost: 8
 

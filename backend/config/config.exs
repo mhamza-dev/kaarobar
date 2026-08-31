@@ -43,7 +43,25 @@ config :backend, Oban,
     reports: 5,
     payments: 10,
     notifications: 20,
-    maintenance: 5
+    maintenance: 5,
+    # Reporting invoices to tax authorities. Its own queue because a revenue
+    # authority being down for an hour must not back up behind it every email
+    # and every webhook the platform also owes somebody.
+    fiscal: 5
+  ],
+  plugins: [
+    # Submissions carry their own `retry_after`, so this only has to look often
+    # enough to notice one coming due. A minute is well inside the grace period
+    # every real-time regime allows.
+    {Oban.Plugins.Cron,
+     crontab: [
+       {"* * * * *", Kaarobar.Fiscal.RetryWorker},
+       # Hourly, not by the minute. Dunning intervals are measured in days, and
+       # an organization's grace should not end at a minute's precision — the
+       # difference between being cut off at 09:00 and at 09:47 matters to the
+       # person it happens to and to nobody else.
+       {"0 * * * *", Kaarobar.Billing.DunningWorker}
+     ]}
   ]
 
 # Configure the mailer

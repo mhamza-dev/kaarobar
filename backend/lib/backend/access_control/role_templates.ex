@@ -66,6 +66,7 @@ defmodule Kaarobar.AccessControl.RoleTemplates do
             organization:view business:view branch:view branch:create branch:edit
             staff:view staff:invite staff:edit staff:deactivate staff:assign_roles
             expense:view expense:create expense:approve
+            fiscal:view fiscal:retry
             audit:view
           )
     },
@@ -114,7 +115,8 @@ defmodule Kaarobar.AccessControl.RoleTemplates do
             customer_group:view follow_up:view loyalty:view gift_card:view
             supplier:view purchase_order:view supplier_bill:manage supplier_payment:record
             expense:view expense:create expense:approve bank_account:manage
-            tax:manage fiscal:manage
+            tax:manage
+            fiscal:configure fiscal:view fiscal:retry
             audit:view
           )
     },

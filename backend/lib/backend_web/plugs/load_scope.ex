@@ -16,12 +16,27 @@ defmodule KaarobarWeb.Plugs.LoadScope do
   user's memberships, so naming a tenant the caller does not belong to yields
   `404` — the same answer as naming one that does not exist, because
   distinguishing them would confirm the tenant is real.
+
+  ## Entitlements are resolved here too
+
+  Once the organization is known, `Kaarobar.Billing.Entitlements` resolves what
+  its subscription unlocks and puts it on the scope, where
+  `KaarobarWeb.Plugs.Authorize` and `KaarobarWeb.Plugs.RequireSubscription`
+  read it. Two queries per request, deliberately uncached: an upgrade that took
+  five minutes to take effect would be reported as a bug by the first customer
+  who bought it to fix an outage.
+
+  An organization with no subscription resolves to an empty set, which
+  `Kaarobar.Scope.entitled?/2` reads as "not resolved, allow everything". That
+  is what keeps billing optional rather than a silent outage for any deployment
+  that does not sell subscriptions.
   """
 
   @behaviour Plug
 
   import Plug.Conn
 
+  alias Kaarobar.Billing.Entitlements
   alias Kaarobar.Scope
   alias Kaarobar.Scopes
   alias KaarobarWeb.ErrorEnvelope
@@ -34,7 +49,9 @@ defmodule KaarobarWeb.Plugs.LoadScope do
     case Scopes.build(user, selection(conn)) do
       {:ok, scope} ->
         scope =
-          Scope.put_request_metadata(scope, conn.assigns[:request_id], conn.assigns[:remote_ip])
+          scope
+          |> Scope.put_entitlements(Entitlements.for_organization(Scope.organization_id(scope)))
+          |> Scope.put_request_metadata(conn.assigns[:request_id], conn.assigns[:remote_ip])
 
         Logger.metadata(Scope.logger_metadata(scope))
 

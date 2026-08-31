@@ -121,6 +121,58 @@ defmodule KaarobarWeb.ErrorEnvelope do
       {:unprocessable_entity,
        build("credit_customer_required", "A sale on credit has to name the customer")}
 
+  # --- Platform billing ------------------------------------------------------
+  #
+  # 402 rather than 403 throughout: none of these are "you may not", they are
+  # "this costs money and it has not been paid". The distinction is what tells
+  # a client to show a pay button rather than an apology.
+
+  def for_reason(:subscription_expired),
+    do:
+      {:payment_required,
+       build(
+         "subscription_expired",
+         "This organization's subscription has ended. Renew it to carry on."
+       )}
+
+  def for_reason(:no_subscription),
+    do: {:not_found, build("no_subscription", "This organization has no subscription")}
+
+  def for_reason(:already_subscribed),
+    do: {:conflict, build("already_subscribed", "This organization already has a subscription")}
+
+  def for_reason(:plan_unavailable),
+    do: {:unprocessable_entity, build("plan_unavailable", "That plan is no longer available")}
+
+  def for_reason(:trialing),
+    do:
+      {:unprocessable_entity,
+       build("trialing", "Nothing is charged while the trial is running")}
+
+  # Only ever reached by a business that switched on `block_on_failure`, and
+  # the number is the point of the message: "fiscal reporting is behind" tells
+  # a cashier nothing they can act on, and the count sends them for a manager.
+  def for_reason(:fiscal_backlog),
+    do:
+      {:conflict,
+       build(
+         "fiscal_backlog",
+         "Selling is paused until earlier invoices reach the tax authority"
+       )}
+
+  def for_reason(:no_fiscal_config),
+    do:
+      {:unprocessable_entity,
+       build("no_fiscal_config", "This business has no fiscal integration configured")}
+
+  def for_reason(:unknown_adapter),
+    do: {:unprocessable_entity, build("unknown_adapter", "That integration is not supported")}
+
+  def for_reason(:already_accepted),
+    do:
+      {:conflict,
+       build("already_accepted", "The authority has already accepted this submission")}
+
   def for_reason(:shift_not_open),
     do: {:conflict, build("shift_not_open", "This register has no open shift")}
 

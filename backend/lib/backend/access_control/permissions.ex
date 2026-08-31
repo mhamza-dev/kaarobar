@@ -228,6 +228,15 @@ defmodule Kaarobar.AccessControl.Permissions do
     {:reports, "report:customer", "Customer reports"},
     {:reports, "report:export", "Export report data"},
 
+    # --- Fiscal compliance ----------------------------------------------------
+    #
+    # Configuring the tax authority connection is separate from watching it,
+    # because the person who chases a rejected invoice all afternoon is rarely
+    # the person who should be able to change the taxpayer number.
+    {:system, "fiscal:configure", "Configure the tax authority connection"},
+    {:system, "fiscal:view", "View fiscal submissions"},
+    {:system, "fiscal:retry", "Resubmit a rejected or failed invoice"},
+
     # --- System ---------------------------------------------------------------
     {:system, "audit:view", "View the audit trail"},
     {:system, "webhook:manage", "Manage webhooks"},

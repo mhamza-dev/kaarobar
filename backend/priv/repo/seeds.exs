@@ -24,6 +24,11 @@ Logger.info(
     "(#{permissions.deleted} removed) and #{role_count} system roles."
 )
 
+# The subscription catalogue. Idempotent, and seeded in every environment: an
+# organization with no plan is unrestricted, so a missing catalogue is not an
+# outage — but a pricing page with nothing on it is.
+Code.eval_file(Path.join(__DIR__, "seeds/plans.exs"))
+
 if System.get_env("SEED_DEMO") in ~w(true 1) do
   case Application.get_env(:backend, :env) do
     env when env in [:dev, :test] ->

@@ -55,6 +55,7 @@ defmodule Kaarobar.Sales.Checkout do
   alias Kaarobar.Catalog.ProductVariant
   alias Kaarobar.Commissions
   alias Kaarobar.Customers
+  alias Kaarobar.Fiscal
   alias Kaarobar.Inventory.Ledger
   alias Kaarobar.Money
   alias Kaarobar.Pricing
@@ -76,6 +77,8 @@ defmodule Kaarobar.Sales.Checkout do
   alias Kaarobar.Taxes
   alias Kaarobar.Verticals
 
+  require Logger
+
   @type error ::
           :no_lines
           | :no_payment
@@ -91,6 +94,7 @@ defmodule Kaarobar.Sales.Checkout do
           | {:underpaid, Decimal.t()}
           | {:overpaid, Decimal.t()}
           | {:credit_limit_exceeded, Decimal.t()}
+          | {:fiscal_backlog, non_neg_integer()}
           | {:variant_not_found, Ecto.UUID.t() | nil}
           | {:forbidden, String.t()}
           | Ecto.Changeset.t()
@@ -146,11 +150,12 @@ defmodule Kaarobar.Sales.Checkout do
     with {:ok, request} <- build_request(scope, params),
          priced = price(scope, request),
          {:ok, tenders} <- resolve_tenders(request, priced),
-         :ok <- Regulated.check_sale(scope, request.lines) do
+         :ok <- Regulated.check_sale(scope, request.lines),
+         :ok <- Fiscal.guard_sale(scope) do
       case commit(scope, request, priced, tenders) do
         {:ok, sale} ->
           broadcast(scope, sale)
-          {:ok, sale}
+          report_fiscally(scope, sale)
 
         {:error, reason} ->
           {:error, reason}
@@ -722,6 +727,7 @@ defmodule Kaarobar.Sales.Checkout do
            {:ok, payments} <- insert_payments(sale, tenders),
            :ok <- post_credit(scope, request, sale, tenders),
            :ok <- accrue_commission(scope, %{sale | items: items}),
+           :ok <- queue_fiscal(scope, sale),
            :ok <- record_register(scope, sale, request, items),
            :ok <- bill_order(request, priced),
            {:ok, _shift} <- Registers.apply_sale(sale, payments) do
@@ -1079,6 +1085,45 @@ defmodule Kaarobar.Sales.Checkout do
     case Enum.at(items, index) do
       nil -> nil
       item -> item.id
+    end
+  end
+
+  # Queued inside the sale's transaction so a committed sale always has a
+  # submission waiting for it. Written afterwards, a crash between the two
+  # would leave an invoice nobody ever reports — and nothing would notice,
+  # because nothing would be looking for it.
+  defp queue_fiscal(%Scope{} = scope, %Sale{} = sale) do
+    case Fiscal.queue_sale_within(scope, sale) do
+      {:ok, _submission} -> :ok
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  # Outside the transaction, and its failure is not the sale's failure. The
+  # authority has been queued either way; this is only the attempt to get the
+  # stamp onto the receipt now rather than a minute from now, and a shop whose
+  # sale was rejected because a revenue endpoint was slow would rightly stop
+  # using the software.
+  defp report_fiscally(%Scope{} = scope, %Sale{} = sale) do
+    case Fiscal.submit_sale(scope, sale) do
+      {:ok, %{status: "accepted"} = submission} ->
+        {:ok,
+         %{
+           sale
+           | fiscal_number: submission.fiscal_number,
+             fiscal_qr_payload: submission.qr_payload,
+             fiscal_status: "accepted"
+         }}
+
+      {:ok, %{status: status}} ->
+        {:ok, %{sale | fiscal_status: status}}
+
+      {:ok, nil} ->
+        {:ok, sale}
+
+      {:error, reason} ->
+        Logger.warning("sale #{sale.number} could not be reported now: #{inspect(reason)}")
+        {:ok, %{sale | fiscal_status: "queued"}}
     end
   end
 

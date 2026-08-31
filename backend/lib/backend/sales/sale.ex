@@ -57,6 +57,14 @@ defmodule Kaarobar.Sales.Sale do
     field :notes, :string
     field :discount_reason, :string
 
+    # What the tax authority gave back. Written by `Kaarobar.Fiscal` after the
+    # sale commits, never cast from a client: an invoice number the till could
+    # choose is one it could invent. Copied here rather than joined so a
+    # receipt reprinted in two years shows the stamp it showed on the day.
+    field :fiscal_number, :string
+    field :fiscal_qr_payload, :string
+    field :fiscal_status, :string
+
     field :voided_at, :utc_datetime_usec
     field :void_reason, :string
     field :sold_at, :utc_datetime_usec

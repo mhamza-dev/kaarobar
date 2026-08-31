@@ -41,6 +41,9 @@ defmodule Kaarobar.Scope do
           role_keys: [String.t()],
           permissions: MapSet.t(String.t()),
           entitlements: MapSet.t(String.t()),
+          entitlement_limits: %{String.t() => non_neg_integer() | :unlimited},
+          subscription_status: String.t() | nil,
+          serviceable?: boolean(),
           branch_ids: :all | MapSet.t(id()),
           owner?: boolean(),
           request_id: String.t() | nil,
@@ -55,6 +58,12 @@ defmodule Kaarobar.Scope do
             role_keys: [],
             permissions: MapSet.new(),
             entitlements: MapSet.new(),
+            entitlement_limits: %{},
+            subscription_status: nil,
+            # True unless the organization's subscription has actually lapsed.
+            # Defaults to true so that every internal caller and every test
+            # works without a subscription — see `Kaarobar.Billing.Entitlements`.
+            serviceable?: true,
             branch_ids: :all,
             owner?: false,
             request_id: nil,
@@ -109,11 +118,56 @@ defmodule Kaarobar.Scope do
     }
   end
 
-  @doc "Attaches the feature set unlocked by the organization's subscription."
-  @spec put_entitlements(t(), Enumerable.t()) :: t()
+  @doc """
+  Attaches what the organization's subscription unlocks.
+
+  Takes either a resolved `Kaarobar.Billing.Entitlements` map — features,
+  limits, status and whether the subscription is still serviceable — or a bare
+  enumerable of feature keys, which is what tests and internal callers have.
+  """
+  @spec put_entitlements(t(), map() | Enumerable.t()) :: t()
+  def put_entitlements(%Scope{} = scope, %{features: features} = resolved) do
+    %{
+      scope
+      | entitlements: to_set(features),
+        entitlement_limits: Map.get(resolved, :limits, %{}),
+        subscription_status: Map.get(resolved, :status),
+        serviceable?: Map.get(resolved, :serviceable, true)
+    }
+  end
+
   def put_entitlements(%Scope{} = scope, features) do
     %{scope | entitlements: to_set(features)}
   end
+
+  @doc """
+  The plan's limit on something, or `:unlimited`.
+
+  An unknown key is unlimited rather than zero. A limit nobody has set is not a
+  limit of none, and reading it that way would stop a paying customer from
+  opening their second branch.
+  """
+  @spec limit(t(), String.t()) :: non_neg_integer() | :unlimited
+  def limit(%Scope{entitlement_limits: limits}, key), do: Map.get(limits, key, :unlimited)
+
+  @doc "True when one more of something would still be inside the plan's limit."
+  @spec within_limit?(t(), String.t(), non_neg_integer()) :: boolean()
+  def within_limit?(%Scope{} = scope, key, current_count) do
+    case limit(scope, key) do
+      :unlimited -> true
+      limit -> current_count < limit
+    end
+  end
+
+  @doc """
+  True unless the organization's subscription has lapsed.
+
+  Distinct from `entitled?/2`: that asks whether the plan includes something,
+  this asks whether the plan is being paid for at all.
+  """
+  @spec serviceable?(t() | nil) :: boolean()
+  def serviceable?(nil), do: false
+  def serviceable?(%Scope{serviceable?: serviceable}), do: serviceable
 
   @doc "Attaches per-request diagnostics used by the audit trail."
   @spec put_request_metadata(t(), String.t() | nil, String.t() | nil) :: t()

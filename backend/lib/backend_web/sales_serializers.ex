@@ -63,6 +63,12 @@ defmodule KaarobarWeb.SalesSerializers do
       cashier_label: sale.cashier_label,
       notes: sale.notes,
       discount_reason: sale.discount_reason,
+      # The receipt is not a valid tax invoice without these in the regimes
+      # that issue them, so they go out with every sale rather than behind a
+      # second request the printing code would have to remember to make.
+      fiscal_number: sale.fiscal_number,
+      fiscal_qr_payload: sale.fiscal_qr_payload,
+      fiscal_status: sale.fiscal_status,
       voided_at: timestamp(sale.voided_at),
       void_reason: sale.void_reason,
       sold_at: timestamp(sale.sold_at),
