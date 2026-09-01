@@ -60,7 +60,11 @@ config :backend, Oban,
        # an organization's grace should not end at a minute's precision — the
        # difference between being cut off at 09:00 and at 09:47 matters to the
        # person it happens to and to nobody else.
-       {"0 * * * *", Kaarobar.Billing.DunningWorker}
+       {"0 * * * *", Kaarobar.Billing.DunningWorker},
+       # Hourly, not nightly. "The day is over" happens at a different instant
+       # in every timezone the platform sells into, and each run only touches
+       # the businesses whose day has actually closed.
+       {"20 * * * *", Kaarobar.Reports.RollupWorker}
      ]}
   ]
 

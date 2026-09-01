@@ -217,7 +217,14 @@ defmodule Kaarobar.AccessControl.Permissions do
     {:finance, "expense:approve", "Approve an expense"},
     {:finance, "bank_account:manage", "Manage bank accounts"},
     {:finance, "payment_provider:manage", "Configure payment providers"},
-    {:finance, "fiscal:manage", "Configure fiscal and e-invoicing"},
+
+    # Configuring the tax authority connection is separate from watching it:
+    # the person who chases a rejected invoice all afternoon is rarely the
+    # person who should be able to change the taxpayer number. These replaced a
+    # single `fiscal:manage` that drew no such line.
+    {:finance, "fiscal:configure", "Configure the tax authority connection"},
+    {:finance, "fiscal:view", "View fiscal submissions"},
+    {:finance, "fiscal:retry", "Resubmit a rejected or failed invoice"},
 
     # --- Reporting ------------------------------------------------------------
     {:reports, "report:sales", "Sales reports"},
@@ -227,15 +234,6 @@ defmodule Kaarobar.AccessControl.Permissions do
     {:reports, "report:tax", "Tax reports"},
     {:reports, "report:customer", "Customer reports"},
     {:reports, "report:export", "Export report data"},
-
-    # --- Fiscal compliance ----------------------------------------------------
-    #
-    # Configuring the tax authority connection is separate from watching it,
-    # because the person who chases a rejected invoice all afternoon is rarely
-    # the person who should be able to change the taxpayer number.
-    {:system, "fiscal:configure", "Configure the tax authority connection"},
-    {:system, "fiscal:view", "View fiscal submissions"},
-    {:system, "fiscal:retry", "Resubmit a rejected or failed invoice"},
 
     # --- System ---------------------------------------------------------------
     {:system, "audit:view", "View the audit trail"},

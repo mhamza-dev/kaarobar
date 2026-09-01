@@ -1,0 +1,128 @@
+defmodule KaarobarWeb.ReportController do
+  @moduledoc """
+  The numbers a shopkeeper opens the app to see.
+
+  ## The period is always explicit
+
+  Every action takes `from` and `to` and defaults to the last thirty days when
+  they are missing. No endpoint here silently reports "this month" — a figure
+  whose period the caller did not choose is a figure they will misread, and
+  two clients guessing differently would show two answers for the same shop.
+  """
+
+  use KaarobarWeb, :controller
+
+  alias Kaarobar.Reports
+  alias Kaarobar.Reports.RollupWorker
+  alias Kaarobar.Scope
+
+  plug KaarobarWeb.Plugs.Authorize,
+       [permission: "report:sales"]
+       when action in [:summary, :daily, :by_branch, :by_tender, :by_hour, :top_products, :by_category]
+
+  plug KaarobarWeb.Plugs.Authorize, [permission: "report:staff"] when action in [:by_cashier]
+  plug KaarobarWeb.Plugs.Authorize, [permission: "report:financial"] when action in [:profit]
+  plug KaarobarWeb.Plugs.Authorize, [permission: "report:tax"] when action in [:tax]
+  plug KaarobarWeb.Plugs.Authorize, [permission: "report:sales"] when action in [:rebuild]
+
+  def summary(conn, params) do
+    scope = conn.assigns.scope
+    render(conn, :summary, summary: Reports.summary(scope, period(params), opts(params)))
+  end
+
+  def daily(conn, params) do
+    scope = conn.assigns.scope
+    render(conn, :daily, days: Reports.daily_series(scope, period(params), opts(params)))
+  end
+
+  def top_products(conn, params) do
+    scope = conn.assigns.scope
+    opts = Keyword.put(opts(params), :limit, limit(params, 10))
+    render(conn, :rows, rows: Reports.top_products(scope, period(params), opts))
+  end
+
+  def by_category(conn, params) do
+    scope = conn.assigns.scope
+    render(conn, :rows, rows: Reports.sales_by_category(scope, period(params), opts(params)))
+  end
+
+  def by_branch(conn, params) do
+    scope = conn.assigns.scope
+    render(conn, :rows, rows: Reports.sales_by_branch(scope, period(params)))
+  end
+
+  def by_tender(conn, params) do
+    scope = conn.assigns.scope
+    render(conn, :rows, rows: Reports.sales_by_tender(scope, period(params), opts(params)))
+  end
+
+  def by_cashier(conn, params) do
+    scope = conn.assigns.scope
+    render(conn, :rows, rows: Reports.sales_by_cashier(scope, period(params), opts(params)))
+  end
+
+  def by_hour(conn, params) do
+    scope = conn.assigns.scope
+    render(conn, :rows, rows: Reports.sales_by_hour(scope, period(params), opts(params)))
+  end
+
+  def profit(conn, params) do
+    scope = conn.assigns.scope
+    render(conn, :profit, profit: Reports.profit_and_loss(scope, period(params)))
+  end
+
+  def tax(conn, params) do
+    scope = conn.assigns.scope
+    render(conn, :rows, rows: Reports.tax_report(scope, period(params), opts(params)))
+  end
+
+  @doc """
+  Recomputes the rollups behind these figures.
+
+  Queued rather than run inline: a year of days across a dozen branches is not
+  a web request, and the answer the caller wants is "it is being redone", not a
+  connection held open while it is.
+  """
+  def rebuild(conn, _params) do
+    with {:ok, _job} <- RollupWorker.enqueue(Scope.business_id(conn.assigns.scope)) do
+      conn |> put_status(:accepted) |> render(:queued, queued: true)
+    end
+  end
+
+  # --- Parameters -------------------------------------------------------------
+
+  # Thirty days is the default because it is the window a shop actually talks
+  # in — "how was last month?" — and because it is short enough that a missing
+  # parameter never accidentally scans a decade.
+  defp period(params) do
+    to = parse_date(params["to"]) || Date.utc_today()
+    from = parse_date(params["from"]) || Date.add(to, -29)
+
+    if Date.compare(from, to) == :gt, do: {to, from}, else: {from, to}
+  end
+
+  defp opts(params) do
+    case params["branch_id"] do
+      id when is_binary(id) and id != "" -> [branch_id: id]
+      _absent -> []
+    end
+  end
+
+  defp limit(params, fallback) do
+    case Integer.parse(to_string(params["limit"] || "")) do
+      {value, _rest} when value > 0 and value <= 200 -> value
+      _other -> fallback
+    end
+  end
+
+  defp parse_date(nil), do: nil
+
+  defp parse_date(value) when is_binary(value) do
+    case Date.from_iso8601(value) do
+      {:ok, date} -> date
+      {:error, _reason} -> nil
+    end
+  end
+
+  defp parse_date(_value), do: nil
+end

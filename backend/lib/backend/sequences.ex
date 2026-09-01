@@ -61,7 +61,10 @@ defmodule Kaarobar.Sequences do
     "quote" => %{prefix: "QT", reset: :yearly},
     # A payment reference is quoted to a gateway and echoed back in every
     # callback it sends, so it stays unique for the whole year.
-    "payment_intent" => %{prefix: "PAY", reset: :yearly}
+    "payment_intent" => %{prefix: "PAY", reset: :yearly},
+    # An expense is filed with the year's paperwork and looked up by an
+    # accountant months later, so the year is part of how it is found.
+    "expense" => %{prefix: "EXP", reset: :yearly}
   }
 
   @doc """

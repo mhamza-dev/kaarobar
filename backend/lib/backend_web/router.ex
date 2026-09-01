@@ -538,6 +538,41 @@ defmodule KaarobarWeb.Router do
     post "/payments/:id/refund", PaymentController, :refund
     post "/payments/:id/sync", PaymentController, :sync
 
+    # --- Reports --------------------------------------------------------------
+    # Every one takes `from`/`to` and defaults to the last thirty days. Read
+    # from the nightly rollups for closed days and live for today.
+    get "/reports/summary", ReportController, :summary
+    get "/reports/daily", ReportController, :daily
+    get "/reports/top-products", ReportController, :top_products
+    get "/reports/by-category", ReportController, :by_category
+    get "/reports/by-branch", ReportController, :by_branch
+    get "/reports/by-tender", ReportController, :by_tender
+    get "/reports/by-cashier", ReportController, :by_cashier
+    get "/reports/by-hour", ReportController, :by_hour
+    get "/reports/profit", ReportController, :profit
+    get "/reports/tax", ReportController, :tax
+    post "/reports/rebuild", ReportController, :rebuild
+
+    # --- Expenses and bank accounts -------------------------------------------
+    # The literal segments come first so "categories" is never read as an id.
+    get "/expenses/categories", ExpenseController, :categories
+    post "/expenses/categories", ExpenseController, :create_category
+    patch "/expenses/categories/:id", ExpenseController, :update_category
+    delete "/expenses/categories/:id", ExpenseController, :delete_category
+
+    get "/expenses/by-category", ExpenseController, :by_category
+    get "/expenses", ExpenseController, :index
+    post "/expenses", ExpenseController, :create
+    get "/expenses/:id", ExpenseController, :show
+    post "/expenses/:id/approve", ExpenseController, :approve
+    post "/expenses/:id/reject", ExpenseController, :reject
+    delete "/expenses/:id", ExpenseController, :delete
+
+    get "/bank-accounts", ExpenseController, :bank_accounts
+    post "/bank-accounts", ExpenseController, :create_bank_account
+    patch "/bank-accounts/:id", ExpenseController, :update_bank_account
+    delete "/bank-accounts/:id", ExpenseController, :delete_bank_account
+
     # --- Platform billing ----------------------------------------------------
     # Reachable even when the subscription has lapsed: see
     # `KaarobarWeb.Plugs.RequireSubscription`, which exempts this controller.
