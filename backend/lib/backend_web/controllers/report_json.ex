@@ -19,8 +19,29 @@ defmodule KaarobarWeb.ReportJSON do
 
   def queued(%{queued: _queued}), do: %{data: %{queued: true}}
 
+  def ageing(%{totals: totals, by_party: by_party}),
+    do: %{data: %{totals: serialise(totals), by_party: Enum.map(by_party, &serialise/1)}}
+
+  def payables(%{payables: payables}), do: %{data: serialise(payables)}
+
+  def shift_report(%{report: report}), do: %{data: serialise(report)}
+
   # Walks the map and formats what is money, leaving counts, ids and dates
   # alone. One rule in one place, so a report added later cannot forget it.
+  # Ecto structs reach here inside a shift report. Only their own fields are
+  # kept: `__meta__` and unloaded associations are not data, and neither
+  # survives JSON encoding.
+  defp serialise(%module{} = record) when module not in [Date, DateTime, NaiveDateTime, Decimal] do
+    if function_exported?(module, :__schema__, 1) do
+      record |> Map.take(module.__schema__(:fields)) |> serialise()
+    else
+      record |> Map.from_struct() |> serialise()
+    end
+  end
+
+  defp serialise(%Decimal{} = amount), do: H.money(amount)
+  defp serialise(%Date{} = date), do: Date.to_iso8601(date)
+
   defp serialise(value) when is_map(value) and not is_struct(value) do
     Map.new(value, fn {key, inner} -> {key, serialise_value(key, inner)} end)
   end

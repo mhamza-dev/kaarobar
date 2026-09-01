@@ -12,6 +12,9 @@ defmodule KaarobarWeb.ReportController do
 
   use KaarobarWeb, :controller
 
+  alias Kaarobar.Credit
+  alias Kaarobar.Purchasing
+  alias Kaarobar.Registers
   alias Kaarobar.Reports
   alias Kaarobar.Reports.RollupWorker
   alias Kaarobar.Scope
@@ -23,6 +26,12 @@ defmodule KaarobarWeb.ReportController do
   plug KaarobarWeb.Plugs.Authorize, [permission: "report:staff"] when action in [:by_cashier]
   plug KaarobarWeb.Plugs.Authorize, [permission: "report:financial"] when action in [:profit]
   plug KaarobarWeb.Plugs.Authorize, [permission: "report:tax"] when action in [:tax]
+
+  plug KaarobarWeb.Plugs.Authorize,
+       [permission: "report:financial"] when action in [:receivables, :payables]
+
+  plug KaarobarWeb.Plugs.Authorize,
+       [permission: "shift:view_all"] when action in [:x_report, :z_report]
   plug KaarobarWeb.Plugs.Authorize, [permission: "report:sales"] when action in [:rebuild]
 
   def summary(conn, params) do
@@ -77,6 +86,55 @@ defmodule KaarobarWeb.ReportController do
   end
 
   @doc """
+  What customers owe, in ageing buckets.
+
+  The total says how bad it is; `by_customer` says where to start, which is
+  what a collections round is actually built from.
+  """
+  def receivables(conn, params) do
+    scope = conn.assigns.scope
+    opts = as_of(params)
+
+    render(conn, :ageing,
+      totals: Credit.ageing(scope, opts),
+      by_party: Credit.ageing_by_customer(scope, opts)
+    )
+  end
+
+  @doc "What the shop owes its suppliers, in the same buckets."
+  def payables(conn, _params) do
+    render(conn, :payables, payables: Purchasing.payables_ageing(conn.assigns.scope))
+  end
+
+  @doc """
+  Where a shift stands right now, without closing it.
+
+  Read from the shift's running totals, so it costs one row — which is what
+  makes it usable as the mid-afternoon check it is meant to be.
+  """
+  def x_report(conn, %{"shift_id" => shift_id}) do
+    scope = conn.assigns.scope
+
+    with {:ok, shift} <- Registers.fetch_shift(scope, shift_id) do
+      render(conn, :shift_report, report: Registers.x_report(scope, shift))
+    end
+  end
+
+  @doc """
+  The same figures, recomputed from the sales themselves.
+
+  The Z report is the one that has to balance, so it is derived a second way
+  rather than read from the running totals it is meant to check.
+  """
+  def z_report(conn, %{"shift_id" => shift_id}) do
+    scope = conn.assigns.scope
+
+    with {:ok, shift} <- Registers.fetch_shift(scope, shift_id) do
+      render(conn, :shift_report, report: Registers.reconcile_shift(scope, shift))
+    end
+  end
+
+  @doc """
   Recomputes the rollups behind these figures.
 
   Queued rather than run inline: a year of days across a dozen branches is not
@@ -112,6 +170,13 @@ defmodule KaarobarWeb.ReportController do
     case Integer.parse(to_string(params["limit"] || "")) do
       {value, _rest} when value > 0 and value <= 200 -> value
       _other -> fallback
+    end
+  end
+
+  defp as_of(params) do
+    case parse_date(params["as_of"]) do
+      nil -> []
+      date -> [as_of: date]
     end
   end
 

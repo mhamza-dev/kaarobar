@@ -538,6 +538,11 @@ defmodule KaarobarWeb.Router do
     post "/payments/:id/refund", PaymentController, :refund
     post "/payments/:id/sync", PaymentController, :sync
 
+    # --- Printable documents ---------------------------------------------------
+    # Sends HTML or raw ESC/POS bytes rather than the JSON envelope: a receipt
+    # is a document, not a resource.
+    get "/sales/:sale_id/receipt", DocumentController, :receipt
+
     # --- Reports --------------------------------------------------------------
     # Every one takes `from`/`to` and defaults to the last thirty days. Read
     # from the nightly rollups for closed days and live for today.
@@ -551,6 +556,12 @@ defmodule KaarobarWeb.Router do
     get "/reports/by-hour", ReportController, :by_hour
     get "/reports/profit", ReportController, :profit
     get "/reports/tax", ReportController, :tax
+    get "/reports/receivables", ReportController, :receivables
+    get "/reports/payables", ReportController, :payables
+    # The X report reads the shift's running totals; the Z report recomputes
+    # them from the sales, which is the only honest answer to "are you sure?".
+    get "/reports/shifts/:shift_id/x", ReportController, :x_report
+    get "/reports/shifts/:shift_id/z", ReportController, :z_report
     post "/reports/rebuild", ReportController, :rebuild
 
     # --- Expenses and bank accounts -------------------------------------------
