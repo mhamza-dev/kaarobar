@@ -13,6 +13,7 @@ import {
   getPrintLanguage,
   getSalePrintLabels,
   printDocumentChrome,
+  withArabicScript,
   type PrintLanguage,
 } from "./printLocale";
 import { currencyPrefix } from "../../shared/currencies";
@@ -209,9 +210,12 @@ export async function buildSaleReceiptHtml(
 
   const style = htmlTemplateStyle(options.template ?? "classic");
   // Template font overrides are LTR-only; RTL keeps the Arabic-capable stack.
+  // The override still gets the Arabic faces spliced in: the templates pick
+  // Latin display faces (Courier New, Georgia, Cambria) that carry no Urdu, and
+  // an English-language receipt is exactly where an Urdu product name turns up.
   const fontFamily =
     chrome.dir === "ltr" && style.fontFamilyLtr
-      ? style.fontFamilyLtr
+      ? withArabicScript(style.fontFamilyLtr)
       : chrome.fontFamily;
   const heightReporter = options.reportHeightToParent
     ? `<script>window.addEventListener("load", function () { try { parent.postMessage({ __kaarobarPreviewHeight: document.documentElement.scrollHeight }, "*"); } catch (e) {} });</script>`

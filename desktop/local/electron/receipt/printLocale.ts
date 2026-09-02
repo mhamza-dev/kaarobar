@@ -606,6 +606,70 @@ export function getPrintPreviewLabels(
 }
 
 /**
+ * Faces that can draw Arabic script, named from all three platforms on purpose.
+ *
+ * Nastaliq first — it is what Urdu is read in, and a shopkeeper handed a Naskh
+ * receipt will say it looks wrong even though every letter is correct. Then the
+ * macOS Arabic faces (Geeza Pro ships with every Mac), then the Windows and
+ * Linux ones. Chromium would eventually fall back on its own, but implicit
+ * fallback is what produces text on one machine and empty boxes on the next.
+ */
+const ARABIC_SCRIPT_FACES = [
+  "'Noto Nastaliq Urdu'",
+  "'Jameel Noori Nastaleeq'",
+  "'SF Arabic'",
+  "'Geeza Pro'",
+  "'Noto Sans Arabic'",
+  "'Noto Naskh Arabic'",
+  "'Al Nile'",
+];
+
+/** CSS generic families, as they may appear in a stack. */
+const GENERIC_FAMILIES = new Set([
+  "serif",
+  "sans-serif",
+  "monospace",
+  "cursive",
+  "fantasy",
+  "system-ui",
+  "ui-serif",
+  "ui-sans-serif",
+  "ui-monospace",
+  "ui-rounded",
+  "math",
+  "emoji",
+  "fangsong",
+]);
+
+/**
+ * Give a Latin font stack the Arabic-script faces too.
+ *
+ * A receipt's *language* is not its *content*. A shop set to English still
+ * sells `HD 24 NO WANDA - ایچ ڈی 24 نمبر` to a customer called `عمران`, and
+ * those names are what the raster path exists to print (see
+ * renderReceiptRaster.ts). The receipt templates pick Latin display faces —
+ * Courier New, Georgia, Cambria — that carry no Urdu at all, so without this
+ * the glyphs come down to whatever the generic at the end of the stack happens
+ * to resolve to: readable on Windows, empty boxes on macOS and Linux.
+ *
+ * The faces go in *after* the named Latin ones, so English text keeps the
+ * template's own font, and *before* the first generic family, which resolves to
+ * a broad system face that would otherwise claim the Urdu glyphs first.
+ */
+export function withArabicScript(stack: string): string {
+  const faces = stack
+    .split(",")
+    .map((face) => face.trim())
+    .filter(Boolean);
+  const firstGeneric = faces.findIndex((face) =>
+    GENERIC_FAMILIES.has(face.toLowerCase()),
+  );
+  const at = firstGeneric === -1 ? faces.length : firstGeneric;
+  faces.splice(at, 0, ...ARABIC_SCRIPT_FACES);
+  return faces.join(", ");
+}
+
+/**
  * Shared head bits: lang/dir + font stacks for LTR/RTL scripts.
  *
  * Deliberately local-only. This is an offline-first app, and print documents
@@ -624,18 +688,16 @@ export function printDocumentChrome(lang: PrintLanguage = getPrintLanguage()): {
   return {
     lang,
     dir: rtl ? "rtl" : "ltr",
-    // The RTL stack names faces from all three platforms on purpose. Nastaliq
-    // first — it is what Urdu is read in, and a shopkeeper handed a Naskh
-    // receipt will say it looks wrong even though every letter is correct.
-    // Then the macOS Arabic faces (Geeza Pro ships with every Mac), then the
-    // Windows and Linux ones. Chromium would eventually fall back on its own,
-    // but implicit fallback is what produces text on one machine and empty
-    // boxes on the next.
+    // RTL leads with the Arabic faces; LTR keeps its Latin faces in front and
+    // has them spliced in behind. 'Segoe UI' stays ahead of them on LTR even
+    // though it covers Arabic as well: it keeps a mixed receipt in one typeface
+    // on Windows, and it keeps Latin words out of a Nastaliq face, which
+    // carries Latin glyphs of its own.
     fontFamily: rtl
-      ? `'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', 'SF Arabic', 'Geeza Pro', ` +
-        `'Noto Sans Arabic', 'Noto Naskh Arabic', 'Al Nile', 'Segoe UI', Tahoma, ` +
-        `ui-sans-serif, sans-serif`
-      : `'Poppins', 'Plus Jakarta Sans', 'Segoe UI', ui-sans-serif, system-ui, sans-serif`,
+      ? [...ARABIC_SCRIPT_FACES, "'Segoe UI'", "Tahoma", "ui-sans-serif", "sans-serif"].join(", ")
+      : withArabicScript(
+          `'Poppins', 'Plus Jakarta Sans', 'Segoe UI', ui-sans-serif, system-ui, sans-serif`,
+        ),
   };
 }
 

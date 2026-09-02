@@ -92,29 +92,53 @@ export function rasterFromBgra(
   const dots = isFlatArtwork(gray) ? thresholdDots(gray) : ditherDots(gray, width, height)
 
   const bytesPerRow = width / 8
-  const raster = Buffer.alloc(bytesPerRow * height, 0)
+  const pixels = Buffer.alloc(bytesPerRow * height, 0)
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       // 1 = burn the dot.
       if (dots[y * width + x]) {
-        raster[y * bytesPerRow + (x >> 3)] |= 0x80 >> (x & 7)
+        pixels[y * bytesPerRow + (x >> 3)] |= 0x80 >> (x & 7)
       }
     }
   }
 
-  // GS v 0 m xL xH yL yH  — m=0 is normal density.
-  const header = Buffer.from([
-    0x1d,
-    0x76,
-    0x30,
-    0x00,
-    bytesPerRow & 0xff,
-    (bytesPerRow >> 8) & 0xff,
-    height & 0xff,
-    (height >> 8) & 0xff,
-  ])
-  return Buffer.concat([header, raster])
+  // GS v 0 m xL xH yL yH  — m=0 is normal density. One command per band; see
+  // RASTER_BAND_ROWS.
+  const parts: Buffer[] = []
+  for (let top = 0; top < height; top += RASTER_BAND_ROWS) {
+    const rows = Math.min(RASTER_BAND_ROWS, height - top)
+    parts.push(
+      Buffer.from([
+        0x1d,
+        0x76,
+        0x30,
+        0x00,
+        bytesPerRow & 0xff,
+        (bytesPerRow >> 8) & 0xff,
+        rows & 0xff,
+        (rows >> 8) & 0xff,
+      ]),
+      pixels.subarray(top * bytesPerRow, (top + rows) * bytesPerRow),
+    )
+  }
+  return Buffer.concat(parts)
 }
+
+/**
+ * Rows per `GS v 0` command.
+ *
+ * The command takes a 16-bit height, so a whole receipt is legal in one go —
+ * but legal is not the same as supported. Budget 58/80mm mechanisms carry a
+ * small input buffer and plenty of their firmware mishandles a raster taller
+ * than a couple of hundred lines: the image comes out truncated, smeared, or
+ * not at all, with no error anywhere. Since an Urdu receipt is printed
+ * entirely as one of these images (see renderReceiptRaster.ts), that failure
+ * is the whole receipt.
+ *
+ * Splitting costs 8 bytes per band and nothing else — the printer stacks
+ * consecutive rasters with no seam — so the safe size is simply used always.
+ */
+const RASTER_BAND_ROWS = 128
 
 /** Share of pixels the four commonest luminance bins must cover to count as flat. */
 const FLAT_HISTOGRAM_SHARE = 0.7

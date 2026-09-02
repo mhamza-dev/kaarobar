@@ -17,9 +17,13 @@ defmodule Kaarobar.Documents do
 
   import Ecto.Query, warn: false
 
+  alias Kaarobar.Credit
+  alias Kaarobar.Customers
   alias Kaarobar.Documents.EscPos
   alias Kaarobar.Documents.Html
   alias Kaarobar.Documents.Receipt
+  alias Kaarobar.Documents.Statement
+  alias Kaarobar.Documents.StatementHtml
   alias Kaarobar.Repo
   alias Kaarobar.Repo.Scoped
   alias Kaarobar.Sales.Sale
@@ -74,6 +78,31 @@ defmodule Kaarobar.Documents do
   def receipt_escpos(%Scope{} = scope, sale_id, opts \\ []) do
     with {:ok, document} <- receipt(scope, sale_id, opts) do
       EscPos.render(document, opts)
+    end
+  end
+
+  @doc """
+  A customer's account statement, as a printable page.
+
+  Sheet paper only. A statement is a page of history, and nobody wants two feet
+  of till roll — which is why there is no ESC/POS rendering of it.
+  """
+  @spec statement_html(Scope.t(), Ecto.UUID.t(), keyword()) ::
+          {:ok, String.t()} | {:error, :not_found}
+  def statement_html(%Scope{} = scope, customer_id, opts \\ []) do
+    with {:ok, customer} <- Customers.fetch_customer(scope, customer_id) do
+      document =
+        scope
+        |> Credit.statement(customer, opts)
+        |> Statement.build(
+          Keyword.merge(opts,
+            business: scope.business,
+            branch_name: scope.branch && scope.branch.name,
+            branch_phone: scope.branch && scope.branch.phone
+          )
+        )
+
+      {:ok, StatementHtml.render(document)}
     end
   end
 end

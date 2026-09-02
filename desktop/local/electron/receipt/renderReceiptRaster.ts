@@ -55,9 +55,9 @@ const LOAD_TIMEOUT_MS = 30_000
 /**
  * Renders receipt HTML and returns it as ESC/POS raster bytes.
  *
- * Returns `null` when the page cannot be rendered or captured — the caller
- * falls back to text rather than printing nothing, because a receipt of `?`
- * is still better than no receipt at the counter.
+ * Returns `null` when the page cannot be rendered or captured. The caller then
+ * falls back to the driver path, which renders this same HTML — never to the
+ * ESC/POS text path, which would report success while printing a page of `?`.
  */
 export async function renderReceiptRaster(
   html: string,
@@ -99,7 +99,7 @@ export async function renderReceiptRaster(
 
     // A repaint after a resize is not synchronous, and capturing before it
     // lands gives a bitmap of the old height with white at the bottom.
-    await nextPaint(win)
+    await settleRepaint(win)
 
     const image = await win.webContents.capturePage()
     if (image.isEmpty()) return null
@@ -125,7 +125,11 @@ export async function renderReceiptRaster(
     const bitmap = scaled.getBitmap() as unknown as Buffer
 
     return rasterFromBgra(bitmap, scaledSize.width, scaledSize.height)
-  } catch {
+  } catch (error) {
+    // The caller has a fallback, so this is not fatal — but it must not be
+    // invisible either. A shop whose Urdu receipts quietly stopped coming off
+    // the thermal head has nothing to send us without this line.
+    console.error('[receipt] raster render failed:', error)
     return null
   } finally {
     if (!win.isDestroyed()) win.destroy()
@@ -173,24 +177,62 @@ function wrapForRaster(html: string, dotWidth: number): string {
     : `${override}${html}`
 }
 
+/**
+ * How tall the receipt actually is, in CSS pixels.
+ *
+ * Deliberately not `document.documentElement.scrollHeight`: on the root element
+ * that value is floored by the viewport, and the viewport here is the offscreen
+ * window, which is opened at a guessed height. A 35mm receipt measured that way
+ * comes back as the window height, and the extra is blank raster the printer
+ * dutifully feeds out — roughly 8cm of thermal paper thrown away on every Urdu
+ * sale, on top of the cut feed. The body's own scroll height and the rendered
+ * boxes have no such floor.
+ */
 async function measureHeight(win: BrowserWindow): Promise<number> {
   const measured = await win.webContents.executeJavaScript(
-    `Math.ceil(Math.max(
-       document.body ? document.body.scrollHeight : 0,
-       document.documentElement ? document.documentElement.scrollHeight : 0
-     ))`,
+    `(() => {
+       const body = document.body
+       const root = document.documentElement
+       const content = Math.max(
+         body ? body.scrollHeight : 0,
+         body ? body.getBoundingClientRect().height : 0,
+         root ? root.getBoundingClientRect().height : 0,
+       )
+       // Only if the document measured as nothing at all — an empty or
+       // still-blank page — is the viewport-floored value better than zero.
+       return Math.ceil(content || (root ? root.scrollHeight : 0))
+     })()`,
   )
 
   const height = Number(measured)
   return Number.isFinite(height) && height > 0 ? height : 1200
 }
 
-// One frame after the resize. `capturePage` on the very next tick returns the
-// pre-resize surface on every platform we ship to.
-function nextPaint(win: BrowserWindow): Promise<void> {
-  return win.webContents
-    .executeJavaScript('new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))')
-    .then(() => undefined)
+/**
+ * One frame after the resize. `capturePage` on the very next tick returns the
+ * pre-resize surface on every platform we ship to.
+ *
+ * Bounded, because `requestAnimationFrame` is only *usually* delivered to a
+ * window that is never shown — a compositor that decides this window is not
+ * visible stops sending frames, and the promise then never settles. Unbounded,
+ * that hangs the sale: the till sits on "printing" with a customer waiting and
+ * no error to show. A frame captured slightly early costs a stale bitmap and
+ * one reprint; waiting forever costs the counter.
+ */
+const REPAINT_TIMEOUT_MS = 2_000
+
+async function settleRepaint(win: BrowserWindow): Promise<void> {
+  try {
+    await withTimeout(
+      win.webContents.executeJavaScript(
+        'new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))',
+      ),
+      REPAINT_TIMEOUT_MS,
+      'The receipt document did not repaint',
+    )
+  } catch {
+    // Capture anyway — see above.
+  }
 }
 
 function padToEight(width: number): number {

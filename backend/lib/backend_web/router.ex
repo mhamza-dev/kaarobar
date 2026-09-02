@@ -542,6 +542,7 @@ defmodule KaarobarWeb.Router do
     # Sends HTML or raw ESC/POS bytes rather than the JSON envelope: a receipt
     # is a document, not a resource.
     get "/sales/:sale_id/receipt", DocumentController, :receipt
+    get "/customers/:customer_id/statement", DocumentController, :statement
 
     # --- Reports --------------------------------------------------------------
     # Every one takes `from`/`to` and defaults to the last thirty days. Read
@@ -563,6 +564,8 @@ defmodule KaarobarWeb.Router do
     get "/reports/shifts/:shift_id/x", ReportController, :x_report
     get "/reports/shifts/:shift_id/z", ReportController, :z_report
     post "/reports/rebuild", ReportController, :rebuild
+    # Sends a CSV file rather than the JSON envelope.
+    get "/reports/:report/export.csv", ReportController, :export
 
     # --- Expenses and bank accounts -------------------------------------------
     # The literal segments come first so "categories" is never read as an id.

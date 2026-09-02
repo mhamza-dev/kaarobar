@@ -15,6 +15,7 @@ defmodule KaarobarWeb.DocumentController do
   alias Kaarobar.Documents
 
   plug KaarobarWeb.Plugs.Authorize, [permission: "sale:reprint"] when action in [:receipt]
+  plug KaarobarWeb.Plugs.Authorize, [permission: "credit:view"] when action in [:statement]
 
   @doc """
   A sale receipt.
@@ -33,6 +34,38 @@ defmodule KaarobarWeb.DocumentController do
       _html -> send_html(conn, scope, sale_id, opts)
     end
   end
+
+  @doc """
+  A customer's account statement.
+
+  Always a page — there is no ESC/POS form, because a statement is history and
+  a till roll is not where anybody wants to read it.
+  """
+  def statement(conn, %{"customer_id" => customer_id} = params) do
+    scope = conn.assigns.scope
+
+    with {:ok, html} <- Documents.statement_html(scope, customer_id, statement_options(params)) do
+      conn
+      |> put_resp_content_type("text/html")
+      |> send_resp(200, html)
+    end
+  end
+
+  defp statement_options(params) do
+    params
+    |> options()
+    |> put_date(:from, params["from"])
+    |> put_date(:to, params["to"])
+  end
+
+  defp put_date(opts, key, value) when is_binary(value) do
+    case Date.from_iso8601(value) do
+      {:ok, date} -> Keyword.put(opts, key, date)
+      {:error, _reason} -> opts
+    end
+  end
+
+  defp put_date(opts, _key, _value), do: opts
 
   defp send_html(conn, scope, sale_id, opts) do
     with {:ok, html} <- Documents.receipt_html(scope, sale_id, opts) do

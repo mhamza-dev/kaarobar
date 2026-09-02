@@ -16,6 +16,7 @@ defmodule KaarobarWeb.ReportController do
   alias Kaarobar.Purchasing
   alias Kaarobar.Registers
   alias Kaarobar.Reports
+  alias Kaarobar.Reports.Export
   alias Kaarobar.Reports.RollupWorker
   alias Kaarobar.Scope
 
@@ -33,6 +34,7 @@ defmodule KaarobarWeb.ReportController do
   plug KaarobarWeb.Plugs.Authorize,
        [permission: "shift:view_all"] when action in [:x_report, :z_report]
   plug KaarobarWeb.Plugs.Authorize, [permission: "report:sales"] when action in [:rebuild]
+  plug KaarobarWeb.Plugs.Authorize, [permission: "report:export"] when action in [:export]
 
   def summary(conn, params) do
     scope = conn.assigns.scope
@@ -146,6 +148,61 @@ defmodule KaarobarWeb.ReportController do
       conn |> put_status(:accepted) |> render(:queued, queued: true)
     end
   end
+
+  @doc """
+  Any of the reports above, as a CSV.
+
+  Sent as a file rather than queued to object storage: these are tens to
+  hundreds of rows, and a download that arrives now beats a job whose link the
+  user has to go and find. A report large enough to need a job is one that
+  should be narrowed by date first.
+  """
+  def export(conn, %{"report" => report} = params) do
+    scope = conn.assigns.scope
+    {from, to} = period(params)
+
+    with {:ok, name} <- known_report(report),
+         columns when is_list(columns) <- Export.columns(name) do
+      rows = export_rows(name, scope, {from, to}, opts(params))
+
+      conn
+      |> put_resp_content_type("text/csv")
+      |> put_resp_header(
+        "content-disposition",
+        ~s(attachment; filename="#{Export.filename(name, from, to)}")
+      )
+      |> send_resp(200, Export.to_csv(rows, columns))
+    else
+      _unknown -> {:error, :not_found}
+    end
+  end
+
+  defp export_rows(:daily, scope, period, opts), do: Reports.daily_series(scope, period, opts)
+
+  defp export_rows(:top_products, scope, period, opts),
+    do: Reports.top_products(scope, period, Keyword.put(opts, :limit, 200))
+
+  defp export_rows(:by_tender, scope, period, opts), do: Reports.sales_by_tender(scope, period, opts)
+
+  defp export_rows(:by_cashier, scope, period, opts),
+    do: Reports.sales_by_cashier(scope, period, opts)
+
+  defp export_rows(:by_branch, scope, period, _opts), do: Reports.sales_by_branch(scope, period)
+
+  defp export_rows(:by_category, scope, period, opts),
+    do: Reports.sales_by_category(scope, period, opts)
+
+  defp export_rows(:tax, scope, period, opts), do: Reports.tax_report(scope, period, opts)
+
+  # Only the reports named here. `String.to_existing_atom` on a path segment
+  # would let a caller probe which atoms the node has, and a typo would crash
+  # rather than 404.
+  @exportable ~w(daily top_products by_tender by_cashier by_branch by_category tax)
+
+  defp known_report(report) when report in @exportable,
+    do: {:ok, String.to_existing_atom(report)}
+
+  defp known_report(_other), do: :error
 
   # --- Parameters -------------------------------------------------------------
 
