@@ -122,6 +122,7 @@ export function registerIpcHandlers(): void {
         features: null,
         maxUsers: null,
         maxTemplates: null,
+        blockedReason: null,
       }
     }
     if (status.status === 'expired') {
@@ -133,6 +134,25 @@ export function registerIpcHandlers(): void {
         features: status.record.features ?? null,
         maxUsers: status.record.maxUsers ?? null,
         maxTemplates: status.record.maxTemplates ?? null,
+        blockedReason: null,
+      }
+    }
+    // Refused by the server: the key was revoked or deleted, or this install
+    // has gone too long without a successful check. Reported as 'missing'
+    // because that is what it is from the till's point of view — there is no
+    // usable license on this device — and because the license screen's own copy
+    // ("no valid license was found, enter a license key") is already the right
+    // thing to say and the right thing to do.
+    if (status.status === 'blocked') {
+      return {
+        state: 'missing' as const,
+        expiresAt: status.record.expiresAt,
+        issuedTo: status.record.issuedTo,
+        plan: status.record.plan ?? null,
+        features: status.record.features ?? null,
+        maxUsers: status.record.maxUsers ?? null,
+        maxTemplates: status.record.maxTemplates ?? null,
+        blockedReason: status.reason,
       }
     }
     return {
@@ -143,6 +163,7 @@ export function registerIpcHandlers(): void {
       features: status.record.features ?? null,
       maxUsers: status.record.maxUsers ?? null,
       maxTemplates: status.record.maxTemplates ?? null,
+      blockedReason: null,
     }
   })
   ipcMain.handle(IPC_CHANNELS.APP_GET_RESTOCK_ALERTS, async (_event, businessId: string) => {

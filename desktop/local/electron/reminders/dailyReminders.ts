@@ -36,6 +36,16 @@ function buildLicenseReminder(now = new Date()): DailyReminderEvent['license'] {
       daysLeft: 0,
     }
   }
+  // Refused by the license server rather than run out locally — same message to
+  // the shopkeeper, who needs a working key either way.
+  if (status.status === 'blocked') {
+    return {
+      kind: 'missing',
+      expiresAt: status.record.expiresAt,
+      issuedTo: status.record.issuedTo,
+      daysLeft: null,
+    }
+  }
   if (!status.record.expiresAt) {
     return null
   }

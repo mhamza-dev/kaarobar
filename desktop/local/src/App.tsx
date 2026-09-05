@@ -51,6 +51,7 @@ export default function App() {
             features: null,
             maxUsers: null,
             maxTemplates: null,
+            blockedReason: null,
           })
         }
       }

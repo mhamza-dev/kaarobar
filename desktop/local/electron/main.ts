@@ -6,6 +6,7 @@ import { registerIpcHandlers } from "./ipc/handlers";
 import { getKaarobarDataDir } from "./config/paths";
 import { serveAssetRequest } from "./assets/service";
 import { startAutoBackupScheduler } from "./backup/autoBackup";
+import { startCloudSyncScheduler } from "./sync/cloudSync";
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -89,6 +90,8 @@ app.whenReady().then(() => {
   registerIpcHandlers();
   createWindow();
   startAutoBackupScheduler();
+  // License heartbeat + customer push, every 15 minutes. See sync/cloudSync.ts.
+  startCloudSyncScheduler();
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {

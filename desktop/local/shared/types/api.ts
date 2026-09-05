@@ -19,6 +19,19 @@ export type AppInfo = {
   userDataPath: string;
 };
 
+/**
+ * Why the license server refused this device, when it did.
+ *
+ * Distinct from local expiry: these are the server's verdicts, delivered by the
+ * quarter-hour heartbeat in electron/licensing/remoteVerify.ts, and they can
+ * lock a till that was already running.
+ */
+export type LicenseBlockedReason =
+  | "invalid_key"
+  | "revoked"
+  | "expired"
+  | "verification_overdue";
+
 export type LicenseStatusSummary = {
   state: "valid" | "expired" | "lifetime" | "missing";
   expiresAt: string | null;
@@ -30,6 +43,12 @@ export type LicenseStatusSummary = {
   /** Raw seat/layout limits from the server; null = use the plan preset. */
   maxUsers: number | null;
   maxTemplates: number | null;
+  /**
+   * Set when the lock came from the license server rather than from the copy of
+   * the expiry date on this device. `state` is already 'missing' or 'expired'
+   * in that case — this only says which verdict it was, for the message.
+   */
+  blockedReason: LicenseBlockedReason | null;
 };
 
 export type RestockAlert = {
@@ -682,6 +701,12 @@ export type KaarobarApi = {
     getLanguage: () => Promise<AppLanguage>;
     setLanguage: (language: AppLanguage) => Promise<{ ok: true }>;
     getLicenseStatus: () => Promise<LicenseStatusSummary>;
+    /**
+     * Fires when the quarter-hour heartbeat changes the license verdict, so a
+     * revoked till locks now instead of at the next poll. Returns an
+     * unsubscribe.
+     */
+    onLicenseChanged: (callback: () => void) => () => void;
     getRestockAlerts: (businessId: string) => Promise<RestockAlert[]>;
     /** Refresh reminders for the Reminders panel (runs on each login). */
     maybeRunDailyReminders: () => Promise<{ ran: boolean }>;
@@ -1138,6 +1163,7 @@ export const IPC_CHANNELS = {
   APP_GET_LICENSE_STATUS: "app:getLicenseStatus",
   APP_GET_RESTOCK_ALERTS: "app:getRestockAlerts",
   REMINDERS_DAILY: "reminders:daily",
+  LICENSE_CHANGED: "license:changed",
   REMINDERS_MAYBE_RUN: "reminders:maybeRunDaily",
   LICENSE_ACTIVATE: "license:activate",
   SETUP_COMPLETE: "setup:complete",

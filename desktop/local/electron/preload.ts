@@ -21,6 +21,15 @@ const api: KaarobarApi = {
     getLicenseStatus: () => ipcRenderer.invoke(IPC_CHANNELS.APP_GET_LICENSE_STATUS),
     getRestockAlerts: (businessId) => ipcRenderer.invoke(IPC_CHANNELS.APP_GET_RESTOCK_ALERTS, businessId),
     maybeRunDailyReminders: () => ipcRenderer.invoke(IPC_CHANNELS.REMINDERS_MAYBE_RUN),
+    onLicenseChanged: (callback) => {
+      const listener = () => {
+        callback()
+      }
+      ipcRenderer.on(IPC_CHANNELS.LICENSE_CHANGED, listener)
+      return () => {
+        ipcRenderer.removeListener(IPC_CHANNELS.LICENSE_CHANGED, listener)
+      }
+    },
     onDailyReminder: (callback) => {
       const listener = (_event: unknown, payload: DailyReminderEvent) => {
         callback(payload)

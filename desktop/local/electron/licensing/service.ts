@@ -1,5 +1,12 @@
 import { app } from 'electron'
-import { appStore, type LocalLicenseRecord } from '../config/store'
+import {
+  appStore,
+  clearLicenseEnforcement,
+  getLicenseEnforcement,
+  type LicenseBlockedReason,
+  type LocalLicenseRecord,
+} from '../config/store'
+import { getSupabaseConfig } from '../config/supabase'
 import { getDb, isDatabaseOpen } from '../db/connection'
 import {
   decryptLicenseRecordFlexible,
@@ -37,6 +44,12 @@ export type LicenseStatus =
   | { status: 'none' }
   | { status: 'valid'; record: LocalLicenseRecord }
   | { status: 'expired'; record: LocalLicenseRecord }
+  /**
+   * The license server refused this device on its last heartbeat — the key was
+   * revoked or deleted, or this install has gone too long without a successful
+   * check. See licensing/remoteVerify.ts.
+   */
+  | { status: 'blocked'; record: LocalLicenseRecord; reason: LicenseBlockedReason }
 
 type LicenseRow = {
   license_key: string
@@ -70,13 +83,6 @@ function decryptBlobCached(
   decryptCacheBlob = blob
   decryptCacheResult = result
   return result
-}
-
-function getSupabaseConfig() {
-  const url = process.env.KAAROBAR_SUPABASE_URL
-  const anonKey = process.env.KAAROBAR_SUPABASE_ANON_KEY
-  if (!url || !anonKey) return null
-  return { url, anonKey }
 }
 
 function writeLicenseToStore(record: LocalLicenseRecord): string {
@@ -228,7 +234,20 @@ export function readValidLocalLicense(): LocalLicenseRecord | null {
 export function getLicenseStatus(): LicenseStatus {
   const record = readLocalLicense()
   if (!record?.licenseKey) return { status: 'none' }
+  // Local expiry first: it needs no network and it is the common case.
   if (isLicenseExpired(record)) return { status: 'expired', record }
+
+  // Then whatever the server said last. A dev license was never issued by one.
+  if (record.mode !== 'dev') {
+    const { blockedReason } = getLicenseEnforcement()
+    if (blockedReason) {
+      // 'expired' from the server means the row's expiry moved in *behind* the
+      // copy on this device — same situation, so report it the same way.
+      if (blockedReason === 'expired') return { status: 'expired', record }
+      return { status: 'blocked', record, reason: blockedReason }
+    }
+  }
+
   return { status: 'valid', record }
 }
 
@@ -290,6 +309,7 @@ export async function activateLicense(licenseKey: string): Promise<LicenseActiva
         features: null,
       }
       persistLocalLicense(record)
+      clearLicenseEnforcement()
       return {
         ok: true,
         issuedTo: record.issuedTo,
@@ -310,7 +330,7 @@ export async function activateLicense(licenseKey: string): Promise<LicenseActiva
   }
 
   try {
-    const rpcUrl = `${supabase.url.replace(/\/$/, '')}/rest/v1/rpc/validate_and_activate_license`
+    const rpcUrl = `${supabase.url}/rest/v1/rpc/validate_and_activate_license`
     const response = await fetch(rpcUrl, {
       method: 'POST',
       headers: {
@@ -369,6 +389,9 @@ export async function activateLicense(licenseKey: string): Promise<LicenseActiva
       maxTemplates: positiveIntOrNull(result.maxTemplates),
     }
     persistLocalLicense(record)
+    // The server just said yes to this key. Whatever it said about the last one
+    // no longer applies, and the shop must not stay locked behind it.
+    clearLicenseEnforcement()
     reboundLicenseKeys.add(key)
 
     return {

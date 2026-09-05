@@ -479,6 +479,33 @@ const MIGRATIONS: Migration[] = [
       }
     },
   },
+  {
+    name: "015_customer_cloud_sync",
+    up: (db) => {
+      // What has already been pushed to Supabase, and in what shape.
+      //
+      // Deliberately NOT a watermark over customers.updated_at: most of the
+      // statements that change a customer (a credit sale, a refund, a ledger
+      // adjustment) update current_balance without touching updated_at, so a
+      // timestamp watermark would ship stale balances and never know. A hash of
+      // the fields actually sent is true regardless of anyone's timestamp
+      // hygiene.
+      //
+      // No foreign key to customers on purpose: the row has to outlive the
+      // customer it describes, because its disappearance is how the sync knows
+      // to push a delete.
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS customer_sync_state (
+          customer_id TEXT PRIMARY KEY,
+          business_id TEXT NOT NULL,
+          hash TEXT NOT NULL,
+          synced_at TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_customer_sync_state_business
+          ON customer_sync_state(business_id);
+      `);
+    },
+  },
 ];
 
 /**

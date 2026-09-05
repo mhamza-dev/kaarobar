@@ -270,6 +270,7 @@ export function AppShell({
             features: null,
             maxUsers: null,
             maxTemplates: null,
+            blockedReason: null,
           })
           onLicenseLockedRef.current?.({ mode: 'missing', expiresAt: null, issuedTo: null })
         }
@@ -280,9 +281,17 @@ export function AppShell({
       setNowMs(Date.now())
       void refresh()
     }, 60_000)
+    // The main process re-checks the license with the server every 15 minutes.
+    // When that check changes the verdict it says so, and the shell re-reads
+    // immediately rather than leaving the cashier on a till that is already
+    // locked underneath them.
+    const unsubscribe = window.api.app.onLicenseChanged(() => {
+      void refresh()
+    })
     return () => {
       cancelled = true
       window.clearInterval(timer)
+      unsubscribe()
     }
   }, [])
 

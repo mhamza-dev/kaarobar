@@ -137,6 +137,14 @@ export function resetOwnerPasswordOffline(payload: {
         message: 'License is not configured on this device.',
       }
     }
+    if (licenseStatus.status === 'blocked') {
+      return {
+        ok: false,
+        error: 'not_configured',
+        message:
+          'This license is no longer valid on this device. Activate a valid license key first.',
+      }
+    }
     if (licenseStatus.status === 'expired') {
       return {
         ok: false,

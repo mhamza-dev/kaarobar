@@ -44,6 +44,11 @@ export function getBootState(): BootState {
     if (licenseStatus.status === 'none') {
       return { status: 'needs_license' }
     }
+    // Revoked, deleted server-side, or overdue a check: there is no license to
+    // boot with, so the same gate as a device that never had one.
+    if (licenseStatus.status === 'blocked') {
+      return { status: 'needs_license' }
+    }
     if (licenseStatus.status === 'expired') {
       return {
         status: 'license_expired',
