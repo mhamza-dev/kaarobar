@@ -3,7 +3,11 @@ import os from 'node:os'
 import path from 'node:path'
 import { BrowserWindow } from 'electron'
 
-import { buildSaleReceiptHtml, type ReceiptSaleInput } from './buildSaleReceiptHtml'
+import {
+  buildSaleReceiptHtml,
+  ROLL_CONTENT_MM,
+  type ReceiptSaleInput,
+} from './buildSaleReceiptHtml'
 import { DOTS_PER_CHAR, EDGE_MARGIN_CHARS, EscPosBuilder, usableChars } from './escpos'
 import { rasterFromBgra } from './escposImage'
 import type { PosPaperWidth, PosReceiptTemplate } from './posPrinterSettings'
@@ -42,6 +46,41 @@ export function paperLeftMarginDots(): number {
   return EDGE_MARGIN_CHARS * DOTS_PER_CHAR
 }
 
+/** CSS's fixed idea of a millimetre. `1mm` is 96/25.4 px, on every screen. */
+const CSS_PX_PER_MM = 96 / 25.4
+
+/**
+ * How wide the receipt document is *in its own terms* — CSS pixels.
+ *
+ * The templates lay a roll receipt out in millimetres (`body { width: 72mm }`)
+ * because that is the honest unit for paper: a driver-rendered receipt then
+ * prints at physical size whatever the printer's DPI. This converts that back
+ * to the pixel width Chromium will actually lay out at, which is the number the
+ * capture has to be reconciled with.
+ */
+function documentCssWidth(paperWidth: PosPaperWidth): number {
+  return (ROLL_CONTENT_MM[paperWidth] ?? 72) * CSS_PX_PER_MM
+}
+
+/**
+ * How much bigger a printer dot is than a CSS pixel, for this roll.
+ *
+ * This is the number that decides how big the text prints, and getting it wrong
+ * is not subtle. A 72mm document is 272 CSS px wide; the same 72mm of paper is
+ * 552 printer dots. Laying the document out at 552px and then treating each of
+ * those pixels as one dot — which is what forcing the body to the dot width
+ * did — squeezes a 272px-wide design across 552 dots of paper, so every glyph
+ * comes off the head at 49% of the size the template asked for. Half size, on a
+ * receipt a customer is handed.
+ *
+ * So the document keeps its own width and the *rendering* is zoomed instead:
+ * Chromium lays out 272 CSS px and paints them across 552 device pixels, which
+ * is both the correct physical scale and free supersampling for the glyphs.
+ */
+function dotsPerCssPx(paperWidth: PosPaperWidth): number {
+  return paperDotWidth(paperWidth) / documentCssWidth(paperWidth)
+}
+
 export type RasterOptions = {
   /** Roll size — "58mm", "80mm". Decides the dot width. */
   paperWidth: PosPaperWidth
@@ -65,8 +104,9 @@ export async function renderReceiptRaster(
 ): Promise<Buffer | null> {
   const dotWidth = paperDotWidth(options.paperWidth)
   const maxHeight = options.maxHeightDots ?? DEFAULT_MAX_HEIGHT_DOTS
+  const zoom = dotsPerCssPx(options.paperWidth)
 
-  const filePath = writeTempHtml(wrapForRaster(html, dotWidth))
+  const filePath = writeTempHtml(wrapForRaster(html, ROLL_CONTENT_MM[options.paperWidth] ?? 72))
 
   // Offscreen, like the silent print path: no window ever appears, and the
   // cashier has nothing to dismiss.
@@ -91,10 +131,20 @@ export async function renderReceiptRaster(
       'The receipt document did not finish loading',
     )
 
+    // Print the millimetres the template asked for, not the pixels it happened
+    // to be laid out in. With the window `dotWidth` wide, this zoom makes the
+    // CSS viewport exactly the document's own width, so the receipt fills the
+    // roll at the size it was designed for. See dotsPerCssPx.
+    win.webContents.setZoomFactor(zoom)
+
     // The document is one long column with no page breaks, so the window is
     // resized to the whole of it and captured in one go. Capturing a viewport
     // and stitching would leave a seam mid-line.
-    const contentHeight = Math.min(await measureHeight(win), maxHeight)
+    //
+    // measureHeight answers in CSS pixels; the window is sized in the zoomed
+    // pixels the capture is made of, so it has to go through the same zoom the
+    // width does or the bottom of the receipt is cut off.
+    const contentHeight = Math.min(Math.ceil((await measureHeight(win)) * zoom), maxHeight)
     win.setContentSize(dotWidth, Math.max(1, contentHeight))
 
     // A repaint after a resize is not synchronous, and capturing before it
@@ -143,22 +193,31 @@ export async function renderReceiptRaster(
 }
 
 /**
- * Forces the document to the roll's exact width and drops anything that only
- * makes sense on paper with margins.
+ * Pins the document to the roll's physical width and strips the page chrome.
  *
- * The HTML templates are written for a driver-rendered page, where the print
- * dialog owns the physical width. Here the bitmap *is* the width, so the
- * document is pinned to it — otherwise Chromium lays out at its default 800px
- * and everything is captured three times too small.
+ * In millimetres, deliberately. The templates are written for a driver-rendered
+ * page where the print dialog owns the physical size, and `body { width: 72mm }`
+ * is them saying how wide the receipt really is. Overriding that with a pixel
+ * width — which is what this used to do, using the printer's dot count — throws
+ * the scale away and prints every glyph at about half size; the zoom in
+ * `renderReceiptRaster` is what turns these millimetres into dots instead.
+ *
+ * The body's own padding is left alone on purpose: that is the receipt's inner
+ * margin, and without it the text runs into the edge of the roll.
  */
-function wrapForRaster(html: string, dotWidth: number): string {
+function wrapForRaster(html: string, contentMm: number): string {
   const override = `
 <style>
   @page { margin: 0 }
-  html, body {
+  html {
     margin: 0 !important;
     padding: 0 !important;
-    width: ${dotWidth}px !important;
+    width: ${contentMm}mm !important;
+    background: #fff !important;
+  }
+  body {
+    margin: 0 !important;
+    width: ${contentMm}mm !important;
     background: #fff !important;
   }
   /* Thermal paper is one colour. Anything mid-grey dithers into noise that

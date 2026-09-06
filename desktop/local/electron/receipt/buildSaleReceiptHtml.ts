@@ -83,7 +83,37 @@ export type ReceiptLayoutOptions = {
 /** Body width of the A4/Letter layout, matching the `max-width` in its CSS. */
 const SHEET_CONTENT_MM = 180;
 
-const ROLL_CONTENT_MM: Record<string, number> = {
+/**
+ * How much bigger roll receipt text is than the raw design numbers below.
+ *
+ * The px sizes in the roll CSS are design units: at true physical scale `11px`
+ * is 2.9mm on paper, which is about what a thermal printer's own built-in font
+ * gives you. That is legible, but only just — receipts get read in poor light,
+ * by older eyes, folded in a pocket, on paper that has been through a till
+ * drawer. Shopkeepers ask for bigger, and they are right to.
+ *
+ * This is the one place to change it. Every `font-size` in a roll layout,
+ * including the ones the templates set themselves, goes through `fontPx()`, so
+ * moving this number resizes all twenty templates on all three roll widths
+ * together and nothing drifts out of proportion.
+ *
+ * The cost is paper: text 25% taller makes a receipt roughly 25% longer.
+ *
+ * Sheet layouts (A4/Letter) are untouched — a full page prints at natural size
+ * and this would only make it look shouty.
+ */
+const ROLL_TEXT_SCALE = 1.25
+
+/**
+ * A roll font size, scaled. Rounded to a tenth of a pixel: Chromium is happy
+ * with fractional sizes and rounding to whole px would quantise the smaller
+ * sizes unevenly (9px and 10px would both land on 12px at some scales).
+ */
+function rollFontPx(px: number): string {
+  return `${Math.round(px * ROLL_TEXT_SCALE * 10) / 10}px`
+}
+
+export const ROLL_CONTENT_MM: Record<string, number> = {
   "58mm": 48,
   "76mm": 64,
   "80mm": 72,
@@ -295,7 +325,7 @@ function rollDocument(
     heightReporter,
   } = s;
 
-  const cssCtx = { dir: chrome.dir, brandHex, contentMm };
+  const cssCtx = { dir: chrome.dir, brandHex, contentMm, fontPx: rollFontPx };
   const divider = style.rollDividerHtml(cssCtx);
   // Label/value row; the dotted template fills the gap with a leader element.
   const leader = style.dotLeaders ? '<span class="leader"></span>' : "";
@@ -361,30 +391,30 @@ function rollDocument(
     .wrap { width: 100%; }
     .center { text-align: center; }
     .logo { max-height: 56px; max-width: 80%; display: block; margin: 0 auto 6px; }
-    .shop { font-size: 16px; font-weight: 700; margin: 0; letter-spacing: 0.5px; }
-    .muted { font-size: 11px; margin: 2px 0; }
-    .title { font-size: 13px; font-weight: 700; letter-spacing: 0.5px; margin: 10px 0; }
-    .stars { text-align: center; font-size: 11px; letter-spacing: 1px; margin: 10px 0; overflow: hidden; white-space: nowrap; }
-    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .shop { font-size: ${rollFontPx(16)}; font-weight: 700; margin: 0; letter-spacing: 0.5px; }
+    .muted { font-size: ${rollFontPx(11)}; margin: 2px 0; }
+    .title { font-size: ${rollFontPx(13)}; font-weight: 700; letter-spacing: 0.5px; margin: 10px 0; }
+    .stars { text-align: center; font-size: ${rollFontPx(11)}; letter-spacing: 1px; margin: 10px 0; overflow: hidden; white-space: nowrap; }
+    table { width: 100%; border-collapse: collapse; font-size: ${rollFontPx(11)}; }
     th { font-weight: 700; padding: 2px 0 6px; }
     th.desc, td.desc { text-align: start; }
     th.qty, td.qty { text-align: center; white-space: nowrap; padding-inline: 2px; }
     th.price, td.price { text-align: end; white-space: nowrap; }
     td { padding: 4px 0; vertical-align: top; }
-    .row { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; margin: 3px 0; }
-    .total { font-size: 14px; font-weight: 700; margin-top: 7px; }
-    .thanks { font-size: 13px; font-weight: 700; letter-spacing: 0.5px; margin: 12px 0 8px; }
-    .social-title { text-align: center; font-size: 11px; margin-bottom: 6px; }
+    .row { display: flex; justify-content: space-between; gap: 8px; font-size: ${rollFontPx(11)}; margin: 3px 0; }
+    .total { font-size: ${rollFontPx(14)}; font-weight: 700; margin-top: 7px; }
+    .thanks { font-size: ${rollFontPx(13)}; font-weight: 700; letter-spacing: 0.5px; margin: 12px 0 8px; }
+    .social-title { text-align: center; font-size: ${rollFontPx(11)}; margin-bottom: 6px; }
     .social-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
     .social-item { width: 72px; text-align: center; }
     .social-icon { width: 14px; height: 14px; display: block; margin: 0 auto 2px; }
     .social-qr { width: 64px; height: 64px; display: block; margin: 0 auto; }
-    .social-label { font-size: 9px; margin-top: 2px; }
+    .social-label { font-size: ${rollFontPx(9)}; margin-top: 2px; }
     #barcode { margin: 10px auto 0; display: block; max-width: 100%; }
     .brand { margin-top: 12px; padding-top: 4px; }
     .brand img { width: 28px; height: 28px; display: block; margin: 0 auto 4px; }
-    .brand-name { font-size: 11px; font-weight: 700; color: ${brandHex}; }
-    .support-line { font-size: 9px; color: #444; margin-top: 8px; line-height: 1.4; }
+    .brand-name { font-size: ${rollFontPx(11)}; font-weight: 700; color: ${brandHex}; }
+    .support-line { font-size: ${rollFontPx(9)}; color: #444; margin-top: 8px; line-height: 1.4; }
     ${style.rollCss(cssCtx)}
   </style>
 </head>
@@ -592,7 +622,14 @@ function sheetDocument(input: ReceiptSaleInput, s: SharedParts): string {
     .brand { margin-top: 20px; text-align: center; }
     .brand img { width: 26px; height: 26px; display: block; margin: 0 auto 4px; }
     .brand-name { font-size: 11px; font-weight: 700; color: ${brandHex}; }
-    ${style.sheetCss({ dir: chrome.dir, brandHex, contentMm: SHEET_CONTENT_MM })}
+    ${style.sheetCss({
+      dir: chrome.dir,
+      brandHex,
+      contentMm: SHEET_CONTENT_MM,
+      // Unscaled: ROLL_TEXT_SCALE is about thermal paper. A full page already
+      // prints at natural size and enlarging it would only look shouty.
+      fontPx: (px: number) => `${px}px`,
+    })}
   </style>
 </head>
 <body>

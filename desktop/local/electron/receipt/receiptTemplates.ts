@@ -15,6 +15,13 @@ export type TemplateCssCtx = {
   brandHex: string
   /** Printable content width of the document, in mm. */
   contentMm: number
+  /**
+   * Roll font size, scaled. Every `font-size` in a roll layout goes through
+   * this so the whole receipt resizes from one place — see ROLL_TEXT_SCALE in
+   * buildSaleReceiptHtml.ts. A template that writes a raw px size opts itself
+   * out of that and will print smaller than the rest of the receipt.
+   */
+  fontPx: (px: number) => string
 }
 
 /**
@@ -139,10 +146,10 @@ const HTML_STYLES: Record<PosReceiptTemplate, HtmlTemplateStyle> = {
   // Clean and airy: thin dashed rules, small tracked-out title.
   minimal: {
     rollDividerHtml: () => '<div class="hr"></div>',
-    rollCss: ({ dir }) => `
+    rollCss: ({ dir, fontPx }) => `
     .hr { border-top: 1px dashed #999; margin: 10px 0; }
     .shop { font-weight: 600; }
-    .title { font-size: 12px; font-weight: 600; ${dir === 'ltr' ? 'text-transform: uppercase; letter-spacing: 2px;' : ''} }
+    .title { font-size: ${fontPx(12)}; font-weight: 600; ${dir === 'ltr' ? 'text-transform: uppercase; letter-spacing: 2px;' : ''} }
     .row { margin: 3px 0; }`,
     sheetCss: () => `
     .head { border-bottom: 1px dashed #bbb; }
@@ -278,9 +285,9 @@ const HTML_STYLES: Record<PosReceiptTemplate, HtmlTemplateStyle> = {
   // Boutique: handwritten-style shop name, dainty spaced-dot dividers.
   script: {
     rollDividerHtml: charDivider('·', 3.1, 'dots-sm'),
-    rollCss: ({ dir }) => `
-    .dots-sm { text-align: center; font-size: 10px; letter-spacing: 6px; margin: 10px 0; overflow: hidden; white-space: nowrap; color: #666; }
-    ${dir === 'ltr' ? ".shop { font-family: 'Segoe Script', 'Brush Script MT', cursive; font-size: 20px; font-weight: 400; }" : ''}
+    rollCss: ({ dir, fontPx }) => `
+    .dots-sm { text-align: center; font-size: ${fontPx(10)}; letter-spacing: 6px; margin: 10px 0; overflow: hidden; white-space: nowrap; color: #666; }
+    ${dir === 'ltr' ? `.shop { font-family: 'Segoe Script', 'Brush Script MT', cursive; font-size: ${fontPx(20)}; font-weight: 400; }` : ''}
     .thanks { font-style: italic; }`,
     sheetCss: ({ dir }) => `
     ${dir === 'ltr' ? ".shop { font-family: 'Segoe Script', 'Brush Script MT', cursive; font-size: 26px; font-weight: 400; }" : ''}
@@ -362,8 +369,8 @@ const HTML_STYLES: Record<PosReceiptTemplate, HtmlTemplateStyle> = {
   ticket: {
     rollDividerHtml: ({ contentMm }) =>
       `<div class="tear">8&lt;${fillChars(' -', contentMm, 2.1)}</div>`,
-    rollCss: ({ dir }) => `
-    .tear { text-align: center; font-size: 10px; letter-spacing: 2px; margin: 10px 0; overflow: hidden; white-space: nowrap; color: #555; }
+    rollCss: ({ dir, fontPx }) => `
+    .tear { text-align: center; font-size: ${fontPx(10)}; letter-spacing: 2px; margin: 10px 0; overflow: hidden; white-space: nowrap; color: #555; }
     .wrap { border-inline: 1.5px dashed #999; padding-inline: 6px; }
     .title { border: 1.5px dashed #333; border-radius: 999px; padding: 4px 12px; display: inline-block; ${dir === 'ltr' ? 'text-transform: uppercase; letter-spacing: 2px;' : ''} }`,
     sheetCss: ({ dir }) => `
@@ -413,8 +420,8 @@ const HTML_STYLES: Record<PosReceiptTemplate, HtmlTemplateStyle> = {
   // Wave: relaxed squiggle dividers with italic headings.
   wave: {
     rollDividerHtml: charDivider('~', 3.4, 'wave-hr'),
-    rollCss: () => `
-    .wave-hr { text-align: center; font-size: 13px; letter-spacing: 3px; margin: 8px 0; overflow: hidden; white-space: nowrap; color: #444; }
+    rollCss: ({ fontPx }) => `
+    .wave-hr { text-align: center; font-size: ${fontPx(13)}; letter-spacing: 3px; margin: 8px 0; overflow: hidden; white-space: nowrap; color: #444; }
     .title { font-style: italic; }
     .thanks { font-style: italic; }`,
     sheetCss: () => `
