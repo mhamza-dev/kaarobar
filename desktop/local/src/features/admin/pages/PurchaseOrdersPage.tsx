@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
-import { useTranslation } from 'react-i18next'
+import { useState } from "react";
+import { Plus, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
   Badge,
   Button,
@@ -8,83 +8,89 @@ import {
   ConfirmDialog,
   EmptyState,
   Table,
-} from '../../../components/ui'
-import { PageHeader } from '../../../components/layout'
-import { useActionVisibility } from '../../../lib/nav'
-import { hasLicenseFeature, useLicenseFeatures } from '../../../lib/license'
-import { CreatePoModal } from '../modals/CreatePoModal'
-import { RowActionsMenu } from '../components/RowActionsMenu'
-import { useBulkDelete } from '../hooks/useBulkDelete'
-import { poStatusTone, statusLabel } from '../../../lib/statusLabel'
-import type { SessionUser } from '../../../../shared/types/api'
-import type { AdminData } from '../hooks/useAdminData'
+} from "../../../components/ui";
+import { PageHeader } from "../../../components/layout";
+import { useActionVisibility } from "../../../lib/nav";
+import { hasLicenseFeature, useLicenseFeatures } from "../../../lib/license";
+import { CreatePoModal } from "../modals/CreatePoModal";
+import { RowActionsMenu } from "../components/RowActionsMenu";
+import { useBulkDelete } from "../hooks/useBulkDelete";
+import { poStatusTone, statusLabel } from "../../../lib/statusLabel";
+import type { SessionUser } from "../../../../shared/types/api";
+import type { AdminData } from "../hooks/useAdminData";
 
 type Props = {
-  user: SessionUser
-  data: AdminData
-  onOpenPo: (id: string) => void
-}
+  user: SessionUser;
+  data: AdminData;
+  onOpenPo: (id: string) => void;
+};
 
 export function PurchaseOrdersPage({ user, data, onOpenPo }: Props) {
-  const { t } = useTranslation()
-  const actions = useActionVisibility(user)
-  const [poOpen, setPoOpen] = useState(false)
+  const { t } = useTranslation();
+  const actions = useActionVisibility(user);
+  const [poOpen, setPoOpen] = useState(false);
   const {
     purchaseOrders,
     branchOptions,
     supplierOptions,
     activeBusinessId,
     refreshScopedData,
-  } = data
-  const licenseFeatures = useLicenseFeatures()
+  } = data;
+  const licenseFeatures = useLicenseFeatures();
 
   const bulkDelete = useBulkDelete({
     remove: (id) => window.api.purchaseOrders.remove({ poId: id }),
     label: (id) => purchaseOrders.find((row) => row.id === id)?.poNumber ?? id,
     refresh: () => data.refreshAll(),
     messages: {
-      success: 'toast.purchaseOrdersDeleted',
-      failure: 'toast.purchaseOrdersDeleteFailed',
+      success: "toast.purchaseOrdersDeleted",
+      failure: "toast.purchaseOrdersDeleteFailed",
     },
-  })
+  });
 
   const poActions = (row: (typeof purchaseOrders)[number]) =>
     actions.canDeletePurchaseOrders
       ? [
           {
-            id: 'delete',
-            label: t('forms.deletePo'),
+            id: "delete",
+            label: t("forms.deletePo"),
             icon: <Trash2 className="size-4" />,
             danger: true,
             onSelect: () => bulkDelete.askOne(row.id),
           },
         ]
-      : []
+      : [];
 
-  if (!actions.canEditPurchaseOrders) return null
-  if (!hasLicenseFeature(licenseFeatures, 'purchase_orders')) return null
+  if (!actions.canEditPurchaseOrders) return null;
+  if (!hasLicenseFeature(licenseFeatures, "purchase_orders")) return null;
 
   return (
     <div>
       <PageHeader
-        eyebrow={t('dashboard.eyebrowPurchaseOrders')}
-        title={t('dashboard.purchaseOrders')}
-        description={t('dashboard.purchaseOrdersDesc')}
+        eyebrow={t("dashboard.eyebrowPurchaseOrders")}
+        title={t("dashboard.purchaseOrders")}
+        description={t("dashboard.purchaseOrdersDesc")}
         actions={
           <Button onClick={() => setPoOpen(true)}>
             <Plus className="size-4" />
-            {t('forms.createPo')}
+            {t("forms.createPo")}
           </Button>
         }
       />
 
-      <Card title={t('dashboard.purchaseOrders')} description={t('dashboard.purchaseOrdersDesc')}>
+      <Card
+        title={t("dashboard.purchaseOrders")}
+        description={t("dashboard.purchaseOrdersDesc")}
+      >
         {purchaseOrders.length === 0 ? (
-          <EmptyState title={t('empty.noPos')} description={t('empty.noPosDesc')} />
+          <EmptyState
+            title={t("empty.noPos")}
+            description={t("empty.noPosDesc")}
+          />
         ) : (
           <Table
             embedded
-            pageSize={10}
+            pageSize={100}
             rowKey={(row) => row.id}
             rows={purchaseOrders}
             onRowClick={(row) => onOpenPo(row.id)}
@@ -97,34 +103,45 @@ export function PurchaseOrdersPage({ user, data, onOpenPo }: Props) {
                 onClick={() => bulkDelete.askMany(keys, clear)}
               >
                 <Trash2 className="size-4" />
-                {t('table.bulkDelete')}
+                {t("table.bulkDelete")}
               </Button>
             )}
             search={{
-              getText: (row) => `${row.poNumber} ${statusLabel(t, 'po', row.status)}`,
+              getText: (row) =>
+                `${row.poNumber} ${statusLabel(t, "po", row.status)}`,
             }}
             filters={[
               {
-                id: 'status',
-                label: t('forms.status'),
-                type: 'select',
+                id: "status",
+                label: t("forms.status"),
+                type: "select",
                 options: [
-                  { value: 'draft', label: statusLabel(t, 'po', 'draft') },
-                  { value: 'ordered', label: statusLabel(t, 'po', 'ordered') },
+                  { value: "draft", label: statusLabel(t, "po", "draft") },
+                  { value: "ordered", label: statusLabel(t, "po", "ordered") },
                   {
-                    value: 'partially_received',
-                    label: statusLabel(t, 'po', 'partially_received'),
+                    value: "partially_received",
+                    label: statusLabel(t, "po", "partially_received"),
                   },
-                  { value: 'received', label: statusLabel(t, 'po', 'received') },
-                  { value: 'cancelled', label: statusLabel(t, 'po', 'cancelled') },
+                  {
+                    value: "received",
+                    label: statusLabel(t, "po", "received"),
+                  },
+                  {
+                    value: "cancelled",
+                    label: statusLabel(t, "po", "cancelled"),
+                  },
                 ],
                 getValue: (row) => row.status,
               },
             ]}
             mobileCardTitle={(row) => row.poNumber}
-            mobileCardSubtitle={(row) => statusLabel(t, 'po', row.status)}
+            mobileCardSubtitle={(row) => statusLabel(t, "po", row.status)}
             mobileCardFields={[
-              { key: 'date', label: t('forms.orderDate'), render: (row) => row.orderDate },
+              {
+                key: "date",
+                label: t("forms.orderDate"),
+                render: (row) => row.orderDate,
+              },
             ]}
             mobileCardActions={
               actions.canDeletePurchaseOrders
@@ -133,31 +150,37 @@ export function PurchaseOrdersPage({ user, data, onOpenPo }: Props) {
             }
             columns={[
               {
-                key: 'poNumber',
-                header: t('forms.poNumber'),
-                render: (row) => <span className="font-medium">{row.poNumber}</span>,
-              },
-              {
-                key: 'status',
-                header: t('forms.status'),
-                width: 'w-40',
+                key: "poNumber",
+                header: t("forms.poNumber"),
                 render: (row) => (
-                  <Badge tone={poStatusTone(row.status)}>{statusLabel(t, 'po', row.status)}</Badge>
+                  <span className="font-medium">{row.poNumber}</span>
                 ),
               },
               {
-                key: 'date',
-                header: t('forms.orderDate'),
-                width: 'w-36',
+                key: "status",
+                header: t("forms.status"),
+                width: "w-40",
+                render: (row) => (
+                  <Badge tone={poStatusTone(row.status)}>
+                    {statusLabel(t, "po", row.status)}
+                  </Badge>
+                ),
+              },
+              {
+                key: "date",
+                header: t("forms.orderDate"),
+                width: "w-36",
                 render: (row) => row.orderDate,
               },
               ...(actions.canDeletePurchaseOrders
                 ? [
                     {
-                      key: 'actions',
-                      header: <span className="sr-only">{t('forms.actions')}</span>,
-                      width: 'w-28',
-                      align: 'end' as const,
+                      key: "actions",
+                      header: (
+                        <span className="sr-only">{t("forms.actions")}</span>
+                      ),
+                      width: "w-28",
+                      align: "end" as const,
                       render: (row: (typeof purchaseOrders)[number]) => (
                         <RowActionsMenu actions={poActions(row)} />
                       ),
@@ -175,9 +198,9 @@ export function PurchaseOrdersPage({ user, data, onOpenPo }: Props) {
         danger
         onClose={bulkDelete.cancel}
         onConfirm={bulkDelete.confirm}
-        title={t('forms.deletePoTitle', { count: bulkDelete.count })}
-        description={t('forms.deletePoConfirm')}
-        confirmLabel={t('forms.deletePo')}
+        title={t("forms.deletePoTitle", { count: bulkDelete.count })}
+        description={t("forms.deletePoConfirm")}
+        confirmLabel={t("forms.deletePo")}
       />
 
       <CreatePoModal
@@ -187,10 +210,10 @@ export function PurchaseOrdersPage({ user, data, onOpenPo }: Props) {
         branchOptions={branchOptions}
         supplierOptions={supplierOptions}
         onCreated={async (poId) => {
-          if (activeBusinessId) await refreshScopedData(activeBusinessId)
-          onOpenPo(poId)
+          if (activeBusinessId) await refreshScopedData(activeBusinessId);
+          onOpenPo(poId);
         }}
       />
     </div>
-  )
+  );
 }

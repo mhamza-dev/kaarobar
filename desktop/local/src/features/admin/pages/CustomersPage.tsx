@@ -145,7 +145,7 @@ export function CustomersPage({ user, data, onOpenCustomer }: Props) {
         ) : (
           <Table
             embedded
-            pageSize={10}
+            pageSize={100}
             rowKey={(row) => row.id}
             rows={customers}
             onRowClick={(row) => onOpenCustomer(row.id)}
@@ -221,7 +221,8 @@ export function CustomersPage({ user, data, onOpenCustomer }: Props) {
                     {
                       key: "credit",
                       header: t("forms.credit"),
-                      render: (row: Customer) => formatMoney(row.currentBalance),
+                      render: (row: Customer) =>
+                        formatMoney(row.currentBalance),
                     },
                   ]
                 : []),
