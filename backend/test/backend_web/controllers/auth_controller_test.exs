@@ -142,6 +142,80 @@ defmodule KaarobarWeb.AuthControllerTest do
     end
   end
 
+  describe "signing in with TOTP enabled" do
+    setup do
+      user = insert(:user, email: "cashier@shop.pk")
+      secret = Kaarobar.Accounts.TOTP.generate_secret()
+
+      {:ok, user} =
+        user
+        |> Kaarobar.Accounts.User.totp_changeset(%{
+          totp_secret: secret,
+          totp_confirmed_at: DateTime.utc_now()
+        })
+        |> Kaarobar.Repo.update()
+
+      %{user: user, secret: secret}
+    end
+
+    test "the password alone returns a challenge, not a token", %{conn: conn, user: user} do
+      conn =
+        post(conn, ~p"/api/v1/auth/login", %{
+          "email" => user.email,
+          "password" => valid_password()
+        })
+
+      assert %{"mfa_required" => true, "challenge" => challenge} = json_data(conn, 200)
+      assert is_binary(challenge)
+    end
+
+    test "the challenge plus the right code returns a working token", %{
+      conn: conn,
+      user: user,
+      secret: secret
+    } do
+      conn =
+        post(conn, ~p"/api/v1/auth/login", %{
+          "email" => user.email,
+          "password" => valid_password()
+        })
+
+      %{"challenge" => challenge} = json_data(conn, 200)
+      code = Kaarobar.Accounts.TOTP.generate(secret, div(System.os_time(:second), 30))
+
+      verify =
+        build_conn()
+        |> post(~p"/api/v1/auth/mfa/verify", %{"challenge" => challenge, "code" => code})
+
+      assert %{"token" => token} = json_data(verify, 200)
+      assert {:ok, %{id: id}, _token} = Accounts.fetch_user_by_bearer_token(token)
+      assert id == user.id
+    end
+
+    test "the challenge plus the wrong code is refused", %{conn: conn, user: user} do
+      conn =
+        post(conn, ~p"/api/v1/auth/login", %{
+          "email" => user.email,
+          "password" => valid_password()
+        })
+
+      %{"challenge" => challenge} = json_data(conn, 200)
+
+      verify =
+        build_conn()
+        |> post(~p"/api/v1/auth/mfa/verify", %{"challenge" => challenge, "code" => "000000"})
+
+      assert %{"code" => "invalid_credentials"} = json_error(verify, 401)
+    end
+
+    test "a tampered challenge is refused", %{conn: conn} do
+      conn =
+        post(conn, ~p"/api/v1/auth/mfa/verify", %{"challenge" => "garbage", "code" => "000000"})
+
+      assert %{"code" => "invalid_token"} = json_error(conn, 401)
+    end
+  end
+
   describe "authentication on protected routes" do
     test "no header is rejected", %{conn: conn} do
       conn = get(conn, ~p"/api/v1/me")

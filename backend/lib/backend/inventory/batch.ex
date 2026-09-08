@@ -69,7 +69,8 @@ defmodule Kaarobar.Inventory.Batch do
     |> validate_number(:remaining_quantity, greater_than_or_equal_to: 0)
     |> validate_number(:unit_cost, greater_than_or_equal_to: 0)
     |> validate_dates()
-    |> unique_constraint(:batch_number, name: :batches_business_id_variant_id_batch_number_index,
+    |> unique_constraint(:batch_number,
+      name: :batches_business_id_variant_id_batch_number_index,
       message: "already exists for this product"
     )
     |> foreign_key_constraint(:variant_id)
@@ -91,7 +92,9 @@ defmodule Kaarobar.Inventory.Batch do
   @doc "True when the batch is past its expiry."
   @spec expired?(t(), Date.t()) :: boolean()
   def expired?(%__MODULE__{expires_on: nil}, _today), do: false
-  def expired?(%__MODULE__{expires_on: expires_on}, today), do: Date.compare(today, expires_on) == :gt
+
+  def expired?(%__MODULE__{expires_on: expires_on}, today),
+    do: Date.compare(today, expires_on) == :gt
 
   @doc """
   Days until expiry — negative once past it.
@@ -101,7 +104,9 @@ defmodule Kaarobar.Inventory.Batch do
   """
   @spec days_until_expiry(t(), Date.t()) :: integer() | nil
   def days_until_expiry(%__MODULE__{expires_on: nil}, _today), do: nil
-  def days_until_expiry(%__MODULE__{expires_on: expires_on}, today), do: Date.diff(expires_on, today)
+
+  def days_until_expiry(%__MODULE__{expires_on: expires_on}, today),
+    do: Date.diff(expires_on, today)
 
   defp validate_dates(changeset) do
     manufactured = get_field(changeset, :manufactured_on)

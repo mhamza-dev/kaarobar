@@ -77,7 +77,8 @@ defmodule Kaarobar.Repo.Migrations.CreateCustomerCrm do
            )
 
     create constraint(:customer_groups, :customer_groups_discount_check,
-             check: "discount_percent IS NULL OR (discount_percent >= 0 AND discount_percent <= 1)"
+             check:
+               "discount_percent IS NULL OR (discount_percent >= 0 AND discount_percent <= 1)"
            )
 
     create constraint(:customer_groups, :customer_groups_terms_check,

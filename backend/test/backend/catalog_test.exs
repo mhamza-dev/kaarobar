@@ -327,6 +327,7 @@ defmodule Kaarobar.CatalogTest do
       %{scope: scope} = owner_scope()
 
       product_fixture(scope, %{"name" => "Basmati Rice 5kg", "sku" => "RICE-5", "price" => "2400"})
+
       product_fixture(scope, %{"name" => "Sunflower Oil 1L", "sku" => "OIL-1", "price" => "600"})
 
       %{scope: scope}

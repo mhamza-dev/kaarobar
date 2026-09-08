@@ -22,6 +22,7 @@ defmodule Kaarobar.Fiscal.RetryWorker do
     unique: [period: 60, states: [:available, :scheduled, :executing]]
 
   alias Kaarobar.Fiscal
+  alias Kaarobar.Repo
 
   require Logger
 
@@ -30,7 +31,10 @@ defmodule Kaarobar.Fiscal.RetryWorker do
   @impl Oban.Worker
   def perform(%Oban.Job{args: args}) do
     limit = Map.get(args, "limit", @batch)
-    result = Fiscal.process_due(limit)
+
+    # Cross-tenant by design — the due submissions across every tenant's
+    # authority, not one tenant's. See `Kaarobar.Repo.as_system/1`.
+    result = Repo.as_system(fn -> Fiscal.process_due(limit) end)
 
     if result.ok > 0 or result.error > 0 do
       Logger.info("fiscal retry: #{result.ok} accepted or queued, #{result.error} still failing")

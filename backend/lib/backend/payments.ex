@@ -284,14 +284,25 @@ defmodule Kaarobar.Payments do
   def handle_webhook(provider_name, raw_body, headers) do
     with {:ok, adapter} <- Gateway.adapter_for(provider_name),
          {:ok, provider} <- provider_for_webhook(provider_name, raw_body, headers),
-         {:ok, payload} <- verify(adapter, provider, raw_body, headers),
-         {:ok, event} <- store_event(provider, provider_name, payload) do
-      if event.status == "processed" do
-        # A replay. The original stands; nothing else happens.
-        {:ok, event}
-      else
-        process_event(adapter, provider, event, payload)
-      end
+         {:ok, payload} <- verify(adapter, provider, raw_body, headers) do
+      # `payment_providers` is one of the few tables RLS leaves unprotected,
+      # precisely so this lookup can happen before a tenant is known — see
+      # the migration. Everything from here on touches `webhook_events` and
+      # whatever the event settles (a payment, an intent), so the tenant has
+      # to be set before any of it runs.
+      Repo.with_tenant_context(provider.organization_id, fn ->
+        store_and_process_event(adapter, provider, provider_name, payload)
+      end)
+    end
+  end
+
+  defp store_and_process_event(adapter, provider, provider_name, payload) do
+    with {:ok, event} <- store_event(provider, provider_name, payload) do
+      # A "processed" event is a replay: the original stands, nothing else
+      # happens.
+      if event.status == "processed",
+        do: {:ok, event},
+        else: process_event(adapter, provider, event, payload)
     end
   end
 

@@ -392,8 +392,7 @@ defmodule Kaarobar.Sales do
         Audit.log(scope, "sale.returned", record,
           entity_type: "sale_return",
           label: record.number,
-          summary:
-            "Returned #{Decimal.to_string(record.total, :normal)} against #{loaded.number}"
+          summary: "Returned #{Decimal.to_string(record.total, :normal)} against #{loaded.number}"
         )
 
         Repo.preload(record, :items)

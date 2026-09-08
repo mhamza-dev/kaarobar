@@ -58,9 +58,7 @@ defmodule Kaarobar.Repo.Migrations.CreateReporting do
       timestamps(type: :utc_datetime_usec)
     end
 
-    create unique_index(:expense_categories, [:business_id, :name],
-             where: "deleted_at IS NULL"
-           )
+    create unique_index(:expense_categories, [:business_id, :name], where: "deleted_at IS NULL")
 
     create constraint(:expense_categories, :expense_categories_kind_check,
              check: "kind IN ('operating','cost_of_sales','payroll','tax','other')"

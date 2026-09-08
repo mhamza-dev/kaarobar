@@ -84,7 +84,9 @@ defmodule Kaarobar.Repo.Migrations.CreateRegisters do
           null: false
 
       add :branch_id, references(:branches, type: :binary_id, on_delete: :restrict), null: false
-      add :register_id, references(:registers, type: :binary_id, on_delete: :restrict), null: false
+
+      add :register_id, references(:registers, type: :binary_id, on_delete: :restrict),
+        null: false
 
       add :number, :string, null: false
       add :status, :string, null: false, default: "open"

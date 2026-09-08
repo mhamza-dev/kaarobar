@@ -325,7 +325,8 @@ defmodule Kaarobar.AccountsTest do
       {session, _token} = Accounts.create_bearer_token(user)
       token = capture_reset_token(user)
 
-      assert {:ok, updated} = Accounts.reset_password(token, %{"password" => "brand-new-password"})
+      assert {:ok, updated} =
+               Accounts.reset_password(token, %{"password" => "brand-new-password"})
 
       assert User.valid_password?(updated, "brand-new-password")
       assert {:error, :unauthorized} = Accounts.fetch_user_by_bearer_token(session)

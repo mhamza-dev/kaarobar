@@ -81,14 +81,15 @@ defmodule Kaarobar.Purchasing.PurchaseOrder do
       :notes
     ])
     |> validate_required([:branch_id, :supplier_id, :currency])
-    |> validate_format(:currency, ~r/^[A-Z]{3}$/,
-      message: "must be a three-letter ISO 4217 code"
-    )
+    |> validate_format(:currency, ~r/^[A-Z]{3}$/, message: "must be a three-letter ISO 4217 code")
     |> validate_number(:exchange_rate, greater_than: 0)
     |> validate_number(:shipping_total, greater_than_or_equal_to: 0)
     |> validate_dates()
     |> validate_length(:notes, max: 2000)
-    |> unique_constraint(:number, name: :purchase_orders_business_id_number_index, message: "is already used")
+    |> unique_constraint(:number,
+      name: :purchase_orders_business_id_number_index,
+      message: "is already used"
+    )
     |> foreign_key_constraint(:supplier_id)
     |> foreign_key_constraint(:branch_id)
   end

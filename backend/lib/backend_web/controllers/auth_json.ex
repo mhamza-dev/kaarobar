@@ -25,6 +25,11 @@ defmodule KaarobarWeb.AuthJSON do
     }
   end
 
+  @doc "A password-verified login that still needs a TOTP code."
+  def mfa_challenge(%{challenge: challenge}) do
+    %{data: %{mfa_required: true, challenge: challenge}}
+  end
+
   defp created_records(nil), do: %{}
 
   defp created_records(result) do

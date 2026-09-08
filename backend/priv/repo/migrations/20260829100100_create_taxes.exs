@@ -52,7 +52,10 @@ defmodule Kaarobar.Repo.Migrations.CreateTaxes do
     end
 
     create index(:taxes, [:business_id])
-    create unique_index(:taxes, [:business_id, :code], where: "code IS NOT NULL AND deleted_at IS NULL")
+
+    create unique_index(:taxes, [:business_id, :code],
+             where: "code IS NOT NULL AND deleted_at IS NULL"
+           )
 
     create constraint(:taxes, :taxes_kind_check, check: "kind IN ('percentage','fixed')")
     create constraint(:taxes, :taxes_rate_non_negative_check, check: "rate >= 0")

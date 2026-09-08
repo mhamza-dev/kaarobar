@@ -28,7 +28,12 @@ defmodule Kaarobar.ServiceDeskTest do
           "tag_code" => "t-1001",
           "condition_notes" => "Faint mark on left cuff"
         },
-        %{"description" => "Grey coat", "quantity" => "1", "unit_price" => "500.00", "tag_code" => "T-1002"}
+        %{
+          "description" => "Grey coat",
+          "quantity" => "1",
+          "unit_price" => "500.00",
+          "tag_code" => "T-1002"
+        }
       ]
     }
 
@@ -117,8 +122,7 @@ defmodule Kaarobar.ServiceDeskTest do
 
       assert {:error, changeset} = ServiceDesk.mark_ready(ctx.scope, job, nil)
 
-      assert "is required before a job can be marked ready" in
-               errors_on(changeset).rack_location
+      assert "is required before a job can be marked ready" in errors_on(changeset).rack_location
     end
 
     test "marking ready racks every item with it", ctx do

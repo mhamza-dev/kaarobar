@@ -258,7 +258,11 @@ defmodule Kaarobar.Pricing.PriceRule do
 
   defp validate_target(changeset) do
     if get_field(changeset, :scope) != "all" and is_nil(get_field(changeset, :target_id)) do
-      add_error(changeset, :target_id, "is required when the promotion targets something specific")
+      add_error(
+        changeset,
+        :target_id,
+        "is required when the promotion targets something specific"
+      )
     else
       changeset
     end

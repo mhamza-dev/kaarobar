@@ -68,7 +68,11 @@ defmodule Kaarobar.Repo.Migrations.CreateSuppliers do
     end
 
     create index(:suppliers, [:business_id])
-    create unique_index(:suppliers, [:business_id, :code], where: "code IS NOT NULL AND deleted_at IS NULL")
+
+    create unique_index(:suppliers, [:business_id, :code],
+             where: "code IS NOT NULL AND deleted_at IS NULL"
+           )
+
     create index(:suppliers, [:business_id, :name])
 
     create constraint(:suppliers, :suppliers_payment_terms_check,
@@ -121,9 +125,7 @@ defmodule Kaarobar.Repo.Migrations.CreateSuppliers do
              name: :supplier_products_single_preferred_index
            )
 
-    create constraint(:supplier_products, :supplier_products_cost_check,
-             check: "unit_cost >= 0"
-           )
+    create constraint(:supplier_products, :supplier_products_cost_check, check: "unit_cost >= 0")
 
     # ------------------------------------------------------- supplier ledger
     create table(:supplier_ledger_entries, primary_key: false) do

@@ -17,10 +17,16 @@ defmodule KaarobarWeb.InventoryController do
        [permission: "inventory:view"]
        when action in [:index, :show, :moves, :ledger, :batches, :expiring, :serials, :reorder]
 
-  plug KaarobarWeb.Plugs.Authorize, [permission: "valuation:view"] when action in [:valuation, :reconcile]
-  plug KaarobarWeb.Plugs.Authorize, [permission: "stock:adjust"] when action in [:adjust, :opening]
+  plug KaarobarWeb.Plugs.Authorize,
+       [permission: "valuation:view"] when action in [:valuation, :reconcile]
+
+  plug KaarobarWeb.Plugs.Authorize,
+       [permission: "stock:adjust"] when action in [:adjust, :opening]
+
   plug KaarobarWeb.Plugs.Authorize, [permission: "stock:wastage"] when action in [:write_off]
-  plug KaarobarWeb.Plugs.Authorize, [permission: "reorder:manage"] when action in [:update_settings]
+
+  plug KaarobarWeb.Plugs.Authorize,
+       [permission: "reorder:manage"] when action in [:update_settings]
 
   plug KaarobarWeb.Plugs.Authorize,
        [permission: "batch:manage"] when action in [:create_batch, :set_batch_status]
@@ -140,7 +146,10 @@ defmodule KaarobarWeb.InventoryController do
   @doc "Lists individually tracked units."
   def serials(conn, params) do
     serials =
-      Inventory.list_serials(conn.assigns.scope, Map.take(params, ~w(variant_id status branch_id)))
+      Inventory.list_serials(
+        conn.assigns.scope,
+        Map.take(params, ~w(variant_id status branch_id))
+      )
 
     render(conn, :serials, serials: serials)
   end
@@ -167,7 +176,8 @@ defmodule KaarobarWeb.InventoryController do
   @doc "Stock at or below its reorder point, with a suggested order quantity."
   def reorder(conn, params) do
     render(conn, :reorder,
-      suggestions: Inventory.reorder_suggestions(conn.assigns.scope, Map.take(params, @stock_filters))
+      suggestions:
+        Inventory.reorder_suggestions(conn.assigns.scope, Map.take(params, @stock_filters))
     )
   end
 

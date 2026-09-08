@@ -77,4 +77,64 @@ defmodule KaarobarWeb.MeController do
       send_resp(conn, :no_content, "")
     end
   end
+
+  @doc """
+  Starts TOTP enrollment: a fresh secret and the QR code URI to scan it from.
+
+  Not yet enforced on sign-in — `confirm_mfa/2` is what turns it on, once the
+  app proves it can produce a matching code.
+  """
+  def enroll_mfa(conn, _params) do
+    {:ok, _user, provisioning_uri} = Accounts.start_totp_enrollment(conn.assigns.current_user)
+    render(conn, :mfa_enrollment, provisioning_uri: provisioning_uri)
+  end
+
+  @doc "Confirms enrollment with a code from the app, turning MFA on."
+  def confirm_mfa(conn, %{"code" => code}) do
+    with {:ok, user} <- Accounts.confirm_totp_enrollment(conn.assigns.current_user, code) do
+      Audit.log(conn.assigns.scope, "user.mfa_enabled", user, entity_type: "user")
+      render(conn, :profile, user: user)
+    end
+  end
+
+  def confirm_mfa(_conn, _params), do: {:error, :bad_request}
+
+  @doc "Turns MFA off, after confirming the password."
+  def disable_mfa(conn, %{"current_password" => password}) do
+    with {:ok, user} <- Accounts.disable_totp(conn.assigns.current_user, password) do
+      Audit.log(conn.assigns.scope, "user.mfa_disabled", user, entity_type: "user")
+      render(conn, :profile, user: user)
+    end
+  end
+
+  def disable_mfa(_conn, _params), do: {:error, :bad_request}
+
+  @doc "A GDPR export of everything held about the caller personally."
+  def export(conn, _params) do
+    Audit.log(conn.assigns.scope, "user.data_exported", conn.assigns.current_user,
+      entity_type: "user"
+    )
+
+    render(conn, :export, export: Accounts.export_personal_data(conn.assigns.current_user))
+  end
+
+  @doc """
+  Erases the caller's own personal data, after confirming their password.
+
+  Scrubs the account rather than removing the row — see
+  `Kaarobar.Accounts.erase_personal_data/2` for why — and signs every device
+  out, since the password that would be needed to sign back in no longer
+  exists.
+  """
+  def erase(conn, %{"current_password" => password}) do
+    with {:ok, user} <- Accounts.erase_personal_data(conn.assigns.current_user, password) do
+      Audit.log(conn.assigns.scope, "user.data_erased", user, entity_type: "user")
+
+      conn
+      |> put_status(:ok)
+      |> json(%{data: %{message: "Your account and personal data have been erased."}})
+    end
+  end
+
+  def erase(_conn, _params), do: {:error, :bad_request}
 end

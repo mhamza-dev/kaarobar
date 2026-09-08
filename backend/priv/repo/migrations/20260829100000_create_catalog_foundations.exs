@@ -78,8 +78,7 @@ defmodule Kaarobar.Repo.Migrations.CreateCatalogFoundations do
           references(:businesses, type: :binary_id, on_delete: :delete_all),
           null: false
 
-      add :from_unit_id, references(:units, type: :binary_id, on_delete: :delete_all),
-        null: false
+      add :from_unit_id, references(:units, type: :binary_id, on_delete: :delete_all), null: false
 
       add :to_unit_id, references(:units, type: :binary_id, on_delete: :delete_all), null: false
 
@@ -136,9 +135,7 @@ defmodule Kaarobar.Repo.Migrations.CreateCatalogFoundations do
     create index(:categories, [:parent_id])
     create index(:categories, [:business_id, :path])
 
-    create constraint(:categories, :categories_depth_check,
-             check: "depth >= 0 AND depth <= 5"
-           )
+    create constraint(:categories, :categories_depth_check, check: "depth >= 0 AND depth <= 5")
 
     create constraint(:categories, :categories_not_own_parent_check, check: "id <> parent_id")
 

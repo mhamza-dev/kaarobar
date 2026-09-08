@@ -235,7 +235,8 @@ defmodule Kaarobar.Payments.Adapters.JazzCash do
   defp endpoint(%Provider{mode: "live"}), do: @live
   defp endpoint(%Provider{}), do: @sandbox
 
-  defp refund_endpoint(provider), do: String.replace(endpoint(provider), "DoTransaction", "DoRefund")
+  defp refund_endpoint(provider),
+    do: String.replace(endpoint(provider), "DoTransaction", "DoRefund")
 
   defp status_endpoint(provider),
     do: String.replace(endpoint(provider), "DoTransaction", "DoInquiry")

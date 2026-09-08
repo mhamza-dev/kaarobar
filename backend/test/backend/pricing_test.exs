@@ -348,7 +348,10 @@ defmodule Kaarobar.PricingTest do
 
       ctx = Pricing.context(scope)
 
-      assert_money(Pricing.quote_line(ctx, line(variant, "1", product: product)).unit_price, "90.00")
+      assert_money(
+        Pricing.quote_line(ctx, line(variant, "1", product: product)).unit_price,
+        "90.00"
+      )
 
       assert_money(
         Pricing.quote_line(ctx, line(other_variant, "1", product: other)).unit_price,
@@ -360,7 +363,9 @@ defmodule Kaarobar.PricingTest do
       root = category_fixture(scope, %{"name" => "Beverages"})
       child = category_fixture(scope, %{"name" => "Hot", "parent_id" => root.id})
 
-      tea = product_fixture(scope, %{"name" => "Tea", "price" => "100", "category_id" => child.id})
+      tea =
+        product_fixture(scope, %{"name" => "Tea", "price" => "100", "category_id" => child.id})
+
       {:ok, tea} = Kaarobar.Catalog.fetch_product(scope, tea.id)
 
       price_rule_fixture(scope, %{

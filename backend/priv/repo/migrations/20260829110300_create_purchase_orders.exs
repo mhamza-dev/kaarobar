@@ -84,9 +84,7 @@ defmodule Kaarobar.Repo.Migrations.CreatePurchaseOrders do
              check: "expected_on IS NULL OR ordered_on IS NULL OR expected_on >= ordered_on"
            )
 
-    create constraint(:purchase_orders, :purchase_orders_rate_check,
-             check: "exchange_rate > 0"
-           )
+    create constraint(:purchase_orders, :purchase_orders_rate_check, check: "exchange_rate > 0")
 
     # ------------------------------------------------------------- order lines
     create table(:purchase_order_items, primary_key: false) do

@@ -115,6 +115,14 @@ defmodule Kaarobar.Factory do
   def owner_scope(opts \\ []) do
     owner = insert(:user)
     organization = insert(:organization, owner: owner)
+
+    # Every table below (memberships aside) is RLS-protected — see
+    # `Kaarobar.Repo.set_tenant_context/2`. `local: true` scopes it to the
+    # sandbox's one test-long transaction, the same way `SET LOCAL` scopes it
+    # to one request — set it any looser and it would outlive this test on
+    # whichever connection the sandbox hands back to the pool.
+    Repo.set_tenant_context(organization.id, local: true)
+
     membership = insert(:membership, organization: organization, user: owner)
     assign_role(membership, "owner")
 

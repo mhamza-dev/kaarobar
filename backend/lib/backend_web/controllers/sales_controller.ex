@@ -32,7 +32,8 @@ defmodule KaarobarWeb.SalesController do
        when action in [:create_refund_request, :index_refund_requests, :show_refund_request]
 
   plug KaarobarWeb.Plugs.Authorize,
-       [permission: "sale:refund_approve"] when action in [:approve_refund, :reject_refund, :refund]
+       [permission: "sale:refund_approve"]
+       when action in [:approve_refund, :reject_refund, :refund]
 
   # ===========================================================================
   # Selling

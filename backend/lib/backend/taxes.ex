@@ -245,7 +245,9 @@ defmodule Kaarobar.Taxes do
   """
   @spec delete_tax_group(Scope.t(), TaxGroup.t()) :: {:ok, TaxGroup.t()} | {:error, :conflict}
   def delete_tax_group(%Scope{}, %TaxGroup{} = group) do
-    if Repo.exists?(from(p in Product, where: p.tax_group_id == ^group.id and is_nil(p.deleted_at))) do
+    if Repo.exists?(
+         from(p in Product, where: p.tax_group_id == ^group.id and is_nil(p.deleted_at))
+       ) do
       {:error, :conflict}
     else
       group |> TaxGroup.soft_delete_changeset() |> Repo.update()

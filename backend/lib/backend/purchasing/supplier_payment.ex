@@ -66,9 +66,7 @@ defmodule Kaarobar.Purchasing.SupplierPayment do
     |> validate_inclusion(:method, @methods)
     |> validate_number(:amount, greater_than: 0)
     |> validate_number(:exchange_rate, greater_than: 0)
-    |> validate_format(:currency, ~r/^[A-Z]{3}$/,
-      message: "must be a three-letter ISO 4217 code"
-    )
+    |> validate_format(:currency, ~r/^[A-Z]{3}$/, message: "must be a three-letter ISO 4217 code")
     |> validate_length(:reference, max: 120)
     |> unique_constraint(:number,
       name: :supplier_payments_business_id_number_index,

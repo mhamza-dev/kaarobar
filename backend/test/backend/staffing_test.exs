@@ -362,7 +362,11 @@ defmodule Kaarobar.StaffingTest do
       assert Enum.map(Tenancy.list_branches(scope), & &1.id) == [second.id]
     end
 
-    test "an empty list means every branch", %{owner: owner, membership: membership, second: second} do
+    test "an empty list means every branch", %{
+      owner: owner,
+      membership: membership,
+      second: second
+    } do
       {:ok, _restricted} = Staffing.assign_branches(owner, membership, [second.id])
       {:ok, unrestricted} = Staffing.assign_branches(owner, membership, [])
 
@@ -407,5 +411,4 @@ defmodule Kaarobar.StaffingTest do
       refute theirs.id in ids
     end
   end
-
 end

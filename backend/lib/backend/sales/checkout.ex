@@ -528,7 +528,9 @@ defmodule Kaarobar.Sales.Checkout do
     largest_index =
       shares
       |> Enum.with_index()
-      |> Enum.max_by(fn {{{_line, quote}, _share}, _index} -> Decimal.to_float(quote.subtotal) end)
+      |> Enum.max_by(fn {{{_line, quote}, _share}, _index} ->
+        Decimal.to_float(quote.subtotal)
+      end)
       |> elem(1)
 
     shares
@@ -1206,7 +1208,8 @@ defmodule Kaarobar.Sales.Checkout do
       summary:
         "#{length(lines)} line(s), #{Decimal.to_string(sale.total, :normal)} #{sale.currency}",
       metadata: %{
-        "tenders" => Enum.map(tenders, &%{"method" => &1.method, "amount" => to_string(&1.amount)}),
+        "tenders" =>
+          Enum.map(tenders, &%{"method" => &1.method, "amount" => to_string(&1.amount)}),
         "customer_id" => sale.customer_id,
         "register_id" => sale.register_id
       }
@@ -1216,12 +1219,18 @@ defmodule Kaarobar.Sales.Checkout do
   # Fired after the transaction commits, never inside it: a subscriber told
   # about a sale that then rolls back would be showing a sale that never
   # happened.
+  #
+  # `KaarobarWeb.Endpoint.broadcast/3`, not a raw `Phoenix.PubSub.broadcast/3`
+  # — the channel transport only routes a `%Phoenix.Socket.Broadcast{}` to a
+  # joined `KaarobarWeb.BusinessChannel`'s `handle_out/3`, which is what
+  # `Endpoint.broadcast/3` sends; a bare message tuple over `Phoenix.PubSub`
+  # directly would reach the topic but never reach the channel.
   defp broadcast(%Scope{} = scope, %Sale{} = sale) do
-    Phoenix.PubSub.broadcast(
-      Kaarobar.PubSub,
-      "business:#{Scope.business_id(scope)}",
-      {:sale_completed, %{sale_id: sale.id, branch_id: sale.branch_id, total: sale.total}}
-    )
+    KaarobarWeb.Endpoint.broadcast("business:#{Scope.business_id(scope)}", "sale_completed", %{
+      sale_id: sale.id,
+      branch_id: sale.branch_id,
+      total: sale.total
+    })
 
     :ok
   end

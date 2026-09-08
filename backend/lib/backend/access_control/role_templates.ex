@@ -208,19 +208,22 @@ defmodule Kaarobar.AccessControl.RoleTemplates do
       name: "Kitchen",
       description: "Works the kitchen display: sees what to cook and marks it ready.",
       rank: 70,
-      permissions: ~w(branch:view product:view order:view kitchen:view kitchen:bump attendance:record)
+      permissions:
+        ~w(branch:view product:view order:view kitchen:view kitchen:bump attendance:record)
     },
     %{
       key: "rider",
       name: "Delivery rider",
       description: "Carries deliveries and reports their status.",
       rank: 70,
-      permissions: ~w(branch:view delivery:view delivery:update order:view sale:view attendance:record)
+      permissions:
+        ~w(branch:view delivery:view delivery:update order:view sale:view attendance:record)
     },
     %{
       key: "viewer",
       name: "Viewer",
-      description: "Read-only access. Useful for an accountant's assistant or a franchise auditor.",
+      description:
+        "Read-only access. Useful for an accountant's assistant or a franchise auditor.",
       rank: 90,
       permissions: {:literal, @view_keys ++ @report_keys}
     }

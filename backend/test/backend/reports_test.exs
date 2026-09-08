@@ -195,7 +195,10 @@ defmodule Kaarobar.ReportsTest do
     test "the average is zero on a day with no sales, not a division error", ctx do
       today = Rollups.business_today(ctx.scope.business)
 
-      assert Decimal.equal?(Reports.summary(ctx.scope, {today, today}).average_sale, Decimal.new(0))
+      assert Decimal.equal?(
+               Reports.summary(ctx.scope, {today, today}).average_sale,
+               Decimal.new(0)
+             )
     end
   end
 

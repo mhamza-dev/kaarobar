@@ -160,8 +160,16 @@ defmodule Kaarobar.Purchasing do
     |> Repo.insert(
       on_conflict:
         {:replace,
-         [:supplier_sku, :supplier_name, :unit_cost, :minimum_order_quantity, :pack_size,
-          :lead_time_days, :is_active, :updated_at]},
+         [
+           :supplier_sku,
+           :supplier_name,
+           :unit_cost,
+           :minimum_order_quantity,
+           :pack_size,
+           :lead_time_days,
+           :is_active,
+           :updated_at
+         ]},
       conflict_target: [:supplier_id, :variant_id]
     )
   end
@@ -418,7 +426,9 @@ defmodule Kaarobar.Purchasing do
 
   defp apply_order_filters(query, filters) do
     Enum.reduce(filters, query, fn
-      {"status", value}, acc when is_binary(value) -> where(acc, [o], o.status == ^value)
+      {"status", value}, acc when is_binary(value) ->
+        where(acc, [o], o.status == ^value)
+
       {"supplier_id", value}, acc ->
         if UUIDv7.valid?(value), do: where(acc, [o], o.supplier_id == ^value), else: acc
 
@@ -719,7 +729,9 @@ defmodule Kaarobar.Purchasing do
 
   defp apply_receipt_filters(query, filters) do
     Enum.reduce(filters, query, fn
-      {"status", value}, acc when is_binary(value) -> where(acc, [r], r.status == ^value)
+      {"status", value}, acc when is_binary(value) ->
+        where(acc, [r], r.status == ^value)
+
       {"supplier_id", value}, acc ->
         if UUIDv7.valid?(value), do: where(acc, [r], r.supplier_id == ^value), else: acc
 
@@ -990,7 +1002,9 @@ defmodule Kaarobar.Purchasing do
 
   defp apply_bill_filters(query, filters) do
     Enum.reduce(filters, query, fn
-      {"status", value}, acc when is_binary(value) -> where(acc, [b], b.status == ^value)
+      {"status", value}, acc when is_binary(value) ->
+        where(acc, [b], b.status == ^value)
+
       {"supplier_id", value}, acc ->
         if UUIDv7.valid?(value), do: where(acc, [b], b.supplier_id == ^value), else: acc
 
@@ -1205,7 +1219,9 @@ defmodule Kaarobar.Purchasing do
           })
 
         with {:ok, entry} <-
-               %SupplierLedgerEntry{} |> SupplierLedgerEntry.changeset(entry_attrs) |> Repo.insert(),
+               %SupplierLedgerEntry{}
+               |> SupplierLedgerEntry.changeset(entry_attrs)
+               |> Repo.insert(),
              {:ok, _supplier} <-
                supplier |> Ecto.Changeset.change(balance: balance_after) |> Repo.update() do
           {:ok, entry}

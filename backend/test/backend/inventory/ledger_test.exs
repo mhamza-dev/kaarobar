@@ -31,7 +31,11 @@ defmodule Kaarobar.Inventory.LedgerTest do
   end
 
   describe "posting a move" do
-    test "creates the stock line on first movement", %{scope: scope, variant: variant, branch: branch} do
+    test "creates the stock line on first movement", %{
+      scope: scope,
+      variant: variant,
+      branch: branch
+    } do
       assert {:ok, move} =
                Ledger.post(scope, %{
                  variant_id: variant.id,
@@ -136,7 +140,11 @@ defmodule Kaarobar.Inventory.LedgerTest do
       assert Decimal.equal?(item.on_hand, summed)
     end
 
-    test "balance_after follows the row above it", %{scope: scope, variant: variant, branch: branch} do
+    test "balance_after follows the row above it", %{
+      scope: scope,
+      variant: variant,
+      branch: branch
+    } do
       stock_fixture(scope, variant, "50")
 
       for quantity <- ~w(10 5 20) do
@@ -238,7 +246,11 @@ defmodule Kaarobar.Inventory.LedgerTest do
       assert Decimal.equal?(after_sale.average_cost, d("150"))
     end
 
-    test "a sale is costed at the running average", %{scope: scope, variant: variant, branch: branch} do
+    test "a sale is costed at the running average", %{
+      scope: scope,
+      variant: variant,
+      branch: branch
+    } do
       stock_fixture(scope, variant, "10", unit_cost: "100.00")
       stock_fixture(scope, variant, "10", unit_cost: "200.00")
 
@@ -296,7 +308,11 @@ defmodule Kaarobar.Inventory.LedgerTest do
       assert Decimal.equal?(sale.total_cost, d("-1400"))
     end
 
-    test "layers reconcile with the stock level", %{scope: scope, variant: variant, branch: branch} do
+    test "layers reconcile with the stock level", %{
+      scope: scope,
+      variant: variant,
+      branch: branch
+    } do
       stock_fixture(scope, variant, "10", unit_cost: "100.00")
       stock_fixture(scope, variant, "10", unit_cost: "200.00")
 
@@ -430,7 +446,11 @@ defmodule Kaarobar.Inventory.LedgerTest do
       assert_qty(Inventory.available(scope, other.id, branch.id), "1")
     end
 
-    test "posts every line when they all succeed", %{scope: scope, variant: variant, branch: branch} do
+    test "posts every line when they all succeed", %{
+      scope: scope,
+      variant: variant,
+      branch: branch
+    } do
       other = variant_fixture(scope, %{"price" => "50.00"})
       stock_fixture(scope, variant, "10")
       stock_fixture(scope, other, "10")

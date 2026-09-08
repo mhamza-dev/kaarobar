@@ -696,20 +696,23 @@ defmodule Kaarobar.InventoryTest do
 
   describe "expiring stock" do
     test "surfaces lots inside the window, soonest first", %{scope: scope, variant: variant} do
-      soon = batch_fixture(scope, variant, %{
-        "batch_number" => "SOON",
-        "expires_on" => Date.add(Date.utc_today(), 5)
-      })
+      soon =
+        batch_fixture(scope, variant, %{
+          "batch_number" => "SOON",
+          "expires_on" => Date.add(Date.utc_today(), 5)
+        })
 
-      later = batch_fixture(scope, variant, %{
-        "batch_number" => "LATER",
-        "expires_on" => Date.add(Date.utc_today(), 20)
-      })
+      later =
+        batch_fixture(scope, variant, %{
+          "batch_number" => "LATER",
+          "expires_on" => Date.add(Date.utc_today(), 20)
+        })
 
-      _far = batch_fixture(scope, variant, %{
-        "batch_number" => "FAR",
-        "expires_on" => Date.add(Date.utc_today(), 200)
-      })
+      _far =
+        batch_fixture(scope, variant, %{
+          "batch_number" => "FAR",
+          "expires_on" => Date.add(Date.utc_today(), 200)
+        })
 
       stock_fixture(scope, variant, "10", batch_id: soon.id)
       stock_fixture(scope, variant, "10", batch_id: later.id)
@@ -720,15 +723,17 @@ defmodule Kaarobar.InventoryTest do
     end
 
     test "picks the soonest-expiring lot to sell from next", %{scope: scope, variant: variant} do
-      later = batch_fixture(scope, variant, %{
-        "batch_number" => "LATER",
-        "expires_on" => Date.add(Date.utc_today(), 90)
-      })
+      later =
+        batch_fixture(scope, variant, %{
+          "batch_number" => "LATER",
+          "expires_on" => Date.add(Date.utc_today(), 90)
+        })
 
-      soon = batch_fixture(scope, variant, %{
-        "batch_number" => "SOON",
-        "expires_on" => Date.add(Date.utc_today(), 10)
-      })
+      soon =
+        batch_fixture(scope, variant, %{
+          "batch_number" => "SOON",
+          "expires_on" => Date.add(Date.utc_today(), 10)
+        })
 
       stock_fixture(scope, variant, "10", batch_id: later.id)
       stock_fixture(scope, variant, "10", batch_id: soon.id)

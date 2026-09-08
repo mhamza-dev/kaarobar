@@ -30,14 +30,20 @@ defmodule KaarobarWeb.ConnCase do
 
   setup tags do
     Kaarobar.DataCase.setup_sandbox(tags)
-    {:ok, conn: Phoenix.ConnTest.build_conn() |> Plug.Conn.put_req_header("accept", "application/json")}
+
+    {:ok,
+     conn: Phoenix.ConnTest.build_conn() |> Plug.Conn.put_req_header("accept", "application/json")}
   end
 
   @doc """
   Signs a connection in as `user`, exactly as a client would.
   """
   def sign_in(conn, user) do
-    Plug.Conn.put_req_header(conn, "authorization", "Bearer " <> Kaarobar.Factory.bearer_token(user))
+    Plug.Conn.put_req_header(
+      conn,
+      "authorization",
+      "Bearer " <> Kaarobar.Factory.bearer_token(user)
+    )
   end
 
   @doc """

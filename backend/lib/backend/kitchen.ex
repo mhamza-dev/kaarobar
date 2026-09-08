@@ -107,12 +107,18 @@ defmodule Kaarobar.Kitchen do
   def fire(%Scope{} = scope, %Order{} = order, opts \\ []) do
     course = Keyword.get(opts, :course, 1)
 
-    Repo.transaction(fn ->
-      case do_fire(scope, order, course, opts) do
-        {:ok, tickets} -> tickets
-        {:error, reason} -> Repo.rollback(reason)
-      end
-    end)
+    result =
+      Repo.transaction(fn ->
+        case do_fire(scope, order, course, opts) do
+          {:ok, tickets} -> tickets
+          {:error, reason} -> Repo.rollback(reason)
+        end
+      end)
+
+    with {:ok, [%Ticket{} = ticket | _rest] = tickets} <- result do
+      broadcast_board_changed(ticket.branch_id)
+      {:ok, tickets}
+    end
   end
 
   @doc "The courses on a ticket that still have unfired lines."
@@ -187,20 +193,30 @@ defmodule Kaarobar.Kitchen do
 
   @doc "Somebody has picked the ticket up."
   @spec start_ticket(Scope.t(), Ticket.t()) :: {:ok, Ticket.t()} | {:error, term()}
-  def start_ticket(%Scope{}, %Ticket{} = ticket),
-    do: ticket |> Ticket.start_changeset() |> Repo.update()
+  def start_ticket(%Scope{}, %Ticket{} = ticket) do
+    with {:ok, started} <- ticket |> Ticket.start_changeset() |> Repo.update() do
+      broadcast_board_changed(started.branch_id)
+      {:ok, started}
+    end
+  end
 
   @doc "The food is up at the pass. Marks the order lines ready with it."
   @spec mark_ready(Scope.t(), Ticket.t()) :: {:ok, Ticket.t()} | {:error, term()}
   def mark_ready(%Scope{} = scope, %Ticket{} = ticket) do
-    Repo.transaction(fn ->
-      with {:ok, updated} <- ticket |> Ticket.ready_changeset() |> Repo.update(),
-           :ok <- sync_order_items(scope, ticket, :ready) do
-        updated
-      else
-        {:error, reason} -> Repo.rollback(reason)
-      end
-    end)
+    result =
+      Repo.transaction(fn ->
+        with {:ok, updated} <- ticket |> Ticket.ready_changeset() |> Repo.update(),
+             :ok <- sync_order_items(scope, ticket, :ready) do
+          updated
+        else
+          {:error, reason} -> Repo.rollback(reason)
+        end
+      end)
+
+    with {:ok, %Ticket{} = updated} <- result do
+      broadcast_board_changed(updated.branch_id)
+      {:ok, updated}
+    end
   end
 
   @doc """
@@ -211,19 +227,26 @@ defmodule Kaarobar.Kitchen do
   """
   @spec bump(Scope.t(), Ticket.t()) :: {:ok, Ticket.t()} | {:error, term()}
   def bump(%Scope{} = scope, %Ticket{} = ticket) do
-    Repo.transaction(fn ->
-      with {:ok, bumped} <- ticket |> Ticket.bump_changeset(Scope.user_id(scope)) |> Repo.update(),
-           :ok <- sync_order_items(scope, ticket, :served) do
-        Audit.log(scope, "kitchen_ticket.bumped", bumped,
-          entity_type: "kitchen_ticket",
-          label: bumped.number
-        )
+    result =
+      Repo.transaction(fn ->
+        with {:ok, bumped} <-
+               ticket |> Ticket.bump_changeset(Scope.user_id(scope)) |> Repo.update(),
+             :ok <- sync_order_items(scope, ticket, :served) do
+          Audit.log(scope, "kitchen_ticket.bumped", bumped,
+            entity_type: "kitchen_ticket",
+            label: bumped.number
+          )
 
-        bumped
-      else
-        {:error, reason} -> Repo.rollback(reason)
-      end
-    end)
+          bumped
+        else
+          {:error, reason} -> Repo.rollback(reason)
+        end
+      end)
+
+    with {:ok, %Ticket{} = bumped} <- result do
+      broadcast_board_changed(bumped.branch_id)
+      {:ok, bumped}
+    end
   end
 
   @doc """
@@ -240,6 +263,7 @@ defmodule Kaarobar.Kitchen do
         label: recalled.number
       )
 
+      broadcast_board_changed(recalled.branch_id)
       {:ok, recalled}
     end
   end
@@ -249,8 +273,14 @@ defmodule Kaarobar.Kitchen do
           {:ok, TicketItem.t()} | {:error, term()}
   def set_item_status(%Scope{}, %Ticket{} = ticket, item_id, status) do
     case Enum.find(ticket.items, &(&1.id == item_id)) do
-      nil -> {:error, :not_found}
-      item -> item |> TicketItem.status_changeset(status) |> Repo.update()
+      nil ->
+        {:error, :not_found}
+
+      item ->
+        with {:ok, updated} <- item |> TicketItem.status_changeset(status) |> Repo.update() do
+          broadcast_board_changed(ticket.branch_id)
+          {:ok, updated}
+        end
     end
   end
 
@@ -312,8 +342,11 @@ defmodule Kaarobar.Kitchen do
 
     Enum.group_by(lines, fn line ->
       case Map.get(variant_stations, line.variant_id) do
-        nil -> fallback.id
-        station_id -> if MapSet.member?(station_ids, station_id), do: station_id, else: fallback.id
+        nil ->
+          fallback.id
+
+        station_id ->
+          if MapSet.member?(station_ids, station_id), do: station_id, else: fallback.id
       end
     end)
   end
@@ -439,5 +472,14 @@ defmodule Kaarobar.Kitchen do
     Map.new(attrs, fn {key, value} ->
       {if(is_atom(key), do: Atom.to_string(key), else: key), value}
     end)
+  end
+
+  # A ping, not the ticket itself: `KaarobarWeb.KitchenChannel` subscribers
+  # are watching `GET /kitchen/board`'s own ordering (priority, then oldest
+  # first, filtered by station and screen group) — sending it here too would
+  # mean recomputing and maintaining that same view twice, once on every
+  # request and once on every socket message.
+  defp broadcast_board_changed(branch_id) do
+    KaarobarWeb.Endpoint.broadcast("kds:#{branch_id}", "board_changed", %{})
   end
 end

@@ -72,13 +72,13 @@ development only.
 
 ## What is built
 
-Phases 0 through 3 of the plan. Everything marked done below is implemented,
-migrated and tested; later phases build on it without changing it.
+Phases 0 through 8 of the plan, and most of phase 9. Everything marked done
+below is implemented, migrated and tested.
 
 | Area | State |
 |---|---|
 | Docker + release tooling, health probes, error envelope, cursor pagination | done |
-| Identity: registration, sign-in, bearer tokens per device, password reset, email confirmation | done |
+| Identity: registration, sign-in, bearer tokens per device, password reset, email confirmation, TOTP MFA | done |
 | Tenancy: organizations, businesses, branches, ownership transfer | done |
 | RBAC: 147 permissions, 12 system roles, custom roles, per-person allow/deny grants, rank-based escalation guards | done |
 | Staff: invitations, memberships, branch scoping, register PINs | done |
@@ -92,12 +92,31 @@ migrated and tested; later phases build on it without changing it.
 | Stock operations: branch transfers with in-transit state, cycle counts with variance approval, valuation reconciliation | done |
 | Purchasing: suppliers, orders, goods receipts, bills, payments with allocation, returns, payables ageing | done |
 | Gapless document numbering (PO-2026-0042) | done |
-| POS checkout, registers, shifts | phase 4 |
-| Customers, credit, loyalty | phase 5 |
-| Vertical modules (tables, KDS, appointments, service jobs, rentals) | phase 6 |
-| Payments, fiscal, subscription billing | phase 7 |
-| Reporting, documents | phase 8 |
-| Realtime, RLS, OpenAPI | phase 9 |
+| POS checkout, registers, shifts | done |
+| Customers, credit, loyalty | done |
+| Vertical modules (tables, KDS, appointments, service jobs, rentals) | done |
+| Payments, fiscal, subscription billing | done |
+| Reporting, documents | done |
+| Postgres RLS as the second isolation layer | done — see the caveat below |
+| Realtime: Phoenix Channels + Presence for the sales feed, KDS, registers, stock | done |
+| Oban cron: rollups, dunning, fiscal retry, expiry alerts, token/idempotency-key cleanup | done |
+| Notifications: SMS/WhatsApp adapter behaviour, Expo push | done |
+| GDPR export and erasure | done |
+| LiveDashboard behind HTTP Basic Auth outside development | done |
+| OpenAPI spec at `/api/docs` | not started |
+| Sentry | not started (optional in the plan) |
+
+### The RLS caveat
+
+Row-level security is real and tested — see `test/backend/row_level_security_test.exs`
+— but it does not yet protect live traffic. Postgres superusers bypass RLS
+unconditionally, and `DATABASE_USER` (`postgres` by default) is the
+database's bootstrap superuser in every environment this runs in today.
+`backend_app`, a role RLS actually applies to, exists and is what the test
+suite verifies the policies against; making the running application connect
+as it (or de-escalate to it) instead of the superuser is necessary follow-up
+work. See `priv/repo/migrations/20260909000000_enable_row_level_security.exs`
+and `20260909000200_create_restricted_app_role.exs`.
 
 Some conventions below describe tables that arrive in later phases. They are
 stated now because the code that lands then has to follow them.

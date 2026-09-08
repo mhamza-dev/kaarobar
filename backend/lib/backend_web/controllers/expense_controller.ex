@@ -26,8 +26,12 @@ defmodule KaarobarWeb.ExpenseController do
 
   plug KaarobarWeb.Plugs.Authorize,
        [permission: "bank_account:manage"]
-       when action in [:bank_accounts, :create_bank_account, :update_bank_account,
-                       :delete_bank_account]
+       when action in [
+              :bank_accounts,
+              :create_bank_account,
+              :update_bank_account,
+              :delete_bank_account
+            ]
 
   # --- Expenses ---------------------------------------------------------------
 

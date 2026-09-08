@@ -374,7 +374,9 @@ defmodule Kaarobar.AccessControlTest do
 
       assert first.inserted == second.inserted
       assert second.deleted == 0
-      assert length(AccessControl.list_permissions()) == length(Kaarobar.AccessControl.Permissions.keys())
+
+      assert length(AccessControl.list_permissions()) ==
+               length(Kaarobar.AccessControl.Permissions.keys())
     end
   end
 end

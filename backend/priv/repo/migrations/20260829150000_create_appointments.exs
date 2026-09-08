@@ -51,8 +51,7 @@ defmodule Kaarobar.Repo.Migrations.CreateAppointments do
           references(:businesses, type: :binary_id, on_delete: :delete_all),
           null: false
 
-      add :branch_id, references(:branches, type: :binary_id, on_delete: :delete_all),
-        null: false
+      add :branch_id, references(:branches, type: :binary_id, on_delete: :delete_all), null: false
 
       add :name, :string, null: false
       add :kind, :string, null: false, default: "staff"
@@ -248,6 +247,7 @@ defmodule Kaarobar.Repo.Migrations.CreateAppointments do
       # What they came in for, and who they asked for. Both optional: plenty of
       # people walk in and say "whoever is free".
       add :variant_id, references(:product_variants, type: :binary_id, on_delete: :nilify_all)
+
       add :requested_resource_id,
           references(:resources, type: :binary_id, on_delete: :nilify_all)
 

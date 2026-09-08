@@ -47,6 +47,19 @@ defmodule KaarobarWeb do
       action_fallback KaarobarWeb.FallbackController
 
       unquote(verified_routes())
+
+      # Every action runs inside the RLS transaction for its tenant — see
+      # `KaarobarWeb.TenantTransaction`. This is the one place that can wrap
+      # both the action and the plugs Phoenix already ran before it, so it
+      # replaces `Phoenix.Controller`'s default `action/2` rather than adding
+      # a plug.
+      def action(conn, _opts) do
+        KaarobarWeb.TenantTransaction.run(conn, fn conn ->
+          apply(__MODULE__, Phoenix.Controller.action_name(conn), [conn, conn.params])
+        end)
+      end
+
+      defoverridable action: 2
     end
   end
 

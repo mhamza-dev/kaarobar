@@ -420,7 +420,9 @@ defmodule Kaarobar.Prepaid do
       })
 
     with {:ok, entry} <-
-           %StoreCreditTransaction{} |> StoreCreditTransaction.changeset(entry_attrs) |> Repo.insert(),
+           %StoreCreditTransaction{}
+           |> StoreCreditTransaction.changeset(entry_attrs)
+           |> Repo.insert(),
          {:ok, _credit} <-
            credit |> StoreCredit.balance_changeset(balance_after) |> Repo.update() do
       {:ok, entry}

@@ -93,8 +93,12 @@ defmodule Kaarobar.Purchasing.GoodsReceiptItem do
     rejected = get_field(changeset, :rejected_quantity) || Money.zero()
 
     cond do
-      is_nil(quantity) -> changeset
-      Money.negative?(rejected) -> add_error(changeset, :rejected_quantity, "must not be negative")
+      is_nil(quantity) ->
+        changeset
+
+      Money.negative?(rejected) ->
+        add_error(changeset, :rejected_quantity, "must not be negative")
+
       Decimal.compare(rejected, quantity) == :gt ->
         add_error(changeset, :rejected_quantity, "cannot exceed the quantity received")
 
@@ -120,7 +124,8 @@ defmodule Kaarobar.Purchasing.GoodsReceiptItem do
     serials = get_field(changeset, :serials) || []
     quantity = get_field(changeset, :quantity)
 
-    if serials != [] and quantity && Decimal.compare(Decimal.new(length(serials)), quantity) != :eq do
+    if (serials != [] and quantity) &&
+         Decimal.compare(Decimal.new(length(serials)), quantity) != :eq do
       add_error(changeset, :serials, "must have one serial for each unit received")
     else
       changeset

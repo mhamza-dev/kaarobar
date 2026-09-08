@@ -290,7 +290,8 @@ defmodule Kaarobar.Dining do
       with {:ok, closed} <- session |> TableSession.close_changeset() |> Repo.update() do
         Audit.log(scope, "table_session.closed", closed,
           entity_type: "table_session",
-          summary: "Table cleared after #{TableSession.minutes_seated(closed, DateTime.utc_now())} min"
+          summary:
+            "Table cleared after #{TableSession.minutes_seated(closed, DateTime.utc_now())} min"
         )
 
         {:ok, closed}

@@ -30,10 +30,12 @@ defmodule Kaarobar.AccessControl.PermissionGrant do
     field :expires_at, :utc_datetime_usec
 
     belongs_to :membership, Membership
+
     belongs_to :permission, Permission,
       foreign_key: :permission_key,
       references: :key,
       type: :string
+
     belongs_to :granted_by, User
 
     timestamps()
@@ -58,7 +60,8 @@ defmodule Kaarobar.AccessControl.PermissionGrant do
     |> validate_expiry_in_future()
     |> foreign_key_constraint(:membership_id)
     |> foreign_key_constraint(:permission_key, message: "is not a known permission")
-    |> unique_constraint(:permission_key, name: :permission_grants_membership_id_permission_key_index,
+    |> unique_constraint(:permission_key,
+      name: :permission_grants_membership_id_permission_key_index,
       message: "already has an override for this permission"
     )
   end

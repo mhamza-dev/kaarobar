@@ -16,7 +16,6 @@ defmodule KaarobarWeb.RegisterControllerTest do
     %{conn: conn, scope: scope, business: business, branch: branch, variant: variant}
   end
 
-
   # Money arrives as a string so no client rounds it. Comparing as decimals
   # keeps these assertions honest about value rather than about column scale.
   defp assert_amount(actual, expected) do

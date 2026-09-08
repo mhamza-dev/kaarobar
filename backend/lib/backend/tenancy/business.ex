@@ -166,9 +166,7 @@ defmodule Kaarobar.Tenancy.Business do
       message: "may only contain lowercase letters, numbers and hyphens"
     )
     |> validate_length(:slug, min: 2, max: 64)
-    |> validate_format(:currency, ~r/^[A-Z]{3}$/,
-      message: "must be a three-letter ISO 4217 code"
-    )
+    |> validate_format(:currency, ~r/^[A-Z]{3}$/, message: "must be a three-letter ISO 4217 code")
     |> validate_format(:brand_color, ~r/^#[0-9a-fA-F]{6}$/,
       message: "must be a hex colour such as #2d6df6"
     )

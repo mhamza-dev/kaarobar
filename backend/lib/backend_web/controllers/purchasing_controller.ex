@@ -68,7 +68,8 @@ defmodule KaarobarWeb.PurchasingController do
   # ===========================================================================
 
   def index_suppliers(conn, params) do
-    suppliers = Purchasing.list_suppliers(conn.assigns.scope, Map.take(params, ~w(q active owing)))
+    suppliers =
+      Purchasing.list_suppliers(conn.assigns.scope, Map.take(params, ~w(q active owing)))
 
     render(conn, :suppliers, suppliers: suppliers)
   end

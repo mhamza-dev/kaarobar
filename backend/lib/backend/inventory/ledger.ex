@@ -87,12 +87,18 @@ defmodule Kaarobar.Inventory.Ledger do
   """
   @spec post(Scope.t(), post_attrs()) :: {:ok, StockMove.t()} | {:error, error()}
   def post(%Scope{} = scope, attrs) do
-    Repo.transaction(fn ->
-      case do_post(scope, attrs) do
-        {:ok, move} -> move
-        {:error, reason} -> Repo.rollback(reason)
-      end
-    end)
+    result =
+      Repo.transaction(fn ->
+        case do_post(scope, attrs) do
+          {:ok, move} -> move
+          {:error, reason} -> Repo.rollback(reason)
+        end
+      end)
+
+    with {:ok, %StockMove{} = move} <- result do
+      broadcast_stock_changed(move.branch_id)
+      {:ok, move}
+    end
   end
 
   @doc """
@@ -110,15 +116,21 @@ defmodule Kaarobar.Inventory.Ledger do
   def post_many(%Scope{} = scope, moves) do
     ordered = Enum.sort_by(moves, &{&1.branch_id, &1.variant_id})
 
-    Repo.transaction(fn ->
-      Enum.reduce_while(ordered, [], fn attrs, acc ->
-        case do_post(scope, attrs) do
-          {:ok, move} -> {:cont, [move | acc]}
-          {:error, reason} -> {:halt, Repo.rollback(reason)}
-        end
+    result =
+      Repo.transaction(fn ->
+        Enum.reduce_while(ordered, [], fn attrs, acc ->
+          case do_post(scope, attrs) do
+            {:ok, move} -> {:cont, [move | acc]}
+            {:error, reason} -> {:halt, Repo.rollback(reason)}
+          end
+        end)
+        |> Enum.reverse()
       end)
-      |> Enum.reverse()
-    end)
+
+    with {:ok, posted} <- result do
+      posted |> Enum.map(& &1.branch_id) |> Enum.uniq() |> Enum.each(&broadcast_stock_changed/1)
+      {:ok, posted}
+    end
   end
 
   @doc """
@@ -361,7 +373,8 @@ defmodule Kaarobar.Inventory.Ledger do
     if fifo?(scope) do
       {consumed, cost} = consume_layers(item, magnitude)
 
-      unit_cost = if Money.positive?(magnitude), do: Money.div(cost, magnitude), else: Money.zero()
+      unit_cost =
+        if Money.positive?(magnitude), do: Money.div(cost, magnitude), else: Money.zero()
 
       {:ok,
        %{
@@ -550,8 +563,9 @@ defmodule Kaarobar.Inventory.Ledger do
 
   # A depleted batch is marked as such so it stops appearing in pick lists,
   # but a recall or quarantine is a human decision and is left alone.
-  defp batch_status(%Batch{status: status}, _remaining) when status in ["recalled", "quarantined"],
-    do: status
+  defp batch_status(%Batch{status: status}, _remaining)
+       when status in ["recalled", "quarantined"],
+       do: status
 
   defp batch_status(%Batch{}, remaining) do
     if Money.positive?(remaining), do: "active", else: "depleted"
@@ -564,4 +578,15 @@ defmodule Kaarobar.Inventory.Ledger do
   defp occurred_at(attrs), do: Map.get(attrs, :occurred_at) || DateTime.utc_now()
 
   defp occurred_on(attrs), do: attrs |> occurred_at() |> DateTime.to_date()
+
+  # Only `post/2` and `post_many/2` broadcast — not `post_within/2` and
+  # `post_many_within/2`, which run inside a caller's own transaction
+  # (`Kaarobar.Sales.Checkout`, a purchase order receipt, a stock transfer)
+  # that has not committed yet when this would fire. Those flows have their
+  # own broadcast at the point they *do* commit — `Kaarobar.Sales.Checkout`
+  # broadcasts `"sale_completed"` on `business:*` — rather than this one
+  # firing early on work that might still roll back.
+  defp broadcast_stock_changed(branch_id) do
+    KaarobarWeb.Endpoint.broadcast("stock:#{branch_id}", "stock_changed", %{})
+  end
 end

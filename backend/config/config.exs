@@ -64,7 +64,15 @@ config :backend, Oban,
        # Hourly, not nightly. "The day is over" happens at a different instant
        # in every timezone the platform sells into, and each run only touches
        # the businesses whose day has actually closed.
-       {"20 * * * *", Kaarobar.Reports.RollupWorker}
+       {"20 * * * *", Kaarobar.Reports.RollupWorker},
+       # Once a day: a batch expiring in a week does not need re-announcing
+       # every hour, and the earliest morning slot common across this
+       # platform's timezones is still ahead of most shops opening.
+       {"0 3 * * *", Kaarobar.Inventory.ExpiryAlertWorker},
+       # Nightly. Neither an expired token nor a stale idempotency key is
+       # urgent to remove — both already refuse to be used well before this
+       # ever runs — so this just keeps the tables from growing forever.
+       {"30 3 * * *", Kaarobar.Accounts.TokenCleanupWorker}
      ]}
   ]
 

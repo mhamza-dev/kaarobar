@@ -571,6 +571,7 @@ defmodule Kaarobar.Billing do
   defp filter_public(query, _other), do: query
 
   defp filter_invoice_status(query, nil), do: query
+
   defp filter_invoice_status(query, status) when is_binary(status),
     do: where(query, [i], i.status == ^status)
 end

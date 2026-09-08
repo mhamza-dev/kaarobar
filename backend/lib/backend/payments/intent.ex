@@ -154,7 +154,8 @@ defmodule Kaarobar.Payments.Intent do
     intent
     |> change(
       captured_amount: Money.round(captured),
-      status: if(Money.zero?(Money.sub(intent.amount, captured)), do: "captured", else: "processing"),
+      status:
+        if(Money.zero?(Money.sub(intent.amount, captured)), do: "captured", else: "processing"),
       captured_at: intent.captured_at || DateTime.utc_now()
     )
     |> validate_capture_within_amount()

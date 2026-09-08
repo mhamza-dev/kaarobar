@@ -60,6 +60,10 @@ defmodule KaarobarWeb.Plugs.RequestContext do
   defp format_ip(ip) when is_binary(ip), do: ip
 
   defp trust_proxy_headers? do
-    Application.get_env(:backend, :trust_proxy_headers, Application.get_env(:backend, :env) == :prod)
+    Application.get_env(
+      :backend,
+      :trust_proxy_headers,
+      Application.get_env(:backend, :env) == :prod
+    )
   end
 end

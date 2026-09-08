@@ -41,7 +41,12 @@ defmodule Kaarobar.Reports.RollupWorker do
 
       business ->
         lookback = Map.get(args, "lookback_days", @lookback_days)
-        {:ok, _count} = Rollups.catch_up(business, lookback)
+
+        {:ok, _count} =
+          Repo.with_tenant_context(business.organization_id, fn ->
+            Rollups.catch_up(business, lookback)
+          end)
+
         :ok
     end
   end

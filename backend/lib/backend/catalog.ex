@@ -1017,7 +1017,12 @@ defmodule Kaarobar.Catalog do
   @doc "Attaches a modifier group to a product."
   @spec attach_modifier_group(Scope.t(), Product.t(), ModifierGroup.t(), map()) ::
           {:ok, ProductModifierGroup.t()} | {:error, Ecto.Changeset.t()}
-  def attach_modifier_group(%Scope{}, %Product{} = product, %ModifierGroup{} = group, attrs \\ %{}) do
+  def attach_modifier_group(
+        %Scope{},
+        %Product{} = product,
+        %ModifierGroup{} = group,
+        attrs \\ %{}
+      ) do
     attrs =
       attrs
       |> stringify()

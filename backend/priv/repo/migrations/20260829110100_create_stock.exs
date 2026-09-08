@@ -83,9 +83,7 @@ defmodule Kaarobar.Repo.Migrations.CreateStock do
     create index(:stock_items, [:variant_id])
 
     # The low-stock query, which runs on a schedule and on every dashboard.
-    create index(:stock_items, [:business_id, :reorder_point],
-             where: "reorder_point IS NOT NULL"
-           )
+    create index(:stock_items, [:business_id, :reorder_point], where: "reorder_point IS NOT NULL")
 
     create constraint(:stock_items, :stock_items_reserved_non_negative_check,
              check: "reserved >= 0"

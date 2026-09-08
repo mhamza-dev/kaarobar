@@ -286,7 +286,9 @@ defmodule Kaarobar.TenancyTest do
       %{scope: mine, user: user} = owner_scope()
       %{scope: _theirs} = owner_scope()
 
-      assert Enum.map(Tenancy.list_organizations_for_user(user), & &1.id) == [mine.organization.id]
+      assert Enum.map(Tenancy.list_organizations_for_user(user), & &1.id) == [
+               mine.organization.id
+             ]
     end
 
     test "fetching another organization by id finds nothing" do

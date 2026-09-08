@@ -43,7 +43,8 @@ defmodule Kaarobar.SalesTest do
       branch: branch,
       register: register
     } do
-      sale = sale_fixture(scope, variant, register_id: register.id, quantity: "3", amount: "300.00")
+      sale =
+        sale_fixture(scope, variant, register_id: register.id, quantity: "3", amount: "300.00")
 
       assert_money(on_hand(scope, variant, branch), "17")
 
@@ -74,7 +75,9 @@ defmodule Kaarobar.SalesTest do
       variant: variant,
       register: register
     } do
-      sale = sale_fixture(scope, variant, register_id: register.id, quantity: "2", amount: "200.00")
+      sale =
+        sale_fixture(scope, variant, register_id: register.id, quantity: "2", amount: "200.00")
+
       [item] = sale.items
 
       {:ok, _record} =
@@ -123,7 +126,9 @@ defmodule Kaarobar.SalesTest do
       branch: branch,
       register: register
     } do
-      sale = sale_fixture(scope, variant, register_id: register.id, quantity: "5", amount: "500.00")
+      sale =
+        sale_fixture(scope, variant, register_id: register.id, quantity: "5", amount: "500.00")
+
       [item] = sale.items
 
       {:ok, record} =
@@ -160,13 +165,20 @@ defmodule Kaarobar.SalesTest do
       branch: branch,
       register: register
     } do
-      sale = sale_fixture(scope, variant, register_id: register.id, quantity: "4", amount: "400.00")
+      sale =
+        sale_fixture(scope, variant, register_id: register.id, quantity: "4", amount: "400.00")
+
       [item] = sale.items
 
       {:ok, _record} =
         Sales.process_return(scope, sale, %{
           "items" => [
-            %{"sale_item_id" => item.id, "quantity" => "1", "restock" => false, "reason" => "Broken"}
+            %{
+              "sale_item_id" => item.id,
+              "quantity" => "1",
+              "restock" => false,
+              "reason" => "Broken"
+            }
           ]
         })
 
@@ -184,7 +196,9 @@ defmodule Kaarobar.SalesTest do
       variant: variant,
       register: register
     } do
-      sale = sale_fixture(scope, variant, register_id: register.id, quantity: "2", amount: "200.00")
+      sale =
+        sale_fixture(scope, variant, register_id: register.id, quantity: "2", amount: "200.00")
+
       [item] = sale.items
 
       {:ok, _record} =
@@ -202,7 +216,9 @@ defmodule Kaarobar.SalesTest do
       variant: variant,
       register: register
     } do
-      sale = sale_fixture(scope, variant, register_id: register.id, quantity: "2", amount: "200.00")
+      sale =
+        sale_fixture(scope, variant, register_id: register.id, quantity: "2", amount: "200.00")
+
       [item] = sale.items
 
       result =
@@ -220,7 +236,9 @@ defmodule Kaarobar.SalesTest do
       register: register,
       shift: shift
     } do
-      sale = sale_fixture(scope, variant, register_id: register.id, quantity: "2", amount: "200.00")
+      sale =
+        sale_fixture(scope, variant, register_id: register.id, quantity: "2", amount: "200.00")
+
       [item] = sale.items
 
       {:ok, _record} =
@@ -305,7 +323,8 @@ defmodule Kaarobar.SalesTest do
 
       {:ok, approved} = Sales.approve_refund_request(scope, request)
 
-      assert {:error, :not_pending} = Sales.reject_refund_request(scope, approved, "Changed my mind")
+      assert {:error, :not_pending} =
+               Sales.reject_refund_request(scope, approved, "Changed my mind")
     end
   end
 

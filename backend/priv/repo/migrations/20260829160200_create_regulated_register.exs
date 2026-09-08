@@ -41,7 +41,10 @@ defmodule Kaarobar.Repo.Migrations.CreateRegulatedRegister do
       add :max_quantity_per_sale, :decimal, precision: 16, scale: 4
     end
 
-    create index(:products, [:business_id], where: "is_restricted", name: :products_restricted_index)
+    create index(:products, [:business_id],
+             where: "is_restricted",
+             name: :products_restricted_index
+           )
 
     # The shop's own licence, stamped onto invoices for regulated goods.
     # `license_number` already exists from the tenancy phase; these are the two
@@ -66,6 +69,7 @@ defmodule Kaarobar.Repo.Migrations.CreateRegulatedRegister do
       add :branch_id, references(:branches, type: :binary_id, on_delete: :restrict), null: false
 
       add :sale_id, references(:sales, type: :binary_id, on_delete: :restrict), null: false
+
       add :sale_item_id, references(:sale_items, type: :binary_id, on_delete: :restrict),
         null: false
 

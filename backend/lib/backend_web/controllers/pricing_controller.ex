@@ -21,7 +21,8 @@ defmodule KaarobarWeb.PricingController do
   alias Kaarobar.Taxes
 
   plug KaarobarWeb.Plugs.Authorize,
-       [permission: "product:view"] when action in [:index_lists, :show_list, :index_rules, :quote]
+       [permission: "product:view"]
+       when action in [:index_lists, :show_list, :index_rules, :quote]
 
   plug KaarobarWeb.Plugs.Authorize,
        [permission: "price_list:manage"]

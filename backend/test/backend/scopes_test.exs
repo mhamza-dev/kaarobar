@@ -140,7 +140,8 @@ defmodule Kaarobar.ScopesTest do
 
       %{user: user} = staff_scope(owner, "supervisor", branch_ids: [allowed.id])
 
-      assert {:ok, _scope} = Scopes.build(user, %{business_id: business.id, branch_id: allowed.id})
+      assert {:ok, _scope} =
+               Scopes.build(user, %{business_id: business.id, branch_id: allowed.id})
 
       assert {:error, :not_found} =
                Scopes.build(user, %{business_id: business.id, branch_id: forbidden.id})

@@ -81,8 +81,11 @@ defmodule Kaarobar.Registers.Register do
 
   defp normalize_prefix(changeset) do
     update_change(changeset, :invoice_prefix, fn
-      nil -> nil
-      value -> if String.trim(value) == "", do: nil, else: value |> String.trim() |> String.upcase()
+      nil ->
+        nil
+
+      value ->
+        if String.trim(value) == "", do: nil, else: value |> String.trim() |> String.upcase()
     end)
   end
 end

@@ -110,7 +110,12 @@ defmodule Kaarobar.Documents.EscPos do
         line(item.name),
         pair("  #{quantity} x #{unit}", money(item.line_total, receipt.currency), width),
         if(positive?(item.discount),
-          do: pair("  #{receipt.labels.discount}", "-" <> money(item.discount, receipt.currency), width)
+          do:
+            pair(
+              "  #{receipt.labels.discount}",
+              "-" <> money(item.discount, receipt.currency),
+              width
+            )
         )
       ]
     end)
@@ -152,7 +157,9 @@ defmodule Kaarobar.Documents.EscPos do
   end
 
   defp phone_line(%Receipt{branch_phone: nil}), do: []
-  defp phone_line(%Receipt{} = receipt), do: line("#{receipt.labels.tel}: #{receipt.branch_phone}")
+
+  defp phone_line(%Receipt{} = receipt),
+    do: line("#{receipt.labels.tel}: #{receipt.branch_phone}")
 
   defp tax_label(_receipt, %{label: label, rate: rate}) when not is_nil(rate) do
     "#{label} #{Decimal.mult(rate, 100) |> Decimal.normalize() |> Decimal.to_string(:normal)}%"

@@ -150,10 +150,9 @@ defmodule Kaarobar.Reports.Rollups do
         sale_count: count(fragment("CASE WHEN ? <> 'voided' THEN 1 END", s.status)),
         voided_count: count(fragment("CASE WHEN ? = 'voided' THEN 1 END", s.status)),
         customer_count:
-          count(
-            fragment("DISTINCT CASE WHEN ? <> 'voided' THEN ? END", s.status, s.customer_id)
-          ),
-        gross_sales: sum(fragment("CASE WHEN ? <> 'voided' THEN ? ELSE 0 END", s.status, s.subtotal)),
+          count(fragment("DISTINCT CASE WHEN ? <> 'voided' THEN ? END", s.status, s.customer_id)),
+        gross_sales:
+          sum(fragment("CASE WHEN ? <> 'voided' THEN ? ELSE 0 END", s.status, s.subtotal)),
         discount_total:
           sum(
             fragment(
@@ -163,7 +162,8 @@ defmodule Kaarobar.Reports.Rollups do
               s.order_discount
             )
           ),
-        tax_total: sum(fragment("CASE WHEN ? <> 'voided' THEN ? ELSE 0 END", s.status, s.tax_total)),
+        tax_total:
+          sum(fragment("CASE WHEN ? <> 'voided' THEN ? ELSE 0 END", s.status, s.tax_total)),
         net_sales: sum(fragment("CASE WHEN ? <> 'voided' THEN ? ELSE 0 END", s.status, s.total)),
         refund_total:
           sum(fragment("CASE WHEN ? <> 'voided' THEN ? ELSE 0 END", s.status, s.refunded_total)),
@@ -196,7 +196,9 @@ defmodule Kaarobar.Reports.Rollups do
     |> group_by([p], p.method)
     |> select([p], {p.method, sum(p.amount)})
     |> Repo.all()
-    |> Map.new(fn {method, total} -> {method, Decimal.to_string(total || Decimal.new(0), :normal)} end)
+    |> Map.new(fn {method, total} ->
+      {method, Decimal.to_string(total || Decimal.new(0), :normal)}
+    end)
   end
 
   defp upsert_daily(%Business{} = business, branch_id, day, totals) do
@@ -228,7 +230,7 @@ defmodule Kaarobar.Reports.Rollups do
     rows =
       SaleItem
       |> join(:inner, [i], s in Sale, on: s.id == i.sale_id)
-      |> where([i, s], s.business_id == ^business_id and s.branch_id == ^branch_id)
+      |> where([i, s], s.business_id == ^business.id and s.branch_id == ^branch_id)
       |> where([i, s], s.sold_at >= ^starts_at and s.sold_at < ^ends_at and s.status != "voided")
       |> group_by([i], [i.variant_id, i.product_id])
       |> select([i], %{

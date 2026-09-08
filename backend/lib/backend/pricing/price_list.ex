@@ -69,9 +69,7 @@ defmodule Kaarobar.Pricing.PriceList do
     |> validate_length(:name, min: 1, max: 120)
     |> validate_inclusion(:kind, @kinds)
     |> validate_inclusion(:channel, @channels)
-    |> validate_format(:currency, ~r/^[A-Z]{3}$/,
-      message: "must be a three-letter ISO 4217 code"
-    )
+    |> validate_format(:currency, ~r/^[A-Z]{3}$/, message: "must be a three-letter ISO 4217 code")
     |> validate_number(:priority, greater_than_or_equal_to: 0)
     |> validate_window()
     |> foreign_key_constraint(:branch_id)

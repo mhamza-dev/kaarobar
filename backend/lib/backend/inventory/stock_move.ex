@@ -151,10 +151,13 @@ defmodule Kaarobar.Inventory.StockMove do
 
   defp validate_non_zero_quantity(changeset) do
     case get_field(changeset, :quantity) do
-      nil -> changeset
-      quantity -> if Decimal.compare(quantity, 0) == :eq,
-        do: add_error(changeset, :quantity, "must not be zero"),
-        else: changeset
+      nil ->
+        changeset
+
+      quantity ->
+        if Decimal.compare(quantity, 0) == :eq,
+          do: add_error(changeset, :quantity, "must not be zero"),
+          else: changeset
     end
   end
 
@@ -163,8 +166,12 @@ defmodule Kaarobar.Inventory.StockMove do
     quantity = get_field(changeset, :quantity)
 
     cond do
-      is_nil(kind) or is_nil(quantity) -> changeset
-      kind in @signless_kinds -> changeset
+      is_nil(kind) or is_nil(quantity) ->
+        changeset
+
+      kind in @signless_kinds ->
+        changeset
+
       kind in @inbound_kinds and Decimal.compare(quantity, 0) == :lt ->
         add_error(changeset, :quantity, "must be positive for an inbound move")
 

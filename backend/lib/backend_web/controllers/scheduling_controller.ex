@@ -103,7 +103,9 @@ defmodule KaarobarWeb.SchedulingController do
       |> maybe_put(:status, params["status"])
       |> maybe_put(:customer_id, params["customer_id"])
 
-    render(conn, :appointments, appointments: Scheduling.list_appointments(conn.assigns.scope, opts))
+    render(conn, :appointments,
+      appointments: Scheduling.list_appointments(conn.assigns.scope, opts)
+    )
   end
 
   def show(conn, %{"id" => id}) do

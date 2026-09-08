@@ -42,8 +42,7 @@ defmodule Kaarobar.Repo.Migrations.CreateKitchen do
           references(:businesses, type: :binary_id, on_delete: :delete_all),
           null: false
 
-      add :branch_id, references(:branches, type: :binary_id, on_delete: :delete_all),
-        null: false
+      add :branch_id, references(:branches, type: :binary_id, on_delete: :delete_all), null: false
 
       add :name, :string, null: false
       add :code, :string

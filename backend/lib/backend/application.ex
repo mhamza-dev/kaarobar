@@ -15,6 +15,7 @@ defmodule Kaarobar.Application do
       Kaarobar.Vault,
       {DNSCluster, query: Application.get_env(:backend, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Kaarobar.PubSub},
+      KaarobarWeb.Presence,
       {Oban, Application.fetch_env!(:backend, Oban)},
       {Kaarobar.RateLimiter, [clean_period: :timer.minutes(1)]},
       # Start to serve requests, typically the last entry

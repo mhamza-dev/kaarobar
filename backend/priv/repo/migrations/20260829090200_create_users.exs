@@ -48,8 +48,6 @@ defmodule Kaarobar.Repo.Migrations.CreateUsers do
              check: "status IN ('active','suspended','deleted')"
            )
 
-    create constraint(:users, :users_failed_login_count_check,
-             check: "failed_login_count >= 0"
-           )
+    create constraint(:users, :users_failed_login_count_check, check: "failed_login_count >= 0")
   end
 end

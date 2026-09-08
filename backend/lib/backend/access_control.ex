@@ -141,7 +141,9 @@ defmodule Kaarobar.AccessControl do
   @doc "Every permission in the catalogue, from the database."
   @spec list_permissions() :: [Permission.t()]
   def list_permissions do
-    Repo.all(from permission in Permission, order_by: [asc: permission.group, asc: permission.key])
+    Repo.all(
+      from permission in Permission, order_by: [asc: permission.group, asc: permission.key]
+    )
   end
 
   @doc """
@@ -174,7 +176,9 @@ defmodule Kaarobar.AccessControl do
       )
 
     {deleted, _returning} =
-      Repo.delete_all(from permission in Permission, where: permission.key not in ^Permissions.keys())
+      Repo.delete_all(
+        from permission in Permission, where: permission.key not in ^Permissions.keys()
+      )
 
     {:ok, %{inserted: inserted, deleted: deleted}}
   end

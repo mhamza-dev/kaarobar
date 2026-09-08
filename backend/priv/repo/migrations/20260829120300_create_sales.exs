@@ -102,8 +102,7 @@ defmodule Kaarobar.Repo.Migrations.CreateSales do
     create index(:sales, [:order_id])
 
     create constraint(:sales, :sales_status_check,
-             check:
-               "status IN ('completed','voided','partially_refunded','refunded')"
+             check: "status IN ('completed','voided','partially_refunded','refunded')"
            )
 
     create constraint(:sales, :sales_channel_check,

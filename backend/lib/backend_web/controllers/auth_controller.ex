@@ -50,21 +50,39 @@ defmodule KaarobarWeb.AuthController do
     end
   end
 
-  @doc "Signs in with an email address and password."
+  @doc """
+  Signs in with an email address and password.
+
+  A user with TOTP confirmed does not get a bearer token here — the password
+  alone is only the first factor. Instead this returns an MFA challenge that
+  `mfa_verify/2` exchanges for the real token once the app's code checks out.
+  """
   def login(conn, %{"email" => email, "password" => password}) do
     case Accounts.authenticate(email, password) do
       {:ok, user} ->
-        {plaintext, _token} = issue_token(conn, user)
+        if Kaarobar.Accounts.User.totp_enabled?(user) do
+          Audit.log_anonymous("user.mfa_challenge_issued",
+            entity_type: "user",
+            entity_id: user.id,
+            actor_label: user.name,
+            ip_address: conn.assigns[:remote_ip],
+            request_id: conn.assigns[:request_id]
+          )
 
-        Audit.log_anonymous("user.signed_in",
-          entity_type: "user",
-          entity_id: user.id,
-          actor_label: user.name,
-          ip_address: conn.assigns[:remote_ip],
-          request_id: conn.assigns[:request_id]
-        )
+          render(conn, :mfa_challenge, challenge: Accounts.sign_mfa_challenge(user))
+        else
+          {plaintext, _token} = issue_token(conn, user)
 
-        render(conn, :session, user: user, token: plaintext)
+          Audit.log_anonymous("user.signed_in",
+            entity_type: "user",
+            entity_id: user.id,
+            actor_label: user.name,
+            ip_address: conn.assigns[:remote_ip],
+            request_id: conn.assigns[:request_id]
+          )
+
+          render(conn, :session, user: user, token: plaintext)
+        end
 
       {:error, reason} ->
         Audit.log_anonymous("user.sign_in_failed",
@@ -79,6 +97,39 @@ defmodule KaarobarWeb.AuthController do
   end
 
   def login(_conn, _params), do: {:error, :invalid_credentials}
+
+  @doc "Exchanges a password-verified MFA challenge and a TOTP code for a session."
+  def mfa_verify(conn, %{"challenge" => challenge, "code" => code}) do
+    case Accounts.verify_mfa_challenge(challenge, code) do
+      {:ok, user} ->
+        {plaintext, _token} = issue_token(conn, user)
+
+        Audit.log_anonymous("user.signed_in",
+          entity_type: "user",
+          entity_id: user.id,
+          actor_label: user.name,
+          summary: "Signed in with MFA",
+          ip_address: conn.assigns[:remote_ip],
+          request_id: conn.assigns[:request_id]
+        )
+
+        render(conn, :session, user: user, token: plaintext)
+
+      {:error, :invalid_challenge} ->
+        {:error, :invalid_token}
+
+      {:error, :invalid_code} ->
+        Audit.log_anonymous("user.mfa_code_rejected",
+          entity_type: "user",
+          ip_address: conn.assigns[:remote_ip],
+          request_id: conn.assigns[:request_id]
+        )
+
+        {:error, :invalid_credentials}
+    end
+  end
+
+  def mfa_verify(_conn, _params), do: {:error, :invalid_credentials}
 
   # A locked or suspended account is only revealed to someone who already
   # proved they know the password, so these are safe to distinguish.

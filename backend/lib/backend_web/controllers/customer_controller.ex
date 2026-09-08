@@ -240,7 +240,6 @@ defmodule KaarobarWeb.CustomerController do
     end
   end
 
-
   defp customer_filters(params) do
     params
     |> Map.take(~w(q credit_allowed owing))

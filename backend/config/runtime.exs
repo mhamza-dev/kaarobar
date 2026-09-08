@@ -46,6 +46,22 @@ config :backend, :mail_from_name, System.get_env("MAIL_FROM_NAME", "Kaarobar")
 config :backend, :mail_from_address, System.get_env("MAIL_FROM_ADDRESS", "no-reply@kaarobar.app")
 
 # ----------------------------------------------------------------------------
+# LiveDashboard, outside development
+#
+# `/dev/dashboard` is open with no auth at all, but only when compiled with
+# `dev_routes: true` (development — see config/dev.exs). Everywhere else,
+# `/admin/dashboard` exists only when both of these are set, gated by HTTP
+# Basic Auth rather than a session login: this application has no cookie-based
+# staff login to reuse (bearer tokens are the only session it has), and
+# LiveDashboard needs *a* login of its own regardless of what protects the
+# API next to it.
+if username = System.get_env("DASHBOARD_USERNAME") do
+  config :backend, :dashboard_auth,
+    username: username,
+    password: System.fetch_env!("DASHBOARD_PASSWORD")
+end
+
+# ----------------------------------------------------------------------------
 # Encryption at rest
 #
 # Used for gateway credentials, TOTP secrets and PII. The dev/test fallback is

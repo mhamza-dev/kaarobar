@@ -100,7 +100,8 @@ defmodule KaarobarWeb.Serializers do
       # reimplemented in three frontends.
       modules: Verticals.active_modules(business),
       product_kinds: Verticals.product_kinds_for(business.business_type),
-      required_sale_fields: Enum.map(Verticals.required_sale_fields(business.business_type), &to_string/1),
+      required_sale_fields:
+        Enum.map(Verticals.required_sale_fields(business.business_type), &to_string/1),
       requires_batch: Verticals.requires_batch?(business.business_type),
       social: business.social,
       receipt_settings: business.receipt_settings,

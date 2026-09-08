@@ -22,7 +22,16 @@ defmodule KaarobarWeb.ServiceJobController do
 
   plug KaarobarWeb.Plugs.Authorize,
        [permission: "service_job:update"]
-       when action in [:update, :start, :ready, :hold, :cancel, :move_item, :report_incident, :add_note]
+       when action in [
+              :update,
+              :start,
+              :ready,
+              :hold,
+              :cancel,
+              :move_item,
+              :report_incident,
+              :add_note
+            ]
 
   plug KaarobarWeb.Plugs.Authorize, [permission: "service_job:deliver"] when action in [:deliver]
 
@@ -160,7 +169,9 @@ defmodule KaarobarWeb.ServiceJobController do
 
     with {:ok, job} <- ServiceDesk.fetch_job(scope, id),
          {:ok, event} <-
-           ServiceDesk.add_note(scope, job, params["summary"] || "", kind: params["kind"] || "note") do
+           ServiceDesk.add_note(scope, job, params["summary"] || "",
+             kind: params["kind"] || "note"
+           ) do
       conn |> put_status(:created) |> render(:event, event: event)
     end
   end

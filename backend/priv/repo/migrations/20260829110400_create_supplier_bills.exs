@@ -87,9 +87,7 @@ defmodule Kaarobar.Repo.Migrations.CreateSupplierBills do
              check: "status IN ('draft','posted','partially_paid','paid','cancelled')"
            )
 
-    create constraint(:supplier_bills, :supplier_bills_paid_check,
-             check: "paid_total >= 0"
-           )
+    create constraint(:supplier_bills, :supplier_bills_paid_check, check: "paid_total >= 0")
 
     create constraint(:supplier_bills, :supplier_bills_due_check,
              check: "due_on IS NULL OR due_on >= issued_on"
@@ -164,9 +162,7 @@ defmodule Kaarobar.Repo.Migrations.CreateSupplierBills do
     create unique_index(:supplier_payments, [:business_id, :number])
     create index(:supplier_payments, [:supplier_id, :paid_on])
 
-    create constraint(:supplier_payments, :supplier_payments_amount_check,
-             check: "amount > 0"
-           )
+    create constraint(:supplier_payments, :supplier_payments_amount_check, check: "amount > 0")
 
     create constraint(:supplier_payments, :supplier_payments_unallocated_check,
              check: "unallocated_amount >= 0 AND unallocated_amount <= amount"
@@ -202,6 +198,7 @@ defmodule Kaarobar.Repo.Migrations.CreateSupplierBills do
     create unique_index(:supplier_payment_allocations, [:supplier_payment_id, :supplier_bill_id],
              name: :supplier_payment_allocations_payment_bill_index
            )
+
     create index(:supplier_payment_allocations, [:supplier_bill_id])
 
     create constraint(:supplier_payment_allocations, :supplier_payment_allocations_amount_check,

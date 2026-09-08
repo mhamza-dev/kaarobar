@@ -64,7 +64,8 @@ defmodule Kaarobar.Catalog.Category do
     |> validate_format(:slug, ~r/^[a-z0-9]+(?:-[a-z0-9]+)*$/,
       message: "may only contain lowercase letters, numbers and hyphens"
     )
-    |> validate_number(:depth, less_than_or_equal_to: @max_depth,
+    |> validate_number(:depth,
+      less_than_or_equal_to: @max_depth,
       message: "would nest categories more than #{@max_depth} levels deep"
     )
     |> unique_constraint(:slug,

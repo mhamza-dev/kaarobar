@@ -78,9 +78,7 @@ defmodule Kaarobar.Purchasing.SupplierBill do
       :notes
     ])
     |> validate_required([:supplier_id, :issued_on, :currency])
-    |> validate_format(:currency, ~r/^[A-Z]{3}$/,
-      message: "must be a three-letter ISO 4217 code"
-    )
+    |> validate_format(:currency, ~r/^[A-Z]{3}$/, message: "must be a three-letter ISO 4217 code")
     |> validate_number(:exchange_rate, greater_than: 0)
     |> validate_number(:shipping_total, greater_than_or_equal_to: 0)
     |> validate_due_date()

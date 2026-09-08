@@ -76,9 +76,7 @@ defmodule Kaarobar.Purchasing.Supplier do
     |> validate_length(:name, min: 1, max: 160)
     |> validate_length(:code, max: 40)
     |> validate_length(:country_code, is: 2)
-    |> validate_format(:currency, ~r/^[A-Z]{3}$/,
-      message: "must be a three-letter ISO 4217 code"
-    )
+    |> validate_format(:currency, ~r/^[A-Z]{3}$/, message: "must be a three-letter ISO 4217 code")
     |> validate_number(:payment_terms_days, greater_than_or_equal_to: 0, less_than: 366)
     |> validate_number(:credit_limit, greater_than_or_equal_to: 0)
     |> validate_length(:notes, max: 2000)

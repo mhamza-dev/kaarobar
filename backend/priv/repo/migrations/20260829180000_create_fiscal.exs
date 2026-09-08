@@ -138,7 +138,8 @@ defmodule Kaarobar.Repo.Migrations.CreateFiscal do
            )
 
     create constraint(:fiscal_submissions, :fiscal_submissions_status_check,
-             check: "status IN ('queued','submitting','retrying','accepted','rejected','failed','skipped')"
+             check:
+               "status IN ('queued','submitting','retrying','accepted','rejected','failed','skipped')"
            )
 
     create constraint(:fiscal_submissions, :fiscal_submissions_kind_check,

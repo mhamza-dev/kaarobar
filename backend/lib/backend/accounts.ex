@@ -23,9 +23,12 @@ defmodule Kaarobar.Accounts do
   import Ecto.Query, warn: false
 
   alias Kaarobar.Accounts.Notifier
+  alias Kaarobar.Accounts.TOTP
   alias Kaarobar.Accounts.User
   alias Kaarobar.Accounts.UserToken
   alias Kaarobar.Repo
+
+  @mfa_challenge_salt "mfa challenge"
 
   # --- Lookup -----------------------------------------------------------------
 
@@ -45,7 +48,9 @@ defmodule Kaarobar.Accounts do
   @doc "Fetches a user by email address, case-insensitively."
   @spec get_user_by_email(String.t()) :: User.t() | nil
   def get_user_by_email(email) when is_binary(email) do
-    Repo.one(from user in active_users(), where: user.email == ^String.downcase(String.trim(email)))
+    Repo.one(
+      from user in active_users(), where: user.email == ^String.downcase(String.trim(email))
+    )
   end
 
   def get_user_by_email(_email), do: nil
@@ -236,6 +241,213 @@ defmodule Kaarobar.Accounts do
     Repo.delete_all(UserToken.expired_query())
   end
 
+  # --- Multi-factor authentication ---------------------------------------------
+  #
+  # Three states a user moves through in order: no secret at all; a secret
+  # generated but not yet confirmed (`start_totp_enrollment/1` was called, the
+  # QR code was shown, but the app has not proven it can produce a matching
+  # code yet); confirmed, at which point `login/2` starts asking for one. The
+  # middle state is what stops a client that shows the QR code but is
+  # abandoned before scanning from silently locking the account out — nothing
+  # is required until `confirm_totp_enrollment/2` succeeds.
+
+  @doc """
+  Starts TOTP enrollment: generates a secret and returns it unconfirmed.
+
+  Calling this again before confirming replaces the pending secret rather than
+  accumulating one per attempt — there is only ever one QR code worth showing.
+  """
+  @spec start_totp_enrollment(User.t()) :: {:ok, User.t(), secret_uri :: String.t()}
+  def start_totp_enrollment(%User{} = user) do
+    secret = TOTP.generate_secret()
+
+    {:ok, updated} =
+      user
+      |> User.totp_changeset(%{totp_secret: secret, totp_confirmed_at: nil})
+      |> Repo.update()
+
+    {:ok, updated, TOTP.provisioning_uri(secret, user.email)}
+  end
+
+  @doc """
+  Confirms enrollment with a code from the app, turning it on.
+
+  The one place a code is checked against a *pending* secret rather than a
+  confirmed one — proving the app was set up correctly is the whole point of
+  this step.
+  """
+  @spec confirm_totp_enrollment(User.t(), String.t()) ::
+          {:ok, User.t()} | {:error, :no_pending_enrollment | :invalid_code}
+  def confirm_totp_enrollment(%User{totp_secret: nil}, _code),
+    do: {:error, :no_pending_enrollment}
+
+  def confirm_totp_enrollment(%User{totp_secret: secret} = user, code) do
+    if TOTP.valid?(secret, code) do
+      user |> User.totp_changeset(%{totp_confirmed_at: DateTime.utc_now()}) |> Repo.update()
+    else
+      {:error, :invalid_code}
+    end
+  end
+
+  @doc "Turns MFA off, after confirming the password."
+  @spec disable_totp(User.t(), String.t()) :: {:ok, User.t()} | {:error, :invalid_credentials}
+  def disable_totp(%User{} = user, current_password) do
+    if User.valid_password?(user, current_password) do
+      user |> User.totp_changeset(%{totp_secret: nil, totp_confirmed_at: nil}) |> Repo.update()
+    else
+      {:error, :invalid_credentials}
+    end
+  end
+
+  @doc """
+  Signs a short-lived challenge naming a user who has passed their password
+  check but still owes a TOTP code.
+
+  `Phoenix.Token`, not `Kaarobar.Accounts.UserToken`: this is never presented
+  as a bearer token, never grants API access on its own, and five minutes
+  from now it is worthless — a database row with its own expiry and revocation
+  machinery would be doing that job with a bigger hammer than it needs.
+  """
+  @spec sign_mfa_challenge(User.t()) :: String.t()
+  def sign_mfa_challenge(%User{} = user) do
+    Phoenix.Token.sign(KaarobarWeb.Endpoint, @mfa_challenge_salt, user.id)
+  end
+
+  # --- GDPR: export and erasure ------------------------------------------------
+
+  @doc """
+  Everything this application holds about one person, for a data export
+  request.
+
+  Deliberately scoped to *personal* data: the profile, the tenants they
+  belong to, the devices signed in as them, and the actions they themselves
+  took (an audit trail is data *about* them as its actor, even though the
+  entities it names — a sale, a business — are not). It does not include
+  those entities' own data: a cashier's export lists that they rang up a
+  sale, not the sale's line items, because the sale belongs to the business,
+  not to the cashier.
+
+  Reads across every organization the person has ever touched, which is why
+  the audit read runs `as_system` rather than through the usual per-tenant
+  scope — there is no one tenant this request is scoped to.
+  """
+  @spec export_personal_data(User.t()) :: map()
+  def export_personal_data(%User{} = user) do
+    # `memberships` is one of the tables RLS leaves unprotected (see
+    # priv/repo/migrations/20260909000000_enable_row_level_security.exs) for
+    # exactly this shape of query: a user's own memberships, across every
+    # organization, filtered by identity rather than by tenant.
+    memberships =
+      Repo.all(
+        from membership in Kaarobar.Tenancy.Membership,
+          where: membership.user_id == ^user.id,
+          order_by: [asc: membership.inserted_at]
+      )
+
+    audit_entries =
+      Repo.as_system(fn ->
+        Repo.all(
+          from entry in Kaarobar.Audit.Entry,
+            where: entry.actor_user_id == ^user.id,
+            order_by: [desc: entry.inserted_at],
+            limit: 500
+        )
+      end)
+
+    %{
+      profile: %{
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        phone: user.phone,
+        locale: user.locale,
+        timezone: user.timezone,
+        confirmed_at: user.confirmed_at,
+        mfa_enabled: User.totp_enabled?(user),
+        created_at: user.inserted_at
+      },
+      memberships:
+        Enum.map(memberships, fn membership ->
+          %{
+            organization_id: membership.organization_id,
+            business_id: membership.business_id,
+            job_title: membership.job_title,
+            status: membership.status,
+            since: membership.inserted_at
+          }
+        end),
+      devices:
+        Enum.map(
+          list_bearer_tokens(user),
+          &%{device_name: &1.device_name, last_used_at: &1.last_used_at}
+        ),
+      actions:
+        Enum.map(
+          audit_entries,
+          &%{action: &1.action, entity_type: &1.entity_type, at: &1.inserted_at}
+        )
+    }
+  end
+
+  @doc """
+  Erases a person's personal data, after confirming their password.
+
+  Scrubs rather than deletes the row: `sales`, `audit_logs` and every other
+  table with a foreign key to this user must survive for tax and financial
+  retention law, and every one of those laws is the reason erasure means
+  "stop identifying this person", not "make the row disappear". The email is
+  replaced rather than blanked so it stays unique and stays freed for someone
+  else to register, which blank strings colliding with each other would not.
+  """
+  @spec erase_personal_data(User.t(), String.t()) ::
+          {:ok, User.t()} | {:error, :invalid_credentials}
+  def erase_personal_data(%User{} = user, current_password) do
+    if User.valid_password?(user, current_password) do
+      revoke_all_bearer_tokens(user)
+
+      user
+      |> Ecto.Changeset.change(
+        name: "Deleted user",
+        email: "deleted-#{user.id}@erased.kaarobar.invalid",
+        phone: nil,
+        avatar_url: nil,
+        totp_secret: nil,
+        totp_confirmed_at: nil,
+        hashed_password: Argon2.hash_pwd_salt(:crypto.strong_rand_bytes(32) |> Base.encode64()),
+        deleted_at: DateTime.utc_now(),
+        status: "deleted"
+      )
+      |> Repo.update()
+    else
+      {:error, :invalid_credentials}
+    end
+  end
+
+  @doc """
+  Verifies an MFA challenge and the code presented against it.
+
+  `{:error, :invalid_challenge}` covers an expired, tampered-with or already
+  malformed token — the client's answer either way is "sign in again", so
+  there is no reason to tell those apart.
+  """
+  @spec verify_mfa_challenge(String.t(), String.t()) ::
+          {:ok, User.t()} | {:error, :invalid_challenge | :invalid_code}
+  def verify_mfa_challenge(challenge, code) do
+    with {:ok, user_id} <-
+           Phoenix.Token.verify(KaarobarWeb.Endpoint, @mfa_challenge_salt, challenge,
+             max_age: 300
+           ),
+         %User{} = user <- Repo.get(User, user_id),
+         true <- User.totp_enabled?(user),
+         true <- TOTP.valid?(user.totp_secret, code) do
+      {:ok, user}
+    else
+      {:error, _reason} -> {:error, :invalid_challenge}
+      nil -> {:error, :invalid_challenge}
+      false -> {:error, :invalid_code}
+    end
+  end
+
   # --- Profile ----------------------------------------------------------------
 
   @doc "Updates the fields a user may edit about themselves."
@@ -275,7 +487,8 @@ defmodule Kaarobar.Accounts do
   The new address starts unconfirmed, so a mistyped address cannot silently
   become the one that receives password resets.
   """
-  @spec update_email(User.t(), String.t(), map()) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
+  @spec update_email(User.t(), String.t(), map()) ::
+          {:ok, User.t()} | {:error, Ecto.Changeset.t()}
   def update_email(%User{} = user, current_password, attrs) do
     user
     |> User.email_changeset(attrs)

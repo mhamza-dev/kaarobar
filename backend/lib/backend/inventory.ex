@@ -229,7 +229,10 @@ defmodule Kaarobar.Inventory do
 
     with :ok <- require_reason(attrs),
          {:ok, move} <-
-           Ledger.post(scope, Map.merge(attrs, %{kind: "adjustment", reference_type: "adjustment"})) do
+           Ledger.post(
+             scope,
+             Map.merge(attrs, %{kind: "adjustment", reference_type: "adjustment"})
+           ) do
       Audit.log(scope, "stock.adjusted", nil,
         entity_type: "stock_move",
         entity_id: move.id,
@@ -252,7 +255,8 @@ defmodule Kaarobar.Inventory do
       Audit.log(scope, "stock.written_off", nil,
         entity_type: "stock_move",
         entity_id: move.id,
-        summary: "Wrote off #{Decimal.to_string(Decimal.abs(move.quantity), :normal)}: #{move.reason}",
+        summary:
+          "Wrote off #{Decimal.to_string(Decimal.abs(move.quantity), :normal)}: #{move.reason}",
         metadata: %{value: move.total_cost && Decimal.to_string(move.total_cost, :normal)}
       )
 
@@ -947,7 +951,9 @@ defmodule Kaarobar.Inventory do
 
   defp apply_count_filters(query, filters) do
     Enum.reduce(filters, query, fn
-      {"status", value}, acc when is_binary(value) -> where(acc, [c], c.status == ^value)
+      {"status", value}, acc when is_binary(value) ->
+        where(acc, [c], c.status == ^value)
+
       {"branch_id", value}, acc ->
         if UUIDv7.valid?(value), do: where(acc, [c], c.branch_id == ^value), else: acc
 

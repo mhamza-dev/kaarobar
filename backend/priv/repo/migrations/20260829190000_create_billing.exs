@@ -72,9 +72,7 @@ defmodule Kaarobar.Repo.Migrations.CreateBilling do
              check: "interval IN ('month','year')"
            )
 
-    create constraint(:subscription_plans, :subscription_plans_amount_check,
-             check: "amount >= 0"
-           )
+    create constraint(:subscription_plans, :subscription_plans_amount_check, check: "amount >= 0")
 
     # --------------------------------------------------------------- features
     create table(:plan_features, primary_key: false) do
@@ -148,6 +146,7 @@ defmodule Kaarobar.Repo.Migrations.CreateBilling do
            )
 
     create index(:subscriptions, [:status, :current_period_end])
+
     create unique_index(:subscriptions, [:external_subscription_id],
              where: "external_subscription_id IS NOT NULL"
            )

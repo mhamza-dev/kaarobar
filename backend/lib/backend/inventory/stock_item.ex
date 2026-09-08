@@ -76,7 +76,8 @@ defmodule Kaarobar.Inventory.StockItem do
   What may actually be sold: on hand, less what is already promised.
   """
   @spec available(t()) :: Decimal.t()
-  def available(%__MODULE__{on_hand: on_hand, reserved: reserved}), do: Money.sub(on_hand, reserved)
+  def available(%__MODULE__{on_hand: on_hand, reserved: reserved}),
+    do: Money.sub(on_hand, reserved)
 
   @doc "True when available stock has fallen to or below the reorder point."
   @spec below_reorder_point?(t()) :: boolean()

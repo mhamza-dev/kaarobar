@@ -27,16 +27,58 @@ defmodule Kaarobar.Catalog.Unit do
   about.
   """
   @default_units [
-    %{code: "pcs", name: "Piece", dimension: "count", factor_to_base: 1, precision: 0, is_base: true},
+    %{
+      code: "pcs",
+      name: "Piece",
+      dimension: "count",
+      factor_to_base: 1,
+      precision: 0,
+      is_base: true
+    },
     %{code: "dozen", name: "Dozen", dimension: "count", factor_to_base: 12, precision: 0},
-    %{code: "g", name: "Gram", dimension: "weight", factor_to_base: 1, precision: 0, is_base: true},
+    %{
+      code: "g",
+      name: "Gram",
+      dimension: "weight",
+      factor_to_base: 1,
+      precision: 0,
+      is_base: true
+    },
     %{code: "kg", name: "Kilogram", dimension: "weight", factor_to_base: 1000, precision: 3},
-    %{code: "ml", name: "Millilitre", dimension: "volume", factor_to_base: 1, precision: 0, is_base: true},
+    %{
+      code: "ml",
+      name: "Millilitre",
+      dimension: "volume",
+      factor_to_base: 1,
+      precision: 0,
+      is_base: true
+    },
     %{code: "l", name: "Litre", dimension: "volume", factor_to_base: 1000, precision: 3},
-    %{code: "m", name: "Metre", dimension: "length", factor_to_base: 1000, precision: 2, is_base: false},
-    %{code: "mm", name: "Millimetre", dimension: "length", factor_to_base: 1, precision: 0, is_base: true},
+    %{
+      code: "m",
+      name: "Metre",
+      dimension: "length",
+      factor_to_base: 1000,
+      precision: 2,
+      is_base: false
+    },
+    %{
+      code: "mm",
+      name: "Millimetre",
+      dimension: "length",
+      factor_to_base: 1,
+      precision: 0,
+      is_base: true
+    },
     %{code: "hr", name: "Hour", dimension: "time", factor_to_base: 60, precision: 2},
-    %{code: "min", name: "Minute", dimension: "time", factor_to_base: 1, precision: 0, is_base: true}
+    %{
+      code: "min",
+      name: "Minute",
+      dimension: "time",
+      factor_to_base: 1,
+      precision: 0,
+      is_base: true
+    }
   ]
 
   schema "units" do

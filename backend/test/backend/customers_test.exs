@@ -110,8 +110,10 @@ defmodule Kaarobar.CustomersTest do
       }
 
       assert Customer.credit_check(customer, Decimal.new(200)) == :ok
+
       assert {:error, {:credit_limit_exceeded, room}} =
                Customer.credit_check(customer, Decimal.new(201))
+
       assert_money(room, "200")
     end
   end

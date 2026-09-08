@@ -66,9 +66,13 @@ defmodule Kaarobar.Idempotency.Key do
     |> validate_length(:key, min: 8, max: 255)
     |> put_change(:status, "in_progress")
     |> put_change(:locked_at, DateTime.utc_now())
-    |> put_change(:expires_at, DateTime.add(DateTime.utc_now(), @retention_days * 86_400, :second))
+    |> put_change(
+      :expires_at,
+      DateTime.add(DateTime.utc_now(), @retention_days * 86_400, :second)
+    )
     |> foreign_key_constraint(:organization_id)
-    |> unique_constraint(:key, name: :idempotency_keys_organization_id_key_index,
+    |> unique_constraint(:key,
+      name: :idempotency_keys_organization_id_key_index,
       message: "has already been used for a different request"
     )
   end
@@ -106,8 +110,9 @@ defmodule Kaarobar.Idempotency.Key do
   end
 
   @doc "True when the stored response may be replayed."
-  def replayable?(%__MODULE__{status: "completed", response_status: status}) when is_integer(status),
-    do: true
+  def replayable?(%__MODULE__{status: "completed", response_status: status})
+      when is_integer(status),
+      do: true
 
   def replayable?(%__MODULE__{}), do: false
 end

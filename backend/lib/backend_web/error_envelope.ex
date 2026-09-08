@@ -84,7 +84,8 @@ defmodule KaarobarWeb.ErrorEnvelope do
     do: {:too_many_requests, build("rate_limited", "Too many requests, please retry shortly")}
 
   def for_reason(:unprocessable_entity),
-    do: {:unprocessable_entity, build("unprocessable_entity", "The request could not be processed")}
+    do:
+      {:unprocessable_entity, build("unprocessable_entity", "The request could not be processed")}
 
   # --- Selling ---------------------------------------------------------------
   #
@@ -94,8 +95,7 @@ defmodule KaarobarWeb.ErrorEnvelope do
 
   def for_reason(:insufficient_stock),
     do:
-      {:conflict,
-       build("insufficient_stock", "There is not enough stock to complete this sale")}
+      {:conflict, build("insufficient_stock", "There is not enough stock to complete this sale")}
 
   def for_reason(:underpaid),
     do: {:unprocessable_entity, build("underpaid", "The tenders do not cover the total")}
@@ -149,8 +149,7 @@ defmodule KaarobarWeb.ErrorEnvelope do
 
   def for_reason(:trialing),
     do:
-      {:unprocessable_entity,
-       build("trialing", "Nothing is charged while the trial is running")}
+      {:unprocessable_entity, build("trialing", "Nothing is charged while the trial is running")}
 
   # Only ever reached by a business that switched on `block_on_failure`, and
   # the number is the point of the message: "fiscal reporting is behind" tells
@@ -173,8 +172,7 @@ defmodule KaarobarWeb.ErrorEnvelope do
 
   def for_reason(:already_accepted),
     do:
-      {:conflict,
-       build("already_accepted", "The authority has already accepted this submission")}
+      {:conflict, build("already_accepted", "The authority has already accepted this submission")}
 
   def for_reason(:shift_not_open),
     do: {:conflict, build("shift_not_open", "This register has no open shift")}
@@ -274,8 +272,7 @@ defmodule KaarobarWeb.ErrorEnvelope do
         end)
       end)
 
-    {:unprocessable_entity,
-     build("validation_failed", "The submitted data is invalid", details)}
+    {:unprocessable_entity, build("validation_failed", "The submitted data is invalid", details)}
   end
 
   @doc """

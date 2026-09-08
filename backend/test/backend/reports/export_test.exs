@@ -90,6 +90,7 @@ defmodule Kaarobar.Reports.ExportTest do
         csv = Export.to_csv([%{name: leader <> "HYPERLINK(\"http://x\")"}], [{:name, "Name"}])
 
         assert [_header, row] = lines(csv)
+
         assert String.starts_with?(String.trim_leading(row, "\""), "'"),
                "#{leader} was not neutralised"
       end

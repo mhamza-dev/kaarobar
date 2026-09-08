@@ -163,7 +163,10 @@ defmodule Kaarobar.LoyaltyTest do
 
     test "an adjustment needs a reason", ctx do
       assert {:error, :reason_required} = Loyalty.adjust(ctx.scope, ctx.customer, 100, "  ")
-      assert {:ok, entry} = Loyalty.adjust(ctx.scope, ctx.customer, 100, "Goodwill after mis-scan")
+
+      assert {:ok, entry} =
+               Loyalty.adjust(ctx.scope, ctx.customer, 100, "Goodwill after mis-scan")
+
       assert entry.kind == "adjustment"
       assert entry.note == "Goodwill after mis-scan"
     end

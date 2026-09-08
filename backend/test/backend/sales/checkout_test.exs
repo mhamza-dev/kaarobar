@@ -217,7 +217,6 @@ defmodule Kaarobar.Sales.CheckoutTest do
       assert_money(sale.tax_total, "15.00")
       assert_money(sale.total, "165.00")
     end
-
   end
 
   describe "backdating" do

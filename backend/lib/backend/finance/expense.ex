@@ -151,7 +151,8 @@ defmodule Kaarobar.Finance.Expense do
 
   @doc "What this expense costs in total, tax included."
   @spec gross(t()) :: Decimal.t()
-  def gross(%__MODULE__{amount: amount, tax_amount: tax}), do: Money.add(amount, tax || Money.zero())
+  def gross(%__MODULE__{amount: amount, tax_amount: tax}),
+    do: Money.add(amount, tax || Money.zero())
 
   @doc "True when this expense should be subtracted from profit."
   @spec counts?(t()) :: boolean()

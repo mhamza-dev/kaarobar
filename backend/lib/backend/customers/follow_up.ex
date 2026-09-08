@@ -103,6 +103,8 @@ defmodule Kaarobar.Customers.FollowUp do
 
   @doc "True when it is open and its date has passed."
   @spec overdue?(t(), Date.t()) :: boolean()
-  def overdue?(%__MODULE__{status: "open", due_on: due}, today), do: Date.compare(due, today) == :lt
+  def overdue?(%__MODULE__{status: "open", due_on: due}, today),
+    do: Date.compare(due, today) == :lt
+
   def overdue?(%__MODULE__{}, _today), do: false
 end

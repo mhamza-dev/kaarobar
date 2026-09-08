@@ -22,7 +22,15 @@ defmodule KaarobarWeb.ReportController do
 
   plug KaarobarWeb.Plugs.Authorize,
        [permission: "report:sales"]
-       when action in [:summary, :daily, :by_branch, :by_tender, :by_hour, :top_products, :by_category]
+       when action in [
+              :summary,
+              :daily,
+              :by_branch,
+              :by_tender,
+              :by_hour,
+              :top_products,
+              :by_category
+            ]
 
   plug KaarobarWeb.Plugs.Authorize, [permission: "report:staff"] when action in [:by_cashier]
   plug KaarobarWeb.Plugs.Authorize, [permission: "report:financial"] when action in [:profit]
@@ -33,6 +41,7 @@ defmodule KaarobarWeb.ReportController do
 
   plug KaarobarWeb.Plugs.Authorize,
        [permission: "shift:view_all"] when action in [:x_report, :z_report]
+
   plug KaarobarWeb.Plugs.Authorize, [permission: "report:sales"] when action in [:rebuild]
   plug KaarobarWeb.Plugs.Authorize, [permission: "report:export"] when action in [:export]
 
@@ -182,7 +191,8 @@ defmodule KaarobarWeb.ReportController do
   defp export_rows(:top_products, scope, period, opts),
     do: Reports.top_products(scope, period, Keyword.put(opts, :limit, 200))
 
-  defp export_rows(:by_tender, scope, period, opts), do: Reports.sales_by_tender(scope, period, opts)
+  defp export_rows(:by_tender, scope, period, opts),
+    do: Reports.sales_by_tender(scope, period, opts)
 
   defp export_rows(:by_cashier, scope, period, opts),
     do: Reports.sales_by_cashier(scope, period, opts)

@@ -58,7 +58,12 @@ defmodule Kaarobar.Payments.Adapters.Stripe do
   def capture(%Provider{} = provider, external_id, amount) do
     body = %{"amount_to_capture" => to_minor(amount, "usd")}
 
-    case HTTP.post_form(provider, "#{@api}/payment_intents/#{external_id}/capture", body, auth(provider)) do
+    case HTTP.post_form(
+           provider,
+           "#{@api}/payment_intents/#{external_id}/capture",
+           body,
+           auth(provider)
+         ) do
       {:ok, response} -> {:ok, to_result(response, currency_of(response))}
       {:error, reason} -> {:error, reason}
     end
@@ -89,7 +94,12 @@ defmodule Kaarobar.Payments.Adapters.Stripe do
 
   @impl true
   def void(%Provider{} = provider, external_id) do
-    case HTTP.post_form(provider, "#{@api}/payment_intents/#{external_id}/cancel", %{}, auth(provider)) do
+    case HTTP.post_form(
+           provider,
+           "#{@api}/payment_intents/#{external_id}/cancel",
+           %{},
+           auth(provider)
+         ) do
       {:ok, response} -> {:ok, %{to_result(response, currency_of(response)) | status: :cancelled}}
       {:error, reason} -> {:error, reason}
     end
@@ -224,7 +234,12 @@ defmodule Kaarobar.Payments.Adapters.Stripe do
       |> Enum.map(&String.split(&1, "=", parts: 2))
       |> Enum.filter(&match?([_key, _value], &1))
 
-    timestamp = Enum.find_value(parts, fn ["t", value] -> value; _other -> nil end)
+    timestamp =
+      Enum.find_value(parts, fn
+        ["t", value] -> value
+        _other -> nil
+      end)
+
     signatures = for ["v1", value] <- parts, do: value
 
     cond do

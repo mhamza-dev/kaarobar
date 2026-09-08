@@ -80,7 +80,8 @@ defmodule Kaarobar.Catalog.ProductComponent do
     |> foreign_key_constraint(:parent_variant_id)
     |> foreign_key_constraint(:component_variant_id)
     |> foreign_key_constraint(:unit_id)
-    |> unique_constraint(:component_variant_id, name: :product_components_parent_component_kind_index,
+    |> unique_constraint(:component_variant_id,
+      name: :product_components_parent_component_kind_index,
       message: "is already a component of this product"
     )
   end

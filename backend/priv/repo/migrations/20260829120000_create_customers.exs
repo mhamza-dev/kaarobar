@@ -177,9 +177,7 @@ defmodule Kaarobar.Repo.Migrations.CreateCustomers do
     create index(:customer_payments, [:customer_id, :paid_on])
     create index(:customer_payments, [:shift_id])
 
-    create constraint(:customer_payments, :customer_payments_amount_check,
-             check: "amount > 0"
-           )
+    create constraint(:customer_payments, :customer_payments_amount_check, check: "amount > 0")
 
     create constraint(:customer_payments, :customer_payments_method_check,
              check: "method IN ('cash','card','bank_transfer','wallet','cheque','other')"

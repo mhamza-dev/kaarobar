@@ -73,7 +73,10 @@ defmodule Kaarobar.Purchasing.GoodsReceipt do
     |> validate_number(:shipping_total, greater_than_or_equal_to: 0)
     |> validate_length(:supplier_reference, max: 64)
     |> validate_length(:notes, max: 2000)
-    |> unique_constraint(:number, name: :goods_receipts_business_id_number_index, message: "is already used")
+    |> unique_constraint(:number,
+      name: :goods_receipts_business_id_number_index,
+      message: "is already used"
+    )
     |> foreign_key_constraint(:supplier_id)
     |> foreign_key_constraint(:branch_id)
   end

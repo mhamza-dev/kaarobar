@@ -208,7 +208,9 @@ defmodule Kaarobar.Fiscal.AdaptersTest do
 
   describe "FBR responses" do
     test "code 100 with a number is an acceptance" do
-      FiscalStub.respond({:ok, %{"Code" => "100", "InvoiceNumber" => "0123456", "Response" => "OK"}})
+      FiscalStub.respond(
+        {:ok, %{"Code" => "100", "InvoiceNumber" => "0123456", "Response" => "OK"}}
+      )
 
       assert {:accepted, result} = FBR.submit(config(), document())
       assert result.fiscal_number == "0123456"

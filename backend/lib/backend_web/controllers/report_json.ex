@@ -31,7 +31,8 @@ defmodule KaarobarWeb.ReportJSON do
   # Ecto structs reach here inside a shift report. Only their own fields are
   # kept: `__meta__` and unloaded associations are not data, and neither
   # survives JSON encoding.
-  defp serialise(%module{} = record) when module not in [Date, DateTime, NaiveDateTime, Decimal] do
+  defp serialise(%module{} = record)
+       when module not in [Date, DateTime, NaiveDateTime, Decimal] do
     if function_exported?(module, :__schema__, 1) do
       record |> Map.take(module.__schema__(:fields)) |> serialise()
     else

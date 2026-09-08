@@ -16,6 +16,7 @@ defmodule Kaarobar.Billing.DunningWorker do
     unique: [period: 300, states: [:available, :scheduled, :executing]]
 
   alias Kaarobar.Billing
+  alias Kaarobar.Repo
 
   require Logger
 
@@ -25,9 +26,12 @@ defmodule Kaarobar.Billing.DunningWorker do
   def perform(%Oban.Job{args: args}) do
     limit = Map.get(args, "limit", @batch)
 
-    result = Billing.process_dunning(limit)
-    expired = Billing.expire_lapsed()
-    closed = Billing.close_cancelled()
+    # Cross-tenant by design — chasing every organization's overdue invoice in
+    # one pass, not one organization's. See `Kaarobar.Repo.as_system/1`.
+    {result, expired, closed} =
+      Repo.as_system(fn ->
+        {Billing.process_dunning(limit), Billing.expire_lapsed(), Billing.close_cancelled()}
+      end)
 
     if result.collected > 0 or result.failed > 0 or expired > 0 or closed > 0 do
       Logger.info(

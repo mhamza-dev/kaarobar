@@ -390,7 +390,9 @@ defmodule Kaarobar.Finance do
   defp filter_dates(query, nil, nil), do: query
   defp filter_dates(query, from, nil), do: where(query, [e], e.spent_on >= ^from)
   defp filter_dates(query, nil, to), do: where(query, [e], e.spent_on <= ^to)
-  defp filter_dates(query, from, to), do: where(query, [e], e.spent_on >= ^from and e.spent_on <= ^to)
+
+  defp filter_dates(query, from, to),
+    do: where(query, [e], e.spent_on >= ^from and e.spent_on <= ^to)
 
   defp filter_equal(query, _field, nil), do: query
   defp filter_equal(query, field, value), do: where(query, [row], field(row, ^field) == ^value)

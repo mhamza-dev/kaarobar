@@ -117,8 +117,7 @@ defmodule Kaarobar.Repo.Migrations.CreatePriceRules do
            )
 
     create constraint(:price_rules, :price_rules_bogo_check,
-             check:
-               "kind <> 'bogo' OR (buy_quantity > 0 AND get_quantity > 0)"
+             check: "kind <> 'bogo' OR (buy_quantity > 0 AND get_quantity > 0)"
            )
 
     create constraint(:price_rules, :price_rules_weekdays_check,

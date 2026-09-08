@@ -23,7 +23,8 @@ defmodule KaarobarWeb.StockOperationsController do
   plug KaarobarWeb.Plugs.Authorize,
        [permission: "stock:transfer_approve"] when action in [:dispatch_transfer]
 
-  plug KaarobarWeb.Plugs.Authorize, [permission: "stock:receive"] when action in [:receive_transfer]
+  plug KaarobarWeb.Plugs.Authorize,
+       [permission: "stock:receive"] when action in [:receive_transfer]
 
   plug KaarobarWeb.Plugs.Authorize,
        [permission: "stock:count"]
@@ -75,7 +76,8 @@ defmodule KaarobarWeb.StockOperationsController do
     scope = conn.assigns.scope
 
     with {:ok, transfer} <- Inventory.fetch_transfer(scope, id),
-         {:ok, received} <- Inventory.receive_transfer(scope, transfer, Map.get(params, "received", %{})) do
+         {:ok, received} <-
+           Inventory.receive_transfer(scope, transfer, Map.get(params, "received", %{})) do
       render(conn, :transfer, transfer: received)
     end
   end

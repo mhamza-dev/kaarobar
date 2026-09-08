@@ -144,21 +144,27 @@ defmodule Kaarobar.Registers do
   @spec open_shift(Scope.t(), Register.t(), map()) ::
           {:ok, Shift.t()} | {:error, :shift_already_open | term()}
   def open_shift(%Scope{} = scope, %Register{} = register, attrs) do
-    Repo.transaction(fn ->
-      with :ok <- ensure_register_active(register),
-           {:ok, number} <- Sequences.next(scope, "shift"),
-           {:ok, shift} <- insert_shift(scope, register, attrs, number) do
-        Audit.log(scope, "shift.opened", shift,
-          entity_type: "shift",
-          label: shift.number,
-          summary: "Opened with #{Decimal.to_string(shift.opening_float, :normal)} float"
-        )
+    result =
+      Repo.transaction(fn ->
+        with :ok <- ensure_register_active(register),
+             {:ok, number} <- Sequences.next(scope, "shift"),
+             {:ok, shift} <- insert_shift(scope, register, attrs, number) do
+          Audit.log(scope, "shift.opened", shift,
+            entity_type: "shift",
+            label: shift.number,
+            summary: "Opened with #{Decimal.to_string(shift.opening_float, :normal)} float"
+          )
 
-        shift
-      else
-        {:error, reason} -> Repo.rollback(normalize_open_error(reason))
-      end
-    end)
+          shift
+        else
+          {:error, reason} -> Repo.rollback(normalize_open_error(reason))
+        end
+      end)
+
+    with {:ok, %Shift{} = shift} <- result do
+      broadcast_shift_changed(register.id, "shift_opened")
+      {:ok, shift}
+    end
   end
 
   @doc "The shift currently running on a till, if any."
@@ -214,22 +220,28 @@ defmodule Kaarobar.Registers do
   @spec close_shift(Scope.t(), Shift.t(), map()) :: {:ok, Shift.t()} | {:error, term()}
   def close_shift(%Scope{} = scope, %Shift{} = shift, attrs) do
     if Shift.open?(shift) do
-      Repo.transaction(fn ->
-        # Re-read under lock: a sale committing between the read and the close
-        # would otherwise be counted in neither shift.
-        locked = lock_shift(shift.id)
+      result =
+        Repo.transaction(fn ->
+          # Re-read under lock: a sale committing between the read and the
+          # close would otherwise be counted in neither shift.
+          locked = lock_shift(shift.id)
 
-        case locked
-             |> Shift.close_changeset(attrs, Scope.user_id(scope))
-             |> Repo.update() do
-          {:ok, closed} ->
-            log_close(scope, closed)
-            closed
+          case locked
+               |> Shift.close_changeset(attrs, Scope.user_id(scope))
+               |> Repo.update() do
+            {:ok, closed} ->
+              log_close(scope, closed)
+              closed
 
-          {:error, reason} ->
-            Repo.rollback(reason)
-        end
-      end)
+            {:error, reason} ->
+              Repo.rollback(reason)
+          end
+        end)
+
+      with {:ok, %Shift{} = closed} <- result do
+        broadcast_shift_changed(closed.register_id, "shift_closed")
+        {:ok, closed}
+      end
     else
       {:error, :shift_not_open}
     end
@@ -310,33 +322,39 @@ defmodule Kaarobar.Registers do
           {:ok, CashMovement.t()} | {:error, term()}
   def record_cash_movement(%Scope{} = scope, %Shift{} = shift, attrs) do
     if Shift.open?(shift) do
-      Repo.transaction(fn ->
-        movement_attrs =
-          attrs
-          |> stringify_keys()
-          |> Map.merge(%{
-            "organization_id" => Scope.organization_id(scope),
-            "business_id" => Scope.business_id(scope),
-            "shift_id" => shift.id,
-            "actor_user_id" => Scope.user_id(scope),
-            "actor_label" => scope.user && scope.user.name,
-            "occurred_at" => DateTime.utc_now()
-          })
+      result =
+        Repo.transaction(fn ->
+          movement_attrs =
+            attrs
+            |> stringify_keys()
+            |> Map.merge(%{
+              "organization_id" => Scope.organization_id(scope),
+              "business_id" => Scope.business_id(scope),
+              "shift_id" => shift.id,
+              "actor_user_id" => Scope.user_id(scope),
+              "actor_label" => scope.user && scope.user.name,
+              "occurred_at" => DateTime.utc_now()
+            })
 
-        with {:ok, movement} <-
-               %CashMovement{} |> CashMovement.changeset(movement_attrs) |> Repo.insert(),
-             {:ok, _shift} <- apply_cash_movement(shift.id, movement) do
-          Audit.log(scope, "cash.movement", movement,
-            entity_type: "cash_movement",
-            label: movement.reason,
-            summary: "#{movement.kind} #{Decimal.to_string(movement.amount, :normal)}"
-          )
+          with {:ok, movement} <-
+                 %CashMovement{} |> CashMovement.changeset(movement_attrs) |> Repo.insert(),
+               {:ok, _shift} <- apply_cash_movement(shift.id, movement) do
+            Audit.log(scope, "cash.movement", movement,
+              entity_type: "cash_movement",
+              label: movement.reason,
+              summary: "#{movement.kind} #{Decimal.to_string(movement.amount, :normal)}"
+            )
 
-          movement
-        else
-          {:error, reason} -> Repo.rollback(reason)
-        end
-      end)
+            movement
+          else
+            {:error, reason} -> Repo.rollback(reason)
+          end
+        end)
+
+      with {:ok, %CashMovement{} = movement} <- result do
+        broadcast_shift_changed(shift.register_id, "cash_movement")
+        {:ok, movement}
+      end
     else
       {:error, :shift_not_open}
     end
@@ -555,5 +573,13 @@ defmodule Kaarobar.Registers do
       {key, value} when is_atom(key) -> {Atom.to_string(key), value}
       {key, value} -> {key, value}
     end)
+  end
+
+  # A ping, not the shift itself — `KaarobarWeb.RegisterChannel` subscribers
+  # already have `GET /registers/:id/shift` for the full state; this just
+  # tells them to ask again rather than duplicating that shape over the
+  # socket.
+  defp broadcast_shift_changed(register_id, event) do
+    KaarobarWeb.Endpoint.broadcast("register:#{register_id}", event, %{})
   end
 end

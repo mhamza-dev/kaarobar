@@ -328,7 +328,12 @@ defmodule Kaarobar.PurchasingTest do
       scope: scope,
       supplier: supplier
     } do
-      for {days_overdue, amount} <- [{-5, "100.00"}, {10, "200.00"}, {45, "300.00"}, {120, "400.00"}] do
+      for {days_overdue, amount} <- [
+            {-5, "100.00"},
+            {10, "200.00"},
+            {45, "300.00"},
+            {120, "400.00"}
+          ] do
         {:ok, bill} =
           Purchasing.create_bill(scope, %{
             "supplier_id" => supplier.id,
@@ -408,7 +413,9 @@ defmodule Kaarobar.PurchasingTest do
       assert Enum.all?(numbers, &(&1 =~ ~r/^PO-\d{4}-\d{4}$/))
 
       # Gapless: a series with holes is the first thing an auditor asks about.
-      suffixes = Enum.map(numbers, &(&1 |> String.split("-") |> List.last() |> String.to_integer()))
+      suffixes =
+        Enum.map(numbers, &(&1 |> String.split("-") |> List.last() |> String.to_integer()))
+
       assert suffixes == Enum.sort(suffixes)
       assert List.last(suffixes) - List.first(suffixes) == 2
     end

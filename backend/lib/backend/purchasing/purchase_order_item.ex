@@ -58,7 +58,13 @@ defmodule Kaarobar.Purchasing.PurchaseOrderItem do
       :position,
       :note
     ])
-    |> validate_required([:business_id, :purchase_order_id, :variant_id, :ordered_quantity, :unit_cost])
+    |> validate_required([
+      :business_id,
+      :purchase_order_id,
+      :variant_id,
+      :ordered_quantity,
+      :unit_cost
+    ])
     |> validate_number(:ordered_quantity, greater_than: 0)
     |> validate_number(:unit_cost, greater_than_or_equal_to: 0)
     |> validate_number(:discount_percent,

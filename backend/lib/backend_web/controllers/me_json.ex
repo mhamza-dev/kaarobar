@@ -18,6 +18,14 @@ defmodule KaarobarWeb.MeJSON do
     %{data: Serializers.user(user)}
   end
 
+  def mfa_enrollment(%{provisioning_uri: provisioning_uri}) do
+    %{data: %{provisioning_uri: provisioning_uri}}
+  end
+
+  def export(%{export: export}) do
+    %{data: export}
+  end
+
   def devices(%{devices: devices, current_token_id: current_token_id}) do
     %{
       data:

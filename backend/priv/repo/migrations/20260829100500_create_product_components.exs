@@ -77,6 +77,7 @@ defmodule Kaarobar.Repo.Migrations.CreateProductComponents do
     create unique_index(:product_components, [:parent_variant_id, :component_variant_id, :kind],
              name: :product_components_parent_component_kind_index
            )
+
     create index(:product_components, [:parent_variant_id])
     create index(:product_components, [:component_variant_id])
     create index(:product_components, [:business_id])

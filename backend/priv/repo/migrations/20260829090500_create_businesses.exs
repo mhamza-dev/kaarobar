@@ -68,8 +68,6 @@ defmodule Kaarobar.Repo.Migrations.CreateBusinesses do
              check: "status IN ('active','suspended','archived')"
            )
 
-    create constraint(:businesses, :businesses_currency_check,
-             check: "char_length(currency) = 3"
-           )
+    create constraint(:businesses, :businesses_currency_check, check: "char_length(currency) = 3")
   end
 end

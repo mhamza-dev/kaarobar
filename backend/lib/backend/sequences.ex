@@ -85,7 +85,8 @@ defmodule Kaarobar.Sequences do
   """
   @spec next(Scope.t(), String.t(), keyword()) :: {:ok, String.t()} | {:error, term()}
   def next(%Scope{} = scope, document_type, opts \\ []) do
-    defaults = Map.get(@defaults, document_type, %{prefix: default_prefix(document_type), reset: :yearly})
+    defaults =
+      Map.get(@defaults, document_type, %{prefix: default_prefix(document_type), reset: :yearly})
 
     prefix = Keyword.get(opts, :prefix, defaults.prefix)
     period = period_for(defaults.reset, Keyword.get(opts, :at, Date.utc_today()))
@@ -106,7 +107,8 @@ defmodule Kaarobar.Sequences do
   """
   @spec peek(Scope.t(), String.t(), keyword()) :: String.t() | nil
   def peek(%Scope{} = scope, document_type, opts \\ []) do
-    defaults = Map.get(@defaults, document_type, %{prefix: default_prefix(document_type), reset: :yearly})
+    defaults =
+      Map.get(@defaults, document_type, %{prefix: default_prefix(document_type), reset: :yearly})
 
     prefix = Keyword.get(opts, :prefix, defaults.prefix)
     period = period_for(defaults.reset, Keyword.get(opts, :at, Date.utc_today()))

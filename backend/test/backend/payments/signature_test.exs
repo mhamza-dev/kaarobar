@@ -36,7 +36,9 @@ defmodule Kaarobar.Payments.SignatureTest do
 
   describe "JazzCash secure hash" do
     setup do
-      %{provider: provider(%{provider: "jazzcash", credentials: %{"integrity_salt" => "SALT123"}})}
+      %{
+        provider: provider(%{provider: "jazzcash", credentials: %{"integrity_salt" => "SALT123"}})
+      }
     end
 
     test "sorts by key and joins the values with the salt in front", ctx do
@@ -90,7 +92,9 @@ defmodule Kaarobar.Payments.SignatureTest do
 
   describe "JazzCash webhook verification" do
     setup do
-      %{provider: provider(%{provider: "jazzcash", credentials: %{"integrity_salt" => "SALT123"}})}
+      %{
+        provider: provider(%{provider: "jazzcash", credentials: %{"integrity_salt" => "SALT123"}})
+      }
     end
 
     test "accepts a payload whose hash recomputes", ctx do

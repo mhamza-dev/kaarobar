@@ -64,9 +64,7 @@ defmodule Kaarobar.Repo.Migrations.CreateRentals do
       timestamps(type: :utc_datetime_usec)
     end
 
-    create unique_index(:rental_units, [:business_id, :asset_code],
-             where: "deleted_at IS NULL"
-           )
+    create unique_index(:rental_units, [:business_id, :asset_code], where: "deleted_at IS NULL")
 
     create index(:rental_units, [:branch_id, :status])
     create index(:rental_units, [:variant_id])

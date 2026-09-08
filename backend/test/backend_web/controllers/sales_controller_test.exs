@@ -46,7 +46,6 @@ defmodule KaarobarWeb.SalesControllerTest do
     )
   end
 
-
   # Money arrives as a string so no client rounds it. Comparing as decimals
   # keeps these assertions honest about value rather than about column scale.
   defp assert_amount(actual, expected) do
@@ -135,7 +134,8 @@ defmodule KaarobarWeb.SalesControllerTest do
       variant: variant,
       register: register
     } do
-      params = basket(variant, register, %{"payments" => [%{"method" => "cash", "amount" => "50"}]})
+      params =
+        basket(variant, register, %{"payments" => [%{"method" => "cash", "amount" => "50"}]})
 
       conn = post(conn, ~p"/api/v1/sales", params)
 
@@ -230,7 +230,8 @@ defmodule KaarobarWeb.SalesControllerTest do
       branch: branch,
       register: register
     } do
-      sale = sale_fixture(scope, variant, register_id: register.id, quantity: "3", amount: "300.00")
+      sale =
+        sale_fixture(scope, variant, register_id: register.id, quantity: "3", amount: "300.00")
 
       conn = post(conn, ~p"/api/v1/sales/#{sale.id}/void", %{"reason" => "Wrong customer"})
 
@@ -250,7 +251,9 @@ defmodule KaarobarWeb.SalesControllerTest do
       variant: variant,
       register: register
     } do
-      sale = sale_fixture(scope, variant, register_id: register.id, quantity: "4", amount: "400.00")
+      sale =
+        sale_fixture(scope, variant, register_id: register.id, quantity: "4", amount: "400.00")
+
       [item] = sale.items
 
       params = %{"items" => [%{"sale_item_id" => item.id, "quantity" => "1"}]}

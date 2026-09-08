@@ -53,6 +53,12 @@ case Accounts.get_user_by_email(owner_email) do
         }
       })
 
+    # Everything below writes to RLS-protected tables (`businesses`,
+    # `products`, `stock_items`, `sales`, ...), so it has to run with the
+    # tenant context set the same way a real request would — see
+    # `Kaarobar.Repo.with_tenant_context/2`.
+    :ok =
+      Repo.with_tenant_context(result.organization.id, fn ->
     {:ok, scope} = Scopes.build(result.user, %{organization_id: result.organization.id})
 
     for attrs <- demo_businesses do
@@ -169,4 +175,7 @@ case Accounts.get_user_by_email(owner_email) do
       Password: #{owner_password}
       Verticals: #{Enum.map_join(demo_businesses, ", ", & &1["business_type"])}
     """)
+
+    :ok
+      end)
 end

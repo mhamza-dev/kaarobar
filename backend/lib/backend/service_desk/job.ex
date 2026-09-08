@@ -140,7 +140,9 @@ defmodule Kaarobar.ServiceDesk.Job do
   def ready_changeset(job, rack_location) do
     job
     |> cast(%{rack_location: rack_location}, [:rack_location])
-    |> validate_required([:rack_location], message: "is required before a job can be marked ready")
+    |> validate_required([:rack_location],
+      message: "is required before a job can be marked ready"
+    )
     |> put_change(:status, "ready")
     |> put_change(:ready_at, DateTime.utc_now())
   end

@@ -10,6 +10,7 @@ defmodule Kaarobar.AccessControl.RolePermission do
 
   schema "role_permissions" do
     belongs_to :role, Role
+
     belongs_to :permission, Permission,
       foreign_key: :permission_key,
       references: :key,

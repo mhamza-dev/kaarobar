@@ -94,6 +94,7 @@ defmodule Kaarobar.Scopes do
   # --- Assembly ---------------------------------------------------------------
 
   defp put_organization(scope, nil), do: scope
+
   defp put_organization(scope, %Organization{} = organization),
     do: Scope.put_organization(scope, organization)
 

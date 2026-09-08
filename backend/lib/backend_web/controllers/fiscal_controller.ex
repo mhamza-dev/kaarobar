@@ -57,9 +57,7 @@ defmodule KaarobarWeb.FiscalController do
       |> put_option(:status, params["status"])
       |> put_option(:needs_attention, params["needs_attention"] in ["true", true])
 
-    render(conn, :submissions,
-      submissions: Fiscal.list_submissions(conn.assigns.scope, opts)
-    )
+    render(conn, :submissions, submissions: Fiscal.list_submissions(conn.assigns.scope, opts))
   end
 
   def show(conn, %{"id" => id}) do

@@ -70,6 +70,7 @@ defmodule KaarobarWeb.Router do
 
     post "/auth/register", AuthController, :register
     post "/auth/login", AuthController, :login
+    post "/auth/mfa/verify", AuthController, :mfa_verify
     post "/auth/forgot-password", AuthController, :forgot_password
     post "/auth/reset-password", AuthController, :reset_password
     post "/auth/confirm", AuthController, :confirm
@@ -98,6 +99,13 @@ defmodule KaarobarWeb.Router do
     put "/me/email", MeController, :update_email
     get "/me/devices", MeController, :devices
     delete "/me/devices/:id", MeController, :revoke_device
+
+    post "/me/mfa/enroll", MeController, :enroll_mfa
+    post "/me/mfa/confirm", MeController, :confirm_mfa
+    post "/me/mfa/disable", MeController, :disable_mfa
+
+    get "/me/export", MeController, :export
+    post "/me/erase", MeController, :erase
 
     # --- Tenancy ---
     get "/organizations", OrganizationController, :index
@@ -632,5 +640,20 @@ defmodule KaarobarWeb.Router do
       live_dashboard "/dashboard", metrics: KaarobarWeb.Telemetry, ecto_repos: [Kaarobar.Repo]
       forward "/mailbox", Plug.Swoosh.MailboxPreview
     end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Operations, outside development — see KaarobarWeb.Plugs.DashboardAuth
+  # ---------------------------------------------------------------------------
+
+  import Phoenix.LiveDashboard.Router
+
+  scope "/admin" do
+    pipe_through [:fetch_session, :protect_from_forgery, KaarobarWeb.Plugs.DashboardAuth]
+
+    live_dashboard "/dashboard",
+      metrics: KaarobarWeb.Telemetry,
+      ecto_repos: [Kaarobar.Repo],
+      live_session_name: :admin_dashboard
   end
 end

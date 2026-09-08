@@ -158,7 +158,10 @@ defmodule KaarobarWeb.ProductControllerTest do
       %{user: cashier} = staff_scope(scope, "cashier")
 
       assert is_list(
-               conn |> sign_in(cashier, business) |> get(~p"/api/v1/products") |> json_data(200)
+               conn
+               |> sign_in(cashier, business)
+               |> get(~p"/api/v1/products")
+               |> json_data(200)
              )
 
       denied =

@@ -91,8 +91,7 @@ defmodule Kaarobar.Credit do
           sold_at: sale.sold_at,
           charged: sale.credit_total,
           allocated: coalesce(sum(allocation.amount), 0),
-          terms_days:
-            coalesce(customer.payment_terms_days, coalesce(group.payment_terms_days, 0))
+          terms_days: coalesce(customer.payment_terms_days, coalesce(group.payment_terms_days, 0))
         }
 
     query
@@ -477,5 +476,4 @@ defmodule Kaarobar.Credit do
   defp bucket_for(days) when days <= 60, do: :days_31_60
   defp bucket_for(days) when days <= 90, do: :days_61_90
   defp bucket_for(_days), do: :days_over_90
-
 end
