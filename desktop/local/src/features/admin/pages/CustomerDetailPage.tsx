@@ -36,6 +36,8 @@ type Props = {
   onOpenSale: (saleId: string) => void;
 };
 
+type CreditAction = "payment" | "add";
+
 export function CustomerDetailPage({
   user,
   data,
@@ -55,6 +57,7 @@ export function CustomerDetailPage({
   const { activeBusinessId, refreshScopedData } = data;
 
   const paymentSchema = yup.object({
+    action: yup.mixed<CreditAction>().oneOf(["payment", "add"]).required(),
     amount: yup
       .number()
       .typeError(t("forms.paymentAmountRequired"))
@@ -103,11 +106,8 @@ export function CustomerDetailPage({
 
   const licenseFeatures = useLicenseFeatures();
   const creditEnabled = hasLicenseFeature(licenseFeatures, "credit");
-  const canRecordPayment =
-    creditEnabled &&
-    Boolean(detail) &&
-    actions.canEditCustomers &&
-    (detail?.remainingBalance ?? 0) > 0;
+  const canManageCredit =
+    creditEnabled && Boolean(detail) && actions.canEditCustomers;
 
   if (!hasLicenseFeature(licenseFeatures, "customers")) return null;
 
@@ -134,10 +134,10 @@ export function CustomerDetailPage({
             : t("dashboard.customerDetailDesc")
         }
         actions={
-          canRecordPayment ? (
+          canManageCredit ? (
             <Button type="button" onClick={() => setPaymentOpen(true)}>
               <Wallet className="size-4" />
-              {t("forms.recordPayment")}
+              {t("forms.manageCredit", { defaultValue: "Manage credit" })}
             </Button>
           ) : null
         }
@@ -377,11 +377,12 @@ export function CustomerDetailPage({
       <Modal
         open={paymentOpen && Boolean(detail)}
         onClose={() => setPaymentOpen(false)}
-        title={t("forms.recordPayment")}
+        title={t("forms.manageCredit", { defaultValue: "Manage credit" })}
       >
         {detail ? (
           <Formik
             initialValues={{
+              action: "payment" as CreditAction,
               amount: "",
               method: "cash" as "cash" | "card",
               note: "",
@@ -390,17 +391,24 @@ export function CustomerDetailPage({
             onSubmit={async (values) => {
               try {
                 const amount = Number(values.amount);
-                if (amount > detail.remainingBalance) {
-                  toast.error(t("forms.paymentExceedsBalance"));
-                  return;
+                if (values.action === "payment") {
+                  await window.api.customers.recordPayment({
+                    customerId,
+                    amount,
+                    method: values.method,
+                    note: values.note || null,
+                  });
+                  toast.success(t("toast.paymentRecorded"));
+                } else {
+                  await window.api.customers.adjustCredit({
+                    customerId,
+                    amount,
+                    direction: "add",
+                    method: values.method,
+                    note: values.note || null,
+                  });
+                  toast.success(t("forms.creditAdded"));
                 }
-                await window.api.customers.recordPayment({
-                  customerId,
-                  amount,
-                  method: values.method,
-                  note: values.note || null,
-                });
-                toast.success(t("toast.paymentRecorded"));
                 setPaymentOpen(false);
                 await load();
                 if (activeBusinessId) await refreshScopedData(activeBusinessId);
@@ -413,6 +421,21 @@ export function CustomerDetailPage({
           >
             {({ isSubmitting }) => (
               <Form className="space-y-3">
+                <FormSelectField
+                  name="action"
+                  label={t("forms.creditAction", {
+                    defaultValue: "Credit action",
+                  })}
+                  options={[
+                    { value: "payment", label: t("forms.recordPayment") },
+                    {
+                      value: "add",
+                      label: t("forms.addToCredit", {
+                        defaultValue: "Add to Credit",
+                      }),
+                    },
+                  ]}
+                />
                 <p className="text-sm text-ink-muted">
                   {t("forms.remainingToPay")}:{" "}
                   {formatMoney(detail.remainingBalance)}
@@ -441,7 +464,7 @@ export function CustomerDetailPage({
                     {t("common.cancel")}
                   </Button>
                   <Button type="submit" loading={isSubmitting}>
-                    {t("forms.recordPayment")}
+                    {t("forms.save", { defaultValue: "Save" })}
                   </Button>
                 </div>
               </Form>

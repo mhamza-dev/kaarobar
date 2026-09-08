@@ -114,7 +114,7 @@ const SALE_LABELS = {
     followUs: "Follow us",
     thankYou: "THANK YOU!",
     customSoftwareSupport:
-      "For custom software solutions, contact us: 0304757253",
+      "For custom software solutions, contact us: 03044757253",
     poweredBy: POWERED_BY.en,
     cash: "Cash",
     card: "Card / Online",
@@ -140,7 +140,7 @@ const SALE_LABELS = {
     followUs: "ہمیں فالو کریں",
     thankYou: "شکریہ!",
     customSoftwareSupport:
-      "اس طرح کے سسٹمز بنانے کے لیے رابطہ کریں: 0304757253",
+      "اس طرح کے سسٹمز بنانے کے لیے رابطہ کریں: 03044757253",
     poweredBy: POWERED_BY.ur,
     cash: "نقد",
     card: "کارڈ / آن لائن",
@@ -166,7 +166,7 @@ const SALE_LABELS = {
     followUs: "Folgen Sie uns",
     thankYou: "VIELEN DANK!",
     customSoftwareSupport:
-      "Für individuelle Software kontaktieren Sie uns: 0304757253",
+      "Für individuelle Software kontaktieren Sie uns: 03044757253",
     poweredBy: POWERED_BY.de,
     cash: "Bar",
     card: "Karte / Online",
@@ -192,7 +192,7 @@ const SALE_LABELS = {
     followUs: "Siga-nos",
     thankYou: "OBRIGADO!",
     customSoftwareSupport:
-      "Para soluções de software personalizadas, contate-nos: 0304757253",
+      "Para soluções de software personalizadas, contate-nos: 03044757253",
     poweredBy: POWERED_BY.pt,
     cash: "Dinheiro",
     card: "Cartão / Online",
@@ -217,8 +217,7 @@ const SALE_LABELS = {
     tel: "Tel",
     followUs: "Síguenos",
     thankYou: "¡GRACIAS!",
-    customSoftwareSupport:
-      "Para software a medida, contáctanos: 0304757253",
+    customSoftwareSupport: "Para software a medida, contáctanos: 03044757253",
     poweredBy: POWERED_BY.es,
     cash: "Efectivo",
     card: "Tarjeta / En línea",
@@ -244,7 +243,7 @@ const SALE_LABELS = {
     followUs: "Suivez-nous",
     thankYou: "MERCI !",
     customSoftwareSupport:
-      "Pour un logiciel sur mesure, contactez-nous : 0304757253",
+      "Pour un logiciel sur mesure, contactez-nous : 03044757253",
     poweredBy: POWERED_BY.fr,
     cash: "Espèces",
     card: "Carte / En ligne",
@@ -269,8 +268,7 @@ const SALE_LABELS = {
     tel: "هاتف",
     followUs: "تابعنا",
     thankYou: "شكراً لك!",
-    customSoftwareSupport:
-      "للحلول البرمجية حسب الطلب، تواصل معنا: 0304757253",
+    customSoftwareSupport: "للحلول البرمجية حسب الطلب، تواصل معنا: 03044757253",
     poweredBy: POWERED_BY.ar,
     cash: "نقد",
     card: "بطاقة / أونلاين",
@@ -694,7 +692,13 @@ export function printDocumentChrome(lang: PrintLanguage = getPrintLanguage()): {
     // on Windows, and it keeps Latin words out of a Nastaliq face, which
     // carries Latin glyphs of its own.
     fontFamily: rtl
-      ? [...ARABIC_SCRIPT_FACES, "'Segoe UI'", "Tahoma", "ui-sans-serif", "sans-serif"].join(", ")
+      ? [
+          ...ARABIC_SCRIPT_FACES,
+          "'Segoe UI'",
+          "Tahoma",
+          "ui-sans-serif",
+          "sans-serif",
+        ].join(", ")
       : withArabicScript(
           `'Poppins', 'Plus Jakarta Sans', 'Segoe UI', ui-sans-serif, system-ui, sans-serif`,
         ),

@@ -923,6 +923,14 @@ export type KaarobarApi = {
       note?: string | null;
       branchId?: string | null;
     }) => Promise<LedgerEntry>;
+    adjustCredit: (payload: {
+      customerId: string;
+      amount: number;
+      direction: "add" | "remove";
+      method: "cash" | "card";
+      note?: string | null;
+      branchId?: string | null;
+    }) => Promise<LedgerEntry>;
     printLedger: (payload: {
       customerId: string;
       from?: string | null;
@@ -1211,6 +1219,7 @@ export const IPC_CHANNELS = {
   CUSTOMER_CREATE: "customer:create",
   CUSTOMER_UPDATE: "customer:update",
   CUSTOMER_RECORD_PAYMENT: "customer:recordPayment",
+  CUSTOMER_ADJUST_CREDIT: "customer:adjustCredit",
   CUSTOMER_PRINT_LEDGER: "customer:printLedger",
   CUSTOMER_DELETE: "customer:delete",
   SALES_LIST: "sales:list",

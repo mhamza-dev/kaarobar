@@ -1983,7 +1983,10 @@ export function getCustomerDetail(customerId: string): CustomerDetail {
     }),
     ledger: ledgerRows.map((entry) => {
       let method: "cash" | "card" | null = null;
-      if (entry.type === "payment" && entry.note) {
+      if (
+        (entry.type === "payment" || entry.type === "adjustment") &&
+        entry.note
+      ) {
         const match = entry.note.match(
           /^method:(cash|card)(?:\s*\|\s*(.*))?$/i,
         );
@@ -2184,6 +2187,106 @@ export function recordCustomerPayment(payload: {
     branchId,
     type: "payment",
     amount: -amount,
+    balanceAfter: newBalance,
+    referenceSaleId: null,
+    note,
+    createdBy: session.id,
+    createdByName: session.name,
+    createdAt: at,
+    method: payload.method,
+  };
+}
+
+export function adjustCustomerCredit(payload: {
+  customerId: string;
+  amount: number;
+  direction: "add" | "remove";
+  method: "cash" | "card";
+  note?: string | null;
+  branchId?: string | null;
+}): LedgerEntry {
+  requireFeature("credit");
+  const session = requirePermission("customers:edit");
+  const amount = Number(payload.amount);
+  if (!Number.isFinite(amount) || amount <= 0)
+    throw new Error("Credit adjustment amount must be greater than 0");
+  if (payload.direction !== "add" && payload.direction !== "remove") {
+    throw new Error("Credit adjustment direction must be add or remove");
+  }
+  if (payload.method !== "cash" && payload.method !== "card") {
+    throw new Error("Credit adjustment method must be cash or card");
+  }
+
+  const customer = db()
+    .prepare(
+      "SELECT id, business_id, name, current_balance FROM customers WHERE id = ?",
+    )
+    .get(payload.customerId) as
+    | { id: string; business_id: string; name: string; current_balance: number }
+    | undefined;
+  if (!customer) throw new Error("Customer not found");
+  assertBusinessAccess(customer.business_id);
+
+  const signedAmount = payload.direction === "add" ? amount : -amount;
+  const newBalance = customer.current_balance + signedAmount;
+  if (newBalance < 0) {
+    throw new Error("Credit adjustment cannot exceed remaining credit balance");
+  }
+
+  let branchId = payload.branchId?.trim() || null;
+  if (branchId) {
+    assertBranchAccess(branchId);
+  } else if (session.branchId) {
+    branchId = session.branchId;
+  }
+
+  const id = uuidv4();
+  const at = nowIso();
+  const userNote = payload.note?.trim() || "";
+  const note = userNote
+    ? `method:${payload.method} | ${userNote}`
+    : `method:${payload.method}`;
+
+  db().transaction(() => {
+    db()
+      .prepare(
+        "UPDATE customers SET current_balance = ?, updated_at = ? WHERE id = ?",
+      )
+      .run(newBalance, at, customer.id);
+    db()
+      .prepare(
+        `INSERT INTO ledger_entries (id, customer_id, business_id, branch_id, type, amount, balance_after, reference_sale_id, note, created_by, created_at)
+         VALUES (?, ?, ?, ?, 'adjustment', ?, ?, NULL, ?, ?, ?)`,
+      )
+      .run(
+        id,
+        customer.id,
+        customer.business_id,
+        branchId,
+        signedAmount,
+        newBalance,
+        note,
+        session.id,
+        at,
+      );
+  })();
+
+  writeActivity({
+    businessId: customer.business_id,
+    actorUserId: session.id,
+    entityType: "customer",
+    entityId: customer.id,
+    action: "credit_adjusted",
+    summary: `${payload.direction === "add" ? "Added" : "Removed"} ${amount} credit for ${customer.name}`,
+  });
+
+  return {
+    id,
+    customerId: customer.id,
+    businessId: customer.business_id,
+    branchId,
+    type: "adjustment",
+    amount: signedAmount,
     balanceAfter: newBalance,
     referenceSaleId: null,
     note,
@@ -2400,7 +2503,10 @@ export function createSale(payload: {
     return value;
   });
 
-  const lineDiscountTotal = lineDiscounts.reduce((acc, value) => acc + value, 0);
+  const lineDiscountTotal = lineDiscounts.reduce(
+    (acc, value) => acc + value,
+    0,
+  );
   const orderDiscount = Math.max(0, Number(payload.discount ?? 0));
   if (!Number.isFinite(orderDiscount))
     throw new Error("Discount must be a valid number");
@@ -3617,7 +3723,9 @@ export function updateSaleDelivery(payload: {
   return getSaleById(payload.saleId);
 }
 
-export async function printSaleReceipt(saleId: string): Promise<SalePrintResult> {
+export async function printSaleReceipt(
+  saleId: string,
+): Promise<SalePrintResult> {
   requireValidLicense();
   requirePermission("sales:print");
   const session = requireSession();
