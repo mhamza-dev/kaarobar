@@ -1,36 +1,123 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Kaarobar — Staff Web App
 
-## Getting Started
+The browser client a business owner and their staff run the shop from. Talks
+to the Phoenix API in [`backend/`](../../backend) over REST; it is one of
+several clients (`desktop/cloud`, `mobile/staff`) built against that same
+contract.
 
-First, run the development server:
+Not to be confused with `desktop/local`, the separately sold offline
+single-shop app. That one is a useful _reference_ for how these workflows
+behave in a real shop — its component APIs and design tokens are echoed here
+deliberately — but it shares no code and no database with this.
+
+## Stack
+
+|              |                                                               |
+| ------------ | ------------------------------------------------------------- |
+| Framework    | Next.js 16 (App Router), React 19                             |
+| Language     | TypeScript, strict                                            |
+| Styling      | Tailwind CSS v4 (CSS-first `@theme`, no `tailwind.config.js`) |
+| Components   | shadcn/ui on Base UI primitives, in `src/components/ui`       |
+| Icons        | lucide-react                                                  |
+| Forms        | Formik + Yup                                                  |
+| HTTP         | axios, through a typed services layer                         |
+| Server state | TanStack React Query                                          |
+| Client state | zustand                                                       |
+| Tests        | Vitest + Testing Library (unit), Playwright (e2e)             |
+
+## Running it
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local     # points at http://localhost:4000/api/v1
+npm install
+npm run dev                    # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+You need the backend running alongside it:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cd ../../backend && mix phx.server
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Script             |                                                          |
+| ------------------ | -------------------------------------------------------- |
+| `npm run check`    | lint + typecheck + unit tests — run before every commit  |
+| `npm test`         | Vitest unit suite                                        |
+| `npm run test:e2e` | Playwright, against a **running** backend and dev server |
+| `npm run format`   | Prettier                                                 |
 
-## Learn More
+## Layout
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+├── app/                  App Router — routing and layout only
+│   ├── (auth)/           login, MFA challenge, register, password reset
+│   └── (app)/            everything behind a session; AppShell lives here
+├── components/
+│   ├── ui/               shadcn primitives (generated — edit to theme, not to restructure)
+│   ├── shared/           app-wide: AppShell, PageHeader, AuthShell, DataTable
+│   └── forms/            the Formik ⇄ shadcn bridge
+├── features/             domain-scoped components, composed by pages
+├── services/             typed axios calls, one file per backend domain
+├── hooks/queries/        React Query hooks, paired 1:1 with services
+├── lib/                  api client, permissions, nav, theme, formatting
+├── stores/               zustand: session (token + tenant), UI state
+├── types/api/            hand-written mirrors of the backend's JSON shapes
+└── proxy.ts              Next 16's route-protection convention
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Pages stay thin: they compose `features/*` and call `hooks/queries/*`. No
+axios calls or business logic in `app/**/page.tsx`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Conventions
 
-## Deploy on Vercel
+**Four layers per domain.** `types/api/x.ts` → `services/x.ts` →
+`hooks/queries/useX.ts` → `features/x/*.tsx`, consumed by a thin page. Every
+new domain follows the same shape; `services/auth.ts` and
+`hooks/queries/useAuth.ts` are the worked example.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+**Types are hand-written from the backend source.** There is no OpenAPI spec
+yet, so `src/types/api/*` mirrors `backend/lib/backend_web/controllers/*_json.ex`
+and `serializers.ex` by hand. When an endpoint's shape changes, read the
+Elixir, don't guess.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Everything goes through `src/lib/api/client.ts`.** One axios instance
+attaches the bearer token, the `X-Organization-Id`/`X-Business-Id`/`X-Branch-Id`
+tenant headers, and an `Idempotency-Key` on every write. It maps the backend's
+`{"error": {...}}` envelope into a typed `ApiError`, whose `fieldErrors` feed
+straight into Formik via `applyApiFieldErrors`.
+
+**Lists are cursor-paginated, not paged.** The backend returns
+`{"data": [...], "meta": {"has_more", "next_cursor"}}` — there is no total and
+no page N. `DataTable` is built around "load more", and client-side search
+only filters rows already fetched; anything needing full-dataset search pushes
+filters to the backend as query params.
+
+**Permission and vertical gating comes from `/me`.** `scope.permissions` (with
+the owner bypass mirrored from `Kaarobar.Scope.can?/2`) drives
+`src/lib/permissions.ts`; `scope.business.modules`, resolved server-side by
+`Kaarobar.Verticals`, drives which nav items a business type even sees. There
+is no hardcoded frontend copy of either matrix.
+
+**Auth boundaries, in order.** `src/proxy.ts` does a coarse cookie-presence
+redirect (UX only — the token is opaque, nothing is decoded). `(app)/layout.tsx`
+does the real work: `GET /me` proves the token, hydrates the session store, and
+settles on a business to act within. The backend validates every request
+regardless; the frontend never decides authorization on its own.
+
+**Base UI, not Radix.** shadcn's current registry builds on `@base-ui/react`.
+Two differences bite when porting older snippets: composition uses a `render`
+prop, not `asChild`, and a `DropdownMenuLabel` must sit inside a
+`DropdownMenuGroup` or it throws at runtime.
+
+## Where this is going
+
+Built so far — Phase 0 of
+[the plan](../../docs): design tokens, the component library foundation, the
+API client, session bootstrap with business auto-selection, the app shell, and
+the full auth surface (register, login, TOTP challenge, password reset), all
+covered end-to-end by `e2e/`.
+
+Next: Settings/RBAC (organization, businesses, branches, staff, invitations,
+roles), then Catalog, then inventory/purchasing, POS, CRM, the vertical
+modules, payments/billing, and reporting.
