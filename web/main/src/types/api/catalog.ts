@@ -64,6 +64,15 @@ export type VariantOptionValue = {
   hex_color?: string | null;
 };
 
+/** The trimmed product nested inside a variant (`product_summary/1`). */
+export type ProductSummary = {
+  id: string;
+  name: string;
+  kind: ProductKind;
+  image_url: string | null;
+  tracks_stock: boolean;
+};
+
 export type ProductVariant = {
   id: string;
   product_id: string;
@@ -80,6 +89,8 @@ export type ProductVariant = {
   position: number;
   is_active: boolean;
   option_values: VariantOptionValue[];
+  /** Present only where the backend preloaded it — stock rows, ledger lines. */
+  product?: ProductSummary | null;
 };
 
 export type Product = {

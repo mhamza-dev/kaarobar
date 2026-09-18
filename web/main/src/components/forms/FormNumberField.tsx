@@ -17,6 +17,7 @@ type FormNumberFieldProps = {
   step?: number;
   /** Rendered inside the field, e.g. a currency code or a unit. */
   suffix?: string;
+  autoFocus?: boolean;
   disabled?: boolean;
   className?: string;
 };
@@ -39,6 +40,7 @@ export function FormNumberField({
   max,
   step,
   suffix,
+  autoFocus,
   disabled,
   className,
 }: FormNumberFieldProps) {
@@ -62,6 +64,7 @@ export function FormNumberField({
           min={min}
           max={max}
           step={step}
+          autoFocus={autoFocus}
           disabled={disabled}
           aria-invalid={showError}
           aria-describedby={showError ? errorId : hint ? hintId : undefined}

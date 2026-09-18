@@ -80,3 +80,59 @@ describe("getVisibleNavGroups", () => {
     expect(hrefsFor(null)).toEqual(["/dashboard"]);
   });
 });
+
+/**
+ * Vertical gating. `business.modules` is resolved server-side from the
+ * business type, so this is the frontend half of the rule the plan insists
+ * on: a retail business must never see a screen belonging to another
+ * vertical, however its permissions are set.
+ */
+describe("module gating", () => {
+  function scopeWithModules(modules: string[], permissions: string[] = []): Scope {
+    return scopeWith({
+      permissions,
+      is_owner: true,
+      business: { modules } as unknown as Scope["business"],
+    });
+  }
+
+  it("hides purchasing from a business whose vertical does not include it", () => {
+    const hrefs = hrefsFor(scopeWithModules(["pos", "catalog", "inventory"]));
+
+    expect(hrefs).not.toContain("/purchase-orders");
+    expect(hrefs).not.toContain("/suppliers");
+    expect(hrefs).not.toContain("/supplier-bills");
+  });
+
+  it("shows purchasing once the vertical includes the module", () => {
+    const hrefs = hrefsFor(scopeWithModules(["purchasing", "suppliers"]));
+
+    expect(hrefs).toContain("/purchase-orders");
+    expect(hrefs).toContain("/suppliers");
+  });
+
+  it("hides batches from a vertical that does not track them", () => {
+    expect(hrefsFor(scopeWithModules(["purchasing"]))).not.toContain("/batches");
+    expect(hrefsFor(scopeWithModules(["batches"]))).toContain("/batches");
+  });
+
+  it("keeps stock and transfers, which every vertical has", () => {
+    const hrefs = hrefsFor(scopeWithModules([]));
+
+    expect(hrefs).toContain("/stock");
+    expect(hrefs).toContain("/stock-transfers");
+  });
+
+  it("still requires the permission, even when the module is active", () => {
+    const hrefs = hrefsFor(
+      scopeWith({
+        is_owner: false,
+        permissions: ["inventory:view"],
+        business: { modules: ["purchasing", "suppliers"] } as unknown as Scope["business"],
+      }),
+    );
+
+    expect(hrefs).toContain("/stock");
+    expect(hrefs).not.toContain("/suppliers");
+  });
+});
