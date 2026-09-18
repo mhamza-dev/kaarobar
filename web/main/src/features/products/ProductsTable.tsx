@@ -92,7 +92,7 @@ export function ProductsTable() {
     <>
       {canCreate && (
         <div className="mb-3 flex justify-end">
-          <Button render={<Link href="/products/new" />}>
+          <Button nativeButton={false} render={<Link href="/products/new" />}>
             <Plus className="size-4" />
             New product
           </Button>

@@ -14,7 +14,11 @@ export default function StaffPage() {
         title="Staff"
         description="Everyone who works here, and what each of them can do."
         actions={
-          <Button variant="outline" render={<Link href="/settings/staff/invitations" />}>
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={<Link href="/settings/staff/invitations" />}
+          >
             Invitations
           </Button>
         }

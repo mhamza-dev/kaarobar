@@ -15,7 +15,7 @@ export default function InvitationsPage() {
         title="Invitations"
         description="People invited to join, and whether they've accepted yet."
         actions={
-          <Button variant="outline" render={<Link href="/settings/staff" />}>
+          <Button variant="outline" nativeButton={false} render={<Link href="/settings/staff" />}>
             <ArrowLeft className="size-4" />
             Staff
           </Button>

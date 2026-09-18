@@ -23,7 +23,11 @@ export default function BusinessDetailPage({
         title={business?.name ?? "Business"}
         description={business?.business_type_label}
         actions={
-          <Button variant="outline" render={<Link href="/settings/businesses" />}>
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={<Link href="/settings/businesses" />}
+          >
             <ArrowLeft className="size-4" />
             All businesses
           </Button>

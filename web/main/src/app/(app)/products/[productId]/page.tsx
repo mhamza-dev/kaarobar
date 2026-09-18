@@ -23,7 +23,7 @@ export default function ProductDetailPage({ params }: PageProps<"/products/[prod
         title={product?.name ?? "Product"}
         description={product ? productKindLabel(product.kind) : undefined}
         actions={
-          <Button variant="outline" render={<Link href="/products" />}>
+          <Button variant="outline" nativeButton={false} render={<Link href="/products" />}>
             <ArrowLeft className="size-4" />
             All products
           </Button>
