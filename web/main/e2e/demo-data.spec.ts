@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { signInAsOwner } from "./support/session";
+
 /**
  * The Phase 1 and Phase 2 gates, exercised against the demo seed
  * (`SEED_DEMO=true mix run priv/repo/seeds.exs`) rather than data the test
@@ -10,25 +12,8 @@ import { expect, test } from "@playwright/test";
  * they'd have to go and diagnose.
  */
 
-const OWNER_EMAIL = process.env.SEED_DEMO_EMAIL ?? "owner@kaarobar.test";
-const OWNER_PASSWORD = process.env.SEED_DEMO_PASSWORD ?? "kaarobar-demo-2026";
-
-async function signInAsDemoOwner(page: import("@playwright/test").Page) {
-  await page.goto("/login");
-  await page.getByLabel("Email").fill(OWNER_EMAIL);
-  await page.getByLabel("Password", { exact: true }).fill(OWNER_PASSWORD);
-  await page.getByRole("button", { name: "Sign in" }).click();
-
-  const landed = await page
-    .waitForURL(/\/dashboard/, { timeout: 8000 })
-    .then(() => true)
-    .catch(() => false);
-
-  test.skip(!landed, "Demo seed not present — run SEED_DEMO=true mix run priv/repo/seeds.exs");
-}
-
 test("the seeded catalog paginates by cursor", async ({ page }) => {
-  await signInAsDemoOwner(page);
+  await signInAsOwner(page);
   await page.goto("/products");
 
   // Row order is the backend's business, so this asserts on counts rather
@@ -47,7 +32,7 @@ test("the seeded catalog paginates by cursor", async ({ page }) => {
 });
 
 test("searching products queries the backend, not just the loaded rows", async ({ page }) => {
-  await signInAsDemoOwner(page);
+  await signInAsOwner(page);
   await page.goto("/products");
   await expect.poll(() => page.getByRole("row").count()).toBeGreaterThan(1);
 
@@ -59,7 +44,7 @@ test("searching products queries the backend, not just the loaded rows", async (
 });
 
 test("the seeded staff and invitations render", async ({ page }) => {
-  await signInAsDemoOwner(page);
+  await signInAsOwner(page);
 
   await page.goto("/settings/staff");
   await expect(page.getByText("Manager").first()).toBeVisible();
@@ -70,7 +55,7 @@ test("the seeded staff and invitations render", async ({ page }) => {
 });
 
 test("the seeded category tree renders with its nesting", async ({ page }) => {
-  await signInAsDemoOwner(page);
+  await signInAsOwner(page);
   await page.goto("/products/categories");
 
   await expect(page.getByText("Pantry").first()).toBeVisible();

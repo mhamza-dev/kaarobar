@@ -1,4 +1,6 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+
+import { signInAsOwner } from "./support/session";
 
 /**
  * Phase 3's gate, against the demo seed: stock, the transfer lifecycle, the
@@ -7,25 +9,8 @@ import { expect, test, type Page } from "@playwright/test";
  * Skips itself when the seed is absent, like the other demo-data specs.
  */
 
-const OWNER_EMAIL = process.env.SEED_DEMO_EMAIL ?? "owner@kaarobar.test";
-const OWNER_PASSWORD = process.env.SEED_DEMO_PASSWORD ?? "kaarobar-demo-2026";
-
-async function signIn(page: Page) {
-  await page.goto("/login");
-  await page.getByLabel("Email").fill(OWNER_EMAIL);
-  await page.getByLabel("Password", { exact: true }).fill(OWNER_PASSWORD);
-  await page.getByRole("button", { name: "Sign in" }).click();
-
-  const landed = await page
-    .waitForURL(/\/dashboard/, { timeout: 8000 })
-    .then(() => true)
-    .catch(() => false);
-
-  test.skip(!landed, "Demo seed not present — run SEED_DEMO=true mix run priv/repo/seeds.exs");
-}
-
 test("stock levels load and paginate by cursor", async ({ page }) => {
-  await signIn(page);
+  await signInAsOwner(page);
   await page.goto("/stock");
 
   await expect.poll(() => page.getByRole("row").count()).toBeGreaterThan(1);
@@ -33,7 +18,7 @@ test("stock levels load and paginate by cursor", async ({ page }) => {
 });
 
 test("stock search queries the backend", async ({ page }) => {
-  await signIn(page);
+  await signInAsOwner(page);
   await page.goto("/stock");
   await expect.poll(() => page.getByRole("row").count()).toBeGreaterThan(1);
 
@@ -42,7 +27,7 @@ test("stock search queries the backend", async ({ page }) => {
 });
 
 test("a transfer shows its lifecycle actions for the status it is in", async ({ page }) => {
-  await signIn(page);
+  await signInAsOwner(page);
   await page.goto("/stock-transfers");
   await expect.poll(() => page.getByRole("row").count()).toBeGreaterThan(1);
 
@@ -55,7 +40,7 @@ test("a transfer shows its lifecycle actions for the status it is in", async ({ 
 });
 
 test("the count sheet shows expected quantities and its variance", async ({ page }) => {
-  await signIn(page);
+  await signInAsOwner(page);
   await page.goto("/stock-counts");
   await expect.poll(() => page.getByRole("row").count()).toBeGreaterThan(1);
 
@@ -67,7 +52,7 @@ test("the count sheet shows expected quantities and its variance", async ({ page
 });
 
 test("suppliers and purchase orders render the seeded data", async ({ page }) => {
-  await signIn(page);
+  await signInAsOwner(page);
 
   await page.goto("/suppliers");
   await expect(page.getByText("Al-Madina Wholesale").first()).toBeVisible();
@@ -77,7 +62,7 @@ test("suppliers and purchase orders render the seeded data", async ({ page }) =>
 });
 
 test("a received purchase order offers no approve action", async ({ page }) => {
-  await signIn(page);
+  await signInAsOwner(page);
   await page.goto("/purchase-orders");
   await expect.poll(() => page.getByRole("row").count()).toBeGreaterThan(1);
 
@@ -88,7 +73,7 @@ test("a received purchase order offers no approve action", async ({ page }) => {
 });
 
 test("the inventory and purchasing nav is reachable", async ({ page }) => {
-  await signIn(page);
+  await signInAsOwner(page);
   await page.goto("/dashboard");
 
   // exact: true — "Stock" would otherwise also match "Stock counts".

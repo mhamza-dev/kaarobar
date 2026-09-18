@@ -7,6 +7,9 @@ import {
   Layers,
   LayoutDashboard,
   Package,
+  Receipt as ReceiptIcon,
+  ScanLine,
+  Wallet,
   PackageCheck,
   Receipt,
   Settings,
@@ -53,6 +56,24 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "",
     items: [{ label: "Dashboard", href: "/dashboard", icon: LayoutDashboard }],
+  },
+  {
+    label: "Sell",
+    items: [
+      { label: "Till", href: "/pos", icon: ScanLine, anyPermission: ["sales:checkout"] },
+      {
+        label: "Sales",
+        href: "/sales",
+        icon: ReceiptIcon,
+        anyPermission: ["sale:view", "sale:view_all"],
+      },
+      {
+        label: "Shifts",
+        href: "/shifts",
+        icon: Wallet,
+        anyPermission: ["shift:view", "shift:view_all", "register:view"],
+      },
+    ],
   },
   {
     label: "Catalog",
