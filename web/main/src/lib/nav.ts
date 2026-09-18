@@ -1,4 +1,13 @@
-import { LayoutDashboard, Package, Settings, Tags, Users } from "lucide-react";
+import {
+  Building2,
+  LayoutDashboard,
+  Package,
+  Settings,
+  ShieldCheck,
+  Store,
+  Tags,
+  Users,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { canAny } from "@/lib/permissions";
@@ -58,10 +67,34 @@ const NAV_GROUPS: NavGroup[] = [
         anyPermission: ["staff:view", "role:view"],
       },
       {
+        label: "Invitations",
+        href: "/settings/staff/invitations",
+        icon: Users,
+        anyPermission: ["staff:view", "staff:invite"],
+      },
+      {
+        label: "Roles",
+        href: "/settings/roles",
+        icon: ShieldCheck,
+        anyPermission: ["role:view"],
+      },
+      {
+        label: "Businesses",
+        href: "/settings/businesses",
+        icon: Store,
+        anyPermission: ["business:view"],
+      },
+      {
+        label: "Branches",
+        href: "/settings/branches",
+        icon: Building2,
+        anyPermission: ["branch:view"],
+      },
+      {
         label: "Organization",
         href: "/settings/organization",
         icon: Settings,
-        anyPermission: ["organization:view", "business:view", "branch:view"],
+        anyPermission: ["organization:view"],
       },
     ],
   },
