@@ -10,7 +10,10 @@
 #     idempotent, safe in production.
 #
 #   * **Demo data** — a worked example organization with one business per
-#     vertical. Only when SEED_DEMO=true, and refused outside dev and test.
+#     vertical, its catalog, staff, customers and a completed sale. On by
+#     default in dev, so `mix setup` leaves you with something to look at
+#     rather than six empty screens. Opt out with SEED_DEMO=false; opt in
+#     elsewhere with SEED_DEMO=true. Refused outside dev and test either way.
 
 require Logger
 
@@ -29,8 +32,19 @@ Logger.info(
 # outage — but a pricing page with nothing on it is.
 Code.eval_file(Path.join(__DIR__, "seeds/plans.exs"))
 
-if System.get_env("SEED_DEMO") in ~w(true 1) do
-  case Application.get_env(:backend, :env) do
+env = Application.get_env(:backend, :env)
+
+# Dev opts out, everywhere else opts in. A developer running `mix setup`
+# wants a populated app; a test run wants to build its own fixtures, and
+# anything beyond those two is refused below regardless of what is asked for.
+seed_demo? =
+  case System.get_env("SEED_DEMO") do
+    nil -> env == :dev
+    value -> value in ~w(true 1)
+  end
+
+if seed_demo? do
+  case env do
     env when env in [:dev, :test] ->
       Code.eval_file(Path.join(__DIR__, "seeds/demo.exs"))
 
