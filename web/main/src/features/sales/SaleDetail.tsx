@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
+import { DocumentPreview } from "@/components/shared/DocumentPreview";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import {
   WorkflowActions,
@@ -15,6 +16,7 @@ import { useSale, useVoidSale } from "@/hooks/queries/useSales";
 import { usePermission } from "@/hooks/usePermission";
 import { toast } from "@/hooks/useToast";
 import { formatDateTime, formatMoney, formatQuantity } from "@/lib/format";
+import { getReceiptHtml } from "@/services/reports";
 import type { SaleItem } from "@/types/api/sales";
 
 /**
@@ -30,6 +32,7 @@ export function SaleDetail({ saleId }: { saleId: string }) {
   const { data: sale, isLoading, isError } = useSale(saleId);
   const voidSale = useVoidSale();
   const [reason, setReason] = useState("");
+  const [showingReceipt, setShowingReceipt] = useState(false);
 
   if (isLoading) {
     return (
@@ -46,6 +49,13 @@ export function SaleDetail({ saleId }: { saleId: string }) {
   }
 
   const actions: WorkflowAction[] = [
+    {
+      key: "receipt",
+      label: "Receipt",
+      available: true,
+      permitted: can("sale:reprint"),
+      onAction: () => setShowingReceipt(true),
+    },
     {
       key: "void",
       label: "Void sale",
@@ -160,6 +170,17 @@ export function SaleDetail({ saleId }: { saleId: string }) {
           ))}
         </div>
       )}
+
+      <DocumentPreview
+        open={showingReceipt}
+        onOpenChange={setShowingReceipt}
+        title={`Receipt ${sale.number}`}
+        description="A reprint, exactly as the backend renders it."
+        queryKey={["receipt", sale.id]}
+        fetchHtml={(paper) => getReceiptHtml(sale.id, { paper })}
+        papers={["80mm", "76mm", "58mm", "A4"]}
+        defaultPaper="80mm"
+      />
     </div>
   );
 }

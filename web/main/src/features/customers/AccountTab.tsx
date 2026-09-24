@@ -1,8 +1,12 @@
 "use client";
 
+import { FileText } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
+import { DocumentPreview } from "@/components/shared/DocumentPreview";
+import { Button } from "@/components/ui/button";
 import {
   useCustomerLedger,
   useCustomerPayments,
@@ -10,6 +14,7 @@ import {
   useStoreCredit,
 } from "@/hooks/queries/useCustomers";
 import { formatDate, formatDateTime, formatMoney, humanize } from "@/lib/format";
+import { getStatementHtml } from "@/services/reports";
 import type {
   CreditInvoice,
   CustomerLedgerEntry,
@@ -29,6 +34,7 @@ export function AccountTab({ customerId, currency }: { customerId: string; curre
   const ledger = useCustomerLedger(customerId);
   const payments = useCustomerPayments(customerId);
   const storeCredit = useStoreCredit(customerId);
+  const [showingStatement, setShowingStatement] = useState(false);
 
   const invoiceColumns: DataTableColumn<CreditInvoice>[] = [
     {
@@ -114,6 +120,23 @@ export function AccountTab({ customerId, currency }: { customerId: string; curre
 
   return (
     <div className="flex flex-col gap-6">
+      <div className="flex justify-end">
+        <Button variant="outline" onClick={() => setShowingStatement(true)}>
+          <FileText className="size-4" />
+          Statement
+        </Button>
+      </div>
+      <DocumentPreview
+        open={showingStatement}
+        onOpenChange={setShowingStatement}
+        title="Account statement"
+        description="Printable, as the customer would receive it."
+        queryKey={["statement", customerId]}
+        fetchHtml={(paper) => getStatementHtml(customerId, { paper })}
+        papers={["A4", "Letter"]}
+        defaultPaper="A4"
+      />
+
       <Section title="Open invoices">
         <DataTable
           columns={invoiceColumns}

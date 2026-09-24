@@ -1,5 +1,6 @@
 import {
   ArrowLeftRight,
+  BarChart3,
   BellRing,
   Boxes,
   CalendarDays,
@@ -70,7 +71,15 @@ export type NavGroup = {
 const NAV_GROUPS: NavGroup[] = [
   {
     label: "",
-    items: [{ label: "Dashboard", href: "/dashboard", icon: LayoutDashboard }],
+    items: [
+      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      {
+        label: "Reports",
+        href: "/reports",
+        icon: BarChart3,
+        anyPermission: ["report:sales"],
+      },
+    ],
   },
   {
     label: "Sell",
