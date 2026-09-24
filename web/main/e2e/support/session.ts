@@ -70,8 +70,19 @@ export async function signInAsOwner(page: Page): Promise<void> {
  */
 export async function switchBusiness(page: Page, name: string): Promise<void> {
   await page.goto("/dashboard");
-  const trigger = page.locator("aside").getByRole("button").filter({ hasText: /./ }).first();
-  await trigger.click();
+  // Phone widths keep the switcher in the menu drawer. Decided once, up
+  // front: with the drawer open the menu button is behind the modal.
+  const menu = page.getByRole("button", { name: "Open menu" });
+  // Wait for the shell (it renders once /me resolves), then check the width.
+  await page
+    .getByRole("button", { name: /Open menu|Collapse sidebar|Expand sidebar/ })
+    .first()
+    .waitFor();
+  const mobile = await menu.isVisible();
+  if (mobile) await menu.click();
+  const container = mobile ? page.getByRole("dialog", { name: "Menu" }) : page.locator("aside");
+  await container.getByRole("button").filter({ hasText: /./ }).first().click();
   await page.getByRole("menuitem", { name }).click();
-  await expect(page.locator("aside").getByText(name).first()).toBeVisible({ timeout: 10000 });
+  // The page header's eyebrow names the current business at every width.
+  await expect(page.locator("main").getByText(name).first()).toBeVisible({ timeout: 10000 });
 }

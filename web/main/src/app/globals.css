@@ -91,9 +91,11 @@
   --accent-foreground: var(--brand-primary-active);
   --destructive: oklch(0.577 0.245 27.325);
   --danger-soft: oklch(0.936 0.032 17.72);
-  --success: oklch(0.596 0.145 163.2);
+  /* Text-safe: >= 4.5:1 on white and on --success-soft (checked in Phase 9). */
+  --success: oklch(0.48 0.145 163.2);
   --success-soft: oklch(0.936 0.06 162);
-  --warning: oklch(0.646 0.152 58.3);
+  /* Text-safe: >= 4.5:1 on white and on --warning-soft. */
+  --warning: oklch(0.5 0.152 58.3);
   --warning-soft: oklch(0.936 0.07 75);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);

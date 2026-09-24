@@ -95,6 +95,30 @@ export type DataTableProps<T> = {
 
 const DEFAULT_PAGE_SIZE_OPTIONS = [25, 50, 100];
 
+const ROW_INTERACTIVE_CLASSES =
+  "cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring";
+
+/**
+ * Makes a clickable row reachable without a mouse: focusable, and opened
+ * with Enter or Space like a button. Keys pressed on something inside the
+ * row (a checkbox, an Edit button, a link) are left to that control —
+ * only a key aimed at the row itself activates it.
+ */
+function rowActivation<T>(onRowClick: ((row: T) => void) | undefined, row: T) {
+  if (!onRowClick) return {};
+  return {
+    tabIndex: 0,
+    onClick: () => onRowClick(row),
+    onKeyDown: (event: React.KeyboardEvent<HTMLElement>) => {
+      if (event.target !== event.currentTarget) return;
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        onRowClick(row);
+      }
+    },
+  };
+}
+
 /**
  * The list primitive every domain screen composes — adapted from
  * `desktop/local`'s `Table<T>` (render-prop columns, `rowKey`, selection by
@@ -343,8 +367,8 @@ export function DataTable<T>({
                     <TableRow
                       key={key}
                       data-state={selected ? "selected" : undefined}
-                      onClick={onRowClick ? () => onRowClick(row) : undefined}
-                      className={onRowClick ? "cursor-pointer" : undefined}
+                      {...rowActivation(onRowClick, row)}
+                      className={onRowClick ? ROW_INTERACTIVE_CLASSES : undefined}
                     >
                       {selectable && (
                         <TableCell onClick={(event) => event.stopPropagation()}>
@@ -379,10 +403,10 @@ export function DataTable<T>({
                 return (
                   <div
                     key={key}
-                    onClick={onRowClick ? () => onRowClick(row) : undefined}
+                    {...rowActivation(onRowClick, row)}
                     className={cn(
                       "rounded-lg border border-border p-3",
-                      onRowClick && "cursor-pointer",
+                      onRowClick && ROW_INTERACTIVE_CLASSES,
                     )}
                   >
                     <div className="flex items-start justify-between gap-2">

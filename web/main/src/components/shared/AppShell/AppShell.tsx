@@ -1,6 +1,8 @@
 "use client";
 
+import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import { cn } from "@/lib/utils";
@@ -13,7 +15,13 @@ import { UserMenu } from "./UserMenu";
 export function AppShell({ children }: { children: React.ReactNode }) {
   const collapsed = useUiStore((state) => state.sidebarCollapsed);
   const toggleSidebar = useUiStore((state) => state.toggleSidebar);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const pathname = usePathname();
+  // The drawer remembers which page it was opened on and counts as open
+  // only while that page is current — so tapping a link in it closes it
+  // on arrival, without an effect chasing the route.
+  const [openedOn, setOpenedOn] = useState<string | null>(null);
+  const mobileOpen = openedOn === pathname;
+  const setMobileOpen = (open: boolean) => setOpenedOn(open ? pathname : null);
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -39,11 +47,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      {/* Mobile sidebar overlay */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-40 md:hidden">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
-          <aside className="relative flex h-full w-64 flex-col bg-sidebar">
+      {/* Mobile drawer — a real modal dialog: focus moves in and is trapped,
+          Escape and the backdrop close it, focus returns to the menu
+          button, and assistive tech hears "Menu, dialog". */}
+      <DialogPrimitive.Root open={mobileOpen} onOpenChange={setMobileOpen}>
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Backdrop className="fixed inset-0 z-40 bg-black/40 md:hidden" />
+          <DialogPrimitive.Popup className="fixed inset-y-0 left-0 z-50 flex w-64 max-w-[85vw] flex-col bg-sidebar outline-none md:hidden">
+            <DialogPrimitive.Title className="sr-only">Menu</DialogPrimitive.Title>
             <div className="flex items-center gap-2 border-b border-sidebar-border px-3 py-3">
               <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground">
                 K
@@ -57,9 +68,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="border-t border-sidebar-border p-3">
               <UserMenu collapsed={false} />
             </div>
-          </aside>
-        </div>
-      )}
+          </DialogPrimitive.Popup>
+        </DialogPrimitive.Portal>
+      </DialogPrimitive.Root>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-4">
@@ -68,6 +79,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             onClick={() => setMobileOpen(true)}
             className="rounded-md p-1.5 text-muted-foreground hover:bg-muted md:hidden"
             aria-label="Open menu"
+            aria-expanded={mobileOpen}
           >
             <Menu className="size-5" />
           </button>

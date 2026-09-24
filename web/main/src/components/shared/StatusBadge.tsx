@@ -88,7 +88,9 @@ const TONE_CLASSES: Record<StatusTone, string> = {
   success: "bg-success-soft text-success",
   warning: "bg-warning-soft text-warning",
   danger: "bg-danger-soft text-destructive",
-  info: "bg-brand-tint text-brand-primary",
+  // Foreground ink on the brand tint, not brand-coloured text: the brand
+  // is set per business at runtime, so its contrast can't be guaranteed.
+  info: "bg-brand-tint text-foreground",
 };
 
 export function StatusBadge({

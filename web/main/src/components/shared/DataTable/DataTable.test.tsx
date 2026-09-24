@@ -109,3 +109,44 @@ describe("DataTable", () => {
     expect(onLoadMore).toHaveBeenCalledOnce();
   });
 });
+
+describe("DataTable row activation", () => {
+  it("opens a clickable row from the keyboard", async () => {
+    const onRowClick = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <DataTable columns={columns} rows={rows} rowKey={(row) => row.id} onRowClick={onRowClick} />,
+    );
+
+    const row = screen.getByText("Flour").closest("tr")!;
+    row.focus();
+    await user.keyboard("{Enter}");
+
+    expect(onRowClick).toHaveBeenCalledWith(rows[0]);
+  });
+
+  it("leaves keys pressed inside the row to the control that has focus", async () => {
+    const onRowClick = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <DataTable
+        columns={columns}
+        rows={rows}
+        rowKey={(row) => row.id}
+        onRowClick={onRowClick}
+        selectable
+      />,
+    );
+
+    const [firstRowCheckbox] = screen.getAllByRole("checkbox", { name: "Select row" });
+    firstRowCheckbox.focus();
+    await user.keyboard(" ");
+
+    expect(onRowClick).not.toHaveBeenCalled();
+  });
+
+  it("does not make rows focusable when they do nothing", () => {
+    render(<DataTable columns={columns} rows={rows} rowKey={(row) => row.id} />);
+    expect(screen.getByText("Flour").closest("tr")).not.toHaveAttribute("tabindex");
+  });
+});

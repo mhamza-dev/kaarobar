@@ -45,7 +45,7 @@ export function UserMenu({ collapsed }: { collapsed: boolean }) {
         }
       >
         <Avatar size="sm">
-          <AvatarFallback>{initials(user.name)}</AvatarFallback>
+          <AvatarFallback className="text-foreground">{initials(user.name)}</AvatarFallback>
         </Avatar>
         {!collapsed && (
           <div className="min-w-0 flex-1">

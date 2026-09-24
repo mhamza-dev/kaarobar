@@ -14,6 +14,17 @@ test("add a payment gateway; its keys are stored but never shown", async ({ page
 
   await signInAsOwner(page);
   await page.goto("/settings/payments");
+
+  // One provider of each kind per business: clear out an earlier run's.
+  const earlier = page.getByRole("row").filter({ hasText: "JazzCash" });
+  // Let the list load before counting — an unloaded table has no rows.
+  await expect(page.getByText("Loading…")).toHaveCount(0);
+  while ((await earlier.count()) > 0) {
+    await earlier.first().getByRole("button", { name: "Remove" }).click();
+    await page.getByRole("alertdialog").getByRole("button", { name: "Remove provider" }).click();
+    await expect(page.getByText("Provider removed").first()).toBeVisible();
+  }
+
   await page.getByRole("button", { name: "Add provider" }).click();
 
   const dialog = page.getByRole("dialog");
@@ -37,20 +48,24 @@ test("fiscal reporting needs its registration before it can be switched on", asy
 
   await page.getByLabel("Authority").click();
   await page.getByRole("option", { name: /FBR/ }).click();
-  await page.getByRole("switch", { name: "Report every sale" }).click();
+
+  // Start from blank registration fields — a save persists them.
+  await page.getByLabel("NTN / taxpayer number").fill("");
+  await page.getByLabel("POS ID").fill("");
+  const reporting = page.getByRole("switch", { name: "Report every sale" });
+  if ((await reporting.getAttribute("aria-checked")) !== "true") await reporting.click();
   await page.getByRole("button", { name: "Save" }).click();
+  // Refused on the client — nothing reached the backend.
   await expect(page.getByText("Needed before reporting can start").first()).toBeVisible();
 
+  // Save the registration with reporting left OFF. Never switch it on in
+  // e2e: every later sale would then be sent to the FBR sandbox for real.
   await page.getByLabel("NTN / taxpayer number").fill("1234567-8");
   await page.getByLabel("POS ID").fill("POS-01");
+  await reporting.click();
+  await expect(reporting).toHaveAttribute("aria-checked", "false");
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("Fiscal settings saved")).toBeVisible();
-  await expect(page.getByText(/Reporting to FBR/)).toBeVisible();
-
-  // Leave the demo business as found: reporting on would send every later
-  // sale (other specs included) to the FBR sandbox.
-  await page.getByRole("switch", { name: "Report every sale" }).click();
-  await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("Not reporting to a tax authority")).toBeVisible();
 });
 

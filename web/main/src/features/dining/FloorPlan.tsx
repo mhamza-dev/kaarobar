@@ -164,7 +164,12 @@ function TableTile({
     >
       <div className="flex items-start justify-between gap-2">
         <span className="text-lg font-semibold">{table.name}</span>
-        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+        <span
+          className={cn(
+            "flex items-center gap-1 text-xs",
+            occupied ? "text-foreground/75" : "text-muted-foreground",
+          )}
+        >
           <Users className="size-3" />
           {occupied ? `${session?.covers ?? "?"}/${table.seats ?? "?"}` : (table.seats ?? "—")}
         </span>
@@ -172,7 +177,7 @@ function TableTile({
       {occupied ? (
         <div className="text-xs">
           <p className="font-medium">{billed ? "Bill printed" : (session?.label ?? "Seated")}</p>
-          <p className="text-muted-foreground">
+          <p className="text-foreground/75">
             {minutes_seated ?? 0} min
             {session?.order?.total && ` · ${formatMoney(session.order.total, currency)}`}
           </p>
