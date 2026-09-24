@@ -212,6 +212,24 @@ defmodule KaarobarWeb.AuthorizationTest do
       assert details["id"]
     end
 
+    test "an external identifier ending in _id is not mistaken for one of ours", %{
+      owner_user: owner_user,
+      business: business,
+      conn: conn
+    } do
+      # FBR issues POS ids like "POS-01"; the fiscal config must accept them.
+      conn =
+        conn
+        |> sign_in(owner_user, business)
+        |> put("/api/v1/fiscal/config", %{
+          "adapter" => "fbr",
+          "taxpayer_number" => "1234567-8",
+          "pos_id" => "POS-01"
+        })
+
+      assert %{"pos_id" => "POS-01"} = json_data(conn, 200)
+    end
+
     test "a bogus business header yields no tenant", %{owner_user: owner_user, conn: conn} do
       conn =
         conn

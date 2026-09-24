@@ -9,6 +9,11 @@ defmodule KaarobarWeb.Plugs.ValidateIdParams do
 
   Checks every parameter named `id`, or ending in `_id` or `_ids` — path,
   query and body alike, since Phoenix merges them all into `conn.params`.
+
+  Except the few that end in `_id` but are someone else's identifier, not
+  one of our UUIDs — a tax authority's POS registration (`pos_id`) is
+  whatever the authority issued. Treating it as a UUID made it impossible
+  to save a real fiscal configuration at all.
   """
 
   @behaviour Plug
@@ -32,6 +37,11 @@ defmodule KaarobarWeb.Plugs.ValidateIdParams do
   defp invalid?({key, value}) do
     id_param?(key) and not valid_value?(value)
   end
+
+  # Top-level params ending in `_id` that hold another system's identifier.
+  @external_identifiers ~w(pos_id)
+
+  defp id_param?(key) when key in @external_identifiers, do: false
 
   defp id_param?(key) when is_binary(key) do
     key == "id" or String.ends_with?(key, "_id") or String.ends_with?(key, "_ids")
