@@ -101,16 +101,58 @@ export const useSessionStore = create<SessionState>((set) => ({
   },
 }));
 
-/** Header values the axios request interceptor attaches to every call. */
+/**
+ * Header values the axios request interceptor attaches to every call.
+ *
+ * While a switch is pending, the pending selection is taken *as a whole*:
+ * the outgoing tenant's business and branch must not leak into the first
+ * request for the new one. Switching organization with no business named
+ * sends no business; switching business sends no branch — the backend then
+ * resolves the defaults for the new tenant rather than rejecting a branch
+ * that belongs to the old one.
+ */
 export function getTenantHeaders(): Record<string, string> {
   const { scope, pendingSelection } = useSessionStore.getState();
   const organizationId = pendingSelection?.organizationId ?? scope?.organization?.id;
-  const businessId = pendingSelection?.businessId ?? scope?.business?.id;
-  const branchId = pendingSelection?.branchId ?? scope?.branch?.id;
+  const businessId = pendingSelection
+    ? (pendingSelection.businessId ??
+      (pendingSelection.organizationId ? undefined : scope?.business?.id))
+    : scope?.business?.id;
+  const branchId = pendingSelection ? pendingSelection.branchId : scope?.branch?.id;
 
   const headers: Record<string, string> = {};
   if (organizationId) headers["X-Organization-Id"] = organizationId;
   if (businessId) headers["X-Business-Id"] = businessId;
   if (branchId) headers["X-Branch-Id"] = branchId;
   return headers;
+}
+
+const LAST_BUSINESS_KEY = "kb_last_business";
+
+/**
+ * The business this browser last worked in, per organization — so a
+ * reload lands back where the user was rather than on the organization's
+ * first business. Per-browser convenience only; never a source of truth
+ * (the backend still decides whether the id is valid for this user).
+ */
+export function rememberBusiness(organizationId: string, businessId: string): void {
+  try {
+    const stored = JSON.parse(localStorage.getItem(LAST_BUSINESS_KEY) ?? "{}");
+    localStorage.setItem(
+      LAST_BUSINESS_KEY,
+      JSON.stringify({ ...stored, [organizationId]: businessId }),
+    );
+  } catch {
+    // Storage unavailable (private mode, blocked) — landing on the first
+    // business is an acceptable fallback.
+  }
+}
+
+export function rememberedBusiness(organizationId: string): string | null {
+  try {
+    const stored = JSON.parse(localStorage.getItem(LAST_BUSINESS_KEY) ?? "{}");
+    return typeof stored[organizationId] === "string" ? stored[organizationId] : null;
+  } catch {
+    return null;
+  }
 }

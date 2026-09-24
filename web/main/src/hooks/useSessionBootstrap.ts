@@ -5,7 +5,7 @@ import { useEffect } from "react";
 
 import { useMe } from "@/hooks/queries/useMe";
 import { listBusinesses } from "@/services/businesses";
-import { useSessionStore } from "@/stores/sessionStore";
+import { rememberedBusiness, useSessionStore } from "@/stores/sessionStore";
 
 /**
  * Brings a fresh session up to a usable tenant context.
@@ -19,9 +19,9 @@ import { useSessionStore } from "@/stores/sessionStore";
  * `scope.business.modules`.
  *
  * So: once an organization is known and no business is selected, fetch the
- * organization's businesses and adopt the first one, then let `/me` resolve
- * again with the header attached. A user with several businesses can switch
- * afterwards; this only decides where they land.
+ * organization's businesses and adopt one — the one this browser last used
+ * (`rememberBusiness`, written by the switcher) if it's still listed, else
+ * the first — then let `/me` resolve again with the header attached.
  */
 export function useSessionBootstrap() {
   const token = useSessionStore((state) => state.token);
@@ -56,10 +56,12 @@ export function useSessionBootstrap() {
 
     markAdoptionAttempted();
 
-    const first = businesses.data?.[0];
-    if (!first) return;
+    const remembered = rememberedBusiness(scope!.organization!.id);
+    const target =
+      businesses.data?.find((business) => business.id === remembered) ?? businesses.data?.[0];
+    if (!target) return;
 
-    selectTenant({ businessId: first.id });
+    selectTenant({ businessId: target.id });
     void me.refetch();
     // `me` is deliberately not a dependency: refetching is the effect, and
     // the query object's identity changes on every render.

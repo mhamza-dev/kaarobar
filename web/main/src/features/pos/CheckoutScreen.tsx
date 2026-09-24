@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -13,12 +14,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useOrder } from "@/hooks/queries/useDining";
 import { useCurrentShift, useRegisters } from "@/hooks/queries/useRegisters";
 import { useCreateSale, useSaleQuote } from "@/hooks/queries/useSales";
 import { useDebounce } from "@/hooks/useDebounce";
 import { usePermission } from "@/hooks/usePermission";
 import { toast } from "@/hooks/useToast";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, formatQuantity } from "@/lib/format";
 import { addLine, itemCount, removeLine, setQuantity, toCheckoutLines } from "@/stores/cart";
 import type { CartLine } from "@/stores/cart";
 import { useSessionStore } from "@/stores/sessionStore";
@@ -41,8 +43,13 @@ import { ReceiptDialog } from "./ReceiptDialog";
  * `POST /sales/quote`, re-run (debounced) whenever the basket changes. A
  * till that computed its own totals could show any total, and the receipt
  * would then disagree with the screen.
+ *
+ * With `orderId` the till settles an open ticket (a table's bill) instead of
+ * a scanned basket: the lines and totals are the order's own, priced by the
+ * backend when they were added, and the sale is posted with `order_id` and
+ * no lines — the backend bills whatever on the order is still unpaid.
  */
-export function CheckoutScreen() {
+export function CheckoutScreen({ orderId }: { orderId?: string } = {}) {
   const { can } = usePermission();
   const currency = useSessionStore((state) => state.scope?.business?.currency) ?? "PKR";
 
@@ -61,9 +68,15 @@ export function CheckoutScreen() {
   const [completed, setCompleted] = useState<Sale | null>(null);
   const [customer, setCustomer] = useState<Customer | null>(null);
 
+  const settlingOrder = !!orderId;
+  const { data: order, isLoading: loadingOrder } = useOrder(orderId);
+  const unbilledItems = (order?.items ?? []).filter((item) => Number(item.unbilled_quantity) > 0);
+
   // Debounced so holding the +/- buttons doesn't fire a quote per press.
   const checkoutLines = useMemo(() => toCheckoutLines(lines), [lines]);
-  const debouncedLines = useDebounce(checkoutLines, 250);
+  // Settling an order never quotes a basket: an empty list keeps the quote
+  // query disabled, and the order's own totals are shown instead.
+  const debouncedLines = useDebounce(settlingOrder ? [] : checkoutLines, 250);
   const {
     data: quote,
     isFetching: quoting,
@@ -76,7 +89,7 @@ export function CheckoutScreen() {
   });
 
   const createSale = useCreateSale();
-  const total = quote?.totals.total ?? "0.00";
+  const total = (settlingOrder ? order?.total : quote?.totals.total) ?? "0.00";
 
   const reset = () => {
     setLines([]);
@@ -93,7 +106,7 @@ export function CheckoutScreen() {
       }),
     );
 
-  if (loadingRegisters || loadingShift) {
+  if (loadingRegisters || loadingShift || (settlingOrder && loadingOrder)) {
     return (
       <div className="flex flex-col gap-3">
         {Array.from({ length: 4 }).map((_, index) => (
@@ -148,31 +161,69 @@ export function CheckoutScreen() {
             />
           )}
 
-          <ProductSearch onPick={handlePick} />
-
-          <div className="rounded-xl border border-border bg-card p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <p className="text-sm font-medium">
-                Basket{" "}
-                {lines.length > 0 && <Badge variant="secondary">{itemCount(lines)} items</Badge>}
-              </p>
-              {lines.length > 0 && (
-                <Button variant="ghost" size="sm" onClick={reset}>
-                  Clear
+          {settlingOrder ? (
+            <div className="rounded-xl border border-border bg-card p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-sm font-medium">
+                  {order?.label ?? "Order"} {order?.number && `· ${order.number}`}
+                </p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  nativeButton={false}
+                  render={<Link href="/pos" />}
+                >
+                  New sale instead
                 </Button>
+              </div>
+              {unbilledItems.length === 0 ? (
+                <p className="py-6 text-center text-sm text-muted-foreground">
+                  Everything on this order has been paid for.
+                </p>
+              ) : (
+                <ul className="divide-y divide-border text-sm">
+                  {unbilledItems.map((item) => (
+                    <li key={item.id} className="flex justify-between gap-3 py-2">
+                      <span>
+                        {formatQuantity(item.unbilled_quantity)} × {item.name}
+                      </span>
+                      <span className="tabular-nums">{formatMoney(item.line_total, currency)}</span>
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
+          ) : (
+            <>
+              <ProductSearch onPick={handlePick} />
 
-            <CartPanel
-              lines={lines}
-              quote={quote}
-              currency={currency}
-              onSetQuantity={(variantId, quantity) =>
-                setLines((current) => setQuantity(current, variantId, quantity))
-              }
-              onRemove={(variantId) => setLines((current) => removeLine(current, variantId))}
-            />
-          </div>
+              <div className="rounded-xl border border-border bg-card p-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-sm font-medium">
+                    Basket{" "}
+                    {lines.length > 0 && (
+                      <Badge variant="secondary">{itemCount(lines)} items</Badge>
+                    )}
+                  </p>
+                  {lines.length > 0 && (
+                    <Button variant="ghost" size="sm" onClick={reset}>
+                      Clear
+                    </Button>
+                  )}
+                </div>
+
+                <CartPanel
+                  lines={lines}
+                  quote={quote}
+                  currency={currency}
+                  onSetQuantity={(variantId, quantity) =>
+                    setLines((current) => setQuantity(current, variantId, quantity))
+                  }
+                  onRemove={(variantId) => setLines((current) => removeLine(current, variantId))}
+                />
+              </div>
+            </>
+          )}
         </div>
 
         <div className="flex flex-col gap-4">
@@ -180,7 +231,15 @@ export function CheckoutScreen() {
             <CustomerPicker value={customer} onChange={setCustomer} currency={currency} />
           )}
 
-          {quoteError ? (
+          {settlingOrder && order ? (
+            <div className="rounded-xl border border-border bg-card p-3 text-sm">
+              <Row label="Subtotal" value={formatMoney(order.subtotal, currency)} />
+              {order.discount_total && Number(order.discount_total) > 0 && (
+                <Row label="Discounts" value={`-${formatMoney(order.discount_total, currency)}`} />
+              )}
+              <Row label="Tax" value={formatMoney(order.tax_total, currency)} />
+            </div>
+          ) : quoteError ? (
             <p className="rounded-lg border border-destructive/40 bg-danger-soft p-3 text-sm text-destructive">
               Couldn&apos;t price this basket: {quoteError.message}
             </p>
@@ -217,7 +276,7 @@ export function CheckoutScreen() {
                   register_id: register!.id,
                   shift_id: shift.id,
                   customer_id: customer?.id,
-                  lines: checkoutLines,
+                  ...(settlingOrder ? { order_id: orderId, lines: [] } : { lines: checkoutLines }),
                   payments,
                 });
 

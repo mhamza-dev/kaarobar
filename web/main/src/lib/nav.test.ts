@@ -135,4 +135,46 @@ describe("module gating", () => {
     expect(hrefs).toContain("/stock");
     expect(hrefs).not.toContain("/suppliers");
   });
+
+  // Module lists copied from `Kaarobar.Verticals` for the seeded businesses.
+  const GROCERY = ["pos", "catalog", "inventory", "sales", "customers", "credit", "loyalty"];
+  const RESTAURANT = ["pos", "catalog", "inventory", "sales", "tables", "kitchen", "delivery"];
+  const SALON = ["pos", "catalog", "sales", "customers", "appointments", "queue", "loyalty"];
+  const LAUNDRY = ["pos", "catalog", "sales", "customers", "service_jobs", "queue"];
+
+  const VERTICAL_ROUTES = [
+    "/dining",
+    "/kitchen",
+    "/appointments",
+    "/queue",
+    "/service-jobs",
+    "/rentals",
+    "/quotes",
+  ];
+
+  it("shows a grocery none of the vertical screens, even to its owner", () => {
+    const hrefs = hrefsFor(scopeWithModules(GROCERY));
+
+    for (const route of VERTICAL_ROUTES) expect(hrefs).not.toContain(route);
+  });
+
+  it("gives each vertical exactly its own screens", () => {
+    const visible = (modules: string[]) =>
+      VERTICAL_ROUTES.filter((route) => hrefsFor(scopeWithModules(modules)).includes(route));
+
+    expect(visible(RESTAURANT)).toEqual(["/dining", "/kitchen"]);
+    expect(visible(SALON)).toEqual(["/appointments", "/queue"]);
+    expect(visible(LAUNDRY)).toEqual(["/queue", "/service-jobs"]);
+  });
+
+  it("still needs the permission inside the right vertical", () => {
+    const waiter = scopeWith({
+      permissions: ["table:view"],
+      business: { modules: RESTAURANT } as unknown as Scope["business"],
+    });
+    const hrefs = hrefsFor(waiter);
+
+    expect(hrefs).toContain("/dining");
+    expect(hrefs).not.toContain("/kitchen");
+  });
 });

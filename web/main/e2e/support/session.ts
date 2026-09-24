@@ -62,3 +62,16 @@ export async function signInAsOwner(page: Page): Promise<void> {
     );
   }
 }
+
+/**
+ * Switches the signed-in owner to another of the demo organization's
+ * businesses through the sidebar switcher, and waits for the shell to show
+ * it — module-gated nav depends on the switch having landed.
+ */
+export async function switchBusiness(page: Page, name: string): Promise<void> {
+  await page.goto("/dashboard");
+  const trigger = page.locator("aside").getByRole("button").filter({ hasText: /./ }).first();
+  await trigger.click();
+  await page.getByRole("menuitem", { name }).click();
+  await expect(page.locator("aside").getByText(name).first()).toBeVisible({ timeout: 10000 });
+}

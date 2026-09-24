@@ -100,8 +100,17 @@ export function useCreateSale() {
       }
       queryClient.invalidateQueries({ queryKey: ["current-shift"] });
       // A sale on account moves the customer's balance and any sale with a
-      // customer earns points, so their account screens are stale too.
-      for (const key of ["customers", "customer", "credit", "loyalty"]) {
+      // customer earns points; settling a table's order bills it and frees
+      // the table. Every one of those screens is stale after a checkout.
+      for (const key of [
+        "customers",
+        "customer",
+        "credit",
+        "loyalty",
+        "order",
+        "table-session",
+        "floor-plan",
+      ]) {
         queryClient.invalidateQueries({ queryKey: [key] });
       }
     },
