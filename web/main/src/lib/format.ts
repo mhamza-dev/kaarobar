@@ -84,3 +84,28 @@ export function formatRelative(value: string | null | undefined): string {
   const parsed = toDate(value);
   return parsed ? `${formatDistanceToNowStrict(parsed)} ago` : "—";
 }
+
+/** Turns a backend enum like `goods_received` into `Goods received`. */
+export function humanize(value: string): string {
+  const spaced = value.replace(/[_-]+/g, " ").trim();
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+/**
+ * Percentages travel as fractions (`0.05`) — a customer group's
+ * `discount_percent` and the loyalty programme's `max_redeem_percent` are
+ * both validated 0–1 by the backend. People think in percent, so forms edit
+ * `5` and these two convert at the boundary — string in, string out, so the
+ * decimal never becomes a float on its way to the backend.
+ */
+export function fractionToPercent(value: string | null): string {
+  if (value === null || value === "") return "";
+  const percent = Number(value) * 100;
+  return Number.isFinite(percent) ? String(Number(percent.toFixed(4))) : "";
+}
+
+export function percentToFraction(value: string | number): string | null {
+  if (value === "" || value === null) return null;
+  const fraction = Number(value) / 100;
+  return Number.isFinite(fraction) ? String(Number(fraction.toFixed(6))) : null;
+}

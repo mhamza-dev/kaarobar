@@ -6,7 +6,10 @@ import {
   formatMoney,
   formatQuantity,
   formatSigned,
+  fractionToPercent,
+  humanize,
   isNegative,
+  percentToFraction,
 } from "./format";
 
 describe("formatMoney", () => {
@@ -91,5 +94,26 @@ describe("date formatting", () => {
     expect(formatDate(null)).toBe("—");
     expect(formatDate("nonsense")).toBe("—");
     expect(formatDateTime(null)).toBe("—");
+  });
+});
+
+describe("humanize", () => {
+  it("turns a backend enum into a sentence-case label", () => {
+    expect(humanize("payment_chase")).toBe("Payment chase");
+    expect(humanize("credit-note")).toBe("Credit note");
+  });
+});
+
+describe("fractionToPercent / percentToFraction", () => {
+  it("converts the backend's fraction to the percent a person types", () => {
+    expect(fractionToPercent("0.05")).toBe("5");
+    expect(fractionToPercent("0.125")).toBe("12.5");
+    expect(fractionToPercent(null)).toBe("");
+  });
+
+  it("converts back without float noise", () => {
+    expect(percentToFraction("5")).toBe("0.05");
+    expect(percentToFraction(7)).toBe("0.07");
+    expect(percentToFraction("")).toBeNull();
   });
 });

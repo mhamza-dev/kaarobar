@@ -1,9 +1,12 @@
 import {
   ArrowLeftRight,
+  BellRing,
   Boxes,
   Building2,
   ClipboardList,
   FileText,
+  Gift,
+  HandCoins,
   Layers,
   LayoutDashboard,
   Package,
@@ -18,6 +21,8 @@ import {
   Tags,
   Truck,
   Undo2,
+  UserRound,
+  UsersRound,
   Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -72,6 +77,36 @@ const NAV_GROUPS: NavGroup[] = [
         href: "/shifts",
         icon: Wallet,
         anyPermission: ["shift:view", "shift:view_all", "register:view"],
+      },
+    ],
+  },
+  {
+    label: "Customers",
+    items: [
+      {
+        label: "Customers",
+        href: "/customers",
+        icon: UserRound,
+        anyPermission: ["customer:view"],
+      },
+      {
+        label: "Groups",
+        href: "/customers/groups",
+        icon: UsersRound,
+        anyPermission: ["customer_group:view"],
+      },
+      {
+        label: "Follow-ups",
+        href: "/follow-ups",
+        icon: BellRing,
+        anyPermission: ["follow_up:view"],
+      },
+      {
+        label: "Receivables",
+        href: "/receivables",
+        icon: HandCoins,
+        anyPermission: ["credit:view"],
+        requiresModule: "credit",
       },
     ],
   },
@@ -184,6 +219,13 @@ const NAV_GROUPS: NavGroup[] = [
         href: "/settings/branches",
         icon: Building2,
         anyPermission: ["branch:view"],
+      },
+      {
+        label: "Loyalty",
+        href: "/settings/loyalty",
+        icon: Gift,
+        anyPermission: ["loyalty:manage", "loyalty:view"],
+        requiresModule: "loyalty",
       },
       {
         label: "Organization",

@@ -22,9 +22,11 @@ import { formatMoney } from "@/lib/format";
 import { addLine, itemCount, removeLine, setQuantity, toCheckoutLines } from "@/stores/cart";
 import type { CartLine } from "@/stores/cart";
 import { useSessionStore } from "@/stores/sessionStore";
+import type { Customer } from "@/types/api/crm";
 import type { CheckoutPayment, Sale } from "@/types/api/sales";
 
 import { CartPanel } from "./CartPanel";
+import { CustomerPicker } from "./CustomerPicker";
 import { OpenShiftPrompt } from "./OpenShiftPrompt";
 import { PaymentPanel } from "./PaymentPanel";
 import { ProductSearch, type ScannedProduct } from "./ProductSearch";
@@ -57,6 +59,7 @@ export function CheckoutScreen() {
   const [lines, setLines] = useState<CartLine[]>([]);
   const [payments, setPayments] = useState<CheckoutPayment[]>([]);
   const [completed, setCompleted] = useState<Sale | null>(null);
+  const [customer, setCustomer] = useState<Customer | null>(null);
 
   // Debounced so holding the +/- buttons doesn't fire a quote per press.
   const checkoutLines = useMemo(() => toCheckoutLines(lines), [lines]);
@@ -65,7 +68,12 @@ export function CheckoutScreen() {
     data: quote,
     isFetching: quoting,
     error: quoteError,
-  } = useSaleQuote(debouncedLines, { branchId: register?.branch_id });
+  } = useSaleQuote(debouncedLines, {
+    branchId: register?.branch_id,
+    // Group prices and discounts depend on who is buying, so the customer
+    // is part of what gets quoted — not just stamped on the sale.
+    customerId: customer?.id,
+  });
 
   const createSale = useCreateSale();
   const total = quote?.totals.total ?? "0.00";
@@ -73,6 +81,7 @@ export function CheckoutScreen() {
   const reset = () => {
     setLines([]);
     setPayments([]);
+    setCustomer(null);
   };
 
   const handlePick = (product: ScannedProduct) =>
@@ -167,6 +176,10 @@ export function CheckoutScreen() {
         </div>
 
         <div className="flex flex-col gap-4">
+          {can("customer:view") && (
+            <CustomerPicker value={customer} onChange={setCustomer} currency={currency} />
+          )}
+
           {quoteError ? (
             <p className="rounded-lg border border-destructive/40 bg-danger-soft p-3 text-sm text-destructive">
               Couldn&apos;t price this basket: {quoteError.message}
@@ -196,13 +209,14 @@ export function CheckoutScreen() {
             payments={payments}
             onChange={setPayments}
             completing={createSale.isPending}
-            customerSelected={false}
+            customerSelected={!!customer}
             onComplete={async () => {
               try {
                 const sale = await createSale.mutateAsync({
                   branch_id: register!.branch_id,
                   register_id: register!.id,
                   shift_id: shift.id,
+                  customer_id: customer?.id,
                   lines: checkoutLines,
                   payments,
                 });

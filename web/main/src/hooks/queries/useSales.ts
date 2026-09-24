@@ -99,6 +99,11 @@ export function useCreateSale() {
         queryClient.invalidateQueries({ queryKey: [key, tenant] });
       }
       queryClient.invalidateQueries({ queryKey: ["current-shift"] });
+      // A sale on account moves the customer's balance and any sale with a
+      // customer earns points, so their account screens are stale too.
+      for (const key of ["customers", "customer", "credit", "loyalty"]) {
+        queryClient.invalidateQueries({ queryKey: [key] });
+      }
     },
     onError: (error) => toast.mutationError(error),
   });
@@ -117,6 +122,10 @@ function useSaleMutation<TArgs extends unknown[], TResult>(
         queryClient.invalidateQueries({ queryKey: [key, tenant] });
       }
       queryClient.invalidateQueries({ queryKey: ["sale"] });
+      // Voids and refunds reverse ledger entries and points.
+      for (const key of ["customers", "customer", "credit", "loyalty"]) {
+        queryClient.invalidateQueries({ queryKey: [key] });
+      }
     },
     onError: (error) => toast.mutationError(error),
   });

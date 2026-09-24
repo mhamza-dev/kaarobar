@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { humanize } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /** The visual families a backend status string can land in. */
@@ -52,12 +53,6 @@ const TONE_CLASSES: Record<StatusTone, string> = {
   danger: "bg-danger-soft text-destructive",
   info: "bg-brand-tint text-brand-primary",
 };
-
-/** Turns `goods_received` into `Goods received`. */
-function humanize(status: string): string {
-  const spaced = status.replace(/[_-]+/g, " ").trim();
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
-}
 
 export function StatusBadge({
   status,
