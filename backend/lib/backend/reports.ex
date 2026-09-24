@@ -245,13 +245,17 @@ defmodule Kaarobar.Reports do
     |> Scoped.for_business(scope)
     |> where([s], s.sold_at >= ^starts_at and s.sold_at < ^ends_at and s.status != "voided")
     |> filter_branch(Keyword.get(opts, :branch_id))
-    |> group_by([s], fragment("EXTRACT(HOUR FROM ? AT TIME ZONE ?)", s.sold_at, ^zone))
+    # Grouped and ordered by the selected alias, not by repeating the
+    # expression: each `^zone` binds its own placeholder, so Postgres sees
+    # three different expressions and rejects the GROUP BY (42803).
     |> select([s], %{
-      hour: fragment("EXTRACT(HOUR FROM ? AT TIME ZONE ?)::int", s.sold_at, ^zone),
+      hour:
+        selected_as(fragment("EXTRACT(HOUR FROM ? AT TIME ZONE ?)::int", s.sold_at, ^zone), :hour),
       sale_count: count(s.id),
       net_sales: sum(s.total)
     })
-    |> order_by([s], asc: fragment("EXTRACT(HOUR FROM ? AT TIME ZONE ?)", s.sold_at, ^zone))
+    |> group_by([s], selected_as(:hour))
+    |> order_by([s], asc: selected_as(:hour))
     |> Repo.all()
   end
 

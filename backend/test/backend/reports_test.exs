@@ -202,6 +202,20 @@ defmodule Kaarobar.ReportsTest do
     end
   end
 
+  describe "takings by hour" do
+    test "group the day's sales into the business's local hours", ctx do
+      sale_fixture(ctx.scope, ctx.variant, quantity: "1", amount: "100.00")
+      sale_fixture(ctx.scope, ctx.variant, quantity: "2", amount: "200.00")
+      today = Rollups.business_today(ctx.scope.business)
+
+      rows = Reports.sales_by_hour(ctx.scope, {today, today})
+
+      assert [%{hour: hour, sale_count: 2} = row] = rows
+      assert hour in 0..23
+      assert Decimal.equal?(row.net_sales, Decimal.new("300.00"))
+    end
+  end
+
   # ===========================================================================
   # Profit and loss
   # ===========================================================================
