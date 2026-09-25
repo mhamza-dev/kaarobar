@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +11,7 @@ import { useSessionStore } from "@/stores/sessionStore";
 import type { GoodsReceipt } from "@/types/api/purchasing";
 
 export function GoodsReceiptsTable() {
+  const router = useRouter();
   const currency = useSessionStore((state) => state.scope?.business?.currency) ?? "PKR";
   const { data, isLoading, error, refetch } = useGoodsReceipts();
 
@@ -49,6 +52,7 @@ export function GoodsReceiptsTable() {
       columns={columns}
       rows={data ?? []}
       rowKey={(r) => r.id}
+      onRowClick={(r) => router.push(`/goods-receipts/${r.id}`)}
       loading={isLoading}
       error={error ? { message: error.message } : null}
       onRetry={() => refetch()}

@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { usePurchaseReturns } from "@/hooks/queries/usePurchasing";
@@ -8,6 +10,7 @@ import { useSessionStore } from "@/stores/sessionStore";
 import type { PurchaseReturn } from "@/types/api/purchasing";
 
 export function PurchaseReturnsTable() {
+  const router = useRouter();
   const currency = useSessionStore((state) => state.scope?.business?.currency) ?? "PKR";
   const { data, isLoading, error, refetch } = usePurchaseReturns();
 
@@ -34,6 +37,7 @@ export function PurchaseReturnsTable() {
       columns={columns}
       rows={data ?? []}
       rowKey={(r) => r.id}
+      onRowClick={(r) => router.push(`/purchase-returns/${r.id}`)}
       loading={isLoading}
       error={error ? { message: error.message } : null}
       onRetry={() => refetch()}

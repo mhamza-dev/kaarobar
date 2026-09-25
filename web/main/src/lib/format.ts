@@ -109,3 +109,10 @@ export function percentToFraction(value: string | number): string | null {
   const fraction = Number(value) / 100;
   return Number.isFinite(fraction) ? String(Number(fraction.toFixed(6))) : null;
 }
+
+/** Today as the `yyyy-MM-dd` string date fields and the API use. */
+export function todayIso(): string {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}

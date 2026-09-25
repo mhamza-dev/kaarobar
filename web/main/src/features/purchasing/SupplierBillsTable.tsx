@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +36,7 @@ function AgeingSummary({ currency }: { currency: string }) {
 }
 
 export function SupplierBillsTable() {
+  const router = useRouter();
   const currency = useSessionStore((state) => state.scope?.business?.currency) ?? "PKR";
   const { data, isLoading, error, refetch } = useSupplierBills();
 
@@ -92,6 +95,7 @@ export function SupplierBillsTable() {
         columns={columns}
         rows={data ?? []}
         rowKey={(bill) => bill.id}
+        onRowClick={(bill) => router.push(`/supplier-bills/${bill.id}`)}
         loading={isLoading}
         error={error ? { message: error.message } : null}
         onRetry={() => refetch()}

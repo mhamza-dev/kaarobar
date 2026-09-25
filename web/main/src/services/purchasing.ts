@@ -7,9 +7,16 @@ import type {
   PurchaseOrder,
   PurchaseOrderPayload,
   PurchaseReturn,
+  PurchaseReturnPayload,
   Supplier,
   SupplierBill,
+  SupplierBillPayload,
+  SupplierLedger,
   SupplierPayload,
+  SupplierPayment,
+  SupplierPaymentPayload,
+  SupplierProduct,
+  SupplierProductPayload,
 } from "@/types/api/purchasing";
 
 // --- Suppliers --------------------------------------------------------------
@@ -41,6 +48,28 @@ export async function updateSupplier(
 }
 
 /** Archives rather than deletes — purchase history still points at them. */
+export async function listSupplierProducts(id: string): Promise<SupplierProduct[]> {
+  const response = await apiClient.get<ApiEnvelope<SupplierProduct[]>>(`/suppliers/${id}/products`);
+  return response.data.data;
+}
+
+/** Upserts by variant — the same call adds a product or changes its cost. */
+export async function putSupplierProduct(
+  id: string,
+  payload: SupplierProductPayload,
+): Promise<SupplierProduct> {
+  const response = await apiClient.put<ApiEnvelope<SupplierProduct>>(
+    `/suppliers/${id}/products`,
+    payload,
+  );
+  return response.data.data;
+}
+
+export async function getSupplierLedger(id: string): Promise<SupplierLedger> {
+  const response = await apiClient.get<ApiEnvelope<SupplierLedger>>(`/suppliers/${id}/ledger`);
+  return response.data.data;
+}
+
 export async function archiveSupplier(id: string): Promise<void> {
   await apiClient.delete(`/suppliers/${id}`);
 }
@@ -170,15 +199,19 @@ export async function getPayablesAgeing(): Promise<PayablesAgeing> {
   return response.data.data;
 }
 
-export async function recordSupplierPayment(payload: {
-  supplier_id: string;
-  amount: string;
-  method: string;
-  paid_on?: string;
-  reference?: string;
-  allocations?: Array<{ supplier_bill_id: string; amount: string }>;
-}): Promise<unknown> {
-  const response = await apiClient.post<ApiEnvelope<unknown>>("/supplier-payments", payload);
+export async function createSupplierBill(payload: SupplierBillPayload): Promise<SupplierBill> {
+  const response = await apiClient.post<ApiEnvelope<SupplierBill>>("/supplier-bills", payload);
+  return response.data.data;
+}
+
+/** Anything not allocated to a bill stays on the supplier's account. */
+export async function recordSupplierPayment(
+  payload: SupplierPaymentPayload,
+): Promise<SupplierPayment> {
+  const response = await apiClient.post<ApiEnvelope<SupplierPayment>>(
+    "/supplier-payments",
+    payload,
+  );
   return response.data.data;
 }
 
@@ -188,6 +221,18 @@ export async function listPurchaseReturns(
   const response = await apiClient.get<ApiEnvelope<PurchaseReturn[]>>("/purchase-returns", {
     params,
   });
+  return response.data.data;
+}
+
+export async function getPurchaseReturn(id: string): Promise<PurchaseReturn> {
+  const response = await apiClient.get<ApiEnvelope<PurchaseReturn>>(`/purchase-returns/${id}`);
+  return response.data.data;
+}
+
+export async function createPurchaseReturn(
+  payload: PurchaseReturnPayload,
+): Promise<PurchaseReturn> {
+  const response = await apiClient.post<ApiEnvelope<PurchaseReturn>>("/purchase-returns", payload);
   return response.data.data;
 }
 

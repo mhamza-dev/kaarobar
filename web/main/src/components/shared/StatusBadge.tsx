@@ -19,6 +19,7 @@ const STATUS_TONES: Record<string, StatusTone> = {
   completed: "success",
   received: "success",
   paid: "success",
+  partially_paid: "warning",
   approved: "success",
   confirmed: "success",
   open: "info",

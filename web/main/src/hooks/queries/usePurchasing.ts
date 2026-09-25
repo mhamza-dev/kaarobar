@@ -9,10 +9,17 @@ import {
   closePurchaseOrder,
   createGoodsReceipt,
   createPurchaseOrder,
+  createPurchaseReturn,
   createSupplier,
+  createSupplierBill,
   getGoodsReceipt,
   getPayablesAgeing,
   getPurchaseOrder,
+  getPurchaseReturn,
+  getSupplier,
+  getSupplierBill,
+  getSupplierLedger,
+  listSupplierProducts,
   listGoodsReceipts,
   listPurchaseOrders,
   listPurchaseReturns,
@@ -21,13 +28,19 @@ import {
   postGoodsReceipt,
   postPurchaseReturn,
   postSupplierBill,
+  putSupplierProduct,
+  recordSupplierPayment,
   updatePurchaseOrder,
   updateSupplier,
 } from "@/services/purchasing";
 import type {
   GoodsReceiptPayload,
   PurchaseOrderPayload,
+  PurchaseReturnPayload,
+  SupplierBillPayload,
   SupplierPayload,
+  SupplierPaymentPayload,
+  SupplierProductPayload,
 } from "@/types/api/purchasing";
 
 import { useTenantKey } from "./keys";
@@ -51,9 +64,41 @@ function useSupplierMutation<TArgs extends unknown[], TResult>(
 
   return useMutation({
     mutationFn: (variables: TArgs) => mutationFn(...variables),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["suppliers", tenant] }),
+    onSuccess: () => {
+      for (const key of ["suppliers", "supplier", "supplier-products", "supplier-ledger"]) {
+        queryClient.invalidateQueries({ queryKey: key === "suppliers" ? [key, tenant] : [key] });
+      }
+    },
     onError: (error) => toast.mutationError(error),
   });
+}
+
+export function useSupplier(id: string | null | undefined) {
+  return useQuery({
+    queryKey: ["supplier", id],
+    queryFn: () => getSupplier(id!),
+    enabled: !!id,
+  });
+}
+
+export function useSupplierProducts(id: string | null | undefined) {
+  return useQuery({
+    queryKey: ["supplier-products", id],
+    queryFn: () => listSupplierProducts(id!),
+    enabled: !!id,
+  });
+}
+
+export function useSupplierLedger(id: string | null | undefined) {
+  return useQuery({
+    queryKey: ["supplier-ledger", id],
+    queryFn: () => getSupplierLedger(id!),
+    enabled: !!id,
+  });
+}
+
+export function usePutSupplierProduct() {
+  return useSupplierMutation<[string, SupplierProductPayload], unknown>(putSupplierProduct);
 }
 
 export function useCreateSupplier() {
@@ -120,6 +165,18 @@ function usePurchasingMutation<TArgs extends unknown[], TResult>(
         queryClient.invalidateQueries({ queryKey: [key, tenant] });
       }
       if (id) queryClient.invalidateQueries({ queryKey: ["purchase-order", id] });
+      // Single records open on a detail page or sheet. Only the ones on
+      // screen actually refetch, so invalidating them all is cheap.
+      for (const key of [
+        "goods-receipt",
+        "supplier-bill",
+        "purchase-return",
+        "supplier",
+        "supplier-ledger",
+        "payables-ageing",
+      ]) {
+        queryClient.invalidateQueries({ queryKey: [key] });
+      }
     },
     onError: (error) => toast.mutationError(error),
   });
@@ -188,6 +245,22 @@ export function useSupplierBills(
   });
 }
 
+export function useSupplierBill(id: string | undefined) {
+  return useQuery({
+    queryKey: ["supplier-bill", id],
+    queryFn: () => getSupplierBill(id!),
+    enabled: !!id,
+  });
+}
+
+export function useCreateSupplierBill() {
+  return usePurchasingMutation<[SupplierBillPayload], unknown>(createSupplierBill);
+}
+
+export function useRecordSupplierPayment() {
+  return usePurchasingMutation<[SupplierPaymentPayload], unknown>(recordSupplierPayment);
+}
+
 export function usePostSupplierBill() {
   return usePurchasingMutation<[string], unknown>(postSupplierBill);
 }
@@ -208,6 +281,18 @@ export function usePurchaseReturns(params: { status?: string; supplier_id?: stri
     queryKey: ["purchase-returns", tenant, params],
     queryFn: () => listPurchaseReturns(params),
   });
+}
+
+export function usePurchaseReturn(id: string | undefined) {
+  return useQuery({
+    queryKey: ["purchase-return", id],
+    queryFn: () => getPurchaseReturn(id!),
+    enabled: !!id,
+  });
+}
+
+export function useCreatePurchaseReturn() {
+  return usePurchasingMutation<[PurchaseReturnPayload], unknown>(createPurchaseReturn);
 }
 
 export function usePostPurchaseReturn() {
