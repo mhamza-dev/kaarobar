@@ -26,6 +26,7 @@ defmodule Kaarobar.Pricing.PriceListItem do
     item
     |> cast(attrs, [:price_list_id, :variant_id, :price, :min_quantity])
     |> validate_required([:price_list_id, :variant_id, :price])
+    |> default_min_quantity()
     |> validate_number(:price, greater_than_or_equal_to: 0)
     |> validate_number(:min_quantity, greater_than: 0)
     |> foreign_key_constraint(:price_list_id)
@@ -34,6 +35,15 @@ defmodule Kaarobar.Pricing.PriceListItem do
       name: :price_list_items_price_list_id_variant_id_min_quantity_index,
       message: "already has a price at this quantity"
     )
+  end
+
+  # An explicit null ("no quantity break") would override the column
+  # default and fail its NOT NULL — a 500 for a perfectly sensible request.
+  # No break is a break at one.
+  defp default_min_quantity(changeset) do
+    if is_nil(get_field(changeset, :min_quantity)),
+      do: put_change(changeset, :min_quantity, Decimal.new(1)),
+      else: changeset
   end
 
   @doc """

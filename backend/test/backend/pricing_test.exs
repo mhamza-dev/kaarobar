@@ -96,6 +96,26 @@ defmodule Kaarobar.PricingTest do
       refute is_nil(quote.price_list_id)
     end
 
+    test "a price with no quantity break is a break at one", %{scope: scope, variant: variant} do
+      list = price_list_fixture(scope, %{"name" => "Nulls"}, [])
+
+      {:ok, item} =
+        Pricing.put_price(scope, list, %{
+          "variant_id" => variant.id,
+          "price" => "90.00",
+          "min_quantity" => nil
+        })
+
+      assert_money(item.min_quantity, "1")
+
+      # Setting it again replaces the price rather than tripping the unique index.
+      {:ok, again} =
+        Pricing.put_price(scope, list, %{"variant_id" => variant.id, "price" => "88.00"})
+
+      assert again.id == item.id
+      assert_money(again.price, "88.00")
+    end
+
     test "honour quantity breaks", %{scope: scope, variant: variant} do
       price_list_fixture(scope, %{"name" => "Breaks"}, [
         %{"variant_id" => variant.id, "price" => "100.00", "min_quantity" => "1"},

@@ -170,7 +170,9 @@ defmodule Kaarobar.Purchasing do
            :is_active,
            :updated_at
          ]},
-      conflict_target: [:supplier_id, :variant_id]
+      conflict_target: [:supplier_id, :variant_id],
+      # The row actually updated, not the id this insert generated.
+      returning: true
     )
   end
 

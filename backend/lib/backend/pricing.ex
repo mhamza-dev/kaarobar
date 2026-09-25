@@ -384,7 +384,7 @@ defmodule Kaarobar.Pricing do
       |> Scoped.for_business(scope)
       |> Scoped.active()
       |> where([list], list.id == ^id)
-      |> preload(:items)
+      |> preload(items: [variant: :product])
       |> Repo.one()
       |> case do
         nil -> {:error, :not_found}
@@ -433,7 +433,10 @@ defmodule Kaarobar.Pricing do
     |> PriceListItem.changeset(attrs)
     |> Repo.insert(
       on_conflict: {:replace, [:price, :updated_at]},
-      conflict_target: [:price_list_id, :variant_id, :min_quantity]
+      conflict_target: [:price_list_id, :variant_id, :min_quantity],
+      # Without it an upsert hands back the id it generated, not the row it
+      # updated — a client then holds an id that doesn't exist.
+      returning: true
     )
   end
 
