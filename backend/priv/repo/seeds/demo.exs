@@ -435,6 +435,16 @@ case Accounts.get_user_by_email(owner_email) do
                   "quantity" => item.ordered_quantity,
                   "unit_cost" => item.unit_cost
                 }
+                # The rice arrives as a dated lot, so the batches screen has
+                # something to show and, in three weeks, to expire.
+                |> Map.merge(
+                  if item.variant_id == variant.("Basmati rice 5kg"),
+                    do: %{
+                      "batch_number" => "AMW-BR-0925",
+                      "expires_on" => Date.add(Date.utc_today(), 20)
+                    },
+                    else: %{}
+                )
               end)
           })
 
