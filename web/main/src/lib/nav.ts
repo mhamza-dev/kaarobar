@@ -1,6 +1,7 @@
 import {
   ArrowLeftRight,
   BadgeDollarSign,
+  Wallet2,
   Percent,
   SlidersHorizontal,
   BarChart3,
@@ -93,6 +94,12 @@ const NAV_GROUPS: NavGroup[] = [
         href: "/sales",
         icon: ReceiptIcon,
         anyPermission: ["sale:view", "sale:view_all"],
+      },
+      {
+        label: "Expenses",
+        href: "/expenses",
+        icon: Wallet2,
+        anyPermission: ["expense:view"],
       },
       {
         label: "Refunds",
@@ -335,6 +342,12 @@ const NAV_GROUPS: NavGroup[] = [
         href: "/settings/branches",
         icon: Building2,
         anyPermission: ["branch:view"],
+      },
+      {
+        label: "Bank accounts",
+        href: "/settings/bank-accounts",
+        icon: Landmark,
+        anyPermission: ["bank_account:manage"],
       },
       {
         label: "Taxes",

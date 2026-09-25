@@ -51,6 +51,8 @@ const CORE_ROUTES = [
   "/promotions",
   "/refund-requests",
   "/gift-cards",
+  "/expenses",
+  "/settings/bank-accounts",
 ];
 
 const VERTICAL_ROUTES: Array<[business: string, routes: string[]]> = [
