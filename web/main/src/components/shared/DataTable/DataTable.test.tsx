@@ -145,6 +145,34 @@ describe("DataTable row activation", () => {
     expect(onRowClick).not.toHaveBeenCalled();
   });
 
+  it("leaves a click on a control inside the row to that control", async () => {
+    const onRowClick = vi.fn();
+    const onEdit = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <DataTable
+        columns={[
+          ...columns,
+          {
+            key: "edit",
+            header: "",
+            render: (row) => <button onClick={() => onEdit(row.id)}>Edit {row.name}</button>,
+          },
+        ]}
+        rows={rows}
+        rowKey={(row) => row.id}
+        onRowClick={onRowClick}
+      />,
+    );
+
+    await user.click(screen.getAllByRole("button", { name: "Edit Flour" })[0]);
+    expect(onEdit).toHaveBeenCalledWith("1");
+    expect(onRowClick).not.toHaveBeenCalled();
+
+    await user.click(screen.getAllByText("Flour")[0]);
+    expect(onRowClick).toHaveBeenCalledWith(rows[0]);
+  });
+
   it("does not make rows focusable when they do nothing", () => {
     render(<DataTable columns={columns} rows={rows} rowKey={(row) => row.id} />);
     expect(screen.getByText("Flour").closest("tr")).not.toHaveAttribute("tabindex");

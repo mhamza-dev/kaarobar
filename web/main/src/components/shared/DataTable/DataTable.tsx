@@ -111,17 +111,28 @@ function filterOptions(filter: {
 const ROW_INTERACTIVE_CLASSES =
   "cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring";
 
+/** Controls that do their own thing when clicked inside a clickable row. */
+const INTERACTIVE_SELECTOR =
+  "button, a, input, select, textarea, label, [role=menuitem], [role=checkbox], [role=switch]";
+
 /**
  * Makes a clickable row reachable without a mouse: focusable, and opened
- * with Enter or Space like a button. Keys pressed on something inside the
- * row (a checkbox, an Edit button, a link) are left to that control —
- * only a key aimed at the row itself activates it.
+ * with Enter or Space like a button. A click or key on something inside
+ * the row (a checkbox, an Edit button, a link) is left to that control —
+ * only one aimed at the row itself opens it, so a row can carry its own
+ * quick actions and still open a detail view.
  */
 function rowActivation<T>(onRowClick: ((row: T) => void) | undefined, row: T) {
   if (!onRowClick) return {};
   return {
     tabIndex: 0,
-    onClick: () => onRowClick(row),
+    onClick: (event: React.MouseEvent<HTMLElement>) => {
+      const control = (event.target as HTMLElement).closest(INTERACTIVE_SELECTOR);
+      if (control && control !== event.currentTarget && event.currentTarget.contains(control)) {
+        return;
+      }
+      onRowClick(row);
+    },
     onKeyDown: (event: React.KeyboardEvent<HTMLElement>) => {
       if (event.target !== event.currentTarget) return;
       if (event.key === "Enter" || event.key === " ") {
