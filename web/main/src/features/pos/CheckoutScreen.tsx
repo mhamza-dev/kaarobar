@@ -316,7 +316,11 @@ function RegisterPicker({
   onChange: (value: string) => void;
 }) {
   return (
-    <Select value={value} onValueChange={(next: string | null) => onChange(next ?? "")}>
+    <Select
+      items={registers.map((register) => ({ value: register.id, label: register.name }))}
+      value={value}
+      onValueChange={(next: string | null) => onChange(next ?? "")}
+    >
       <SelectTrigger className="w-auto" aria-label="Register">
         <SelectValue />
       </SelectTrigger>

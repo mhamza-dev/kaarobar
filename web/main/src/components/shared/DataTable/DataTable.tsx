@@ -95,6 +95,19 @@ export type DataTableProps<T> = {
 
 const DEFAULT_PAGE_SIZE_OPTIONS = [25, 50, 100];
 
+/** A filter's choices; a yes/no filter gets its two. */
+function filterOptions(filter: {
+  type?: string;
+  options?: Array<{ value: string; label: string }>;
+}) {
+  return filter.type === "boolean"
+    ? [
+        { value: "true", label: "Yes" },
+        { value: "false", label: "No" },
+      ]
+    : (filter.options ?? []);
+}
+
 const ROW_INTERACTIVE_CLASSES =
   "cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring";
 
@@ -247,6 +260,7 @@ export function DataTable<T>({
           {filters?.map((filter) => (
             <Select
               key={filter.id}
+              items={[{ value: "", label: `${filter.label}: Any` }, ...filterOptions(filter)]}
               value={filterState[filter.id] ?? ""}
               onValueChange={(value: string | null) =>
                 setFilterState((state) => ({ ...state, [filter.id]: value ?? "" }))
@@ -257,13 +271,7 @@ export function DataTable<T>({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">{filter.label}: Any</SelectItem>
-                {(filter.type === "boolean"
-                  ? [
-                      { value: "true", label: "Yes" },
-                      { value: "false", label: "No" },
-                    ]
-                  : (filter.options ?? [])
-                ).map((option) => (
+                {filterOptions(filter).map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
@@ -464,6 +472,10 @@ export function DataTable<T>({
           <div className="flex items-center gap-2">
             {onPageSizeChange && (
               <Select
+                items={pageSizeOptions.map((option) => ({
+                  value: String(option),
+                  label: `${option} / page`,
+                }))}
                 value={String(pageSize ?? pageSizeOptions[0])}
                 onValueChange={(value: string | null) => onPageSizeChange(Number(value))}
               >

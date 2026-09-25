@@ -23,6 +23,8 @@ type FormSelectFieldProps = {
   options: Option[];
   disabled?: boolean;
   className?: string;
+  /** Runs after the value is set — for fields whose choices depend on this one. */
+  onValueChange?: (value: string) => void;
 };
 
 /** The Formik ⇄ shadcn bridge for a single-value select — see FormTextField for the pattern. */
@@ -34,6 +36,7 @@ export function FormSelectField({
   options,
   disabled,
   className,
+  onValueChange,
 }: FormSelectFieldProps) {
   const [field, meta, helpers] = useField(name);
   const id = useId();
@@ -44,8 +47,14 @@ export function FormSelectField({
     <div className={cn("flex flex-col gap-1.5", className)}>
       {label && <Label htmlFor={id}>{label}</Label>}
       <Select
+        // Without `items` the trigger shows the raw value — for an id-valued
+        // select, a UUID instead of the supplier's name.
+        items={options}
         value={field.value || ""}
-        onValueChange={(value: string) => helpers.setValue(value)}
+        onValueChange={(value: string) => {
+          void helpers.setValue(value);
+          onValueChange?.(value);
+        }}
         disabled={disabled}
       >
         <SelectTrigger
