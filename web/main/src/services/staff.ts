@@ -19,7 +19,11 @@ export async function getStaff(id: string): Promise<StaffMember> {
 
 export async function updateStaff(
   id: string,
-  payload: { employee_code?: string | null; job_title?: string | null },
+  payload: {
+    employee_code?: string | null;
+    job_title?: string | null;
+    started_on?: string | null;
+  },
 ): Promise<StaffMember> {
   const response = await apiClient.patch<ApiEnvelope<StaffMember>>(`/staff/${id}`, payload);
   return response.data.data;
@@ -44,6 +48,33 @@ export async function setStaffBranches(id: string, branchIds: string[]): Promise
     branch_ids: branchIds,
   });
   return response.data.data;
+}
+
+/** Sets the register PIN, or clears it with `null`. Never read back — only `has_pin`. */
+export async function setStaffPin(id: string, pin: string | null): Promise<StaffMember> {
+  const response = await apiClient.put<ApiEnvelope<StaffMember>>(`/staff/${id}/pin`, { pin });
+  return response.data.data;
+}
+
+/**
+ * A per-person override on top of their roles. `allow` needs the caller to
+ * hold the permission themselves; `deny` is always allowed.
+ */
+export async function putStaffGrant(
+  id: string,
+  payload: {
+    permission_key: string;
+    effect: "allow" | "deny";
+    reason?: string | null;
+    expires_at?: string | null;
+  },
+): Promise<unknown> {
+  const response = await apiClient.put<ApiEnvelope<unknown>>(`/staff/${id}/grants`, payload);
+  return response.data.data;
+}
+
+export async function deleteStaffGrant(id: string, permissionKey: string): Promise<void> {
+  await apiClient.delete(`/staff/${id}/grants/${encodeURIComponent(permissionKey)}`);
 }
 
 export async function removeStaff(id: string): Promise<void> {

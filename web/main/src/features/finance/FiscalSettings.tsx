@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Form, Formik } from "formik";
 import { AlertTriangle, Loader2, RotateCcw } from "lucide-react";
 import { useState } from "react";
@@ -9,6 +10,8 @@ import { FormSelectField } from "@/components/forms/FormSelectField";
 import { FormSwitch } from "@/components/forms/FormSwitch";
 import { FormTextField } from "@/components/forms/FormTextField";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
+import { DescriptionList } from "@/components/shared/DescriptionList";
+import { DetailSheet } from "@/components/shared/DetailSheet";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -211,6 +214,7 @@ function SubmissionsTable({ canRetry }: { canRetry: boolean }) {
   });
   const retry = useRetrySubmission();
   const retryAll = useRetryAllSubmissions();
+  const [viewing, setViewing] = useState<FiscalSubmission | null>(null);
 
   const columns: DataTableColumn<FiscalSubmission>[] = [
     { key: "when", header: "When", render: (row) => formatDateTime(row.inserted_at) },
@@ -295,6 +299,7 @@ function SubmissionsTable({ canRetry }: { canRetry: boolean }) {
         columns={columns}
         rows={data ?? []}
         rowKey={(row) => row.id}
+        onRowClick={setViewing}
         loading={isLoading}
         error={error ? { message: error.message } : null}
         onRetry={() => refetch()}
@@ -304,6 +309,91 @@ function SubmissionsTable({ canRetry }: { canRetry: boolean }) {
         mobileCardTitle={(row) => row.fiscal_number ?? humanize(row.kind)}
         mobileCardSubtitle={(row) => humanize(row.status)}
       />
+      <DetailSheet
+        open={!!viewing}
+        onOpenChange={(open) => !open && setViewing(null)}
+        eyebrow="Fiscal submission"
+        title={viewing?.fiscal_number ?? (viewing ? humanize(viewing.kind) : undefined)}
+        status={viewing && <StatusBadge status={viewing.status} />}
+        actions={
+          viewing &&
+          canRetry &&
+          viewing.needs_attention && (
+            <Button
+              size="sm"
+              disabled={retry.isPending}
+              onClick={async () => {
+                try {
+                  await retry.mutateAsync([viewing.id]);
+                  toast.success("Queued to retry");
+                  setViewing(null);
+                } catch {
+                  // Toasted by the hook.
+                }
+              }}
+            >
+              Retry now
+            </Button>
+          )
+        }
+      >
+        {viewing && (
+          <div className="flex flex-col gap-4">
+            {viewing.last_error && (
+              // The authority's own words, in full: they name the field to fix.
+              <div className="rounded-lg bg-danger-soft p-3 text-sm text-destructive">
+                {viewing.error_code && <code className="font-semibold">{viewing.error_code}</code>}
+                <p className="whitespace-pre-line">{viewing.last_error}</p>
+              </div>
+            )}
+            <DescriptionList
+              items={[
+                {
+                  label: "Sale",
+                  hidden: !viewing.sale_id,
+                  value: (
+                    <Link
+                      href={`/sales/${viewing.sale_id}`}
+                      className="text-brand-primary hover:underline"
+                    >
+                      View sale
+                    </Link>
+                  ),
+                },
+                { label: "Authority", value: viewing.adapter.toUpperCase() },
+                { label: "Their reference", value: viewing.authority_reference },
+                { label: "Tries", value: String(viewing.attempts) },
+                { label: "Submitted", value: formatDateTime(viewing.submitted_at) },
+                {
+                  label: "Accepted",
+                  value: formatDateTime(viewing.accepted_at),
+                  hidden: !viewing.accepted_at,
+                },
+                {
+                  label: "Failed",
+                  value: formatDateTime(viewing.failed_at),
+                  hidden: !viewing.failed_at,
+                },
+                {
+                  label: "Next try",
+                  value: formatDateTime(viewing.retry_after),
+                  hidden: !viewing.retry_after,
+                },
+              ]}
+            />
+            {viewing.qr_payload && (
+              <div>
+                <p className="mb-1 text-xs text-muted-foreground">
+                  QR payload printed on the receipt
+                </p>
+                <code className="block rounded-lg bg-muted/40 p-2 text-xs break-all">
+                  {viewing.qr_payload}
+                </code>
+              </div>
+            )}
+          </div>
+        )}
+      </DetailSheet>
     </>
   );
 }

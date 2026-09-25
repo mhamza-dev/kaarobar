@@ -15,6 +15,10 @@ import {
   useQueue,
 } from "@/hooks/queries/useScheduling";
 import { usePermission } from "@/hooks/usePermission";
+import { todayIso } from "@/lib/format";
+import type { QueueEntry } from "@/types/api/scheduling";
+
+import { BookAppointmentDialog } from "./BookAppointmentDialog";
 
 /**
  * The walk-in queue: who's waiting, for how long (the server's count), and
@@ -27,6 +31,7 @@ export function QueueBoard() {
   const join = useJoinQueue();
   const call = useCallFromQueue();
   const leave = useLeaveQueue();
+  const [seating, setSeating] = useState<QueueEntry | null>(null);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
 
@@ -96,8 +101,13 @@ export function QueueBoard() {
               <div className="flex items-center gap-2">
                 <StatusBadge status={entry.status} />
                 {canManage && entry.status === "waiting" && (
-                  <Button size="sm" onClick={() => call.mutate([entry.id])}>
+                  <Button size="sm" variant="outline" onClick={() => call.mutate([entry.id])}>
                     Call
+                  </Button>
+                )}
+                {can("appointment:manage") && ["waiting", "called"].includes(entry.status) && (
+                  <Button size="sm" onClick={() => setSeating(entry)}>
+                    Seat
                   </Button>
                 )}
                 {canManage && (
@@ -123,6 +133,13 @@ export function QueueBoard() {
           ))}
         </ol>
       )}
+
+      <BookAppointmentDialog
+        open={!!seating}
+        onOpenChange={(open) => !open && setSeating(null)}
+        date={todayIso()}
+        fromQueue={seating}
+      />
     </div>
   );
 }

@@ -5,6 +5,8 @@ import { useState } from "react";
 
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
+import { DescriptionList } from "@/components/shared/DescriptionList";
+import { DetailSheet } from "@/components/shared/DetailSheet";
 import { LoadError } from "@/components/shared/LoadError";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +52,7 @@ export function BillingSettings() {
   const resume = useResumeSubscription();
   const [choosing, setChoosing] = useState<Plan | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [viewingInvoice, setViewingInvoice] = useState<BillingInvoice | null>(null);
 
   if (isLoading) return <Skeleton className="h-40 w-full" />;
   // Falling through would say "No active subscription — pick a plan" to an
@@ -217,6 +220,7 @@ export function BillingSettings() {
           columns={invoiceColumns}
           rows={invoices.data ?? []}
           rowKey={(invoice) => invoice.id}
+          onRowClick={setViewingInvoice}
           loading={invoices.isLoading}
           error={invoices.error}
           onRetry={() => invoices.refetch()}
@@ -231,6 +235,27 @@ export function BillingSettings() {
           ]}
         />
       </section>
+
+      <DetailSheet
+        open={!!viewingInvoice}
+        onOpenChange={(open) => !open && setViewingInvoice(null)}
+        eyebrow="Kaarobar invoice"
+        title={viewingInvoice?.number ?? "Invoice"}
+        description={
+          viewingInvoice
+            ? `${formatDate(viewingInvoice.period_start)} – ${formatDate(viewingInvoice.period_end)}`
+            : undefined
+        }
+        status={
+          viewingInvoice && (
+            <StatusBadge status={viewingInvoice.overdue ? "overdue" : viewingInvoice.status} />
+          )
+        }
+      >
+        {viewingInvoice && (
+          <InvoiceBody invoice={viewingInvoice} currency={viewingInvoice.currency ?? "PKR"} />
+        )}
+      </DetailSheet>
 
       <ConfirmDialog
         open={!!choosing}
@@ -281,6 +306,50 @@ export function BillingSettings() {
             // Toasted by the hook.
           }
         }}
+      />
+    </div>
+  );
+}
+
+function InvoiceBody({ invoice, currency }: { invoice: BillingInvoice; currency: string }) {
+  const money = (value: string | null | undefined) => formatMoney(value, currency);
+  return (
+    <div className="flex flex-col gap-4">
+      {invoice.last_error && (
+        <p className="rounded-lg bg-danger-soft p-3 text-sm text-destructive">
+          Payment failed: {invoice.last_error}
+        </p>
+      )}
+      <ul className="divide-y divide-border rounded-lg border border-border text-sm">
+        {invoice.lines.map((line, index) => (
+          <li key={index} className="flex items-start justify-between gap-3 p-2">
+            <div>
+              <p>{line.description}</p>
+              {line.quantity !== 1 && (
+                <p className="text-xs text-muted-foreground">
+                  {line.quantity} × {money(line.unit_amount)}
+                </p>
+              )}
+            </div>
+            <span className="tabular-nums">{money(line.amount)}</span>
+          </li>
+        ))}
+      </ul>
+      <DescriptionList
+        items={[
+          { label: "Subtotal", value: money(invoice.subtotal) },
+          { label: "Tax", value: money(invoice.tax_total) },
+          { label: "Total", value: <span className="font-semibold">{money(invoice.total)}</span> },
+          { label: "Paid", value: money(invoice.amount_paid) },
+          { label: "Outstanding", value: money(invoice.outstanding) },
+          { label: "Due", value: formatDate(invoice.due_at) },
+          { label: "Paid on", value: formatDate(invoice.paid_at), hidden: !invoice.paid_at },
+          {
+            label: "Payment attempts",
+            value: String(invoice.attempts ?? 0),
+            hidden: !invoice.attempts,
+          },
+        ]}
       />
     </div>
   );

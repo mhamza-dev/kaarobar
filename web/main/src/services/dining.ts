@@ -59,6 +59,10 @@ export const seatTable = (payload: {
 export const transferSession = (id: string, tableId: string) =>
   post<TableSession>(`/dining/sessions/${id}/transfer`, { table_id: tableId });
 
+/** Pushes two tables together: this party's order joins `intoSessionId`'s bill. */
+export const mergeSession = (id: string, intoSessionId: string) =>
+  post<TableSession>(`/dining/sessions/${id}/merge`, { into_session_id: intoSessionId });
+
 export const markSessionBilled = (id: string) => post<TableSession>(`/dining/sessions/${id}/bill`);
 
 export const closeSession = (id: string) => post<TableSession>(`/dining/sessions/${id}/close`);

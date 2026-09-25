@@ -1,7 +1,7 @@
 "use client";
 
 import { Form, Formik } from "formik";
-import { Loader2 } from "lucide-react";
+import { Loader2, MoreHorizontal } from "lucide-react";
 import { useState } from "react";
 import * as Yup from "yup";
 
@@ -22,6 +22,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -30,6 +36,8 @@ import {
   useDeliverServiceJob,
   useHoldServiceJob,
   useMarkServiceJobReady,
+  useMoveServiceJobItem,
+  useReportServiceJobIncident,
   useServiceJob,
   useServiceJobHistory,
   useStartServiceJob,
@@ -56,6 +64,12 @@ export function ServiceJobDetail({ jobId }: { jobId: string }) {
   const [markingReady, setMarkingReady] = useState(false);
   const [reasonFor, setReasonFor] = useState<"hold" | "cancel" | null>(null);
   const [note, setNote] = useState("");
+  const [itemAction, setItemAction] = useState<{
+    item: JobItem;
+    kind: "move" | "lost" | "damaged";
+  } | null>(null);
+  const moveItem = useMoveServiceJobItem();
+  const reportIncident = useReportServiceJobIncident();
 
   if (isLoading) return <Skeleton className="h-64 w-full" />;
   if (isError || !job) {
@@ -143,12 +157,55 @@ export function ServiceJobDetail({ jobId }: { jobId: string }) {
     { key: "tag", header: "Tag", render: (item) => item.tag_code ?? "—" },
     { key: "qty", header: "Qty", align: "end", render: (item) => formatQuantity(item.quantity) },
     { key: "status", header: "Status", render: (item) => <StatusBadge status={item.status} /> },
+    { key: "rack", header: "Rack", render: (item) => item.rack_location ?? "—" },
     {
       key: "total",
       header: "Price",
       align: "end",
       render: (item) => formatMoney(item.line_total, currency),
     },
+    ...(can("service_job:update") && !["delivered", "cancelled"].includes(job.status)
+      ? [
+          {
+            key: "actions",
+            header: "",
+            align: "end" as const,
+            width: "w-12",
+            render: (item: JobItem) => (
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`Actions for ${item.description ?? item.label ?? "item"}`}
+                    >
+                      <MoreHorizontal className="size-4" />
+                    </Button>
+                  }
+                />
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setItemAction({ item, kind: "move" })}>
+                    Move to another rack
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onClick={() => setItemAction({ item, kind: "damaged" })}
+                  >
+                    Report damaged
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onClick={() => setItemAction({ item, kind: "lost" })}
+                  >
+                    Report lost
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -230,6 +287,38 @@ export function ServiceJobDetail({ jobId }: { jobId: string }) {
       </section>
 
       <ReadyDialog open={markingReady} onOpenChange={setMarkingReady} jobId={job.id} />
+      {itemAction && (
+        <ReasonDialog
+          open
+          onOpenChange={(open) => !open && setItemAction(null)}
+          title={
+            itemAction.kind === "move"
+              ? `Move ${itemAction.item.description ?? itemAction.item.label ?? "item"}`
+              : `Report ${itemAction.item.description ?? itemAction.item.label ?? "item"} ${itemAction.kind}`
+          }
+          description={
+            itemAction.kind === "move"
+              ? "Where it is now, so whoever hands it back can find it."
+              : "It's recorded against the job and shown when the customer collects."
+          }
+          label={itemAction.kind === "move" ? "Rack" : "What happened"}
+          placeholder={itemAction.kind === "move" ? "B-12" : "Colour ran in the wash…"}
+          confirmLabel={itemAction.kind === "move" ? "Move" : "Report"}
+          destructive={itemAction.kind !== "move"}
+          onSubmit={async (text) => {
+            const { item, kind } = itemAction;
+            if (kind === "move") {
+              await moveItem.mutateAsync([job.id, item.id, text]);
+              toast.success(`Moved to ${text}`);
+            } else {
+              await reportIncident.mutateAsync([job.id, item.id, kind, text]);
+              toast.success(`Reported ${kind}`);
+            }
+            setItemAction(null);
+          }}
+        />
+      )}
+
       <ReasonDialog
         open={reasonFor !== null}
         onOpenChange={(open) => !open && setReasonFor(null)}

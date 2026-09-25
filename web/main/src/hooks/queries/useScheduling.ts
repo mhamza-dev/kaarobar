@@ -17,6 +17,7 @@ import {
   listResources,
   markNoShow,
   rescheduleAppointment,
+  seatFromQueue,
   updateResource,
 } from "@/services/scheduling";
 import type {
@@ -86,6 +87,11 @@ export function useAppointment(id: string | undefined) {
 
 export const useBookAppointment = () =>
   useInvalidatingMutation<[BookAppointmentPayload], Appointment>(bookAppointment, BOOKING_KEYS);
+export const useSeatFromQueue = () =>
+  useInvalidatingMutation<[string, Partial<BookAppointmentPayload>], Appointment>(
+    seatFromQueue,
+    BOOKING_KEYS,
+  );
 export const useAdvanceAppointment = () =>
   useInvalidatingMutation<[string, AppointmentStep], unknown>(advanceAppointment, BOOKING_KEYS);
 export const useRescheduleAppointment = () =>

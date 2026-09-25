@@ -10,6 +10,8 @@ import {
   holdServiceJob,
   listServiceJobs,
   markServiceJobReady,
+  moveServiceJobItem,
+  reportServiceJobIncident,
   startServiceJob,
 } from "@/services/serviceJobs";
 import type { ServiceJob, ServiceJobPayload } from "@/types/api/serviceJobs";
@@ -45,6 +47,13 @@ export function useServiceJobHistory(id: string | undefined) {
 
 export const useCreateServiceJob = () =>
   useInvalidatingMutation<[ServiceJobPayload], ServiceJob>(createServiceJob, JOB_KEYS);
+export const useMoveServiceJobItem = () =>
+  useInvalidatingMutation<[string, string, string], unknown>(moveServiceJobItem, JOB_KEYS);
+export const useReportServiceJobIncident = () =>
+  useInvalidatingMutation<[string, string, "lost" | "damaged", string?], unknown>(
+    reportServiceJobIncident,
+    JOB_KEYS,
+  );
 export const useStartServiceJob = () =>
   useInvalidatingMutation<[string], unknown>(startServiceJob, JOB_KEYS);
 export const useMarkServiceJobReady = () =>

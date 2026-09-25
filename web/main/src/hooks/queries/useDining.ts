@@ -18,6 +18,7 @@ import {
   listStations,
   listTables,
   markSessionBilled,
+  mergeSession,
   removeOrderItem,
   seatTable,
   transferSession,
@@ -82,6 +83,8 @@ export const useSeatTable = () =>
   );
 export const useTransferSession = () =>
   useInvalidatingMutation<[string, string], unknown>(transferSession, FLOOR_KEYS);
+export const useMergeSession = () =>
+  useInvalidatingMutation<[string, string], unknown>(mergeSession, FLOOR_KEYS);
 export const useMarkSessionBilled = () =>
   useInvalidatingMutation<[string], unknown>(markSessionBilled, FLOOR_KEYS);
 export const useCloseSession = () =>

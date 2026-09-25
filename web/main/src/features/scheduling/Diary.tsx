@@ -18,12 +18,14 @@ import {
   useResources,
 } from "@/hooks/queries/useScheduling";
 import { usePermission } from "@/hooks/usePermission";
+import { useSheetParam } from "@/hooks/useSheetParam";
 import { toast } from "@/hooks/useToast";
 import { canMarkNoShow, isLiveAppointment, nextAppointmentStep } from "@/lib/appointments";
 import { formatMoney } from "@/lib/format";
 import { useSessionStore } from "@/stores/sessionStore";
 import type { Appointment } from "@/types/api/scheduling";
 
+import { AppointmentSheet } from "./AppointmentSheet";
 import { BookAppointmentDialog } from "./BookAppointmentDialog";
 
 function timeOf(value: string): string {
@@ -43,6 +45,7 @@ export function Diary() {
   const currency = useSessionStore((state) => state.scope?.business?.currency) ?? "PKR";
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [booking, setBooking] = useState(false);
+  const sheet = useSheetParam();
 
   // The shop's day, not UTC's: local midnight to local midnight, sent as
   // instants so the backend compares like with like.
@@ -135,6 +138,7 @@ export function Diary() {
                     key={appointment.id}
                     appointment={appointment}
                     currency={currency}
+                    onOpen={() => sheet.open(appointment.id)}
                   />
                 ))
               )}
@@ -148,6 +152,7 @@ export function Diary() {
                   key={appointment.id}
                   appointment={appointment}
                   currency={currency}
+                  onOpen={() => sheet.open(appointment.id)}
                 />
               ))}
             </section>
@@ -156,6 +161,7 @@ export function Diary() {
       )}
 
       <BookAppointmentDialog open={booking} onOpenChange={setBooking} date={date} />
+      <AppointmentSheet appointmentId={sheet.value} onClose={sheet.close} />
     </div>
   );
 }
@@ -163,9 +169,11 @@ export function Diary() {
 function AppointmentCard({
   appointment,
   currency,
+  onOpen,
 }: {
   appointment: Appointment;
   currency: string;
+  onOpen: () => void;
 }) {
   const { can } = usePermission();
   const advance = useAdvanceAppointment();
@@ -186,7 +194,12 @@ function AppointmentCard({
   return (
     <div className="flex flex-col gap-2 rounded-lg border border-border p-2 text-sm">
       <div className="flex items-start justify-between gap-2">
-        <div>
+        <button
+          type="button"
+          onClick={onOpen}
+          className="rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label={`Open booking for ${appointment.who ?? "walk-in"} at ${timeOf(appointment.starts_at)}`}
+        >
           <p className="font-medium tabular-nums">
             {timeOf(appointment.starts_at)}–{timeOf(appointment.ends_at)}
           </p>
@@ -200,7 +213,7 @@ function AppointmentCard({
               )
               .join(", ")}
           </p>
-        </div>
+        </button>
         <StatusBadge status={appointment.status} />
       </div>
       {live && (

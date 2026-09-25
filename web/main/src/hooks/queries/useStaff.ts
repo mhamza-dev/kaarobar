@@ -2,8 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { toast } from "@/hooks/useToast";
 import {
+  deleteStaffGrant,
+  getStaff,
   listStaff,
+  putStaffGrant,
   removeStaff,
+  setStaffPin,
   setStaffBranches,
   setStaffRoles,
   setStaffStatus,
@@ -39,9 +43,31 @@ function useStaffMutation<TArgs extends unknown[], TResult>(
     mutationFn: (variables: TArgs) => mutationFn(...variables),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["staff", tenant] });
+      queryClient.invalidateQueries({ queryKey: ["staff-member"] });
     },
     onError: (error) => toast.mutationError(error),
   });
+}
+
+/** One staff member — unlike the list, this carries their permission overrides. */
+export function useStaffMember(id: string | null | undefined) {
+  return useQuery({
+    queryKey: ["staff-member", id],
+    queryFn: () => getStaff(id!),
+    enabled: !!id,
+  });
+}
+
+export function useSetStaffPin() {
+  return useStaffMutation(setStaffPin);
+}
+
+export function usePutStaffGrant() {
+  return useStaffMutation(putStaffGrant);
+}
+
+export function useDeleteStaffGrant() {
+  return useStaffMutation(deleteStaffGrant);
 }
 
 export function useUpdateStaff() {

@@ -29,6 +29,7 @@ import {
   useRemoveOrderItem,
   useStations,
   useTableSession,
+  useMergeSession,
   useTransferSession,
 } from "@/hooks/queries/useDining";
 import { usePermission } from "@/hooks/usePermission";
@@ -66,6 +67,7 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
   const bill = useMarkSessionBilled();
   const close = useCloseSession();
   const [moving, setMoving] = useState(false);
+  const [merging, setMerging] = useState(false);
 
   if (isLoading) return <Skeleton className="h-64 w-full" />;
   if (isError || !session) {
@@ -123,6 +125,13 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
       available: live,
       permitted: can("order:create"),
       onAction: () => setMoving(true),
+    },
+    {
+      key: "merge",
+      label: "Join another table",
+      available: live,
+      permitted: can("order:create"),
+      onAction: () => setMerging(true),
     },
     {
       key: "close",
@@ -268,6 +277,12 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
         sessionId={session.id}
         currentTableId={session.dining_table_id}
       />
+      <MergeTablesDialog
+        open={merging}
+        onOpenChange={setMerging}
+        sessionId={session.id}
+        tableName={session.dining_table?.name ?? "this table"}
+      />
     </div>
   );
 }
@@ -282,6 +297,67 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 /** Moving a party keeps their bill — only free tables are offered. */
+/**
+ * Two tables pushed together become one bill: this table's order moves
+ * onto the other party's session, and this sitting closes into it.
+ */
+function MergeTablesDialog({
+  open,
+  onOpenChange,
+  sessionId,
+  tableName,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  sessionId: string;
+  tableName: string;
+}) {
+  const router = useRouter();
+  const { data: entries } = useFloorPlan();
+  const merge = useMergeSession();
+  const others = (entries ?? []).filter(
+    (entry) => entry.occupied && entry.session && entry.session.id !== sessionId,
+  );
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Join {tableName} to another table</DialogTitle>
+          <DialogDescription>
+            One bill for both: what {tableName} has ordered moves onto the table you pick.
+          </DialogDescription>
+        </DialogHeader>
+        {others.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No other table is seated right now.</p>
+        ) : (
+          <div className="grid grid-cols-3 gap-2">
+            {others.map((entry) => (
+              <Button
+                key={entry.table.id}
+                variant="outline"
+                disabled={merge.isPending}
+                onClick={async () => {
+                  try {
+                    await merge.mutateAsync([sessionId, entry.session!.id]);
+                    toast.success(`Joined to ${entry.table.name}`);
+                    onOpenChange(false);
+                    router.replace(`/dining/sessions/${entry.session!.id}`);
+                  } catch {
+                    // Toasted by the hook.
+                  }
+                }}
+              >
+                {entry.table.name}
+              </Button>
+            ))}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function MoveTableDialog({
   open,
   onOpenChange,

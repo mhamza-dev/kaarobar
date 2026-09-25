@@ -17,12 +17,14 @@ test("add a payment gateway; its keys are stored but never shown", async ({ page
 
   // One provider of each kind per business: clear out an earlier run's.
   const earlier = page.getByRole("row").filter({ hasText: "JazzCash" });
-  // Let the list load before counting — an unloaded table has no rows.
-  await expect(page.getByText("Loading…")).toHaveCount(0);
+  // Let the list load before counting — an unloaded table has no rows, and
+  // it shows skeletons rather than any "Loading…" text to wait out.
+  await page.waitForLoadState("networkidle");
   while ((await earlier.count()) > 0) {
+    const before = await earlier.count();
     await earlier.first().getByRole("button", { name: "Remove" }).click();
     await page.getByRole("alertdialog").getByRole("button", { name: "Remove provider" }).click();
-    await expect(page.getByText("Provider removed").first()).toBeVisible();
+    await expect(earlier).toHaveCount(before - 1);
   }
 
   await page.getByRole("button", { name: "Add provider" }).click();

@@ -43,5 +43,17 @@ export const holdServiceJob = (id: string, reason: string) =>
 export const cancelServiceJob = (id: string, reason?: string) =>
   post<ServiceJob>(`/service-jobs/${id}/cancel`, { reason });
 
+/** Records where one item now sits — a job's items can end up on different racks. */
+export const moveServiceJobItem = (id: string, itemId: string, rackLocation: string) =>
+  post<unknown>(`/service-jobs/${id}/items/${itemId}/move`, { rack_location: rackLocation });
+
+/** Something was lost or damaged while the shop had it. */
+export const reportServiceJobIncident = (
+  id: string,
+  itemId: string,
+  status: "lost" | "damaged",
+  notes?: string,
+) => post<unknown>(`/service-jobs/${id}/items/${itemId}/incident`, { status, notes });
+
 export const addServiceJobNote = (id: string, summary: string) =>
   post<JobEvent>(`/service-jobs/${id}/notes`, { summary });

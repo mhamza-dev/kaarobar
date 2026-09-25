@@ -20,12 +20,18 @@ import {
 } from "@/components/ui/dialog";
 import { useCustomerSearch } from "@/hooks/queries/useCustomers";
 import { useProductsList } from "@/hooks/queries/useProducts";
-import { useAvailability, useBookAppointment, useResources } from "@/hooks/queries/useScheduling";
+import {
+  useAvailability,
+  useBookAppointment,
+  useResources,
+  useSeatFromQueue,
+} from "@/hooks/queries/useScheduling";
 import { useDebounce } from "@/hooks/useDebounce";
 import { toast } from "@/hooks/useToast";
 import { applyApiFieldErrors } from "@/lib/api/formErrors";
 import { formatMoney } from "@/lib/format";
 import { useSessionStore } from "@/stores/sessionStore";
+import type { QueueEntry } from "@/types/api/scheduling";
 
 const schema = Yup.object({
   variant_id: Yup.string().required("Pick a service"),
@@ -50,13 +56,17 @@ export function BookAppointmentDialog({
   open,
   onOpenChange,
   date,
+  fromQueue,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   date: string;
+  /** Seating someone off the walk-in queue: who they are is already known. */
+  fromQueue?: QueueEntry | null;
 }) {
   const currency = useSessionStore((state) => state.scope?.business?.currency) ?? "PKR";
   const book = useBookAppointment();
+  const seat = useSeatFromQueue();
   const { data: resources } = useResources();
   const { rows: services } = useProductsList({ kind: "service", limit: 100 });
   const [customerQuery, setCustomerQuery] = useState("");
@@ -81,15 +91,17 @@ export function BookAppointmentDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>New booking</DialogTitle>
+          <DialogTitle>
+            {fromQueue ? `Seat ${fromQueue.name ?? "walk-in"}` : "New booking"}
+          </DialogTitle>
         </DialogHeader>
         <Formik
           initialValues={{
-            customer_id: "",
-            walk_in_name: "",
-            walk_in_phone: "",
-            variant_id: "",
-            resource_id: "",
+            customer_id: fromQueue?.customer_id ?? "",
+            walk_in_name: fromQueue?.name ?? "",
+            walk_in_phone: fromQueue?.phone ?? "",
+            variant_id: fromQueue?.variant_id ?? "",
+            resource_id: fromQueue?.requested_resource_id ?? "",
             date,
             starts_at: "",
             notes: "",
@@ -98,23 +110,26 @@ export function BookAppointmentDialog({
           validationSchema={schema}
           onSubmit={async (values, helpers) => {
             try {
-              await book.mutateAsync([
-                {
-                  customer_id: values.customer_id || undefined,
-                  walk_in_name: values.customer_id ? undefined : values.walk_in_name.trim(),
-                  walk_in_phone: values.customer_id ? undefined : values.walk_in_phone || undefined,
-                  source: "staff",
-                  notes: values.notes || undefined,
-                  services: [
-                    {
-                      variant_id: values.variant_id,
-                      resource_id: values.resource_id,
-                      starts_at: values.starts_at,
-                    },
-                  ],
-                },
-              ]);
-              toast.success("Visit booked");
+              const payload = {
+                customer_id: values.customer_id || undefined,
+                walk_in_name: values.customer_id ? undefined : values.walk_in_name.trim(),
+                walk_in_phone: values.customer_id ? undefined : values.walk_in_phone || undefined,
+                notes: values.notes || undefined,
+                services: [
+                  {
+                    variant_id: values.variant_id,
+                    resource_id: values.resource_id,
+                    starts_at: values.starts_at,
+                  },
+                ],
+              };
+              if (fromQueue) {
+                await seat.mutateAsync([fromQueue.id, payload]);
+                toast.success(`${fromQueue.name ?? "Walk-in"} seated`);
+              } else {
+                await book.mutateAsync([{ ...payload, source: "staff" }]);
+                toast.success("Visit booked");
+              }
               helpers.resetForm();
               onOpenChange(false);
             } catch (error) {

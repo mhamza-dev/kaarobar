@@ -1,43 +1,25 @@
 "use client";
 
-import { MoreHorizontal } from "lucide-react";
-import { useState } from "react";
-
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useBranchesList } from "@/hooks/queries/useBranches";
-import { useSetStaffStatus, useStaffList } from "@/hooks/queries/useStaff";
-import { usePermission } from "@/hooks/usePermission";
-import { toast } from "@/hooks/useToast";
+import { useStaffList } from "@/hooks/queries/useStaff";
+import { useSheetParam } from "@/hooks/useSheetParam";
 import type { StaffMember } from "@/types/api/staffing";
 
-import { StaffBranchesDialog } from "./StaffBranchesDialog";
-import { StaffRolesDialog } from "./StaffRolesDialog";
+import { StaffSheet } from "./StaffSheet";
 
-/** The plan's worked example: DataTable + the four-layer services/hooks pattern. */
+/**
+ * The plan's worked example: DataTable + the four-layer services/hooks
+ * pattern. Everything done *to* a member of staff — roles, branches, PIN,
+ * suspending — is in their sheet.
+ */
 export function StaffTable() {
   const { data, isLoading, error, refetch } = useStaffList();
   const { data: branches } = useBranchesList();
-  const setStatus = useSetStaffStatus();
-  const { can } = usePermission();
+  const sheet = useSheetParam();
 
-  const [rolesFor, setRolesFor] = useState<StaffMember | null>(null);
-  const [branchesFor, setBranchesFor] = useState<StaffMember | null>(null);
-
-  // The backend splits staff administration across separate keys
-  // (AccessControl.Permissions) — a supervisor may assign roles without
-  // being able to deactivate anyone.
-  const canAssign = can("staff:assign_roles");
-  const canDeactivate = can("staff:deactivate");
-  const showActions = canAssign || canDeactivate;
   const branchName = (id: string) => branches?.find((branch) => branch.id === id)?.name ?? id;
 
   const columns: DataTableColumn<StaffMember>[] = [
@@ -88,49 +70,6 @@ export function StaffTable() {
       header: "Status",
       render: (staff) => <StatusBadge status={staff.status} />,
     },
-    {
-      key: "actions",
-      header: "",
-      width: "w-12",
-      align: "end",
-      render: (staff) =>
-        showActions ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={`Actions for ${staff.user?.name ?? staff.user?.email}`}
-                >
-                  <MoreHorizontal className="size-4" />
-                </Button>
-              }
-            />
-            <DropdownMenuContent align="end">
-              {canAssign && (
-                <DropdownMenuItem onClick={() => setRolesFor(staff)}>Assign roles</DropdownMenuItem>
-              )}
-              {canAssign && (
-                <DropdownMenuItem onClick={() => setBranchesFor(staff)}>
-                  Assign branches
-                </DropdownMenuItem>
-              )}
-              {canDeactivate && (
-                <DropdownMenuItem
-                  onClick={async () => {
-                    const next = staff.status === "active" ? "suspended" : "active";
-                    await setStatus.mutateAsync([staff.id, next]);
-                    toast.success(next === "active" ? "Staff reactivated" : "Staff suspended");
-                  }}
-                >
-                  {staff.status === "active" ? "Suspend" : "Reactivate"}
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : null,
-    },
   ];
 
   return (
@@ -139,6 +78,7 @@ export function StaffTable() {
         columns={columns}
         rows={data ?? []}
         rowKey={(staff) => staff.id}
+        onRowClick={(staff) => sheet.open(staff.id)}
         loading={isLoading}
         error={error ? { message: error.message } : null}
         onRetry={() => refetch()}
@@ -173,11 +113,7 @@ export function StaffTable() {
         ]}
       />
 
-      <StaffRolesDialog staff={rolesFor} onOpenChange={(open) => !open && setRolesFor(null)} />
-      <StaffBranchesDialog
-        staff={branchesFor}
-        onOpenChange={(open) => !open && setBranchesFor(null)}
-      />
+      <StaffSheet staffId={sheet.value} onClose={sheet.close} />
     </>
   );
 }

@@ -73,6 +73,10 @@ export const joinQueue = (payload: {
   notes?: string;
 }) => post<QueueEntry>("/queue", payload);
 
+/** Seats someone from the bench: their wait becomes a booking, and they leave the queue. */
+export const seatFromQueue = (id: string, payload: Partial<BookAppointmentPayload>) =>
+  post<Appointment>(`/queue/${id}/seat`, payload);
+
 export const callFromQueue = (id: string) => post<QueueEntry>(`/queue/${id}/call`);
 
 export const leaveQueue = (id: string, status: "left" | "no_show" = "left") =>
