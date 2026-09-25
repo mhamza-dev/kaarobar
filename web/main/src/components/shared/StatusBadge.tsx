@@ -85,7 +85,8 @@ const STATUS_TONES: Record<string, StatusTone> = {
 };
 
 const TONE_CLASSES: Record<StatusTone, string> = {
-  neutral: "bg-muted text-muted-foreground",
+  // Muted-foreground on muted is 4.3:1 at badge size — just under AA.
+  neutral: "bg-muted text-foreground/75",
   success: "bg-success-soft text-success",
   warning: "bg-warning-soft text-warning",
   danger: "bg-danger-soft text-destructive",
