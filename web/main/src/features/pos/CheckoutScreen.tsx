@@ -240,7 +240,7 @@ export function CheckoutScreen({ orderId }: { orderId?: string } = {}) {
               <Row label="Tax" value={formatMoney(order.tax_total, currency)} />
             </div>
           ) : quoteError ? (
-            <p className="rounded-lg border border-destructive/40 bg-danger-soft p-3 text-sm text-destructive">
+            <p className="rounded-lg border border-destructive/40 bg-danger-soft p-3 text-sm text-danger">
               Couldn&apos;t price this basket: {quoteError.message}
             </p>
           ) : (

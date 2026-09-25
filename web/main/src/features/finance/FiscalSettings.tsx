@@ -341,7 +341,7 @@ function SubmissionsTable({ canRetry }: { canRetry: boolean }) {
           <div className="flex flex-col gap-4">
             {viewing.last_error && (
               // The authority's own words, in full: they name the field to fix.
-              <div className="rounded-lg bg-danger-soft p-3 text-sm text-destructive">
+              <div className="rounded-lg bg-danger-soft p-3 text-sm text-danger">
                 {viewing.error_code && <code className="font-semibold">{viewing.error_code}</code>}
                 <p className="whitespace-pre-line">{viewing.last_error}</p>
               </div>

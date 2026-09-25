@@ -316,7 +316,7 @@ function InvoiceBody({ invoice, currency }: { invoice: BillingInvoice; currency:
   return (
     <div className="flex flex-col gap-4">
       {invoice.last_error && (
-        <p className="rounded-lg bg-danger-soft p-3 text-sm text-destructive">
+        <p className="rounded-lg bg-danger-soft p-3 text-sm text-danger">
           Payment failed: {invoice.last_error}
         </p>
       )}

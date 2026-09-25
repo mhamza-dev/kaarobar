@@ -43,7 +43,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
     return (
       <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
-        <div className="flex size-10 items-center justify-center rounded-full bg-danger-soft text-destructive">
+        <div className="flex size-10 items-center justify-center rounded-full bg-danger-soft text-danger">
           <AlertTriangle className="size-5" />
         </div>
         <div>

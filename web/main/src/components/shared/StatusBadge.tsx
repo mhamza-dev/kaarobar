@@ -89,7 +89,7 @@ const TONE_CLASSES: Record<StatusTone, string> = {
   neutral: "bg-muted text-foreground/75",
   success: "bg-success-soft text-success",
   warning: "bg-warning-soft text-warning",
-  danger: "bg-danger-soft text-destructive",
+  danger: "bg-danger-soft text-danger",
   // Foreground ink on the brand tint, not brand-coloured text: the brand
   // is set per business at runtime, so its contrast can't be guaranteed.
   info: "bg-brand-tint text-foreground",

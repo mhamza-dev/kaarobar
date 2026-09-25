@@ -37,7 +37,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--success-text": "var(--success)",
           "--error-bg": "var(--danger-soft)",
           "--error-border": "var(--danger-soft)",
-          "--error-text": "var(--destructive)",
+          "--error-text": "var(--danger)",
           "--warning-bg": "var(--warning-soft)",
           "--warning-border": "var(--warning-soft)",
           "--warning-text": "var(--warning)",

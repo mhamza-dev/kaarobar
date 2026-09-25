@@ -117,7 +117,7 @@ export function PaymentSheet({
         {intent && (
           <div className="flex flex-col gap-4">
             {intent.failure_message && (
-              <p className="rounded-lg bg-danger-soft p-3 text-sm text-destructive">
+              <p className="rounded-lg bg-danger-soft p-3 text-sm text-danger">
                 {intent.failure_message}
               </p>
             )}
