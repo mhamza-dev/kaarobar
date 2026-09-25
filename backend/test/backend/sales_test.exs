@@ -307,6 +307,53 @@ defmodule Kaarobar.SalesTest do
       assert "is required when rejecting" in errors_on(changeset).review_note
     end
 
+    test "an approved request pays out once, and is then completed", %{
+      scope: scope,
+      variant: variant,
+      register: register
+    } do
+      sale =
+        sale_fixture(scope, variant, register_id: register.id, quantity: "3", amount: "300.00")
+
+      [item] = sale.items
+      line = %{"sale_item_id" => item.id, "quantity" => "1"}
+
+      {:ok, request} =
+        Sales.create_refund_request(scope, sale, %{"reason" => "Faulty", "items" => [line]})
+
+      {:ok, approved} = Sales.approve_refund_request(scope, request)
+
+      params = %{"refund_request_id" => approved.id, "items" => [line]}
+      {:ok, record} = Sales.process_return(scope, sale, params)
+      assert record.refund_request_id == approved.id
+
+      {:ok, completed} = Sales.fetch_refund_request(scope, approved.id)
+      assert completed.status == "completed"
+
+      # Two more are still refundable, but not on this approval.
+      {:ok, sale} = Sales.fetch_sale(scope, sale.id)
+      assert {:error, :refund_not_approved} = Sales.process_return(scope, sale, params)
+    end
+
+    test "a return cannot be paid against a request that isn't approved", %{
+      scope: scope,
+      variant: variant,
+      register: register
+    } do
+      sale = sale_fixture(scope, variant, register_id: register.id)
+      [item] = sale.items
+      line = %{"sale_item_id" => item.id, "quantity" => "1"}
+
+      {:ok, pending} =
+        Sales.create_refund_request(scope, sale, %{"reason" => "Faulty", "items" => [line]})
+
+      assert {:error, :refund_not_approved} =
+               Sales.process_return(scope, sale, %{
+                 "refund_request_id" => pending.id,
+                 "items" => [line]
+               })
+    end
+
     test "a decided request cannot be decided again", %{
       scope: scope,
       variant: variant,

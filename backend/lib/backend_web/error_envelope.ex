@@ -200,6 +200,14 @@ defmodule KaarobarWeb.ErrorEnvelope do
   def for_reason(:order_closed),
     do: {:conflict, build("order_closed", "This order is no longer open")}
 
+  def for_reason(:refund_not_approved),
+    do:
+      {:conflict,
+       build(
+         "refund_not_approved",
+         "This refund request isn't approved, or has already been paid out"
+       )}
+
   def for_reason(:exceeds_refundable),
     do:
       {:unprocessable_entity,

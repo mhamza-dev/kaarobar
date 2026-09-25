@@ -355,6 +355,8 @@ defmodule Kaarobar.Sales do
       Omitted, it is allocated across the original tenders in the order they
       were taken.
     * `"refund_request_id"` — the approval this return is being paid against.
+      It has to be approved and for this sale, and paying it marks it
+      completed, so one approval pays out once.
     * `"shift_id"` — the drawer the cash comes out of.
 
   Every figure is prorated from the sale line rather than recomputed. Returning
@@ -378,7 +380,8 @@ defmodule Kaarobar.Sales do
     Repo.transaction(fn ->
       loaded = Repo.preload(sale, [:payments, items: [variant: :product]])
 
-      with :ok <- validate_return_items(scope, loaded, items),
+      with {:ok, request} <- approved_request(scope, loaded, Map.get(params, "refund_request_id")),
+           :ok <- validate_return_items(scope, loaded, items),
            {:ok, lines} <- build_return_lines(loaded, items),
            {:ok, number} <- Sequences.next(scope, "sale_return"),
            {:ok, record} <- insert_return(scope, loaded, params, lines, number),
@@ -388,7 +391,8 @@ defmodule Kaarobar.Sales do
            {:ok, tenders} <- refund_money(scope, loaded, record, params),
            :ok <- refund_credit(scope, loaded, record, tenders),
            {:ok, _sale} <- record_sale_refund(loaded, record),
-           {:ok, _shift} <- Registers.apply_return(record.shift_id, record.total, tenders) do
+           {:ok, _shift} <- Registers.apply_return(record.shift_id, record.total, tenders),
+           :ok <- complete_request(request) do
         Audit.log(scope, "sale.returned", record,
           entity_type: "sale_return",
           label: record.number,
@@ -400,6 +404,30 @@ defmodule Kaarobar.Sales do
         {:error, failure} -> Repo.rollback(failure)
       end
     end)
+  end
+
+  # A return paid against a request is paid against *that approval*: approved,
+  # not yet paid, and for this sale. Without the check an approved request
+  # could be paid out again and again, each time against whatever on the sale
+  # was still refundable.
+  defp approved_request(_scope, _sale, nil), do: {:ok, nil}
+
+  defp approved_request(%Scope{} = scope, %Sale{} = sale, request_id) do
+    with {:ok, request} <- fetch_refund_request(scope, request_id) do
+      cond do
+        request.sale_id != sale.id -> {:error, :not_found}
+        RefundRequest.approved?(request) -> {:ok, request}
+        true -> {:error, :refund_not_approved}
+      end
+    end
+  end
+
+  defp complete_request(nil), do: :ok
+
+  defp complete_request(%RefundRequest{} = request) do
+    with {:ok, _completed} <- request |> RefundRequest.complete_changeset() |> Repo.update() do
+      :ok
+    end
   end
 
   # Nothing is prorated until it is known the quantities are possible. A return
