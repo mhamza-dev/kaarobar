@@ -130,7 +130,8 @@ defmodule KaarobarWeb.VerticalSerializers do
       variant_id: rule.variant_id,
       category_id: rule.category_id,
       basis: rule.basis,
-      rate: H.money(rule.rate),
+      # A fraction to full precision: money rounding would show 7.5% as 8%.
+      rate: H.quantity(rule.rate),
       flat_amount: H.money(rule.flat_amount),
       min_sales_amount: H.money(rule.min_sales_amount),
       priority: rule.priority,
@@ -147,7 +148,7 @@ defmodule KaarobarWeb.VerticalSerializers do
       sale_item_id: entry.sale_item_id,
       commission_rule_id: entry.commission_rule_id,
       basis: entry.basis_snapshot,
-      rate: H.money(entry.rate_snapshot),
+      rate: H.quantity(entry.rate_snapshot),
       base_amount: H.money(entry.base_amount),
       amount: H.money(entry.amount),
       status: entry.status,
