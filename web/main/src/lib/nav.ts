@@ -1,6 +1,9 @@
 import {
   ArrowLeftRight,
   BadgeDollarSign,
+  Bike,
+  Coins,
+  Timer,
   Wallet2,
   Percent,
   SlidersHorizontal,
@@ -100,6 +103,27 @@ const NAV_GROUPS: NavGroup[] = [
         href: "/expenses",
         icon: Wallet2,
         anyPermission: ["expense:view"],
+      },
+      {
+        label: "Deliveries",
+        href: "/deliveries",
+        icon: Bike,
+        anyPermission: ["delivery:view"],
+        requiresModule: "delivery",
+      },
+      {
+        label: "Commissions",
+        href: "/commissions",
+        icon: Coins,
+        anyPermission: ["commission:view"],
+        requiresModule: "commissions",
+      },
+      {
+        label: "Time",
+        href: "/time",
+        icon: Timer,
+        anyPermission: ["time_entry:view"],
+        requiresModule: "time_entries",
       },
       {
         label: "Refunds",

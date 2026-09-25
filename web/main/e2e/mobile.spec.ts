@@ -56,8 +56,8 @@ const CORE_ROUTES = [
 ];
 
 const VERTICAL_ROUTES: Array<[business: string, routes: string[]]> = [
-  ["Karahi Corner", ["/dining", "/dining/tables", "/kitchen", "/kitchen/stations"]],
-  ["Studio Noor", ["/appointments", "/appointments/resources", "/queue"]],
+  ["Karahi Corner", ["/dining", "/dining/tables", "/kitchen", "/kitchen/stations", "/deliveries"]],
+  ["Studio Noor", ["/appointments", "/appointments/resources", "/queue", "/commissions"]],
   ["Crisp Laundry", ["/service-jobs", "/service-jobs/new"]],
 ];
 
