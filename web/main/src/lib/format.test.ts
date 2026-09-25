@@ -17,6 +17,11 @@ describe("formatMoney", () => {
     expect(formatMoney("1850.00", "PKR")).toContain("1,850");
   });
 
+  it("keeps paisa rather than rounding them away", () => {
+    expect(formatMoney("7500.50", "PKR")).toContain("7,500.50");
+    expect(formatMoney("7500.00", "PKR")).not.toContain(".");
+  });
+
   it("shows a dash rather than NaN for a missing value", () => {
     expect(formatMoney(null)).toBe("—");
     expect(formatMoney(undefined)).toBe("—");

@@ -22,12 +22,18 @@ export function formatMoney(
   if (Number.isNaN(amount)) return "—";
   if (amount === 0 && options.showZero === false) return "—";
 
+  // Whole amounts keep the currency's own style (Rs 1,850); anything with a
+  // fractional part shows it to two places. The currency default alone —
+  // no decimals for PKR — would round Rs 7,500.50 to Rs 7,501 on a bill.
+  const fractional = !Number.isInteger(Math.round(amount * 100) / 100);
+
   return new Intl.NumberFormat(undefined, {
     style: "currency",
     currency,
-    // Two decimals is right for the currencies in play; a zero-decimal
-    // currency would render "PKR 1,850.00" as "¥1,850" on its own.
     currencyDisplay: "narrowSymbol",
+    // Set both ways: engines disagree on PKR's default digits.
+    minimumFractionDigits: fractional ? 2 : 0,
+    maximumFractionDigits: fractional ? 2 : 0,
   }).format(amount);
 }
 
