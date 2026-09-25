@@ -15,9 +15,11 @@ import type {
   CustomerPayment,
   CustomerStatement,
   FollowUp,
+  FollowUpUpdate,
   LoyaltyAccount,
   LoyaltyProgram,
   LoyaltyTransaction,
+  PaymentAllocation,
   StoreCredit,
 } from "@/types/api/crm";
 
@@ -265,6 +267,31 @@ export async function createFollowUp(
 }
 
 /** The outcome is required — "done" with nothing said helps nobody who rings next. */
+export async function getFollowUp(id: string): Promise<FollowUp> {
+  const response = await apiClient.get<ApiEnvelope<FollowUp>>(`/follow-ups/${id}`);
+  return response.data.data;
+}
+
+export async function updateFollowUp(id: string, payload: FollowUpUpdate): Promise<FollowUp> {
+  const response = await apiClient.patch<ApiEnvelope<FollowUp>>(`/follow-ups/${id}`, payload);
+  return response.data.data;
+}
+
+/**
+ * Applies a payment on account to particular invoices — `allocations` maps
+ * sale ids to amounts — or, with `auto`, to the oldest first.
+ */
+export async function allocateCustomerPayment(
+  paymentId: string,
+  payload: { allocations: Record<string, string> } | { auto: true },
+): Promise<PaymentAllocation[]> {
+  const response = await apiClient.post<ApiEnvelope<PaymentAllocation[]>>(
+    `/credit/payments/${paymentId}/allocate`,
+    payload,
+  );
+  return response.data.data;
+}
+
 export async function completeFollowUp(id: string, outcome: string): Promise<FollowUp> {
   const response = await apiClient.post<ApiEnvelope<FollowUp>>(`/follow-ups/${id}/complete`, {
     outcome,

@@ -13,6 +13,7 @@ import {
   useOpenInvoices,
   useStoreCredit,
 } from "@/hooks/queries/useCustomers";
+import { usePermission } from "@/hooks/usePermission";
 import { formatDate, formatDateTime, formatMoney, humanize } from "@/lib/format";
 import { getStatementHtml } from "@/services/reports";
 import type {
@@ -21,6 +22,9 @@ import type {
   CustomerPayment,
   StoreCredit,
 } from "@/types/api/crm";
+
+import { AllocatePaymentDialog } from "./AllocatePaymentDialog";
+import { IssueStoreCreditDialog, StoreCreditSheet } from "./StoreCredit";
 
 /**
  * A customer's money: what is still unpaid, every entry that moved the
@@ -35,6 +39,9 @@ export function AccountTab({ customerId, currency }: { customerId: string; curre
   const payments = useCustomerPayments(customerId);
   const storeCredit = useStoreCredit(customerId);
   const [showingStatement, setShowingStatement] = useState(false);
+  const [allocating, setAllocating] = useState<CustomerPayment | null>(null);
+  const [viewingCredit, setViewingCredit] = useState<string | null>(null);
+  const { can } = usePermission();
 
   const invoiceColumns: DataTableColumn<CreditInvoice>[] = [
     {
@@ -192,6 +199,7 @@ export function AccountTab({ customerId, currency }: { customerId: string; curre
           columns={paymentColumns}
           rows={payments.data ?? []}
           rowKey={(payment) => payment.id}
+          onRowClick={can("credit:allocate") ? setAllocating : undefined}
           loading={payments.isLoading}
           error={payments.error ? { message: payments.error.message } : null}
           onRetry={() => payments.refetch()}
@@ -207,15 +215,29 @@ export function AccountTab({ customerId, currency }: { customerId: string; curre
         />
       </Section>
 
-      {(storeCredit.data?.credits.length ?? 0) > 0 && (
+      {(can("store_credit:issue") || (storeCredit.data?.credits.length ?? 0) > 0) && (
         <Section
           title="Store credit"
           aside={`${formatMoney(storeCredit.data?.balance, currency)} to spend`}
+          action={
+            can("store_credit:issue") && (
+              <IssueStoreCreditDialog customerId={customerId} currency={currency} />
+            )
+          }
         >
           <DataTable
             columns={storeCreditColumns}
             rows={storeCredit.data?.credits ?? []}
             rowKey={(credit) => credit.id}
+            onRowClick={(credit) => setViewingCredit(credit.id)}
+            loading={storeCredit.isLoading}
+            error={storeCredit.error ? { message: storeCredit.error.message } : null}
+            onRetry={() => storeCredit.refetch()}
+            empty={
+              <p className="p-6 text-center text-sm text-muted-foreground">
+                No store credit to spend.
+              </p>
+            }
             mobileCardTitle={(credit) => credit.number}
             mobileCardFields={[
               {
@@ -227,6 +249,18 @@ export function AccountTab({ customerId, currency }: { customerId: string; curre
           />
         </Section>
       )}
+
+      <AllocatePaymentDialog
+        payment={allocating}
+        invoices={invoices.data ?? []}
+        currency={currency}
+        onOpenChange={(open) => !open && setAllocating(null)}
+      />
+      <StoreCreditSheet
+        creditId={viewingCredit}
+        onClose={() => setViewingCredit(null)}
+        currency={currency}
+      />
     </div>
   );
 }
@@ -234,17 +268,22 @@ export function AccountTab({ customerId, currency }: { customerId: string; curre
 function Section({
   title,
   aside,
+  action,
   children,
 }: {
   title: string;
   aside?: string;
+  action?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <section className="flex flex-col gap-2">
-      <div className="flex items-baseline justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-semibold text-foreground">{title}</h2>
-        {aside && <span className="text-sm text-muted-foreground">{aside}</span>}
+        <div className="flex items-center gap-3">
+          {aside && <span className="text-sm text-muted-foreground">{aside}</span>}
+          {action}
+        </div>
       </div>
       {children}
     </section>

@@ -281,3 +281,88 @@ export type CustomerListParams = {
   credit_allowed?: boolean;
   owing?: boolean;
 };
+
+export type StoreCreditTransaction = {
+  id: string;
+  kind: string;
+  /** Signed: issuing adds, spending takes away. */
+  amount: string;
+  balance_after: string;
+  reference_type: string | null;
+  reference_id: string | null;
+  note: string | null;
+  occurred_at: string;
+};
+
+export type StoreCreditHistory = {
+  credit: StoreCredit;
+  transactions: StoreCreditTransaction[];
+};
+
+export type StoreCreditPayload = {
+  amount: string;
+  reason: string;
+  expires_on?: string | null;
+};
+
+/**
+ * A gift card, as every response but one returns it: masked. The plaintext
+ * code comes back only from issuing (`IssuedGiftCard`) — the backend never
+ * stores it — so it has to be shown then or it is gone.
+ */
+export type GiftCard = {
+  id: string;
+  masked_code: string;
+  currency: string;
+  issued_amount: string;
+  balance: string;
+  status: "inactive" | "active" | "depleted" | "expired" | "voided" | string;
+  customer_id: string | null;
+  recipient_name: string | null;
+  message: string | null;
+  issued_at: string | null;
+  expires_on: string | null;
+  activated_at: string | null;
+  spendable: boolean;
+};
+
+export type IssuedGiftCard = GiftCard & { code: string };
+
+export type GiftCardTransaction = {
+  id: string;
+  kind: string;
+  amount: string;
+  balance_after: string;
+  reference_type: string | null;
+  reference_id: string | null;
+  branch_id: string | null;
+  note: string | null;
+  occurred_at: string;
+};
+
+export type GiftCardHistory = { card: GiftCard; transactions: GiftCardTransaction[] };
+
+export type GiftCardPayload = {
+  amount: string;
+  recipient_name?: string | null;
+  message?: string | null;
+  customer_id?: string | null;
+  expires_on?: string | null;
+};
+
+/** A customer payment applied to one of their invoices. */
+export type PaymentAllocation = {
+  id: string;
+  customer_payment_id: string;
+  sale_id: string;
+  amount: string;
+  note: string | null;
+  payment?: CustomerPayment | null;
+};
+
+export type FollowUpUpdate = {
+  title?: string;
+  body?: string | null;
+  kind?: string;
+  due_on?: string;
+};

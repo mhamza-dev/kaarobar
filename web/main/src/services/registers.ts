@@ -94,9 +94,7 @@ export async function recordCashMovement(
 
 /** The shift's running totals against the same figures recomputed from its sales. */
 export async function getShiftReconciliation(id: string): Promise<ShiftReconciliation> {
-  const response = await apiClient.get<ApiEnvelope<ShiftReconciliation>>(
-    `/shifts/${id}/reconcile`,
-  );
+  const response = await apiClient.get<ApiEnvelope<ShiftReconciliation>>(`/shifts/${id}/reconcile`);
   return response.data.data;
 }
 

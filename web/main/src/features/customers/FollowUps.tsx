@@ -23,18 +23,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DescriptionList } from "@/components/shared/DescriptionList";
+import { DetailSheet } from "@/components/shared/DetailSheet";
 import {
   useCancelFollowUp,
   useCompleteFollowUp,
   useCreateFollowUp,
   useCustomerSearch,
+  useFollowUp,
   useFollowUps,
+  useUpdateFollowUp,
 } from "@/hooks/queries/useCustomers";
+import { useSheetParam } from "@/hooks/useSheetParam";
 import { useDebounce } from "@/hooks/useDebounce";
 import { usePermission } from "@/hooks/usePermission";
 import { toast } from "@/hooks/useToast";
 import { applyApiFieldErrors } from "@/lib/api/formErrors";
-import { formatDate, humanize } from "@/lib/format";
+import { formatDate, formatDateTime, humanize } from "@/lib/format";
 import { FOLLOW_UP_KINDS, type FollowUp } from "@/types/api/crm";
 
 /**
@@ -58,6 +63,7 @@ export function FollowUpsList({
   const [dueOnly, setDueOnly] = useState(false);
   const [creating, setCreating] = useState(false);
   const [completing, setCompleting] = useState<FollowUp | null>(null);
+  const sheet = useSheetParam();
 
   const today = format(new Date(), "yyyy-MM-dd");
   const { data, isLoading, error, refetch } = useFollowUps({
@@ -68,7 +74,6 @@ export function FollowUpsList({
     // `due_on <= due_before` on the backend — exactly "due by today".
     due_before: dueOnly ? today : undefined,
   });
-  const cancel = useCancelFollowUp();
 
   const columns: DataTableColumn<FollowUp>[] = [
     {
@@ -120,35 +125,6 @@ export function FollowUpsList({
         <StatusBadge status={task.overdue && task.status === "open" ? "overdue" : task.status} />
       ),
     },
-    {
-      key: "actions",
-      header: "",
-      align: "end",
-      width: "w-40",
-      render: (task) =>
-        canManage && task.status === "open" ? (
-          <div className="flex justify-end gap-1">
-            <Button variant="ghost" size="sm" onClick={() => setCompleting(task)}>
-              Done
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={cancel.isPending}
-              onClick={async () => {
-                try {
-                  await cancel.mutateAsync([task.id]);
-                  toast.success("Follow-up cancelled");
-                } catch {
-                  // Toasted by the hook.
-                }
-              }}
-            >
-              Cancel
-            </Button>
-          </div>
-        ) : null,
-    },
   ];
 
   return (
@@ -189,6 +165,7 @@ export function FollowUpsList({
         columns={columns}
         rows={data ?? []}
         rowKey={(task) => task.id}
+        onRowClick={(task) => sheet.open(task.id)}
         loading={isLoading}
         error={error ? { message: error.message } : null}
         onRetry={() => refetch()}
@@ -198,17 +175,16 @@ export function FollowUpsList({
         mobileCardTitle={(task) => task.title}
         mobileCardSubtitle={(task) => task.customer?.name ?? humanize(task.kind)}
         mobileCardFields={[{ key: "due", label: "Due", render: (task) => formatDate(task.due_on) }]}
-        mobileCardActions={(task) =>
-          canManage && task.status === "open" ? (
-            <Button variant="outline" size="sm" onClick={() => setCompleting(task)}>
-              Done
-            </Button>
-          ) : null
-        }
       />
 
       <FollowUpDialog open={creating} onOpenChange={setCreating} customerId={customerId} />
       <CompleteFollowUpDialog task={completing} onOpenChange={() => setCompleting(null)} />
+      <FollowUpSheet
+        taskId={sheet.value}
+        onClose={sheet.close}
+        onComplete={setCompleting}
+        showCustomer={showCustomer}
+      />
     </>
   );
 }
@@ -380,5 +356,164 @@ function CompleteFollowUpDialog({
         </Formik>
       </DialogContent>
     </Dialog>
+  );
+}
+
+const editSchema = Yup.object({
+  title: Yup.string().trim().required("Say what needs doing"),
+  due_on: Yup.string().required("Pick a due date"),
+});
+
+/**
+ * One follow-up: the whole note, what came of it, and — while it's still
+ * open — rescheduling or rewording it, marking it done or dropping it.
+ */
+function FollowUpSheet({
+  taskId,
+  onClose,
+  onComplete,
+  showCustomer,
+}: {
+  taskId: string | null;
+  onClose: () => void;
+  onComplete: (task: FollowUp) => void;
+  showCustomer: boolean;
+}) {
+  const { can } = usePermission();
+  const { data: task, isLoading, error, refetch } = useFollowUp(taskId);
+  const update = useUpdateFollowUp();
+  const cancel = useCancelFollowUp();
+  const editable = !!task && task.status === "open" && can("follow_up:manage");
+
+  return (
+    <DetailSheet
+      open={!!taskId}
+      onOpenChange={(open) => !open && onClose()}
+      eyebrow={humanize(task?.kind ?? "Follow-up")}
+      title={task?.title}
+      status={
+        task && (
+          <StatusBadge status={task.overdue && task.status === "open" ? "overdue" : task.status} />
+        )
+      }
+      loading={isLoading}
+      error={error}
+      onRetry={() => refetch()}
+      what="this follow-up"
+      actions={
+        editable && (
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" onClick={() => onComplete(task)}>
+              Mark done
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={cancel.isPending}
+              onClick={async () => {
+                try {
+                  await cancel.mutateAsync([task.id]);
+                  toast.success("Follow-up cancelled");
+                } catch {
+                  // Toasted by the hook.
+                }
+              }}
+            >
+              Cancel it
+            </Button>
+          </div>
+        )
+      }
+    >
+      {task && (
+        <div className="flex flex-col gap-4">
+          <DescriptionList
+            items={[
+              {
+                label: "Customer",
+                hidden: !showCustomer && !task.customer,
+                value: task.customer ? (
+                  <Link
+                    href={`/customers/${task.customer_id}`}
+                    className="text-brand-primary hover:underline"
+                  >
+                    {task.customer.name}
+                  </Link>
+                ) : null,
+              },
+              { label: "Due", value: formatDate(task.due_on) },
+              {
+                label: "Done",
+                value: formatDateTime(task.completed_at),
+                hidden: !task.completed_at,
+              },
+              { label: "Outcome", value: task.outcome, hidden: !task.outcome },
+            ]}
+          />
+
+          {editable ? (
+            <Formik
+              initialValues={{
+                title: task.title,
+                kind: task.kind,
+                due_on: task.due_on ?? "",
+                body: task.body ?? "",
+              }}
+              enableReinitialize
+              validationSchema={editSchema}
+              onSubmit={async (values, helpers) => {
+                try {
+                  await update.mutateAsync([
+                    task.id,
+                    {
+                      title: values.title,
+                      kind: values.kind,
+                      due_on: values.due_on,
+                      body: values.body || null,
+                    },
+                  ]);
+                  toast.success("Follow-up updated");
+                } catch (error) {
+                  const { unmapped } = applyApiFieldErrors({
+                    error,
+                    values,
+                    setErrors: helpers.setErrors,
+                  });
+                  for (const message of unmapped) toast.error(message);
+                }
+              }}
+            >
+              {({ isSubmitting, dirty }) => (
+                <Form className="flex flex-col gap-4 border-t border-border pt-4">
+                  <FormTextField name="title" label="What needs doing" />
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <FormSelectField
+                      name="kind"
+                      label="Kind"
+                      options={FOLLOW_UP_KINDS.map((kind) => ({
+                        value: kind,
+                        label: humanize(kind),
+                      }))}
+                    />
+                    <FormDatePicker name="due_on" label="Due" />
+                  </div>
+                  <FormTextareaField name="body" label="Details" rows={3} />
+                  <div>
+                    <Button type="submit" disabled={isSubmitting || !dirty}>
+                      {isSubmitting && <Loader2 className="size-4 animate-spin" />}
+                      Save changes
+                    </Button>
+                  </div>
+                </Form>
+              )}
+            </Formik>
+          ) : (
+            task.body && (
+              <p className="rounded-lg bg-muted/40 p-3 text-sm whitespace-pre-line">{task.body}</p>
+            )
+          )}
+        </div>
+      )}
+    </DetailSheet>
   );
 }

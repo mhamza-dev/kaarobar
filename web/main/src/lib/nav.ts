@@ -190,6 +190,13 @@ const NAV_GROUPS: NavGroup[] = [
         anyPermission: ["follow_up:view"],
       },
       {
+        label: "Gift cards",
+        href: "/gift-cards",
+        icon: Gift,
+        anyPermission: ["gift_card:view", "gift_card:issue"],
+        requiresModule: "gift_cards",
+      },
+      {
         label: "Receivables",
         href: "/receivables",
         icon: HandCoins,

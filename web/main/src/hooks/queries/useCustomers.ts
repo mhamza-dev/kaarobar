@@ -4,6 +4,9 @@ import { toast } from "@/hooks/useToast";
 import { isNotFound } from "@/lib/api/errors";
 import { flattenPages, getNextCursorParam } from "@/lib/api/pagination";
 import {
+  allocateCustomerPayment,
+  getFollowUp,
+  updateFollowUp,
   addCustomerAddress,
   addCustomerContact,
   addCustomerNote,
@@ -48,6 +51,7 @@ import type {
   CustomerListParams,
   CustomerPayload,
   LoyaltyProgram,
+  FollowUpUpdate,
 } from "@/types/api/crm";
 
 import { useTenantKey } from "./keys";
@@ -66,6 +70,7 @@ const CRM_KEYS = [
   "customer-groups",
   "credit",
   "follow-ups",
+  "follow-up",
   "loyalty",
 ] as const;
 
@@ -299,6 +304,25 @@ export function useCreateFollowUp() {
     [string, { title: string; kind?: string; due_on: string; body?: string }],
     unknown
   >(createFollowUp);
+}
+
+export function useFollowUp(id: string | null | undefined) {
+  return useQuery({
+    queryKey: ["follow-up", id],
+    queryFn: () => getFollowUp(id!),
+    enabled: !!id,
+  });
+}
+
+export function useUpdateFollowUp() {
+  return useCrmMutation<[string, FollowUpUpdate], unknown>(updateFollowUp);
+}
+
+export function useAllocateCustomerPayment() {
+  return useCrmMutation<
+    [string, { allocations: Record<string, string> } | { auto: true }],
+    unknown
+  >(allocateCustomerPayment);
 }
 
 export function useCompleteFollowUp() {
