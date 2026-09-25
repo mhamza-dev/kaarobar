@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { toast } from "@/hooks/useToast";
-import { ApiError } from "@/lib/api/errors";
+import { isNotFound } from "@/lib/api/errors";
 import { flattenPages, getNextCursorParam } from "@/lib/api/pagination";
 import {
   addCustomerAddress,
@@ -85,7 +85,7 @@ function useCrmMutation<TArgs extends unknown[], TResult>(
 
 /** A 404 here means "none yet" (no programme, never earned) — not worth retrying. */
 function retryUnlessNotFound(failureCount: number, error: unknown) {
-  if (error instanceof ApiError && error.status === 404) return false;
+  if (isNotFound(error)) return false;
   return failureCount < 2;
 }
 

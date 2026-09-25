@@ -8,6 +8,7 @@ import * as Yup from "yup";
 import { FormNumberField } from "@/components/forms/FormNumberField";
 import { FormTextField } from "@/components/forms/FormTextField";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
+import { LoadError } from "@/components/shared/LoadError";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,6 +26,7 @@ import {
 } from "@/hooks/queries/useCustomers";
 import { usePermission } from "@/hooks/usePermission";
 import { toast } from "@/hooks/useToast";
+import { isNotFound } from "@/lib/api/errors";
 import { applyApiFieldErrors } from "@/lib/api/formErrors";
 import { formatDate, formatDateTime, formatQuantity, humanize } from "@/lib/format";
 import type { LoyaltyTransaction } from "@/types/api/crm";
@@ -46,6 +48,11 @@ export function LoyaltyTab({ customerId }: { customerId: string }) {
   const canAdjust = can("loyalty:adjust") && !!program.data;
 
   if (program.isLoading || history.isLoading) return <Skeleton className="h-24 w-full" />;
+
+  // A 404 on either is an answer ("no programme", "never earned"); anything
+  // else is a failure, and mustn't read as "this business has no programme".
+  const failed = [program, history].find((query) => query.isError && !isNotFound(query.error));
+  if (failed) return <LoadError what="loyalty points" onRetry={() => failed.refetch()} />;
 
   if (!program.data) {
     return (

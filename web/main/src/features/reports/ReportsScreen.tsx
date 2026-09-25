@@ -8,6 +8,7 @@ import { BarList } from "@/components/charts/BarList";
 import { ColumnChart } from "@/components/charts/ColumnChart";
 import { TrendChart } from "@/components/charts/TrendChart";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
+import { LoadError } from "@/components/shared/LoadError";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -216,6 +217,27 @@ function Panel({
   );
 }
 
+type QueryStatus = { isLoading: boolean; isError: boolean; refetch: () => unknown };
+
+/**
+ * A panel's body: a skeleton while its report loads, a retry prompt if the
+ * request failed, and the content otherwise. Without the error branch a
+ * failed report would read as "no sales", which is worse than no answer.
+ */
+function Loaded({
+  query,
+  skeleton,
+  children,
+}: {
+  query: QueryStatus;
+  skeleton: string;
+  children?: React.ReactNode;
+}) {
+  if (query.isError) return <LoadError what="this report" onRetry={() => query.refetch()} />;
+  if (query.isLoading) return <Skeleton className={cn("w-full", skeleton)} />;
+  return <>{children}</>;
+}
+
 function Stat({ label, value, detail }: { label: string; value: string; detail?: string }) {
   return (
     <div className="rounded-xl border border-border bg-card p-4">
@@ -258,31 +280,29 @@ function Overview({ period, money }: { period: ReportPeriod; money: Money }) {
 
   return (
     <div className="flex flex-col gap-4">
-      {summary.isLoading ? (
-        <Skeleton className="h-24 w-full" />
-      ) : s ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Stat label="Net sales" value={money(s.net_sales)} />
-          <Stat label="Sales" value={String(s.sale_count)} detail={`${s.voided_count} voided`} />
-          <Stat label="Average sale" value={money(s.average_sale)} />
-          <Stat
-            label="Gross profit"
-            value={money(s.gross_profit)}
-            detail={`on ${money(s.cost_total)} cost`}
-          />
-        </div>
-      ) : null}
+      <Loaded query={summary} skeleton="h-24">
+        {s && (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Stat label="Net sales" value={money(s.net_sales)} />
+            <Stat label="Sales" value={String(s.sale_count)} detail={`${s.voided_count} voided`} />
+            <Stat label="Average sale" value={money(s.average_sale)} />
+            <Stat
+              label="Gross profit"
+              value={money(s.gross_profit)}
+              detail={`on ${money(s.cost_total)} cost`}
+            />
+          </div>
+        )}
+      </Loaded>
 
       <Panel title="Net sales by day" exportAs="daily" period={period}>
-        {daily.isLoading ? (
-          <Skeleton className="h-60 w-full" />
-        ) : (
+        <Loaded query={daily} skeleton="h-60">
           <TrendChart
             points={points}
             formatAxis={compactNumber}
             ariaLabel={`Net sales by day from ${period.from} to ${period.to}`}
           />
-        )}
+        </Loaded>
         <div>
           <Button variant="ghost" size="sm" onClick={() => setShowTable((value) => !value)}>
             {showTable ? "Hide table" : "Show as table"}
@@ -301,8 +321,8 @@ function Overview({ period, money }: { period: ReportPeriod; money: Money }) {
       </Panel>
 
       <Panel title="Takings by hour" period={period}>
-        {byHour.isLoading ? (
-          <Skeleton className="h-52 w-full" />
+        {byHour.isError || byHour.isLoading ? (
+          <Loaded query={byHour} skeleton="h-52" />
         ) : (byHour.data ?? []).length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">No sales in this period.</p>
         ) : (
@@ -339,9 +359,7 @@ function Products({ period, money }: { period: ReportPeriod; money: Money }) {
       </p>
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel title="Top products" exportAs="top_products" period={period}>
-          {top.isLoading ? (
-            <Skeleton className="h-48 w-full" />
-          ) : (
+          <Loaded query={top} skeleton="h-48">
             <BarList
               items={(top.data ?? []).map((row) => ({
                 key: row.variant_id,
@@ -351,12 +369,10 @@ function Products({ period, money }: { period: ReportPeriod; money: Money }) {
                 detail: `${formatQuantity(row.quantity)} sold · margin ${money(row.margin)}`,
               }))}
             />
-          )}
+          </Loaded>
         </Panel>
         <Panel title="By category" exportAs="by_category" period={period}>
-          {byCategory.isLoading ? (
-            <Skeleton className="h-48 w-full" />
-          ) : (
+          <Loaded query={byCategory} skeleton="h-48">
             <BarList
               items={(byCategory.data ?? []).map((row) => ({
                 key: row.category_id ?? "none",
@@ -366,7 +382,7 @@ function Products({ period, money }: { period: ReportPeriod; money: Money }) {
                 detail: `margin ${money(row.margin)}`,
               }))}
             />
-          )}
+          </Loaded>
         </Panel>
       </div>
     </div>
@@ -378,9 +394,7 @@ function Payments({ period, money }: { period: ReportPeriod; money: Money }) {
 
   return (
     <Panel title="By payment method" exportAs="by_tender" period={period} className="max-w-2xl">
-      {tenders.isLoading ? (
-        <Skeleton className="h-40 w-full" />
-      ) : (
+      <Loaded query={tenders} skeleton="h-40">
         <BarList
           items={(tenders.data ?? []).map((row) => ({
             key: row.method,
@@ -390,7 +404,7 @@ function Payments({ period, money }: { period: ReportPeriod; money: Money }) {
             detail: `${row.count} payment${row.count === 1 ? "" : "s"}`,
           }))}
         />
-      )}
+      </Loaded>
     </Panel>
   );
 }
@@ -404,9 +418,7 @@ function Staff({ period, money }: { period: ReportPeriod; money: Money }) {
 
   return (
     <Panel title="By cashier" exportAs="by_cashier" period={period} className="max-w-2xl">
-      {cashiers.isLoading ? (
-        <Skeleton className="h-40 w-full" />
-      ) : (
+      <Loaded query={cashiers} skeleton="h-40">
         <BarList
           items={(cashiers.data ?? []).map((row) => ({
             key: row.cashier_id ?? "unknown",
@@ -416,15 +428,22 @@ function Staff({ period, money }: { period: ReportPeriod; money: Money }) {
             detail: `${row.sale_count} sale${row.sale_count === 1 ? "" : "s"} · ${money(row.discount_total)} discounted`,
           }))}
         />
-      )}
+      </Loaded>
     </Panel>
   );
 }
 
 function Profit({ period, money }: { period: ReportPeriod; money: Money }) {
-  const { data: pl, isLoading } = useProfitAndLoss(period);
+  const profit = useProfitAndLoss(period);
+  const pl = profit.data;
 
-  if (isLoading || !pl) return <Skeleton className="h-64 w-full max-w-xl" />;
+  if (!pl) {
+    return (
+      <Panel title="Profit and loss" period={period} className="max-w-xl">
+        <Loaded query={profit} skeleton="h-48" />
+      </Panel>
+    );
+  }
 
   // `less` rows are subtracted in the statement; the sign is presentation,
   // the figures are the backend's own.
@@ -465,7 +484,7 @@ function Profit({ period, money }: { period: ReportPeriod; money: Money }) {
 }
 
 function Tax({ period, money }: { period: ReportPeriod; money: Money }) {
-  const { data, isLoading } = useTaxReport(period);
+  const { data, isLoading, error, refetch } = useTaxReport(period);
   const columns: DataTableColumn<TaxRow>[] = [
     { key: "name", header: "Tax", render: (row) => row.label ?? row.name },
     {
@@ -486,6 +505,8 @@ function Tax({ period, money }: { period: ReportPeriod; money: Money }) {
         rows={data ?? []}
         rowKey={(row) => `${row.name}-${row.rate}`}
         loading={isLoading}
+        error={error}
+        onRetry={() => refetch()}
         embedded
         mobileCardTitle={(row) => row.label ?? row.name}
         mobileCardFields={[{ key: "tax", label: "Tax", render: (row) => money(row.tax_total) }]}

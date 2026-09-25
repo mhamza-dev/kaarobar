@@ -29,6 +29,11 @@ export class ApiError extends Error {
   }
 }
 
+/** A 404 — for endpoints where that means "none yet" rather than a failure. */
+export function isNotFound(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 404;
+}
+
 function flattenFieldErrors(
   details: ApiErrorBody["error"]["details"],
 ): Record<string, string> | null {

@@ -173,6 +173,8 @@ Four layers per domain, worked example for Staff:
 
 **Phase 9 — Hardening & polish.** Accessibility pass on custom components (`DataTable`, `AppShell` — shadcn/Radix gets most of this for free elsewhere); responsive/mobile audit (exercise `DataTable`'s mobile-card mode across every domain); loading/error/empty-state checklist; i18n decision point (`desktop/local` supports 7 languages incl. RTL — evaluate `next-intl` here if parity is needed, don't retrofit per-screen).
 
+  *Decided (2026-09-25): defer.* v1 ships English-only. When translation is needed: `next-intl`, locale sourced from the backend's `businesses.default_locale` (already exists), `dir="rtl"` on `<html>` for `ar`/`ur`, catalogs seeded from `desktop/local/src/i18n/*.json` — done as its own phase across all screens at once, not piecemeal.
+
 ---
 
 ## Testing Strategy

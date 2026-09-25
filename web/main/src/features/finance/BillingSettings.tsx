@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
+import { LoadError } from "@/components/shared/LoadError";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,8 +40,9 @@ function limitLine(key: string, value: number | null): string {
 export function BillingSettings() {
   const { can } = usePermission();
   const canManage = can("organization:billing");
-  const { data: subscription, isLoading } = useSubscription();
-  const { data: plans } = usePlans();
+  const { data: subscription, isLoading, isError, refetch } = useSubscription();
+  const plansQuery = usePlans();
+  const plans = plansQuery.data;
   const invoices = useBillingInvoices();
   const subscribe = useSubscribe();
   const changePlan = useChangePlan();
@@ -50,6 +52,9 @@ export function BillingSettings() {
   const [cancelling, setCancelling] = useState(false);
 
   if (isLoading) return <Skeleton className="h-40 w-full" />;
+  // Falling through would say "No active subscription — pick a plan" to an
+  // organization that may well be paying.
+  if (isError) return <LoadError what="your subscription" onRetry={() => refetch()} />;
 
   const current = subscription?.plan;
   const ended = subscription && ["canceled", "expired"].includes(subscription.status);
@@ -153,6 +158,7 @@ export function BillingSettings() {
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold">Plans</h2>
+        {plansQuery.isError && <LoadError what="the plans" onRetry={() => plansQuery.refetch()} />}
         <div className="grid gap-3 md:grid-cols-3">
           {(plans ?? []).map((plan) => {
             const isCurrent = !ended && current?.code === plan.code;
@@ -212,6 +218,8 @@ export function BillingSettings() {
           rows={invoices.data ?? []}
           rowKey={(invoice) => invoice.id}
           loading={invoices.isLoading}
+          error={invoices.error}
+          onRetry={() => invoices.refetch()}
           empty={<p className="p-6 text-center text-sm text-muted-foreground">No invoices yet.</p>}
           mobileCardTitle={(invoice) => invoice.number ?? "Invoice"}
           mobileCardFields={[
