@@ -14,7 +14,7 @@ type FormNumberFieldProps = {
   placeholder?: string;
   min?: number;
   max?: number;
-  step?: number;
+  step?: number | "any";
   /** Rendered inside the field, e.g. a currency code or a unit. */
   suffix?: string;
   autoFocus?: boolean;
@@ -38,7 +38,9 @@ export function FormNumberField({
   placeholder,
   min,
   max,
-  step,
+  // "any", not the browser default of 1: with step 1, typing 2.5 or 999.50
+  // fails native validation and the form silently refuses to submit.
+  step = "any",
   suffix,
   autoFocus,
   disabled,
