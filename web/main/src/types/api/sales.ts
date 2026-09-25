@@ -279,12 +279,93 @@ export type CheckoutPayload = {
   service_mode?: string;
 };
 
+export type RefundRequestItem = {
+  id: string;
+  sale_item_id: string;
+  quantity: string;
+  /** False when the goods are faulty — written off rather than put back. */
+  restock: boolean;
+  reason: string | null;
+};
+
+/**
+ * Asking to give money back, as distinct from doing it: the person who made
+ * the sale shouldn't be the one who approves undoing it. Pending → approved
+ * or rejected; approved → completed once the return is processed.
+ */
 export type RefundRequest = {
   id: string;
-  status: string;
+  number: string;
+  status: "pending" | "approved" | "rejected" | "completed" | string;
   sale_id: string;
-  amount: string | null;
+  branch_id: string;
   reason: string | null;
+  requested_amount: string | null;
+  requested_at: string | null;
+  reviewed_at: string | null;
+  review_note: string | null;
+  items?: RefundRequestItem[];
+  sale?: SaleSummary | null;
   requested_by?: User | null;
-  inserted_at?: string;
+  reviewed_by?: User | null;
+};
+
+export type ReturnLine = {
+  sale_item_id: string;
+  quantity: string;
+  restock: boolean;
+  reason?: string;
+};
+
+export type RefundRequestPayload = {
+  reason: string;
+  items: ReturnLine[];
+};
+
+export type SaleReturnItem = {
+  id: string;
+  sale_item_id: string;
+  variant_id: string | null;
+  name: string;
+  quantity: string;
+  unit_price: string | null;
+  tax_total: string | null;
+  line_total: string | null;
+  restock: boolean;
+  reason: string | null;
+};
+
+/** Goods taken back and money given back, against a sale. */
+export type SaleReturn = {
+  id: string;
+  number: string;
+  sale_id: string;
+  customer_id: string | null;
+  refund_request_id: string | null;
+  branch_id: string;
+  shift_id: string | null;
+  reason: string | null;
+  subtotal: string | null;
+  tax_total: string | null;
+  total: string | null;
+  processed_by_label: string | null;
+  returned_at: string | null;
+  notes: string | null;
+  items?: SaleReturnItem[];
+  sale?: SaleSummary | null;
+};
+
+/** `GET /shifts/:id/reconcile` — the running totals against the same figures recomputed. */
+export type ShiftFigures = {
+  sales_count: number;
+  gross_sales: string;
+  tax_total: string;
+  discount_total: string;
+  tenders: Record<string, string> | null;
+};
+
+export type ShiftReconciliation = {
+  recorded: ShiftFigures;
+  computed: ShiftFigures;
+  agrees: boolean;
 };

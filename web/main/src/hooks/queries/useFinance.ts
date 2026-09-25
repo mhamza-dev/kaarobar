@@ -20,8 +20,10 @@ import {
   saveFiscalConfig,
 } from "@/services/fiscal";
 import {
+  capturePaymentIntent,
   createProvider,
   deleteProvider,
+  getPaymentIntent,
   listPaymentIntents,
   listProviders,
   listSettlements,
@@ -38,7 +40,7 @@ import { useInvalidatingMutation } from "./mutations";
 
 // --- Payment providers and gateway payments -------------------------------------
 
-const PAYMENT_KEYS = ["payment-providers", "payment-intents", "settlements"];
+const PAYMENT_KEYS = ["payment-providers", "payment-intents", "payment-intent", "settlements"];
 
 export function usePaymentProviders() {
   const tenant = useTenantKey();
@@ -59,6 +61,21 @@ export function usePaymentIntents(params: { status?: string } = {}) {
     queryFn: () => listPaymentIntents(params),
   });
 }
+
+export function usePaymentIntent(id: string | null | undefined) {
+  return useQuery({
+    queryKey: ["payment-intent", id],
+    queryFn: () => getPaymentIntent(id!),
+    enabled: !!id,
+  });
+}
+
+export const useCapturePaymentIntent = () =>
+  useInvalidatingMutation<[string, string?], unknown>(capturePaymentIntent, [
+    ...PAYMENT_KEYS,
+    "sales",
+    "sale",
+  ]);
 
 export const useSyncPaymentIntent = () =>
   useInvalidatingMutation<[string], unknown>(syncPaymentIntent, PAYMENT_KEYS);

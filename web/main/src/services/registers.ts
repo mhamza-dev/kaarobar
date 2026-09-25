@@ -1,6 +1,6 @@
 import { apiClient } from "@/lib/api/client";
 import type { ApiEnvelope } from "@/types/api/common";
-import type { CashMovement, Register, Shift } from "@/types/api/sales";
+import type { CashMovement, Register, Shift, ShiftReconciliation } from "@/types/api/sales";
 
 export async function listRegisters(): Promise<Register[]> {
   const response = await apiClient.get<ApiEnvelope<Register[]>>("/registers");
@@ -88,6 +88,14 @@ export async function recordCashMovement(
   const response = await apiClient.post<ApiEnvelope<CashMovement>>(
     `/shifts/${shiftId}/cash-movements`,
     payload,
+  );
+  return response.data.data;
+}
+
+/** The shift's running totals against the same figures recomputed from its sales. */
+export async function getShiftReconciliation(id: string): Promise<ShiftReconciliation> {
+  const response = await apiClient.get<ApiEnvelope<ShiftReconciliation>>(
+    `/shifts/${id}/reconcile`,
   );
   return response.data.data;
 }

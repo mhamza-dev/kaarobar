@@ -7,32 +7,20 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   usePaymentIntents,
   useReconcileSettlement,
-  useRefundPaymentIntent,
   useSettlements,
-  useSyncPaymentIntent,
 } from "@/hooks/queries/useFinance";
 import { usePermission } from "@/hooks/usePermission";
 import { toast } from "@/hooks/useToast";
+import { useSheetParam } from "@/hooks/useSheetParam";
 import { formatDate, formatDateTime, formatMoney, humanize, isNegative } from "@/lib/format";
 import { useSessionStore } from "@/stores/sessionStore";
 import type { PaymentIntent, Settlement } from "@/types/api/payments";
 
-/** The states still waiting on the gateway — the ones a Sync can move. */
-const OPEN_STATUSES = ["pending", "processing", "requires_action", "authorized"];
+import { PaymentSheet } from "./PaymentSheet";
 
 /**
  * Money taken through a gateway, and the payouts that bring it to the bank.
@@ -52,7 +40,7 @@ export function GatewayPayments() {
         <TabsTrigger value="settlements">Settlements</TabsTrigger>
       </TabsList>
       <TabsContent value="payments" className="pt-4">
-        <PaymentsTable canRefund={can("payment:refund")} canSync={can("payment:charge")} />
+        <PaymentsTable />
       </TabsContent>
       <TabsContent value="settlements" className="pt-4">
         <SettlementsTable canReconcile={can("payment:reconcile")} />
@@ -61,12 +49,11 @@ export function GatewayPayments() {
   );
 }
 
-function PaymentsTable({ canRefund, canSync }: { canRefund: boolean; canSync: boolean }) {
+function PaymentsTable() {
   const fallbackCurrency = useSessionStore((state) => state.scope?.business?.currency) ?? "PKR";
   const [status, setStatus] = useState("");
   const { data, isLoading, error, refetch } = usePaymentIntents({ status: status || undefined });
-  const sync = useSyncPaymentIntent();
-  const [refunding, setRefunding] = useState<PaymentIntent | null>(null);
+  const sheet = useSheetParam();
 
   const columns: DataTableColumn<PaymentIntent>[] = [
     {
@@ -119,38 +106,6 @@ function PaymentsTable({ canRefund, canSync }: { canRefund: boolean; canSync: bo
         </div>
       ),
     },
-    {
-      key: "actions",
-      header: "",
-      align: "end",
-      width: "w-44",
-      render: (intent) => (
-        <div className="flex justify-end gap-1">
-          {canSync && OPEN_STATUSES.includes(intent.status) && (
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={sync.isPending}
-              onClick={async () => {
-                try {
-                  await sync.mutateAsync([intent.id]);
-                  toast.success("Checked with the gateway");
-                } catch {
-                  // Toasted by the hook.
-                }
-              }}
-            >
-              Check with gateway
-            </Button>
-          )}
-          {canRefund && ["captured", "partially_refunded"].includes(intent.status) && (
-            <Button variant="ghost" size="sm" onClick={() => setRefunding(intent)}>
-              Refund
-            </Button>
-          )}
-        </div>
-      ),
-    },
   ];
 
   return (
@@ -182,6 +137,7 @@ function PaymentsTable({ canRefund, canSync }: { canRefund: boolean; canSync: bo
         columns={columns}
         rows={data ?? []}
         rowKey={(intent) => intent.id}
+        onRowClick={(intent) => sheet.open(intent.id)}
         loading={isLoading}
         error={error ? { message: error.message } : null}
         onRetry={() => refetch()}
@@ -200,74 +156,8 @@ function PaymentsTable({ canRefund, canSync }: { canRefund: boolean; canSync: bo
           },
         ]}
       />
-      {refunding && (
-        <RefundDialog
-          intent={refunding}
-          currency={refunding.currency ?? fallbackCurrency}
-          onOpenChange={() => setRefunding(null)}
-        />
-      )}
+      <PaymentSheet intentId={sheet.value} onClose={sheet.close} />
     </>
-  );
-}
-
-function RefundDialog({
-  intent,
-  currency,
-  onOpenChange,
-}: {
-  intent: PaymentIntent;
-  currency: string;
-  onOpenChange: (open: boolean) => void;
-}) {
-  const refund = useRefundPaymentIntent();
-  // Display-only: what's left to refund, from the backend's own figures.
-  const remaining = Number(intent.captured_amount ?? 0) - Number(intent.refunded_amount ?? 0);
-  const [amount, setAmount] = useState(remaining > 0 ? remaining.toFixed(2) : "");
-
-  return (
-    <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Refund through the gateway</DialogTitle>
-          <DialogDescription>
-            Up to {formatMoney(remaining.toFixed(2), currency)} can still be refunded. The money
-            goes back to the customer&apos;s card or wallet.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="refund-amount">Amount</Label>
-          <Input
-            id="refund-amount"
-            type="number"
-            min={0}
-            step="0.01"
-            value={amount}
-            onChange={(event) => setAmount(event.target.value)}
-          />
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            disabled={refund.isPending || !(Number(amount) > 0)}
-            onClick={async () => {
-              try {
-                await refund.mutateAsync([intent.id, amount]);
-                toast.success("Refund sent");
-                onOpenChange(false);
-              } catch {
-                // Toasted by the hook.
-              }
-            }}
-          >
-            Refund {amount && formatMoney(amount, currency)}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }
 

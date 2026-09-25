@@ -3,6 +3,8 @@
 import { useState } from "react";
 
 import { DescriptionList } from "@/components/shared/DescriptionList";
+import { RefundDialog } from "@/features/sales/RefundDialog";
+import { SaleReturnsTable } from "@/features/sales/SaleReturnsTable";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { DocumentPreview } from "@/components/shared/DocumentPreview";
 import { StatusBadge } from "@/components/shared/StatusBadge";
@@ -34,6 +36,7 @@ export function SaleDetail({ saleId }: { saleId: string }) {
   const voidSale = useVoidSale();
   const [reason, setReason] = useState("");
   const [showingReceipt, setShowingReceipt] = useState(false);
+  const [refunding, setRefunding] = useState(false);
 
   if (isLoading) {
     return (
@@ -56,6 +59,15 @@ export function SaleDetail({ saleId }: { saleId: string }) {
       available: true,
       permitted: can("sale:reprint"),
       onAction: () => setShowingReceipt(true),
+    },
+    {
+      key: "refund",
+      label: "Refund items",
+      available:
+        ["completed", "partially_refunded"].includes(sale.status) &&
+        (sale.items ?? []).some((item) => Number(item.refundable_quantity) > 0),
+      permitted: can("sale:refund_request"),
+      onAction: () => setRefunding(true),
     },
     {
       key: "void",
@@ -174,6 +186,13 @@ export function SaleDetail({ saleId }: { saleId: string }) {
           ))}
         </div>
       )}
+
+      <section className="flex flex-col gap-2">
+        <h2 className="text-sm font-semibold">Returns</h2>
+        <SaleReturnsTable saleId={sale.id} embedded />
+      </section>
+
+      <RefundDialog sale={sale} open={refunding} onOpenChange={setRefunding} />
 
       <DocumentPreview
         open={showingReceipt}

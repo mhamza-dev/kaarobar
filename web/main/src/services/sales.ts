@@ -4,8 +4,11 @@ import type { ProductVariant } from "@/types/api/catalog";
 import type {
   CheckoutPayload,
   RefundRequest,
+  RefundRequestPayload,
+  ReturnLine,
   Sale,
   SaleQuote,
+  SaleReturn,
   SaleSummary,
 } from "@/types/api/sales";
 
@@ -63,16 +66,37 @@ export async function voidSale(id: string, reason: string): Promise<Sale> {
   return response.data.data;
 }
 
+/**
+ * Processes a return: takes the goods back (restocking, or writing off what
+ * is faulty) and pays the money back across the original tenders. Paid
+ * against an approved refund request.
+ */
 export async function refundSale(
   id: string,
-  payload: {
-    items?: Array<{ sale_item_id: string; quantity: string }>;
-    amount?: string;
-    reason?: string;
-    method?: string;
-  },
-): Promise<unknown> {
-  const response = await apiClient.post<ApiEnvelope<unknown>>(`/sales/${id}/refund`, payload);
+  payload: { items: ReturnLine[]; refund_request_id?: string; reason?: string },
+): Promise<SaleReturn> {
+  const response = await apiClient.post<ApiEnvelope<SaleReturn>>(`/sales/${id}/refund`, payload);
+  return response.data.data;
+}
+
+export async function createRefundRequest(
+  saleId: string,
+  payload: RefundRequestPayload,
+): Promise<RefundRequest> {
+  const response = await apiClient.post<ApiEnvelope<RefundRequest>>(
+    `/sales/${saleId}/refund-requests`,
+    payload,
+  );
+  return response.data.data;
+}
+
+export async function getRefundRequest(id: string): Promise<RefundRequest> {
+  const response = await apiClient.get<ApiEnvelope<RefundRequest>>(`/refund-requests/${id}`);
+  return response.data.data;
+}
+
+export async function listSaleReturns(params: { sale_id?: string } = {}): Promise<SaleReturn[]> {
+  const response = await apiClient.get<ApiEnvelope<SaleReturn[]>>("/sales/returns", { params });
   return response.data.data;
 }
 
@@ -85,18 +109,19 @@ export async function listRefundRequests(
   return response.data.data;
 }
 
-export async function approveRefundRequest(id: string): Promise<RefundRequest> {
+export async function approveRefundRequest(id: string, note?: string): Promise<RefundRequest> {
   const response = await apiClient.post<ApiEnvelope<RefundRequest>>(
     `/refund-requests/${id}/approve`,
-    {},
+    { note },
   );
   return response.data.data;
 }
 
-export async function rejectRefundRequest(id: string, reason?: string): Promise<RefundRequest> {
+/** A note is required — the customer will ask why, and someone else may answer. */
+export async function rejectRefundRequest(id: string, note: string): Promise<RefundRequest> {
   const response = await apiClient.post<ApiEnvelope<RefundRequest>>(
     `/refund-requests/${id}/reject`,
-    { reason },
+    { note },
   );
   return response.data.data;
 }

@@ -6,6 +6,7 @@ import {
   createRegister,
   getCurrentShift,
   getShift,
+  getShiftReconciliation,
   getXReport,
   listCashMovements,
   listRegisters,
@@ -65,6 +66,15 @@ export function useXReport(shiftId: string | undefined) {
   });
 }
 
+/** Recomputes the shift's figures from its sales — asked for, not loaded by default. */
+export function useShiftReconciliation(shiftId: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: ["shift-reconciliation", shiftId],
+    queryFn: () => getShiftReconciliation(shiftId!),
+    enabled: !!shiftId && enabled,
+  });
+}
+
 export function useCashMovements(shiftId: string | undefined) {
   return useQuery({
     queryKey: ["cash-movements", shiftId],
@@ -95,6 +105,7 @@ function useShiftMutation<TArgs extends unknown[], TResult>(
       queryClient.invalidateQueries({ queryKey: ["shift"] });
       queryClient.invalidateQueries({ queryKey: ["x-report"] });
       queryClient.invalidateQueries({ queryKey: ["cash-movements"] });
+      queryClient.invalidateQueries({ queryKey: ["shift-reconciliation"] });
     },
     onError: (error) => toast.mutationError(error),
   });

@@ -92,6 +92,12 @@ const NAV_GROUPS: NavGroup[] = [
         anyPermission: ["sale:view", "sale:view_all"],
       },
       {
+        label: "Refunds",
+        href: "/refund-requests",
+        icon: Undo2,
+        anyPermission: ["sale:refund_approve"],
+      },
+      {
         label: "Card payments",
         href: "/payments",
         icon: CreditCard,

@@ -30,6 +30,20 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--normal-text": "var(--popover-foreground)",
           "--normal-border": "var(--border)",
           "--border-radius": "var(--radius)",
+          // richColors, on the same text-safe pairs StatusBadge uses. Sonner's
+          // own greens and reds fall short of 4.5:1 on their tinted grounds.
+          "--success-bg": "var(--success-soft)",
+          "--success-border": "var(--success-soft)",
+          "--success-text": "var(--success)",
+          "--error-bg": "var(--danger-soft)",
+          "--error-border": "var(--danger-soft)",
+          "--error-text": "var(--destructive)",
+          "--warning-bg": "var(--warning-soft)",
+          "--warning-border": "var(--warning-soft)",
+          "--warning-text": "var(--warning)",
+          "--info-bg": "var(--brand-tint)",
+          "--info-border": "var(--brand-tint)",
+          "--info-text": "var(--foreground)",
         } as React.CSSProperties
       }
       toastOptions={{

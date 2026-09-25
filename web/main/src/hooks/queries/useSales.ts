@@ -4,16 +4,24 @@ import { toast } from "@/hooks/useToast";
 import { flattenPages, getNextCursorParam } from "@/lib/api/pagination";
 import {
   approveRefundRequest,
+  createRefundRequest,
   createSale,
+  getRefundRequest,
   getSale,
   listRefundRequests,
+  listSaleReturns,
   listSales,
   quoteSale,
   refundSale,
   rejectRefundRequest,
   voidSale,
 } from "@/services/sales";
-import type { CheckoutLine, CheckoutPayload } from "@/types/api/sales";
+import type {
+  CheckoutLine,
+  CheckoutPayload,
+  RefundRequestPayload,
+  ReturnLine,
+} from "@/types/api/sales";
 
 import { useTenantKey } from "./keys";
 
@@ -127,10 +135,12 @@ function useSaleMutation<TArgs extends unknown[], TResult>(
   return useMutation({
     mutationFn: (variables: TArgs) => mutationFn(...variables),
     onSuccess: () => {
-      for (const key of ["sales", "stock", "refund-requests", "shifts"]) {
+      for (const key of ["sales", "stock", "refund-requests", "shifts", "sale-returns"]) {
         queryClient.invalidateQueries({ queryKey: [key, tenant] });
       }
-      queryClient.invalidateQueries({ queryKey: ["sale"] });
+      for (const key of ["sale", "refund-request", "shift"]) {
+        queryClient.invalidateQueries({ queryKey: [key] });
+      }
       // Voids and refunds reverse ledger entries and points.
       for (const key of ["customers", "customer", "credit", "loyalty"]) {
         queryClient.invalidateQueries({ queryKey: [key] });
@@ -146,16 +156,30 @@ export function useVoidSale() {
 
 export function useRefundSale() {
   return useSaleMutation<
-    [
-      string,
-      {
-        items?: Array<{ sale_item_id: string; quantity: string }>;
-        amount?: string;
-        reason?: string;
-      },
-    ],
+    [string, { items: ReturnLine[]; refund_request_id?: string; reason?: string }],
     unknown
   >(refundSale);
+}
+
+export function useCreateRefundRequest() {
+  return useSaleMutation<[string, RefundRequestPayload], unknown>(createRefundRequest);
+}
+
+export function useRefundRequest(id: string | null | undefined) {
+  return useQuery({
+    queryKey: ["refund-request", id],
+    queryFn: () => getRefundRequest(id!),
+    enabled: !!id,
+  });
+}
+
+export function useSaleReturns(params: { sale_id?: string } = {}) {
+  const tenant = useTenantKey();
+
+  return useQuery({
+    queryKey: ["sale-returns", tenant, params],
+    queryFn: () => listSaleReturns(params),
+  });
 }
 
 export function useRefundRequests(params: { status?: string } = {}) {
@@ -168,9 +192,9 @@ export function useRefundRequests(params: { status?: string } = {}) {
 }
 
 export function useApproveRefundRequest() {
-  return useSaleMutation<[string], unknown>(approveRefundRequest);
+  return useSaleMutation<[string, string?], unknown>(approveRefundRequest);
 }
 
 export function useRejectRefundRequest() {
-  return useSaleMutation<[string, string | undefined], unknown>(rejectRefundRequest);
+  return useSaleMutation<[string, string], unknown>(rejectRefundRequest);
 }

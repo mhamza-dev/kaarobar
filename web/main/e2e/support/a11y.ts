@@ -17,7 +17,7 @@ export async function seriousA11yViolations(page: Page, label: string): Promise<
     .filter((violation) => violation.impact === "serious" || violation.impact === "critical")
     .map(
       (violation) =>
-        `${label}: ${violation.id} (${violation.nodes.length}) — ${violation.nodes[0]?.target.join(" ")}`,
+        `${label}: ${violation.id} (${violation.nodes.length}) — ${violation.nodes[0]?.target.join(" ")} — ${violation.nodes[0]?.failureSummary?.replace(/\s+/g, " ").slice(0, 200)}`,
     );
 }
 

@@ -43,6 +43,10 @@ export const getPaymentIntent = (id: string) => get<PaymentIntent>(`/payments/${
 /** Asks the gateway for the payment's current state — for one stuck waiting on a webhook. */
 export const syncPaymentIntent = (id: string) => post<PaymentIntent>(`/payments/${id}/sync`);
 
+/** Captures an authorised payment — all of it, or `amount` if less. */
+export const capturePaymentIntent = (id: string, amount?: string) =>
+  post<PaymentIntent>(`/payments/${id}/capture`, amount ? { amount } : {});
+
 /** Refunds through the gateway — part or all of what was captured. */
 export const refundPaymentIntent = (id: string, amount: string) =>
   post<PaymentIntent>(`/payments/${id}/refund`, { amount });
