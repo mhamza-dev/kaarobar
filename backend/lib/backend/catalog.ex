@@ -41,7 +41,16 @@ defmodule Kaarobar.Catalog do
   alias Kaarobar.Repo.Scoped
   alias Kaarobar.Scope
 
-  @product_preloads [:category, :brand, :unit, :variants, tax_group: [tax_group_rates: :tax]]
+  # Modifier groups and each variant's extra barcodes come along so the
+  # product screen can show what is attached, not only attach more.
+  @product_preloads [
+    :category,
+    :brand,
+    :unit,
+    [variants: :barcodes],
+    [modifier_groups: :modifiers],
+    tax_group: [tax_group_rates: :tax]
+  ]
 
   # ===========================================================================
   # Products

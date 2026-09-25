@@ -129,6 +129,7 @@ defmodule KaarobarWeb.CatalogSerializers do
       unit: preloaded(product.unit, &unit/1),
       tax_group: preloaded(product.tax_group, &tax_group/1),
       variants: preloaded(product.variants, &variant/1),
+      modifier_groups: preloaded(product.modifier_groups, &modifier_group/1),
       inserted_at: timestamp(product.inserted_at)
     }
   end
@@ -152,6 +153,7 @@ defmodule KaarobarWeb.CatalogSerializers do
       sku: variant.sku,
       name: variant.name,
       barcode: variant.barcode,
+      barcodes: preloaded(variant.barcodes, &barcode/1),
       price: money(variant.price),
       cost: money(variant.cost),
       compare_at_price: money(variant.compare_at_price),
@@ -306,7 +308,10 @@ defmodule KaarobarWeb.CatalogSerializers do
       price_list_id: item.price_list_id,
       variant_id: item.variant_id,
       price: money(item.price),
-      min_quantity: quantity(item.min_quantity)
+      min_quantity: quantity(item.min_quantity),
+      # Named, so a list's editor can show what it prices without a lookup
+      # per line.
+      variant: preloaded(item.variant, &variant/1)
     }
   end
 
