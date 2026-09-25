@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 
+import { DescriptionList } from "@/components/shared/DescriptionList";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import {
@@ -166,24 +167,18 @@ export function PurchaseOrderDetail({ orderId }: { orderId: string }) {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex flex-col gap-2">
           <StatusBadge status={order.status} />
-          <dl className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
-            <div>
-              <dt className="text-xs text-muted-foreground">Supplier</dt>
-              <dd>{order.supplier?.name ?? "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Branch</dt>
-              <dd>{order.branch?.name ?? "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Expected</dt>
-              <dd>{formatDate(order.expected_on)}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted-foreground">Total</dt>
-              <dd className="font-medium">{formatMoney(order.total, currency)}</dd>
-            </div>
-          </dl>
+          <DescriptionList
+            layout="inline"
+            items={[
+              { label: "Supplier", value: order.supplier?.name },
+              { label: "Branch", value: order.branch?.name },
+              { label: "Expected", value: formatDate(order.expected_on) },
+              {
+                label: "Total",
+                value: <span className="font-medium">{formatMoney(order.total, currency)}</span>,
+              },
+            ]}
+          />
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

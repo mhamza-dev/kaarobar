@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { DescriptionList } from "@/components/shared/DescriptionList";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { DocumentPreview } from "@/components/shared/DocumentPreview";
 import { StatusBadge } from "@/components/shared/StatusBadge";
@@ -130,12 +131,15 @@ export function SaleDetail({ saleId }: { saleId: string }) {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex flex-col gap-2">
           <StatusBadge status={sale.status} />
-          <dl className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
-            <Field label="Sold" value={formatDateTime(sale.sold_at)} />
-            <Field label="Cashier" value={sale.cashier_label ?? "—"} />
-            <Field label="Total" value={formatMoney(sale.total, sale.currency)} />
-            <Field label="Refundable" value={formatMoney(sale.refundable_amount, sale.currency)} />
-          </dl>
+          <DescriptionList
+            layout="inline"
+            items={[
+              { label: "Sold", value: formatDateTime(sale.sold_at) },
+              { label: "Cashier", value: sale.cashier_label },
+              { label: "Total", value: formatMoney(sale.total, sale.currency) },
+              { label: "Refundable", value: formatMoney(sale.refundable_amount, sale.currency) },
+            ]}
+          />
           {sale.void_reason && (
             <p className="text-sm text-destructive">Voided: {sale.void_reason}</p>
           )}
@@ -181,15 +185,6 @@ export function SaleDetail({ saleId }: { saleId: string }) {
         papers={["80mm", "76mm", "58mm", "A4"]}
         defaultPaper="80mm"
       />
-    </div>
-  );
-}
-
-function Field({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd>{value}</dd>
     </div>
   );
 }
