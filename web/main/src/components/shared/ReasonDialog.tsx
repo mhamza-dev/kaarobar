@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import * as Yup from "yup";
 
 import { FormTextareaField } from "@/components/forms/FormTextareaField";
+import { FormTextField } from "@/components/forms/FormTextField";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -33,6 +34,7 @@ export function ReasonDialog({
   placeholder,
   confirmLabel,
   destructive = false,
+  inputType = "text",
   onSubmit,
 }: {
   open: boolean;
@@ -43,6 +45,8 @@ export function ReasonDialog({
   placeholder?: string;
   confirmLabel: string;
   destructive?: boolean;
+  /** "password" asks for a password instead — confirming who you are, not why. */
+  inputType?: "text" | "password";
   /** Resolve to close the dialog; throw to keep it open (the caller toasts). */
   onSubmit: (reason: string) => Promise<void>;
 }) {
@@ -56,10 +60,16 @@ export function ReasonDialog({
         <Formik
           initialValues={{ reason: "" }}
           enableReinitialize
-          validationSchema={Yup.object({ reason: Yup.string().trim().required("Say why") })}
+          validationSchema={Yup.object({
+            reason:
+              inputType === "password"
+                ? Yup.string().required("Enter your password")
+                : Yup.string().trim().required("Say why"),
+          })}
           onSubmit={async (values, helpers) => {
             try {
-              await onSubmit(values.reason.trim());
+              // A password is sent exactly as typed; a reason is tidied.
+              await onSubmit(inputType === "password" ? values.reason : values.reason.trim());
               helpers.resetForm();
               onOpenChange(false);
             } catch {
@@ -69,7 +79,17 @@ export function ReasonDialog({
         >
           {({ isSubmitting }) => (
             <Form className="flex flex-col gap-4">
-              <FormTextareaField name="reason" label={label} rows={3} placeholder={placeholder} />
+              {inputType === "password" ? (
+                <FormTextField
+                  name="reason"
+                  label={label}
+                  type="password"
+                  autoComplete="current-password"
+                  autoFocus
+                />
+              ) : (
+                <FormTextareaField name="reason" label={label} rows={3} placeholder={placeholder} />
+              )}
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                   Back
