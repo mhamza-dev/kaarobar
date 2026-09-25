@@ -89,6 +89,8 @@ export type ProductVariant = {
   position: number;
   is_active: boolean;
   option_values: VariantOptionValue[];
+  /** Alternate barcodes, beyond `barcode` — on the product detail only. */
+  barcodes?: ProductBarcode[] | null;
   /** Present only where the backend preloaded it — stock rows, ledger lines. */
   product?: ProductSummary | null;
 };
@@ -132,6 +134,8 @@ export type Product = {
   brand: Brand | null;
   unit: Unit | null;
   variants?: ProductVariant[];
+  /** Attached add-on groups — on the product detail only. */
+  modifier_groups?: ModifierGroup[] | null;
   inserted_at: string;
 };
 
@@ -165,4 +169,125 @@ export type CategoryPayload = {
   description?: string | null;
   sort_order?: number;
   is_active?: boolean;
+};
+
+// --- Catalog set-up ---------------------------------------------------------------
+
+export const BARCODE_KINDS = [
+  "ean13",
+  "ean8",
+  "upca",
+  "upce",
+  "code128",
+  "code39",
+  "qr",
+  "internal",
+] as const;
+
+export type ProductBarcode = {
+  id: string;
+  variant_id: string;
+  barcode: string;
+  kind: (typeof BARCODE_KINDS)[number] | string;
+  embedded_value: "weight" | "price" | "quantity" | null;
+};
+
+/** `rate` is a fraction for percentage taxes — 0.17 is 17% — and an amount for fixed ones. */
+export type Tax = {
+  id: string;
+  name: string;
+  code: string | null;
+  label: string;
+  kind: "percentage" | "fixed";
+  rate: string;
+  jurisdiction: string | null;
+  is_compound: boolean;
+  is_active: boolean;
+};
+
+export type TaxPayload = {
+  name: string;
+  code?: string | null;
+  label?: string | null;
+  kind: "percentage" | "fixed";
+  rate: string;
+  jurisdiction?: string | null;
+  is_compound?: boolean;
+  is_active?: boolean;
+};
+
+/** A set of taxes a product carries together; one is the business default. */
+export type TaxGroup = {
+  id: string;
+  name: string;
+  code: string | null;
+  is_default: boolean;
+  is_exempt: boolean;
+  is_active: boolean;
+  taxes: Tax[];
+};
+
+export type TaxGroupPayload = {
+  name: string;
+  code?: string | null;
+  is_exempt?: boolean;
+  is_active?: boolean;
+  /** Replaces the group's taxes wholesale, in this order. */
+  tax_ids?: string[];
+};
+
+export const UNIT_DIMENSIONS = ["count", "weight", "volume", "length", "time"] as const;
+
+export type UnitPayload = {
+  code: string;
+  name: string;
+  dimension: (typeof UNIT_DIMENSIONS)[number];
+  factor_to_base: string;
+  precision?: number;
+  is_base?: boolean;
+};
+
+export type OptionValue = {
+  id: string;
+  option_type_id: string;
+  value: string;
+  hex_color: string | null;
+  position: number;
+};
+
+/** A kind of choice a variant is made of — Size, Colour — with its values. */
+export type OptionType = {
+  id: string;
+  name: string;
+  presentation: string | null;
+  position: number;
+  is_active: boolean;
+  values: OptionValue[] | null;
+};
+
+export type Modifier = {
+  id: string;
+  modifier_group_id: string;
+  name: string;
+  price_delta: string | null;
+  cost_delta: string | null;
+  consumes_variant_id: string | null;
+  consumes_quantity: string | null;
+  is_default: boolean;
+  position: number;
+  is_active: boolean;
+};
+
+/** Add-ons a till offers with a product — extra cheese, less sugar. */
+export type ModifierGroup = {
+  id: string;
+  name: string;
+  description: string | null;
+  selection: "single" | "multiple";
+  min_select: number | null;
+  max_select: number | null;
+  required: boolean;
+  position: number;
+  is_active: boolean;
+  modifiers: Modifier[] | null;
 };

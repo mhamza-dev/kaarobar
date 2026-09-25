@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { Grid3x3, Loader2, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
@@ -12,7 +12,9 @@ import { Label } from "@/components/ui/label";
 import { useCreateVariant, useDeleteVariant, useVariants } from "@/hooks/queries/useProducts";
 import { usePermission } from "@/hooks/usePermission";
 import { toast } from "@/hooks/useToast";
-import type { ProductVariant } from "@/types/api/catalog";
+import type { Product, ProductVariant } from "@/types/api/catalog";
+
+import { VariantBarcodesDialog, VariantMatrixDialog } from "./VariantExtras";
 
 /**
  * Variants live as an expandable section on the product page rather than a
@@ -22,8 +24,22 @@ import type { ProductVariant } from "@/types/api/catalog";
  * Prices are strings the whole way through (the backend renders money as a
  * string on purpose); nothing here does arithmetic on them.
  */
-export function VariantsSection({ productId }: { productId: string }) {
+export function VariantsSection({
+  productId,
+  product,
+}: {
+  productId: string;
+  /** The loaded product — its variants carry their extra barcodes. */
+  product?: Product;
+}) {
   const { data: variants, isLoading, error, refetch } = useVariants(productId);
+  const [buildingMatrix, setBuildingMatrix] = useState(false);
+  const [barcodesFor, setBarcodesFor] = useState<string | null>(null);
+  const barcodeVariant =
+    (barcodesFor &&
+      (product?.variants?.find((variant) => variant.id === barcodesFor) ??
+        variants?.find((variant) => variant.id === barcodesFor))) ||
+    null;
   const createVariant = useCreateVariant(productId);
   const deleteVariant = useDeleteVariant(productId);
 
@@ -60,7 +76,19 @@ export function VariantsSection({ productId }: { productId: string }) {
       ),
     },
     { key: "sku", header: "SKU", render: (variant) => variant.sku ?? "—" },
-    { key: "barcode", header: "Barcode", render: (variant) => variant.barcode ?? "—" },
+    {
+      key: "barcode",
+      header: "Barcode",
+      render: (variant) => {
+        const extra = product?.variants?.find((v) => v.id === variant.id)?.barcodes?.length ?? 0;
+        return (
+          <span>
+            {variant.barcode ?? "—"}
+            {extra > 0 && <span className="text-xs text-muted-foreground"> +{extra}</span>}
+          </span>
+        );
+      },
+    },
     { key: "price", header: "Price", align: "end", render: (variant) => variant.price ?? "—" },
     ...(canSeeCost
       ? [
@@ -101,10 +129,16 @@ export function VariantsSection({ productId }: { productId: string }) {
           </p>
         </div>
         {!adding && canManage && (
-          <Button variant="outline" size="sm" onClick={() => setAdding(true)}>
-            <Plus className="size-4" />
-            Add variant
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setBuildingMatrix(true)}>
+              <Grid3x3 className="size-4" />
+              From options
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setAdding(true)}>
+              <Plus className="size-4" />
+              Add variant
+            </Button>
+          </div>
         )}
       </div>
 
@@ -168,6 +202,7 @@ export function VariantsSection({ productId }: { productId: string }) {
         columns={columns}
         rows={variants ?? []}
         rowKey={(variant) => variant.id}
+        onRowClick={(variant) => setBarcodesFor(variant.id)}
         loading={isLoading}
         error={error ? { message: error.message } : null}
         onRetry={() => refetch()}
@@ -179,6 +214,16 @@ export function VariantsSection({ productId }: { productId: string }) {
         ]}
       />
 
+      <VariantMatrixDialog
+        productId={productId}
+        defaultPrice={variants?.find((variant) => variant.is_default)?.price}
+        open={buildingMatrix}
+        onOpenChange={setBuildingMatrix}
+      />
+      <VariantBarcodesDialog
+        variant={barcodeVariant}
+        onOpenChange={(open) => !open && setBarcodesFor(null)}
+      />
       <ConfirmDialog
         open={!!pendingDelete}
         onOpenChange={(open) => !open && setPendingDelete(null)}

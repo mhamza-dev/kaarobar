@@ -8,13 +8,16 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProductForm } from "@/features/products/ProductForm";
+import { ProductModifiersSection } from "@/features/products/VariantExtras";
 import { VariantsSection } from "@/features/products/VariantsSection";
 import { useProduct } from "@/hooks/queries/useProducts";
 import { productKindLabel } from "@/lib/productKinds";
+import { useSessionStore } from "@/stores/sessionStore";
 
 export default function ProductDetailPage({ params }: PageProps<"/products/[productId]">) {
   const { productId } = use(params);
   const { data: product, isLoading, isError } = useProduct(productId);
+  const modules = useSessionStore((state) => state.scope?.business?.modules) ?? [];
 
   return (
     <>
@@ -41,7 +44,8 @@ export default function ProductDetailPage({ params }: PageProps<"/products/[prod
       ) : (
         <>
           <ProductForm product={product} />
-          <VariantsSection productId={product.id} />
+          <VariantsSection productId={product.id} product={product} />
+          {modules.includes("modifiers") && <ProductModifiersSection product={product} />}
         </>
       )}
     </>

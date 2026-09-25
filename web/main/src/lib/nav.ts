@@ -1,5 +1,8 @@
 import {
   ArrowLeftRight,
+  BadgeDollarSign,
+  Percent,
+  SlidersHorizontal,
   BarChart3,
   BellRing,
   Boxes,
@@ -215,6 +218,24 @@ const NAV_GROUPS: NavGroup[] = [
         icon: Tags,
         anyPermission: ["category:manage"],
       },
+      {
+        label: "Price lists",
+        href: "/price-lists",
+        icon: BadgeDollarSign,
+        anyPermission: ["price_list:manage"],
+      },
+      {
+        label: "Promotions",
+        href: "/promotions",
+        icon: Percent,
+        anyPermission: ["price_rule:manage"],
+      },
+      {
+        label: "Catalog set-up",
+        href: "/products/setup",
+        icon: SlidersHorizontal,
+        anyPermission: ["brand:manage", "unit:manage", "variant:manage", "modifier:manage"],
+      },
     ],
   },
   {
@@ -314,6 +335,12 @@ const NAV_GROUPS: NavGroup[] = [
         href: "/settings/branches",
         icon: Building2,
         anyPermission: ["branch:view"],
+      },
+      {
+        label: "Taxes",
+        href: "/settings/taxes",
+        icon: Landmark,
+        anyPermission: ["tax:manage"],
       },
       {
         label: "Loyalty",

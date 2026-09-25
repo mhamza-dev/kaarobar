@@ -12,6 +12,7 @@ import { FormSwitch } from "@/components/forms/FormSwitch";
 import { FormTextField } from "@/components/forms/FormTextField";
 import { FormTextareaField } from "@/components/forms/FormTextareaField";
 import { Button } from "@/components/ui/button";
+import { useBrands, useTaxGroups, useUnits } from "@/hooks/queries/useCatalogSetup";
 import { useCategoriesList } from "@/hooks/queries/useCategories";
 import { useCreateProduct, useUpdateProduct } from "@/hooks/queries/useProducts";
 import { toast } from "@/hooks/useToast";
@@ -25,6 +26,9 @@ type ProductFormValues = {
   kind: ProductKind;
   description: string;
   category_id: string;
+  brand_id: string;
+  unit_id: string;
+  tax_group_id: string;
   tracks_stock: boolean;
   tracks_batch: boolean;
   tracks_serial: boolean;
@@ -128,6 +132,11 @@ function KindDependentFields({ requiresBatch }: { requiresBatch: boolean }) {
 export function ProductForm({ product }: { product?: Product }) {
   const router = useRouter();
   const { data: categories } = useCategoriesList();
+  const { data: brands } = useBrands();
+  const { data: units } = useUnits();
+  const { data: taxGroups } = useTaxGroups();
+  const defaultGroup = taxGroups?.find((group) => group.is_default);
+  const defaultTaxLabel = `Business default${defaultGroup ? ` (${defaultGroup.name})` : ""}`;
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const business = useSessionStore((state) => state.scope?.business);
@@ -148,6 +157,11 @@ export function ProductForm({ product }: { product?: Product }) {
         kind: product?.kind ?? (allowedKinds[0] as ProductKind),
         description: product?.description ?? "",
         category_id: product?.category_id ?? "",
+        brand_id: product?.brand_id ?? "",
+        unit_id: product?.unit_id ?? "",
+        // Blank means "the business default", resolved at every quote — so
+        // changing the default later moves these products with it.
+        tax_group_id: product?.tax_group_id ?? "",
         tracks_stock: product?.tracks_stock ?? true,
         tracks_batch: product?.tracks_batch ?? false,
         tracks_serial: product?.tracks_serial ?? false,
@@ -175,6 +189,9 @@ export function ProductForm({ product }: { product?: Product }) {
           ...normalized,
           description: values.description || null,
           category_id: values.category_id || null,
+          brand_id: values.brand_id || null,
+          unit_id: values.unit_id || null,
+          tax_group_id: values.tax_group_id || null,
         };
 
         try {
@@ -218,6 +235,33 @@ export function ProductForm({ product }: { product?: Product }) {
                   value: category.id,
                   label: category.name,
                 }))}
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <FormSelectField
+                name="brand_id"
+                label="Brand"
+                placeholder="No brand"
+                options={(brands ?? [])
+                  .filter((brand) => brand.is_active || brand.id === product?.brand_id)
+                  .map((brand) => ({ value: brand.id, label: brand.name }))}
+              />
+              <FormSelectField
+                name="unit_id"
+                label="Sold by"
+                placeholder="Each"
+                options={(units ?? []).map((unit) => ({ value: unit.id, label: unit.name }))}
+              />
+              <FormSelectField
+                name="tax_group_id"
+                label="Tax"
+                // An empty value shows the placeholder, so the default's name
+                // goes there; the explicit option lets it be chosen again.
+                placeholder={defaultTaxLabel}
+                options={[
+                  { value: "", label: defaultTaxLabel },
+                  ...(taxGroups ?? []).map((group) => ({ value: group.id, label: group.name })),
+                ]}
               />
             </div>
             <FormTextareaField name="description" label="Description" rows={3} />
