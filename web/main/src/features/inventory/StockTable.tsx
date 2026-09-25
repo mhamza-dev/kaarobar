@@ -1,17 +1,11 @@
 "use client";
 
-import { AlertTriangle, MoreHorizontal } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { useState } from "react";
 
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useBranchesList } from "@/hooks/queries/useBranches";
 import { useStockList } from "@/hooks/queries/useInventory";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -20,14 +14,14 @@ import { formatMoney, formatQuantity } from "@/lib/format";
 import { useSessionStore } from "@/stores/sessionStore";
 import type { StockItem } from "@/types/api/inventory";
 
-import { StockAdjustDialog, type StockAdjustMode } from "./StockAdjustDialog";
+import { stockSheetKey } from "./StockItemSheet";
 
 /**
  * Stock levels per branch. Cursor-paginated and filtered server-side — a
  * stock list is one row per variant *per branch*, so it outgrows the client
  * faster than the product list does.
  */
-export function StockTable() {
+export function StockTable({ onOpen }: { onOpen: (key: string) => void }) {
   const { can } = usePermission();
   const currency = useSessionStore((state) => state.scope?.business?.currency) ?? "PKR";
   const { data: branches } = useBranchesList();
@@ -37,9 +31,6 @@ export function StockTable() {
   const [lowOnly, setLowOnly] = useState(false);
   const debouncedSearch = useDebounce(search, 300);
 
-  const [adjusting, setAdjusting] = useState<StockItem | null>(null);
-  const [mode, setMode] = useState<StockAdjustMode>("adjust");
-
   const { rows, isLoading, error, refetch, hasNextPage, isFetchingNextPage, fetchNextPage } =
     useStockList({
       q: debouncedSearch || undefined,
@@ -47,14 +38,7 @@ export function StockTable() {
       low_stock: lowOnly || undefined,
     });
 
-  const canAdjust = can("stock:adjust");
-  const canWriteOff = can("stock:wastage");
   const canSeeValue = can("valuation:view");
-
-  const open = (item: StockItem, next: StockAdjustMode) => {
-    setMode(next);
-    setAdjusting(item);
-  };
 
   const columns: DataTableColumn<StockItem>[] = [
     {
@@ -105,36 +89,6 @@ export function StockTable() {
           },
         ]
       : []),
-    {
-      key: "actions",
-      header: "",
-      align: "end",
-      width: "w-12",
-      render: (item) =>
-        canAdjust || canWriteOff ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button variant="ghost" size="icon-sm" aria-label="Stock actions">
-                  <MoreHorizontal className="size-4" />
-                </Button>
-              }
-            />
-            <DropdownMenuContent align="end">
-              {canAdjust && (
-                <DropdownMenuItem onClick={() => open(item, "adjust")}>
-                  Adjust stock
-                </DropdownMenuItem>
-              )}
-              {canWriteOff && (
-                <DropdownMenuItem variant="destructive" onClick={() => open(item, "write_off")}>
-                  Write off
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : null,
-    },
   ];
 
   return (
@@ -171,6 +125,7 @@ export function StockTable() {
         columns={columns}
         rows={rows}
         rowKey={(item) => item.id}
+        onRowClick={(item) => onOpen(stockSheetKey(item))}
         loading={isLoading}
         error={error ? { message: error.message } : null}
         onRetry={() => refetch()}
@@ -192,12 +147,6 @@ export function StockTable() {
           },
           { key: "on_hand", label: "On hand", render: (item) => formatQuantity(item.on_hand) },
         ]}
-      />
-
-      <StockAdjustDialog
-        item={adjusting}
-        mode={mode}
-        onOpenChange={(open) => !open && setAdjusting(null)}
       />
     </>
   );

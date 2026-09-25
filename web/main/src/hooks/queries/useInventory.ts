@@ -4,14 +4,26 @@ import { toast } from "@/hooks/useToast";
 import { flattenPages, getNextCursorParam } from "@/lib/api/pagination";
 import {
   adjustStock,
+  getStockItem,
+  getStockLedger,
+  getStockValuation,
   listBatches,
   listExpiringBatches,
+  listReorderSuggestions,
   listStock,
   listStockMoves,
   setBatchStatus,
+  setOpeningStock,
+  updateStockSettings,
   writeOffStock,
 } from "@/services/inventory";
-import type { StockAdjustPayload, StockListParams, StockMoveParams } from "@/types/api/inventory";
+import type {
+  OpeningStockPayload,
+  StockAdjustPayload,
+  StockListParams,
+  StockMoveParams,
+  StockSettingsPayload,
+} from "@/types/api/inventory";
 
 import { useTenantKey } from "./keys";
 
@@ -58,9 +70,54 @@ function useStockMutation<TArgs extends unknown[], TResult>(
       queryClient.invalidateQueries({ queryKey: ["stock", tenant] });
       queryClient.invalidateQueries({ queryKey: ["stock-moves", tenant] });
       queryClient.invalidateQueries({ queryKey: ["batches", tenant] });
+      queryClient.invalidateQueries({ queryKey: ["batches-expiring", tenant] });
+      for (const key of ["stock-item", "stock-ledger", "stock-valuation", "stock-reorder"]) {
+        queryClient.invalidateQueries({ queryKey: [key] });
+      }
     },
     onError: (error) => toast.mutationError(error),
   });
+}
+
+export function useStockItem(branchId: string | undefined, variantId: string | undefined) {
+  return useQuery({
+    queryKey: ["stock-item", branchId, variantId],
+    queryFn: () => getStockItem(branchId!, variantId!),
+    enabled: !!branchId && !!variantId,
+  });
+}
+
+export function useStockLedger(branchId: string | undefined, variantId: string | undefined) {
+  return useQuery({
+    queryKey: ["stock-ledger", branchId, variantId],
+    queryFn: () => getStockLedger(branchId!, variantId!),
+    enabled: !!branchId && !!variantId,
+  });
+}
+
+export function useStockValuation(params: { branch_id?: string } = {}, enabled = true) {
+  const tenant = useTenantKey();
+  return useQuery({
+    queryKey: ["stock-valuation", tenant, params],
+    queryFn: () => getStockValuation(params),
+    enabled,
+  });
+}
+
+export function useReorderSuggestions(params: { branch_id?: string } = {}) {
+  const tenant = useTenantKey();
+  return useQuery({
+    queryKey: ["stock-reorder", tenant, params],
+    queryFn: () => listReorderSuggestions(params),
+  });
+}
+
+export function useUpdateStockSettings() {
+  return useStockMutation<[string, string, StockSettingsPayload], unknown>(updateStockSettings);
+}
+
+export function useSetOpeningStock() {
+  return useStockMutation<[OpeningStockPayload], unknown>(setOpeningStock);
 }
 
 export function useAdjustStock() {

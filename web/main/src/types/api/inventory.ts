@@ -186,3 +186,35 @@ export type CountPayload = {
   category_id?: string;
   notes?: string;
 };
+
+/** `PUT /stock/:branch_id/:variant_id` — the per-branch reorder settings. */
+export type StockSettingsPayload = {
+  reorder_point?: string | null;
+  reorder_quantity?: string | null;
+  max_stock?: string | null;
+  bin_location?: string | null;
+};
+
+/** `POST /stock/opening` — what a business starts with, at what it cost. */
+export type OpeningStockPayload = {
+  variant_id: string;
+  branch_id: string;
+  quantity: string;
+  unit_cost: string;
+};
+
+/** `GET /stock/valuation` — quantity on hand and what it cost. */
+export type StockValuation = { quantity: string; value: string };
+
+/** `GET /stock/reorder` — a line below its reorder point, and how many to order. */
+export type ReorderSuggestion = {
+  variant_id: string;
+  branch_id: string;
+  available: string;
+  reorder_point: string;
+  incoming: string;
+  suggested_quantity: string;
+  variant: ProductVariant | null;
+};
+
+export const BATCH_STATUSES = ["active", "depleted", "expired", "quarantined", "recalled"] as const;

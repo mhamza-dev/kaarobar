@@ -8,9 +8,12 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useBatches, useExpiringBatches } from "@/hooks/queries/useInventory";
+import { useSheetParam } from "@/hooks/useSheetParam";
 import { formatDate, formatMoney, formatQuantity } from "@/lib/format";
 import { useSessionStore } from "@/stores/sessionStore";
 import type { Batch } from "@/types/api/inventory";
+
+import { BatchSheet } from "./BatchSheet";
 
 /**
  * Batches and expiry — the screen a pharmacy or grocer checks each morning.
@@ -26,6 +29,13 @@ export function BatchesTable() {
   const all = useBatches();
   const expiring = useExpiringBatches(30);
   const source = expiringOnly ? expiring : all;
+  const sheet = useSheetParam();
+  // No single-batch endpoint: the sheet shows the batch from the loaded list,
+  // looking in both so a link survives the "expiring" toggle.
+  const open =
+    sheet.value &&
+    [...(all.data ?? []), ...(expiring.data ?? [])].find((b) => b.id === sheet.value);
+  const listsLoaded = !all.isLoading && !expiring.isLoading;
 
   const columns: DataTableColumn<Batch>[] = [
     {
@@ -105,6 +115,7 @@ export function BatchesTable() {
         columns={columns}
         rows={source.data ?? []}
         rowKey={(batch) => batch.id}
+        onRowClick={(batch) => sheet.open(batch.id)}
         loading={source.isLoading}
         error={source.error ? { message: source.error.message } : null}
         onRetry={() => source.refetch()}
@@ -121,6 +132,12 @@ export function BatchesTable() {
             render: (batch) => formatQuantity(batch.remaining_quantity),
           },
         ]}
+      />
+
+      <BatchSheet
+        batch={open || null}
+        missing={!!sheet.value && !open && listsLoaded}
+        onClose={sheet.close}
       />
     </>
   );
