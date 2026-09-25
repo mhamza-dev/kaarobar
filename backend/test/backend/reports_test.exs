@@ -249,6 +249,22 @@ defmodule Kaarobar.ReportsTest do
       assert Decimal.equal?(pl.net_profit, Decimal.new("50.0000"))
     end
 
+    test "an expense sent with nulls for its optional fields is recorded", ctx do
+      {:ok, expense} =
+        Finance.create_expense(ctx.scope, %{
+          "expense_category_id" => ctx.operating.id,
+          "description" => "Electricity",
+          "amount" => "30.00",
+          "tax_amount" => nil,
+          "method" => nil,
+          "status" => nil
+        })
+
+      assert Decimal.equal?(expense.tax_amount, Decimal.new(0))
+      assert expense.method == "cash"
+      assert expense.status == "recorded"
+    end
+
     test "does not subtract cost-of-sales twice", ctx do
       sale_fixture(ctx.scope, ctx.variant, quantity: "2", amount: "200.00")
 

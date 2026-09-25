@@ -108,6 +108,7 @@ defmodule Kaarobar.Finance.Expense do
       :currency,
       :spent_on
     ])
+    |> keep_defaults([:tax_amount, :method, :status])
     |> update_change(:description, &String.trim/1)
     |> validate_length(:description, min: 1, max: 200)
     |> validate_number(:amount, greater_than: 0)
@@ -174,6 +175,19 @@ defmodule Kaarobar.Finance.Expense do
       else
         []
       end
+    end)
+  end
+
+  # A client sending `null` for an optional field means "not given", but cast
+  # takes it literally and overrides the column default — a NOT NULL
+  # violation and a 500. Put the schema default back instead.
+  defp keep_defaults(changeset, fields) do
+    defaults = struct(__MODULE__)
+
+    Enum.reduce(fields, changeset, fn field, acc ->
+      if is_nil(get_field(acc, field)),
+        do: put_change(acc, field, Map.fetch!(defaults, field)),
+        else: acc
     end)
   end
 end
