@@ -53,6 +53,7 @@ const CORE_ROUTES = [
   "/gift-cards",
   "/expenses",
   "/settings/bank-accounts",
+  "/settings/audit-log",
 ];
 
 const VERTICAL_ROUTES: Array<[business: string, routes: string[]]> = [

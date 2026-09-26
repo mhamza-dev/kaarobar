@@ -1,6 +1,7 @@
 import {
   ArrowLeftRight,
   BadgeDollarSign,
+  ScrollText,
   Bike,
   Coins,
   Timer,
@@ -366,6 +367,12 @@ const NAV_GROUPS: NavGroup[] = [
         href: "/settings/branches",
         icon: Building2,
         anyPermission: ["branch:view"],
+      },
+      {
+        label: "Audit log",
+        href: "/settings/audit-log",
+        icon: ScrollText,
+        anyPermission: ["audit:view"],
       },
       {
         label: "Bank accounts",

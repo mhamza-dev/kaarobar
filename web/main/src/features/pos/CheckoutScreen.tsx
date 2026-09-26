@@ -28,6 +28,7 @@ import type { Customer } from "@/types/api/crm";
 import type { CheckoutPayment, Sale } from "@/types/api/sales";
 
 import { CartPanel } from "./CartPanel";
+import { HeldOrdersButton, ParkBasketButton } from "./HeldOrders";
 import { CustomerPicker } from "./CustomerPicker";
 import { OpenShiftPrompt } from "./OpenShiftPrompt";
 import { PaymentPanel } from "./PaymentPanel";
@@ -205,11 +206,23 @@ export function CheckoutScreen({ orderId }: { orderId?: string } = {}) {
                       <Badge variant="secondary">{itemCount(lines)} items</Badge>
                     )}
                   </p>
-                  {lines.length > 0 && (
-                    <Button variant="ghost" size="sm" onClick={reset}>
-                      Clear
-                    </Button>
-                  )}
+                  <div className="flex items-center gap-1">
+                    {lines.length > 0 && can("order:create") && register && (
+                      <ParkBasketButton
+                        lines={checkoutLines}
+                        branchId={register.branch_id}
+                        registerId={register.id}
+                        customerId={customer?.id}
+                        onParked={reset}
+                      />
+                    )}
+                    {lines.length > 0 && (
+                      <Button variant="ghost" size="sm" onClick={reset}>
+                        Clear
+                      </Button>
+                    )}
+                    {can("order:view") && <HeldOrdersButton currency={currency} />}
+                  </div>
                 </div>
 
                 <CartPanel
