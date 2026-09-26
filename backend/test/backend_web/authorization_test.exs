@@ -56,6 +56,27 @@ defmodule KaarobarWeb.AuthorizationTest do
 
       assert is_list(json_data(conn, 200))
     end
+
+    test "an action filter finds a whole family of actions", %{
+      owner: owner,
+      owner_user: owner_user,
+      business: business,
+      conn: conn
+    } do
+      Kaarobar.Audit.log(owner, "widget.made", nil, entity_type: "widget", label: "One")
+      Kaarobar.Audit.log(owner, "widget.broken", nil, entity_type: "widget", label: "Two")
+      Kaarobar.Audit.log(owner, "widgetry.other", nil, entity_type: "widget", label: "Not it")
+
+      actions =
+        conn
+        |> sign_in(owner_user, business)
+        |> get(~p"/api/v1/audit-logs", %{"action" => "widget"})
+        |> json_data(200)
+        |> Enum.map(& &1["action"])
+        |> Enum.sort()
+
+      assert actions == ["widget.broken", "widget.made"]
+    end
   end
 
   describe "writes" do

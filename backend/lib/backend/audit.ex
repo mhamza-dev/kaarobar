@@ -134,8 +134,11 @@ defmodule Kaarobar.Audit do
       {"actor_user_id", value}, acc when is_binary(value) ->
         where(acc, [entry], entry.actor_user_id == ^value)
 
+      # An exact action, or a family of them: "sale" finds sale.voided,
+      # sale.returned and the rest — what someone investigating types.
       {"action", value}, acc when is_binary(value) ->
-        where(acc, [entry], entry.action == ^value)
+        family = escape_like(value) <> ".%"
+        where(acc, [entry], entry.action == ^value or like(entry.action, ^family))
 
       {"business_id", value}, acc when is_binary(value) ->
         where(acc, [entry], entry.business_id == ^value)
@@ -230,4 +233,6 @@ defmodule Kaarobar.Audit do
   defp redact(values) when is_list(values), do: Enum.map(values, &redact/1)
 
   defp redact(other), do: other
+
+  defp escape_like(value), do: String.replace(value, ~r/[\\%_]/, "\\\\\\0")
 end
