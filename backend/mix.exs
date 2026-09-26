@@ -45,6 +45,9 @@ defmodule Kaarobar.MixProject do
       {:phoenix_ecto, "~> 4.5"},
       {:ecto_sql, "~> 3.13"},
       {:postgrex, ">= 0.0.0"},
+      # IANA time zones. Without a database every business-local date
+      # (reports' days, "today") silently falls back to UTC.
+      {:tz, "~> 0.28"},
       {:phoenix_live_dashboard, "~> 0.8.3"},
       {:bandit, "~> 1.5"},
 

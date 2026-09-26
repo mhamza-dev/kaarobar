@@ -7,6 +7,10 @@
 # General application configuration
 import Config
 
+# Businesses keep their own time zone (Asia/Karachi by default); shifting to
+# it needs a zone database, which Elixir doesn't ship.
+config :elixir, :time_zone_database, Tz.TimeZoneDatabase
+
 config :backend,
   namespace: Kaarobar,
   env: config_env(),

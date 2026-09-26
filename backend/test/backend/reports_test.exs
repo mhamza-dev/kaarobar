@@ -249,6 +249,35 @@ defmodule Kaarobar.ReportsTest do
       assert Decimal.equal?(pl.net_profit, Decimal.new("50.0000"))
     end
 
+    test "an expense dated the business's today is not refused as future", ctx do
+      today = Rollups.business_today(ctx.scope.business)
+
+      {:ok, expense} =
+        Finance.create_expense(ctx.scope, %{
+          "expense_category_id" => ctx.operating.id,
+          "description" => "Evening delivery",
+          "amount" => "10.00",
+          "spent_on" => Date.to_iso8601(today)
+        })
+
+      assert expense.spent_on == today
+    end
+
+    test "future is judged against the date it's given, not UTC" do
+      today = ~D[2026-09-26]
+      attrs = %{"spent_on" => "2026-09-26"}
+
+      refute Kaarobar.Finance.Expense.changeset(%Kaarobar.Finance.Expense{}, attrs, today).errors[
+               :spent_on
+             ]
+
+      assert Kaarobar.Finance.Expense.changeset(
+               %Kaarobar.Finance.Expense{},
+               %{"spent_on" => "2026-09-27"},
+               today
+             ).errors[:spent_on]
+    end
+
     test "an expense sent with nulls for its optional fields is recorded", ctx do
       {:ok, expense} =
         Finance.create_expense(ctx.scope, %{

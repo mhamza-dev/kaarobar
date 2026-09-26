@@ -76,7 +76,12 @@ defmodule Kaarobar.Finance.Expense do
   @doc "The states in which an expense counts against profit."
   def counted_statuses, do: @counted
 
-  def changeset(expense, attrs) do
+  @doc """
+  `today` is the business's local date — "not in the future" is judged
+  there, not in UTC, or an evening's expense in Karachi is refused as
+  tomorrow's.
+  """
+  def changeset(expense, attrs, today \\ Date.utc_today()) do
     expense
     |> cast(attrs, [
       :organization_id,
@@ -115,7 +120,7 @@ defmodule Kaarobar.Finance.Expense do
     |> validate_number(:tax_amount, greater_than_or_equal_to: 0)
     |> validate_inclusion(:status, @statuses)
     |> validate_inclusion(:method, @methods)
-    |> validate_not_future()
+    |> validate_not_future(today)
     |> unique_constraint(:number,
       name: :expenses_business_id_number_index,
       message: "has already been issued"
@@ -168,9 +173,9 @@ defmodule Kaarobar.Finance.Expense do
   # A cost dated next month is a typo, and it would sit in a future period
   # nobody looks at until it quietly appears in a month that had already been
   # reported on.
-  defp validate_not_future(changeset) do
+  defp validate_not_future(changeset, today) do
     validate_change(changeset, :spent_on, fn :spent_on, spent_on ->
-      if Date.compare(spent_on, Date.utc_today()) == :gt do
+      if Date.compare(spent_on, today) == :gt do
         [spent_on: "cannot be in the future"]
       else
         []

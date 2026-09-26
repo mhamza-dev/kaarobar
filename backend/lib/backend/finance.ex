@@ -306,6 +306,10 @@ defmodule Kaarobar.Finance do
   # ===========================================================================
 
   defp insert_expense(%Scope{} = scope, attrs, number) do
+    # The business's own today: in Karachi, UTC's "yesterday" runs until 5am,
+    # and an expense recorded then is today's, not tomorrow's.
+    today = business_today(scope)
+
     attrs =
       attrs
       |> Map.merge(%{
@@ -316,10 +320,10 @@ defmodule Kaarobar.Finance do
       })
       |> Map.put_new("branch_id", Scope.branch_id(scope))
       |> Map.put_new("currency", scope.business && scope.business.currency)
-      |> Map.put_new("spent_on", Date.utc_today())
+      |> Map.put_new("spent_on", today)
 
     %Expense{}
-    |> Expense.changeset(attrs)
+    |> Expense.changeset(attrs, today)
     |> Repo.insert()
   end
 
@@ -400,4 +404,9 @@ defmodule Kaarobar.Finance do
   defp stringify(attrs) when is_map(attrs) do
     Map.new(attrs, fn {key, value} -> {to_string(key), value} end)
   end
+
+  defp business_today(%Scope{business: %Kaarobar.Tenancy.Business{} = business}),
+    do: Kaarobar.Reports.Rollups.business_today(business)
+
+  defp business_today(%Scope{}), do: Date.utc_today()
 end
