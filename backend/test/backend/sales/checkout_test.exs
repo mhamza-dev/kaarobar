@@ -358,10 +358,11 @@ defmodule Kaarobar.Sales.CheckoutTest do
       assert Sales.list_sales(scope, %{}) == []
     end
 
-    test "does not touch stock for a service, which has none", %{
-      scope: scope,
-      register: register
-    } do
+    test "does not touch stock for a service, which has none" do
+      # A retail shop can't sell services at all, and a salon also needs who
+      # served; a professional practice sells a service and nothing else.
+      %{scope: scope} = owner_scope(business_type: "professional_services")
+      %{register: register} = open_till(scope)
       product = product_fixture(scope, %{"kind" => "service", "price" => "500.00"})
       [variant] = Kaarobar.Catalog.list_variants(scope, product)
 

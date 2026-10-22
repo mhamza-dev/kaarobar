@@ -734,7 +734,9 @@ defmodule Kaarobar.Sales.Checkout do
            :ok <- bill_order(request, priced),
            {:ok, _shift} <- Registers.apply_sale(sale, payments) do
         log(scope, sale, priced, tenders)
-        %{sale | items: items, payments: payments}
+        # The same shape fetch_sale returns: a receipt shown straight after
+        # checkout needs each line's tax, which is written after the line.
+        %{sale | items: Repo.preload(items, [:taxes, :modifiers]), payments: payments}
       else
         {:error, reason} -> Repo.rollback(reason)
       end

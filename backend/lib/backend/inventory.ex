@@ -116,18 +116,43 @@ defmodule Kaarobar.Inventory do
   """
   @spec adjust_incoming(Scope.t(), Ecto.UUID.t(), Ecto.UUID.t(), Decimal.t()) :: :ok
   def adjust_incoming(%Scope{} = scope, variant_id, branch_id, delta) do
-    if Money.zero?(delta) do
-      :ok
-    else
-      from(item in StockItem,
-        where: item.branch_id == ^branch_id and item.variant_id == ^variant_id,
-        where: item.business_id == ^Scope.business_id(scope),
-        update: [set: [incoming: fragment("GREATEST(? + ?, 0)", item.incoming, ^delta)]]
-      )
-      |> Repo.update_all([])
+    cond do
+      Money.zero?(delta) ->
+        :ok
 
-      :ok
+      # More on its way. The first order for something this branch has never
+      # stocked has no row to add to yet — create it, or the order would be
+      # invisible to stock and reorder suggestions until the goods arrived.
+      Decimal.positive?(delta) ->
+        %StockItem{
+          organization_id: Scope.organization_id(scope),
+          business_id: Scope.business_id(scope),
+          branch_id: branch_id,
+          variant_id: variant_id,
+          incoming: delta
+        }
+        |> Repo.insert!(
+          on_conflict: [inc: [incoming: delta]],
+          conflict_target: [:branch_id, :variant_id]
+        )
+
+        :ok
+
+      true ->
+        release_incoming(scope, variant_id, branch_id, delta)
     end
+  end
+
+  # Clamped at zero, as above. Nothing to release where there's no row.
+  defp release_incoming(%Scope{} = scope, variant_id, branch_id, delta) do
+    from(item in StockItem,
+      where: item.branch_id == ^branch_id and item.variant_id == ^variant_id,
+      where: item.business_id == ^Scope.business_id(scope),
+      update: [set: [incoming: fragment("GREATEST(? + ?, 0)", item.incoming, ^delta)]]
+    )
+    |> Repo.update_all([])
+
+    :ok
   end
 
   @doc "Updates the reorder settings for a stock line."

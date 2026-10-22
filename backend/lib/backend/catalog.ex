@@ -471,6 +471,9 @@ defmodule Kaarobar.Catalog do
       select: %{id: value.id, value: value.value, position: type.position}
     )
     |> Repo.all()
+    # Types left at the same position would otherwise come back in any
+    # order — "S / Blue" beside "Blue / L". The caller's order breaks ties.
+    |> Enum.sort_by(fn value -> {value.position, Enum.find_index(ids, &(&1 == value.id))} end)
   end
 
   defp attach_option_values(%ProductVariant{} = variant, ids) do

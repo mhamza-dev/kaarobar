@@ -93,8 +93,16 @@ defmodule Kaarobar.Documents.EscPos do
     [
       pair(receipt.labels.invoice, receipt.number, width),
       pair(receipt.labels.date, timestamp(receipt.sold_at), width),
-      if(receipt.customer_name, do: pair(receipt.labels.customer, receipt.customer_name, width)),
-      if(receipt.cashier_name, do: pair(receipt.labels.cashier, receipt.cashier_name, width))
+      # Optional rows are [] when absent, never nil: iodata can't hold nil,
+      # and one missing customer name would stop the receipt printing.
+      if(receipt.customer_name,
+        do: pair(receipt.labels.customer, receipt.customer_name, width),
+        else: []
+      ),
+      if(receipt.cashier_name,
+        do: pair(receipt.labels.cashier, receipt.cashier_name, width),
+        else: []
+      )
     ]
   end
 
@@ -115,7 +123,8 @@ defmodule Kaarobar.Documents.EscPos do
               "  #{receipt.labels.discount}",
               "-" <> money(item.discount, receipt.currency),
               width
-            )
+            ),
+          else: []
         )
       ]
     end)
@@ -125,7 +134,8 @@ defmodule Kaarobar.Documents.EscPos do
     [
       pair(receipt.labels.subtotal, money(totals.subtotal, receipt.currency), width),
       if(positive?(totals.discount),
-        do: pair(receipt.labels.discount, "-" <> money(totals.discount, receipt.currency), width)
+        do: pair(receipt.labels.discount, "-" <> money(totals.discount, receipt.currency), width),
+        else: []
       ),
       Enum.map(receipt.taxes, fn tax ->
         pair(tax_label(receipt, tax), money(tax.amount, receipt.currency), width)
@@ -142,7 +152,8 @@ defmodule Kaarobar.Documents.EscPos do
         pair(payment.label, money(payment.amount, receipt.currency), width)
       end),
       if(positive?(receipt.totals.change),
-        do: pair(receipt.labels.change, money(receipt.totals.change, receipt.currency), width)
+        do: pair(receipt.labels.change, money(receipt.totals.change, receipt.currency), width),
+        else: []
       )
     ]
   end

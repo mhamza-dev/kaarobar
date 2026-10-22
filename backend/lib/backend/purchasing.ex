@@ -663,15 +663,24 @@ defmodule Kaarobar.Purchasing do
   defp apply_receipt_to_order(_scope, %GoodsReceipt{purchase_order_id: nil}), do: :ok
 
   defp apply_receipt_to_order(%Scope{} = scope, %GoodsReceipt{} = receipt) do
-    with {:ok, order} <- fetch_order(scope, receipt.purchase_order_id) do
-      Enum.each(receipt.items, fn item ->
-        if item.purchase_order_item_id do
-          apply_receipt_line_to_order(scope, order, item, receipt)
-        end
-      end)
-
+    with {:ok, order} <- fetch_order(scope, receipt.purchase_order_id),
+         :ok <- apply_receipt_lines(scope, order, receipt) do
       refresh_order_status(scope, receipt.purchase_order_id)
     end
+  end
+
+  # Stops at the first line the order refuses — receiving more than was
+  # ordered — and hands the changeset back, so the post rolls back as a
+  # validation error rather than raising.
+  defp apply_receipt_lines(%Scope{} = scope, order, %GoodsReceipt{} = receipt) do
+    receipt.items
+    |> Enum.filter(& &1.purchase_order_item_id)
+    |> Enum.reduce_while(:ok, fn item, :ok ->
+      case apply_receipt_line_to_order(scope, order, item, receipt) do
+        {:error, _} = error -> {:halt, error}
+        _ok -> {:cont, :ok}
+      end
+    end)
   end
 
   defp apply_receipt_line_to_order(
@@ -685,18 +694,20 @@ defmodule Kaarobar.Purchasing do
         :ok
 
       order_item ->
-        {:ok, _updated} =
-          order_item
-          |> PurchaseOrderItem.receive_changeset(item.quantity)
-          |> Repo.update()
+        with {:ok, _updated} <-
+               order_item
+               |> PurchaseOrderItem.receive_changeset(item.quantity)
+               |> Repo.update() do
+          # What has arrived is no longer on its way.
+          Inventory.adjust_incoming(
+            scope,
+            order_item.variant_id,
+            receipt.branch_id,
+            Decimal.negate(item.quantity)
+          )
 
-        # What has arrived is no longer on its way.
-        Inventory.adjust_incoming(
-          scope,
-          order_item.variant_id,
-          receipt.branch_id,
-          Decimal.negate(item.quantity)
-        )
+          :ok
+        end
     end
   end
 

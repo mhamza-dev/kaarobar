@@ -202,6 +202,9 @@ defmodule Kaarobar.Tenancy.Membership do
   defp validate_pin_not_trivial(changeset) do
     validate_change(changeset, :pin, fn :pin, pin ->
       cond do
+        # Not all digits is the format check's to report; parsing it here
+        # would raise, turning "abcd" into a 500.
+        not String.match?(pin, ~r/^\d+$/) -> []
         repeated_digits?(pin) -> [pin: "must not be the same digit repeated"]
         sequential_digits?(pin) -> [pin: "must not be a run of consecutive digits"]
         true -> []

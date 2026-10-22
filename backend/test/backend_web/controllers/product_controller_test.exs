@@ -32,7 +32,7 @@ defmodule KaarobarWeb.ProductControllerTest do
              } = json_data(conn, 201)
 
       assert variant["is_default"]
-      assert variant["price"] == "2400.0000"
+      assert variant["price"] == "2400.00"
       assert variant["sku"] == "RICE-5"
     end
 

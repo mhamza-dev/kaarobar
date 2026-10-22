@@ -171,12 +171,12 @@ defmodule Kaarobar.ReportsTest do
 
       sale_fixture(ctx.scope, ctx.variant, amount: "100.00") |> backdate(day)
       {:ok, _} = Rollups.rebuild(ctx.scope.business, day, day)
-      sale_fixture(ctx.scope, ctx.variant, amount: "250.00")
+      sale_fixture(ctx.scope, ctx.variant, quantity: "2", amount: "200.00")
 
       summary = Reports.summary(ctx.scope, {day, today})
 
       assert summary.sale_count == 2
-      assert Decimal.equal?(summary.net_sales, Decimal.new("350.00"))
+      assert Decimal.equal?(summary.net_sales, Decimal.new("300.00"))
     end
   end
 

@@ -92,9 +92,10 @@ defmodule Kaarobar.SchedulingTest do
         })
 
       assert length(appointment.services) == 2
-      assert appointment.starts_at == at(10)
+      # Compared as instants: the column keeps microseconds, `at/1` doesn't.
+      assert DateTime.compare(appointment.starts_at, at(10)) == :eq
       # 10:30 plus ninety minutes.
-      assert appointment.ends_at == at(12)
+      assert DateTime.compare(appointment.ends_at, at(12)) == :eq
     end
 
     test "refuses to double-book a resource, from the database", ctx do

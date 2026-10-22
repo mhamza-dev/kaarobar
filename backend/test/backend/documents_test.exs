@@ -160,7 +160,7 @@ defmodule Kaarobar.DocumentsTest do
       variant = variant_fixture(ctx.scope, %{"name" => ~s(Bolt & Nut <10mm>), "price" => "5.00"})
       stock_fixture(ctx.scope, variant, "10", unit_cost: "2.00")
 
-      html = Html.render(document(ctx.scope, variant))
+      html = Html.render(document(ctx.scope, variant, amount: "5.00"))
 
       # `Bolt & Nut <10mm>` is ordinary stock. A receipt is not where anybody
       # should discover that a product name can close a tag.
@@ -219,7 +219,8 @@ defmodule Kaarobar.DocumentsTest do
       stock_fixture(ctx.scope, variant, "10", unit_cost: "20.00")
 
       # The labels are English here; it is the product name that cannot print.
-      assert {:error, :not_printable} = EscPos.render(document(ctx.scope, variant))
+      assert {:error, :not_printable} =
+               EscPos.render(document(ctx.scope, variant, amount: "50.00"))
     end
 
     test "the roll width decides the column count" do
@@ -269,7 +270,12 @@ defmodule Kaarobar.DocumentsTest do
     end
   end
 
+  # Whole printer commands, not just their control bytes: ESC E 0 is three
+  # bytes, and stripping only the ESC and the 0 leaves an "E" that counts as a
+  # printed character. ESC/GS take one command byte and one parameter here.
   defp strip_control(line) do
-    String.replace(line, ~r/[\x00-\x1F]/, "")
+    line
+    |> String.replace(~r/[\x1B\x1D][\x00-\x7F][\x00-\xFF]/, "")
+    |> String.replace(~r/[\x00-\x1F]/, "")
   end
 end
