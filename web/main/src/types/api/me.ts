@@ -18,4 +18,11 @@ export type Scope = {
   permissions: string[];
   branch_ids: string[] | null;
   organizations: Organization[];
+  /**
+   * The organization's subscription, as far as access goes. `status` is
+   * null when it has never subscribed (unrestricted). `serviceable: false`
+   * means it has lapsed and the API refuses everything but billing, the
+   * account, and the user's own data.
+   */
+  subscription?: { status: string | null; serviceable: boolean };
 };

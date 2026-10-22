@@ -293,7 +293,12 @@ defmodule KaarobarWeb.Serializers do
       is_owner: scope.owner?,
       roles: scope.role_keys,
       permissions: scope.permissions |> MapSet.to_list() |> Enum.sort(),
-      branch_ids: branch_ids(scope)
+      branch_ids: branch_ids(scope),
+      # Enough for a client to say "your subscription has ended" on every
+      # screen without asking — `GET /billing/subscription` returns null for
+      # a lapsed one, which a client cannot tell apart from never having had
+      # one. Null status means no subscription, which is unrestricted.
+      subscription: %{status: scope.subscription_status, serviceable: scope.serviceable?}
     }
   end
 

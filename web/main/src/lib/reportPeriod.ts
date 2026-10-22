@@ -15,6 +15,33 @@ export const PERIOD_PRESETS: Array<{ key: PeriodPreset; label: string }> = [
 const iso = (date: Date) => format(date, "yyyy-MM-dd");
 
 /**
+ * Today's date where the shop is, not where the browser is — as a local
+ * midnight `Date`, ready for date-fns arithmetic.
+ *
+ * The two differ for hours every day for anyone away from the shop: at
+ * 21:00 UTC it is already tomorrow in Karachi, and a range built from the
+ * browser's date would end the day before the shop's sales. Falls back to
+ * the browser's date for a missing or unknown timezone.
+ */
+export function shopToday(timeZone?: string | null, now: Date = new Date()): Date {
+  if (!timeZone) return now;
+  try {
+    const [year, month, day] = new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    })
+      .format(now)
+      .split("-")
+      .map(Number);
+    return new Date(year, month - 1, day);
+  } catch {
+    return now;
+  }
+}
+
+/**
  * A preset as the `from`/`to` dates the report endpoints take — both
  * inclusive, in the shop's calendar days (the backend turns them into
  * instants in the business's timezone). "7 days" means today and the six

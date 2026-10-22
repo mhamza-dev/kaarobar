@@ -83,8 +83,20 @@ npm run dev
 ```bash
 cd web/main
 npm install
-npm run dev
+npm run dev          # http://localhost:3000
 ```
+
+### Marketing site
+
+```bash
+cd web/landing
+npm install
+npm run dev          # http://localhost:3001
+```
+
+The pricing page reads plans from the backend (`cd backend && mix phx.server`),
+and every "Start free trial" opens the web app's sign-up with that plan
+chosen.
 
 ### Mobile app
 

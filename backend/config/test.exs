@@ -35,6 +35,13 @@ config :backend, Oban, testing: :manual
 # other's authority.
 config :backend, Kaarobar.Fiscal.HTTP, client: Kaarobar.FiscalStub
 
+# Kaarobar's own Stripe account, answered from the test process's dictionary
+# for the same reason as the fiscal stub above.
+config :backend, Kaarobar.Billing.Stripe,
+  secret_key: "sk_test_kaarobar",
+  webhook_secret: "whsec_test_kaarobar",
+  http: Kaarobar.BillingStripeStub
+
 # Argon2 is deliberately slow. Use the cheapest parameters in test.
 config :argon2_elixir, t_cost: 1, m_cost: 8
 

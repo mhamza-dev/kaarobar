@@ -100,6 +100,31 @@ defmodule Kaarobar.Billing.Subscription do
     |> foreign_key_constraint(:plan_id)
   end
 
+  @doc """
+  Brings our copy of a card-billed subscription into line with Stripe's.
+
+  Every field the gateway owns is taken as given, including the ones the
+  ordinary changeset will not let a client set — the status, the dates, the
+  grace — because here they arrive in a signed webhook rather than a request
+  body, and Stripe is the one collecting the money.
+  """
+  def sync_changeset(subscription, attrs) do
+    subscription
+    |> change(attrs)
+    |> validate_required([:organization_id, :plan_id, :status, :currency])
+    |> validate_inclusion(:status, @statuses)
+    |> validate_inclusion(:provider, @providers)
+    |> unique_constraint(:organization_id,
+      name: :subscriptions_active_organization_index,
+      message: "already has a subscription"
+    )
+    |> unique_constraint(:external_subscription_id,
+      name: :subscriptions_external_subscription_id_index,
+      message: "is already linked to another subscription"
+    )
+    |> foreign_key_constraint(:plan_id)
+  end
+
   @doc "Moves the subscription into its next paid period."
   def renew_changeset(subscription, %DateTime{} = from, %DateTime{} = until) do
     change(subscription, %{

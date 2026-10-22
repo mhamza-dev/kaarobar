@@ -46,3 +46,13 @@ export async function resetPassword(input: {
 }): Promise<void> {
   await apiClient.post("/auth/reset-password", input);
 }
+
+/** Spends the token from the confirmation email. Works signed in or out. */
+export async function confirmEmail(token: string): Promise<void> {
+  await apiClient.post("/auth/confirm", { token });
+}
+
+/** Sends the signed-in user a fresh confirmation email. */
+export async function resendConfirmation(): Promise<void> {
+  await apiClient.post("/auth/resend-confirmation", {});
+}

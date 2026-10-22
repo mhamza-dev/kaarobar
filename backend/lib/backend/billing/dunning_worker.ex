@@ -2,9 +2,11 @@ defmodule Kaarobar.Billing.DunningWorker do
   @moduledoc """
   Chases unpaid invoices, and eventually stops.
 
-  Three jobs in one because they are one decision made in order: try to collect
-  what is due, end the subscriptions whose grace has now run out, and close the
-  ones that were cancelled and have reached the end of what they paid for.
+  Four jobs in one because they are one decision made in order: start the
+  first paid period of every trial that has ended (which issues the invoice
+  the next step chases), try to collect what is due, end the subscriptions
+  whose grace has now run out, and close the ones that were cancelled and have
+  reached the end of what they paid for.
 
   Running them separately would let an organization be cut off by the second
   step in the minute before the first one collected its money.
@@ -28,15 +30,18 @@ defmodule Kaarobar.Billing.DunningWorker do
 
     # Cross-tenant by design — chasing every organization's overdue invoice in
     # one pass, not one organization's. See `Kaarobar.Repo.as_system/1`.
-    {result, expired, closed} =
+    {converted, result, expired, closed} =
       Repo.as_system(fn ->
-        {Billing.process_dunning(limit), Billing.expire_lapsed(), Billing.close_cancelled()}
+        converted = Billing.convert_ended_trials()
+
+        {converted, Billing.process_dunning(limit), Billing.expire_lapsed(),
+         Billing.close_cancelled()}
       end)
 
-    if result.collected > 0 or result.failed > 0 or expired > 0 or closed > 0 do
+    if converted > 0 or result.collected > 0 or result.failed > 0 or expired > 0 or closed > 0 do
       Logger.info(
-        "billing dunning: #{result.collected} collected, #{result.failed} failed, " <>
-          "#{expired} expired, #{closed} closed"
+        "billing dunning: #{converted} trial(s) ended, #{result.collected} collected, " <>
+          "#{result.failed} failed, #{expired} expired, #{closed} closed"
       )
     end
 

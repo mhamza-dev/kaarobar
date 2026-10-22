@@ -51,6 +51,13 @@ export function useSessionBootstrap() {
     if (scope) setScope(scope);
   }, [scope, setScope]);
 
+  // A list that can't be fetched ends the attempt too, or the shell would
+  // spin forever — an organization whose subscription has lapsed, say,
+  // still has to reach the billing screen.
+  useEffect(() => {
+    if (needsBusiness && !adoptionAttempted && businesses.isError) markAdoptionAttempted();
+  }, [needsBusiness, adoptionAttempted, businesses.isError, markAdoptionAttempted]);
+
   useEffect(() => {
     if (!needsBusiness || adoptionAttempted || !businesses.isSuccess) return;
 

@@ -59,10 +59,17 @@ defmodule KaarobarWeb.Router do
     # The signup form needs this before an account exists.
     get "/business-types", BusinessController, :types
 
+    # The pricing page, on the marketing site, before anybody has an account.
+    get "/plans", BillingController, :plans
+
     # Gateway callbacks. Unauthenticated because a gateway has no bearer token
     # and never will — the signature over the raw body is the credential, and
     # `KaarobarWeb.CacheBodyReader` is what keeps those bytes intact.
     post "/webhooks/:provider", PaymentController, :webhook
+
+    # Kaarobar's own Stripe account — what organizations pay us. Three
+    # segments, so it never matches the shops' "/webhooks/:provider" above.
+    post "/webhooks/billing/stripe", BillingWebhookController, :stripe
   end
 
   scope "/api/v1", KaarobarWeb do
@@ -602,6 +609,8 @@ defmodule KaarobarWeb.Router do
     # a paying customer again.
     get "/billing/plans", BillingController, :plans
     get "/billing/subscription", BillingController, :show
+    post "/billing/checkout", BillingController, :checkout
+    post "/billing/portal", BillingController, :portal
     post "/billing/subscription", BillingController, :subscribe
     put "/billing/subscription/plan", BillingController, :change_plan
     put "/billing/subscription/quantity", BillingController, :set_quantity

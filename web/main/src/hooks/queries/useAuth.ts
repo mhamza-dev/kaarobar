@@ -7,7 +7,7 @@ import { isMfaChallenge } from "@/types/api/auth";
 import { meQueryKey } from "./useMe";
 
 /** Owns setting the session token/cookie whenever a call returns one. */
-function useAdoptSession() {
+export function useAdoptSession() {
   const setToken = useSessionStore((state) => state.setToken);
   const queryClient = useQueryClient();
 
@@ -19,12 +19,14 @@ function useAdoptSession() {
   };
 }
 
+/**
+ * Does **not** adopt the session itself, unlike sign-in: the register form
+ * has more to do with the new token first (start the chosen plan's trial)
+ * and adopts it with `useAdoptSession` when it's done — adopting earlier
+ * would have the `(auth)` layout redirect away mid-flow.
+ */
 export function useRegister() {
-  const adoptSession = useAdoptSession();
-  return useMutation({
-    mutationFn: authService.register,
-    onSuccess: (session) => adoptSession(session.token),
-  });
+  return useMutation({ mutationFn: authService.register });
 }
 
 /** Returns the raw login result — the caller branches on `isMfaChallenge`. */
@@ -59,4 +61,17 @@ export function useLogout() {
       queryClient.clear();
     },
   });
+}
+
+export function useConfirmEmail() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: authService.confirmEmail,
+    // `/me` carries `user.confirmed`, which drives the reminder banner.
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: meQueryKey }),
+  });
+}
+
+export function useResendConfirmation() {
+  return useMutation({ mutationFn: authService.resendConfirmation });
 }

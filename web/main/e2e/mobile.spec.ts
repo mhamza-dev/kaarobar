@@ -43,6 +43,7 @@ const CORE_ROUTES = [
   "/settings/loyalty",
   "/settings/payments",
   "/settings/billing",
+  "/welcome",
   "/settings/fiscal",
   "/settings/taxes",
   "/settings/profile",

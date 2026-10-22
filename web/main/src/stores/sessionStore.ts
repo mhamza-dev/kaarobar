@@ -47,11 +47,19 @@ type SessionState = {
    * endless select-refetch loop.
    */
   businessAdoptionAttempted: boolean;
+  /**
+   * Where the `(auth)` layout sends someone the moment they have a token —
+   * once, then cleared. Set by a flow that knows better than "the dashboard":
+   * registration sends a new owner to `/welcome`. Without it the layout's
+   * redirect would race the form's own navigation.
+   */
+  afterSignIn: string | null;
 
   setToken: (token: string) => void;
   setScope: (scope: Scope) => void;
   selectTenant: (selection: TenantSelection) => void;
   markBusinessAdoptionAttempted: () => void;
+  setAfterSignIn: (path: string | null) => void;
   clear: () => void;
 };
 
@@ -77,6 +85,7 @@ export const useSessionStore = create<SessionState>((set) => ({
   hydrated: false,
   pendingSelection: null,
   businessAdoptionAttempted: false,
+  afterSignIn: null,
 
   setToken: (token) => {
     writeTokenCookie(token);
@@ -89,6 +98,8 @@ export const useSessionStore = create<SessionState>((set) => ({
 
   markBusinessAdoptionAttempted: () => set({ businessAdoptionAttempted: true }),
 
+  setAfterSignIn: (path) => set({ afterSignIn: path }),
+
   clear: () => {
     writeTokenCookie(null);
     set({
@@ -97,6 +108,7 @@ export const useSessionStore = create<SessionState>((set) => ({
       hydrated: false,
       pendingSelection: null,
       businessAdoptionAttempted: false,
+      afterSignIn: null,
     });
   },
 }));

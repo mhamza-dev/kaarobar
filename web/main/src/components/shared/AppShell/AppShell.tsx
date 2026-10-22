@@ -8,6 +8,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/uiStore";
 
+import { AccountBanners } from "./AccountBanners";
 import { BusinessSwitcher } from "./BusinessSwitcher";
 import { SidebarNav } from "./SidebarNav";
 import { UserMenu } from "./UserMenu";
@@ -96,6 +97,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             )}
           </button>
         </header>
+        <AccountBanners />
         <main className="flex-1 overflow-y-auto px-4 py-6 md:px-8">
           <div className="mx-auto max-w-6xl">{children}</div>
         </main>

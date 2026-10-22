@@ -32,9 +32,11 @@ export const config = {
   matcher: [
     /*
      * Every path except: /login, /register, /forgot-password,
-     * /reset-password (the (auth) group), /invite/* (public), /api/*,
-     * Next internals, and static assets.
+     * /reset-password (the (auth) group), /invite/* and /invitations/*
+     * (public — the invitee has no account yet), /confirm-email/* (opened
+     * from an email, on whatever device it was read), /api/*, Next
+     * internals, and static assets.
      */
-    "/((?!login|register|forgot-password|reset-password|invite|api|_next/static|_next/image|favicon.ico).*)",
+    "/((?!login|register|forgot-password|reset-password|invite|invitations|confirm-email|api|_next/static|_next/image|favicon.ico).*)",
   ],
 };

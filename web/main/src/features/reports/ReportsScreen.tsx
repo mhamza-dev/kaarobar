@@ -36,6 +36,7 @@ import {
   fillHours,
   PERIOD_PRESETS,
   presetRange,
+  shopToday,
   type PeriodPreset,
 } from "@/lib/reportPeriod";
 import { cn } from "@/lib/utils";
@@ -55,16 +56,18 @@ import type { DailyRow, ExportableReport, ReportPeriod, TaxRow } from "@/types/a
 export function ReportsScreen() {
   const { can } = usePermission();
   const currency = useSessionStore((state) => state.scope?.business?.currency) ?? "PKR";
+  // Presets count back from the shop's today, not the browser's.
+  const timezone = useSessionStore((state) => state.scope?.business?.timezone);
   const { data: branches } = useBranchesList();
 
   const [preset, setPreset] = useState<PeriodPreset | "custom">("30d");
-  const [custom, setCustom] = useState(presetRange("30d"));
+  const [custom, setCustom] = useState(() => presetRange("30d", shopToday(timezone)));
   const [branchId, setBranchId] = useState("");
 
   const period: ReportPeriod = useMemo(() => {
-    const range = preset === "custom" ? custom : presetRange(preset);
+    const range = preset === "custom" ? custom : presetRange(preset, shopToday(timezone));
     return { ...range, ...(branchId ? { branch_id: branchId } : {}) };
-  }, [preset, custom, branchId]);
+  }, [preset, custom, branchId, timezone]);
 
   const money = (value: string | null | undefined) => formatMoney(value, currency);
 

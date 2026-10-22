@@ -14,7 +14,8 @@ defmodule KaarobarWeb.Plugs.RequireSubscription do
   give us money, and one that cannot export its own records has been locked out
   of its property rather than its subscription.
 
-  The exemption is by **controller module**, not by path. A path list stops
+  The exemption is by **controller module** (or a controller and some of its
+  actions), not by path. A path list stops
   covering a route the day somebody renames it, and does so silently; a
   controller that no longer exists fails to compile.
 
@@ -35,9 +36,15 @@ defmodule KaarobarWeb.Plugs.RequireSubscription do
 
   # Reachable even when the subscription has lapsed.
   @exempt [
+    # Signing out, signing out everywhere, resending a confirmation email.
+    KaarobarWeb.AuthController,
     KaarobarWeb.BillingController,
     KaarobarWeb.OrganizationController,
-    KaarobarWeb.MeController
+    KaarobarWeb.MeController,
+    # Reading its own businesses — which every client needs to settle on
+    # one before it can show anything, the billing screen included. Only
+    # these actions: creating or changing a business stays closed.
+    {KaarobarWeb.BusinessController, [:index, :show]}
   ]
 
   @impl Plug
@@ -56,10 +63,24 @@ defmodule KaarobarWeb.Plugs.RequireSubscription do
   # user belongs to, accepting an invitation. There is nothing here to gate.
   def call(conn, _opts), do: conn
 
-  # The router puts the matched controller in `private` before running the
-  # pipeline, so this is known by the time the plug is reached.
+  # Which controller the route goes to, asked of the router. Not
+  # `conn.private[:phoenix_controller]`: Phoenix only sets that when the
+  # controller itself runs, which is after this pipeline — reading it here
+  # found nothing, so nothing was ever exempt and a lapsed organization could
+  # not reach the billing screen to pay.
   defp exempt?(conn, opts) do
-    conn.private[:phoenix_controller] in Keyword.fetch!(opts, :exempt)
+    router = conn.private[:phoenix_router] || KaarobarWeb.Router
+
+    case Phoenix.Router.route_info(router, conn.method, conn.path_info, conn.host) do
+      %{plug: controller, plug_opts: action} ->
+        Enum.any?(Keyword.fetch!(opts, :exempt), fn
+          {^controller, actions} -> action in actions
+          exempt -> exempt == controller
+        end)
+
+      :error ->
+        false
+    end
   end
 
   defp reject(conn) do

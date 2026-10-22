@@ -49,9 +49,18 @@ apiClient.interceptors.response.use(
     const apiError = toApiError(error);
 
     // A 401 on the login/verify calls themselves is a wrong-credentials
-    // response, not a session expiry — redirecting there would loop.
+    // response, not a session expiry — redirecting there would loop. Same for
+    // the calls that spend a token from an email: an expired reset or
+    // confirmation link answers 401 `invalid_token`, which the page has to
+    // show, not treat as the reader's session ending.
     const url = error?.config?.url as string | undefined;
-    const isAuthCall = url?.includes("/auth/login") || url?.includes("/auth/mfa/verify");
+    const isAuthCall = [
+      "/auth/login",
+      "/auth/mfa/verify",
+      "/auth/confirm",
+      "/auth/reset-password",
+      "/invitations/",
+    ].some((path) => url?.includes(path));
 
     if (apiError.status === 401 && !isAuthCall) {
       useSessionStore.getState().clear();
@@ -63,6 +72,17 @@ apiClient.interceptors.response.use(
         // data sitting behind the login screen.
         // eslint-disable-next-line @next/next/no-location-assign-relative-destination
         window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+      }
+    }
+
+    // The organization's subscription has lapsed: the API now refuses
+    // everything but billing and the account. Send the user to the one
+    // screen that can fix it rather than leaving every page to fail on its
+    // own. Hard navigation for the same reason as the 401 above.
+    if (apiError.code === "subscription_expired" && typeof window !== "undefined") {
+      if (!window.location.pathname.startsWith("/settings/billing")) {
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+        window.location.href = "/settings/billing";
       }
     }
 

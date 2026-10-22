@@ -20,7 +20,7 @@ import {
 import { usePermission } from "@/hooks/usePermission";
 import { formatMoney, formatQuantity } from "@/lib/format";
 import { getVisibleNavGroups } from "@/lib/nav";
-import { compactNumber, presetRange } from "@/lib/reportPeriod";
+import { compactNumber, presetRange, shopToday } from "@/lib/reportPeriod";
 import { useSessionStore } from "@/stores/sessionStore";
 
 /**
@@ -38,17 +38,20 @@ export function Dashboard() {
   const canReport = can("report:sales");
   const canSeeFiscal = can("fiscal:view");
 
-  const today = useMemo(() => presetRange("today"), []);
+  // The shop's today, not the browser's — they differ for hours every day
+  // for an owner away from the shop.
+  const timezone = scope?.business?.timezone;
+  const today = useMemo(() => presetRange("today", shopToday(timezone)), [timezone]);
   const lastFortnight = useMemo(() => {
-    const now = new Date();
+    const now = shopToday(timezone);
     return { from: format(subDays(now, 13), "yyyy-MM-dd"), to: format(now, "yyyy-MM-dd") };
-  }, []);
+  }, [timezone]);
 
   const summary = useSalesSummary(today, canReport);
   const trend = useDailySales(lastFortnight, canReport);
   // Product figures come from the nightly rollups (closed days only), so
   // "today" would always be empty — the week is the honest window.
-  const week = useMemo(() => presetRange("7d"), []);
+  const week = useMemo(() => presetRange("7d", shopToday(timezone)), [timezone]);
   const top = useTopProducts(week, canReport);
   const names = useProductNames((top.data ?? []).slice(0, 5).map((row) => row.product_id));
   const fiscal = useFiscalStatus();

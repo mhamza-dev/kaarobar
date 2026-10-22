@@ -110,14 +110,39 @@ Two differences bite when porting older snippets: composition uses a `render`
 prop, not `asChild`, and a `DropdownMenuLabel` must sit inside a
 `DropdownMenuGroup` or it throws at runtime.
 
+## Signing up and paying
+
+The marketing site ([`web/landing`](../landing)) sends every "Start free
+trial" to `/register?plan=<code>`. The form preselects that plan (the middle
+one otherwise), creates the account, starts the plan's trial — no card — and
+lands the new owner on `/welcome`: their trial, the desktop and mobile apps,
+and a setup checklist. A signed-in visitor with `?plan=` goes to the billing
+screen instead.
+
+`/settings/billing` handles the rest. With card billing configured on the
+backend (`checkout_enabled` from `GET /plans`) it offers Stripe Checkout —
+"Add a card" during a trial, which still charges only when the trial ends —
+and, once card-billed, Stripe's customer portal for changes and cancelling.
+Without it, plans are invoiced. Coming back from Stripe it polls until the
+webhook has landed.
+
+Account banners above every screen say when the trial is nearly over, a
+payment has failed, the subscription has lapsed, or the email address isn't
+confirmed. A lapsed organization's API calls answer 402, and the client sends
+the user to the billing screen.
+
+The backend's emails link to `/reset-password/<token>`, `/invitations/<token>`
+and `/confirm-email/<token>`; all three exist here and are open to visitors
+without a session.
+
+### Optional settings
+
+`NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_DESKTOP_DOWNLOAD_URL`,
+`NEXT_PUBLIC_IOS_APP_URL` and `NEXT_PUBLIC_ANDROID_APP_URL` (see
+`.env.example`) — the welcome screen says "Coming soon" for any app that isn't
+published yet.
+
 ## Where this is going
 
-Built so far — Phase 0 of
-[the plan](../../docs): design tokens, the component library foundation, the
-API client, session bootstrap with business auto-selection, the app shell, and
-the full auth surface (register, login, TOTP challenge, password reset), all
-covered end-to-end by `e2e/`.
-
-Next: Settings/RBAC (organization, businesses, branches, staff, invitations,
-roles), then Catalog, then inventory/purchasing, POS, CRM, the vertical
-modules, payments/billing, and reporting.
+Built so far — every phase of [the plan](../../docs), the detail-page pass
+(A0–B5), and the purchase flow above. All of it is covered by `e2e/`.

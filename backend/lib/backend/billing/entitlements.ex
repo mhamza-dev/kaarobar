@@ -8,13 +8,17 @@ defmodule Kaarobar.Billing.Entitlements do
   five minutes later would be reported as a bug by the first customer who
   upgraded to fix an outage.
 
-  ## No subscription means no restriction
+  ## Never subscribed means no restriction
 
-  An organization with no subscription row gets an **empty** feature set, and
-  `Scope.entitled?/2` reads empty as "not resolved, allow everything". That is
-  what keeps billing optional: a self-hosted deployment, a seeded test, an
-  internal org — none of them should have to fabricate a subscription to use
-  the software.
+  An organization that has never had a subscription row gets an **empty**
+  feature set, and `Scope.entitled?/2` reads empty as "not resolved, allow
+  everything". That is what keeps billing optional: a self-hosted deployment,
+  a seeded test, an internal org — none of them should have to fabricate a
+  subscription to use the software.
+
+  One whose subscription has *ended* — cancelled and run out, or expired
+  unpaid — is a different case and gets the lapsed set below. Treating it as
+  never-subscribed would make cancelling the way to use the product for free.
 
   A lapsed subscription is a different thing entirely and returns a small,
   explicitly non-empty set, because there the answer really is "almost
@@ -57,7 +61,7 @@ defmodule Kaarobar.Billing.Entitlements do
   def for_organization(nil), do: unrestricted()
 
   def for_organization(organization_id) do
-    case current_subscription(organization_id) do
+    case current_subscription(organization_id) || latest_subscription(organization_id) do
       nil -> unrestricted()
       subscription -> resolve(subscription)
     end
@@ -69,6 +73,21 @@ defmodule Kaarobar.Billing.Entitlements do
     Subscription
     |> where([s], s.organization_id == ^organization_id)
     |> where([s], s.status not in ~w(canceled expired))
+    |> preload(:plan)
+    |> Repo.one()
+  end
+
+  @doc """
+  The organization's most recent subscription in any state, or nil when it
+  has never had one. Only consulted when there is no live one, to tell an
+  ended subscription apart from none at all.
+  """
+  @spec latest_subscription(Ecto.UUID.t()) :: Subscription.t() | nil
+  def latest_subscription(organization_id) do
+    Subscription
+    |> where([s], s.organization_id == ^organization_id)
+    |> order_by([s], desc: s.inserted_at)
+    |> Ecto.Query.limit(1)
     |> preload(:plan)
     |> Repo.one()
   end

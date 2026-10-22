@@ -1,26 +1,90 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * Kaarobar's marketing site. The brand blue and the Geist type are the web
+ * app's own (web/main/src/app/globals.css), so the step from "Start free
+ * trial" here to the sign-up form there doesn't feel like a different
+ * company.
+ *
+ * Colour is defined once as a token and redefined for dark mode; components
+ * only ever use the token utilities (bg-surface, text-ink-muted, …).
+ */
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-tint: var(--brand-tint);
+  --color-brand-ink: var(--brand-ink);
+  --color-on-brand: var(--on-brand);
+
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-line: var(--line);
+  --color-success: var(--success);
+  --color-success-tint: var(--success-tint);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
+:root {
+  --brand: #2d6df6;
+  --brand-hover: #2560d9;
+  --brand-tint: #e4edfe;
+  /* Brand-coloured text on light surfaces: 5.3:1 on white, unlike --brand. */
+  --brand-ink: #1f52bd;
+  --on-brand: #ffffff;
+
+  --canvas: #ffffff;
+  --surface: #ffffff;
+  --surface-muted: #f6f8fb;
+  --ink: #0f172a;
+  --ink-muted: #475569;
+  --line: #e2e8f0;
+  --success: #047857;
+  --success-tint: #d1fae5;
+
+  color-scheme: light;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* The light-mode blue, not a lighter one: white on it is 4.6:1, and
+       every filled button has white text. */
+    --brand: #2d6df6;
+    --brand-hover: #2560d9;
+    --brand-tint: #17264a;
+    --brand-ink: #9ab9fb;
+    --on-brand: #ffffff;
+
+    --canvas: #0b1120;
+    --surface: #111a2e;
+    --surface-muted: #0f172a;
+    --ink: #e2e8f0;
+    --ink-muted: #94a3b8;
+    --line: #1e293b;
+    --success: #34d399;
+    --success-tint: #064e3b;
+
+    color-scheme: dark;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--canvas);
+  color: var(--ink);
+}
+
+/* Anchored sections land below the sticky header, not under it. */
+[id] {
+  scroll-margin-top: 5rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
 }

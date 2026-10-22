@@ -1,0 +1,39 @@
+/**
+ * The Kaarobar mark — the network glyph from desktop/local's app icon, drawn
+ * inline so it inherits nothing and needs no request — beside the wordmark.
+ */
+export function LogoMark({ className = "size-8" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 1024 1024" className={className} aria-hidden="true" focusable="false">
+      <rect width="1024" height="1024" rx="232" fill="#2d6df6" />
+      <g fill="none" stroke="#fff" strokeWidth="44" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M 270 512 L 478 512" />
+        <path d="M 390 230 L 390 410 Q 390 512 478 512" />
+        <path d="M 390 794 L 390 614 Q 390 512 478 512" />
+      </g>
+      <g fill="#fff">
+        <circle cx="270" cy="512" r="75" />
+        <circle cx="390" cy="230" r="75" />
+        <circle cx="390" cy="794" r="75" />
+        <circle cx="478" cy="512" r="46" />
+        <path
+          transform="translate(582 408) rotate(-45)"
+          d="M 0,-75 L 250,-75 A 35 35 0 0 1 285,-40 L 285,40 A 35 35 0 0 1 250,75 L 0,75 A 75 75 0 0 1 0,-75 Z"
+        />
+        <path
+          transform="translate(582 616) rotate(45)"
+          d="M 0,-75 L 250,-75 A 35 35 0 0 1 285,-40 L 285,40 A 35 35 0 0 1 250,75 L 0,75 A 75 75 0 0 1 0,-75 Z"
+        />
+      </g>
+    </svg>
+  );
+}
+
+export function Logo() {
+  return (
+    <span className="flex items-center gap-2">
+      <LogoMark />
+      <span className="text-lg font-semibold tracking-tight text-ink">Kaarobar</span>
+    </span>
+  );
+}

@@ -14,6 +14,12 @@ defmodule KaarobarWeb.Plugs.ValidateIdParams do
   one of our UUIDs — a tax authority's POS registration (`pos_id`) is
   whatever the authority issued. Treating it as a UUID made it impossible
   to save a real fiscal configuration at all.
+
+  And except webhook callbacks entirely. Their body is the gateway's own
+  payload — every Stripe event has a top-level `"id": "evt_…"` — so checking
+  it turned every real callback into a 404 before its signature was even
+  read. The signature is what guards those routes, and none of their ids are
+  ours.
   """
 
   @behaviour Plug
@@ -28,6 +34,13 @@ defmodule KaarobarWeb.Plugs.ValidateIdParams do
 
   @impl Plug
   def call(conn, _opts) do
+    if webhook?(conn), do: conn, else: validate(conn)
+  end
+
+  # The same test `KaarobarWeb.CacheBodyReader` uses to keep the raw body.
+  defp webhook?(conn), do: String.contains?(conn.request_path, "/webhooks/")
+
+  defp validate(conn) do
     case Enum.find(conn.params, &invalid?/1) do
       nil -> conn
       {key, _value} -> reject(conn, key)

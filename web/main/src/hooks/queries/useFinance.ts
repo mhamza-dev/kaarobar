@@ -7,7 +7,9 @@ import {
   getSubscription,
   listBillingInvoices,
   listPlans,
+  openBillingPortal,
   resumeSubscription,
+  startCheckout,
   subscribe,
 } from "@/services/billing";
 import {
@@ -32,6 +34,7 @@ import {
   syncPaymentIntent,
   updateProvider,
 } from "@/services/payments";
+import type { BillingStatus, HostedSession } from "@/types/api/billing";
 import type { FiscalConfigPayload } from "@/types/api/fiscal";
 import type { PaymentProviderPayload } from "@/types/api/payments";
 
@@ -102,9 +105,20 @@ export function usePlans() {
   return useQuery({ queryKey: ["billing-plans"], queryFn: listPlans, staleTime: 5 * 60_000 });
 }
 
-export function useSubscription() {
+/**
+ * The organization's subscription. `pollWhile` keeps refetching every two
+ * seconds while it returns true — how the billing screen waits for Stripe's
+ * webhook after a checkout, which lands a moment after the customer does.
+ */
+export function useSubscription(pollWhile?: (status: BillingStatus | undefined) => boolean) {
   const tenant = useTenantKey();
-  return useQuery({ queryKey: ["billing-subscription", tenant], queryFn: getSubscription });
+  return useQuery({
+    queryKey: ["billing-subscription", tenant],
+    queryFn: getSubscription,
+    refetchInterval: pollWhile
+      ? (query) => (query.state.dataUpdateCount < 20 && pollWhile(query.state.data) ? 2000 : false)
+      : false,
+  });
 }
 
 export function useBillingInvoices() {
@@ -120,6 +134,11 @@ export const useCancelSubscription = () =>
   useInvalidatingMutation<[boolean?], unknown>(cancelSubscription, BILLING_KEYS);
 export const useResumeSubscription = () =>
   useInvalidatingMutation<[], unknown>(resumeSubscription, BILLING_KEYS);
+/** Resolves to the hosted page's URL; the caller navigates there. */
+export const useStartCheckout = () =>
+  useInvalidatingMutation<[string], HostedSession>(startCheckout, []);
+export const useOpenBillingPortal = () =>
+  useInvalidatingMutation<[], HostedSession>(openBillingPortal, []);
 
 // --- Fiscal -------------------------------------------------------------------------
 

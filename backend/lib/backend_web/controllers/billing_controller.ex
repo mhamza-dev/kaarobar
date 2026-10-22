@@ -20,6 +20,7 @@ defmodule KaarobarWeb.BillingController do
   use KaarobarWeb, :controller
 
   alias Kaarobar.Billing
+  alias KaarobarWeb.ClientLinks
 
   # `show` and `plans` are deliberately ungated: everybody in an organization
   # should be able to see whether the subscription is the reason something has
@@ -27,6 +28,8 @@ defmodule KaarobarWeb.BillingController do
   plug KaarobarWeb.Plugs.Authorize,
        [permission: "organization:billing"]
        when action in [
+              :checkout,
+              :portal,
               :subscribe,
               :change_plan,
               :cancel,
@@ -46,21 +49,58 @@ defmodule KaarobarWeb.BillingController do
   everybody.
   """
   def plans(conn, _params) do
-    render(conn, :plans, plans: Billing.list_plans())
+    conn
+    # Also served unauthenticated, to the marketing site's pricing page. The
+    # catalogue is the same for everyone, so a shared cache may keep it.
+    |> put_resp_header("cache-control", "public, max-age=300")
+    |> render(:plans, plans: Billing.list_plans(), checkout_enabled: Billing.checkout_enabled?())
   end
 
   # --- Subscription -----------------------------------------------------------
 
   @doc "Where this organization stands. The screen a lapsed tenant lands on."
   def show(conn, _params) do
-    render(conn, :subscription, subscription: Billing.subscription(conn.assigns.scope))
+    scope = conn.assigns.scope
+
+    render(conn, :subscription,
+      subscription: Billing.subscription(scope),
+      trial_eligible: Billing.trial_eligible?(scope)
+    )
   end
 
   def subscribe(conn, %{"plan" => plan_code} = params) do
     opts = if params["skip_trial"] in [true, "true"], do: [skip_trial: true], else: []
+    opts = Keyword.put(opts, :require_payment, Billing.checkout_enabled?())
 
     with {:ok, subscription} <- Billing.subscribe(conn.assigns.scope, plan_code, opts) do
       conn |> put_status(:created) |> render(:subscription, subscription: subscription)
+    end
+  end
+
+  @doc """
+  Where to send the customer to pay by card.
+
+  The return addresses are built here from `FRONTEND_URL`, never taken from
+  the request: a caller-chosen success URL would make this an open redirect
+  that happens to pass through Stripe.
+  """
+  def checkout(conn, %{"plan" => plan_code}) do
+    opts = [
+      success_url: ClientLinks.billing("success"),
+      cancel_url: ClientLinks.billing("cancelled")
+    ]
+
+    with {:ok, session} <- Billing.checkout(conn.assigns.scope, plan_code, opts) do
+      json(conn, %{data: session})
+    end
+  end
+
+  def checkout(_conn, _params), do: {:error, :bad_request}
+
+  @doc "Stripe's customer portal: the card, the plan, cancelling, past invoices."
+  def portal(conn, _params) do
+    with {:ok, session} <- Billing.portal(conn.assigns.scope, ClientLinks.billing()) do
+      json(conn, %{data: session})
     end
   end
 

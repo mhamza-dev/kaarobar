@@ -147,6 +147,33 @@ defmodule KaarobarWeb.ErrorEnvelope do
   def for_reason(:plan_unavailable),
     do: {:unprocessable_entity, build("plan_unavailable", "That plan is no longer available")}
 
+  def for_reason(:billing_not_configured),
+    do:
+      {:unprocessable_entity,
+       build(
+         "billing_not_configured",
+         "Card payments for subscriptions are not set up on this deployment"
+       )}
+
+  # 409: the subscription exists and is fine, it is just not ours to change.
+  def for_reason(:managed_by_provider),
+    do:
+      {:conflict,
+       build(
+         "managed_by_provider",
+         "This subscription is paid by card. Change it from the billing portal."
+       )}
+
+  def for_reason(:checkout_required),
+    do:
+      {:payment_required,
+       build("checkout_required", "This plan is paid by card. Continue to checkout to start it.")}
+
+  def for_reason(:no_billing_account),
+    do:
+      {:not_found,
+       build("no_billing_account", "There is no card billing account for this organization yet")}
+
   def for_reason(:trialing),
     do:
       {:unprocessable_entity, build("trialing", "Nothing is charged while the trial is running")}

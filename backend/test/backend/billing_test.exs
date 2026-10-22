@@ -285,6 +285,8 @@ defmodule Kaarobar.BillingTest do
     end
 
     test "dunning collects when the collector succeeds", %{subscription: subscription} do
+      # Due now. The first period's invoice, issued when the subscription
+      # started, isn't due for a week yet and is left alone.
       {:ok, _invoice} = Billing.issue_invoice(subscription)
 
       assert %{collected: 1, failed: 0} = Billing.process_dunning(10, fn _invoice -> :ok end)
@@ -417,13 +419,20 @@ defmodule Kaarobar.BillingTest do
     end
 
     test "a cancelled subscription is not the organization's subscription", %{scope: scope} do
-      subscribe(scope, plan_fixture())
+      subscribe(scope, plan_fixture(%{}, [{"pos", true}]))
       {:ok, _canceled} = Billing.cancel(scope, immediate: true)
 
       assert Billing.subscription(scope) == nil
-      # Back to unrestricted rather than locked out: there is no plan saying
-      # otherwise, and a deployment that does not bill must keep working.
-      assert Entitlements.for_organization(Scope.organization_id(scope)).features |> Enum.empty?()
+
+      # Lapsed, not unrestricted: an organization that has paid before and
+      # stopped is not one that has never been billed, or cancelling would
+      # be the way to use the product for free. A deployment that does not
+      # bill never has a subscription row, so it is untouched by this.
+      resolved = Entitlements.for_organization(Scope.organization_id(scope))
+      refute resolved.serviceable
+      assert resolved.status == "canceled"
+      assert MapSet.member?(resolved.features, "billing")
+      refute MapSet.member?(resolved.features, "pos")
     end
 
     test "one organization's plan says nothing about another's", %{scope: scope} do

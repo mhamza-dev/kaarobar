@@ -40,9 +40,15 @@ test("register, land on the dashboard, sign out, sign back in", async ({ page })
   await page.getByLabel("What kind of business is it?").click();
   await page.getByRole("option").first().click();
 
-  await page.getByRole("button", { name: "Create account" }).click();
+  // The plan picker defaults to the middle plan, whose free trial starts
+  // with the account — no card.
+  await page.getByRole("button", { name: "Start free trial" }).click();
 
-  // --- Dashboard, inside the shell ---
+  // --- Welcome, then the dashboard, inside the shell ---
+  await expect(page).toHaveURL(/\/welcome/, { timeout: 15_000 });
+  await expect(page.getByRole("heading", { name: /Welcome to Kaarobar, Ayesha/ })).toBeVisible();
+  await expect(page.getByText(/Your free trial runs until/)).toBeVisible();
+  await page.getByRole("link", { name: "Go to dashboard" }).click();
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
   await expect(page.getByRole("heading", { name: /Welcome back, Ayesha/ })).toBeVisible();
   await expect(page.getByRole("link", { name: "Dashboard" })).toBeVisible();

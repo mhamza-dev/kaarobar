@@ -14,10 +14,26 @@ defmodule KaarobarWeb.BillingJSON do
   alias Kaarobar.Billing.SubscriptionItem
   alias KaarobarWeb.JSONHelpers, as: H
 
-  def plans(%{plans: plans}), do: %{data: Enum.map(plans, &plan/1)}
+  # `checkout_enabled` tells a client whether to offer "pay by card" at all —
+  # a deployment without Stripe credentials bills by hand.
+  def plans(%{plans: plans} = assigns) do
+    %{
+      data: Enum.map(plans, &plan/1),
+      meta: %{checkout_enabled: Map.get(assigns, :checkout_enabled, false)}
+    }
+  end
 
-  def subscription(%{subscription: nil}), do: %{data: nil}
-  def subscription(%{subscription: subscription}), do: %{data: serialise(subscription)}
+  def subscription(%{subscription: subscription} = assigns) do
+    data = if subscription, do: serialise(subscription)
+
+    # `trial_eligible` only rides along on `GET /billing/subscription`: it is
+    # what lets a client say "14-day free trial" truthfully, since only an
+    # organization's first subscription gets one.
+    case Map.fetch(assigns, :trial_eligible) do
+      {:ok, eligible} -> %{data: data, meta: %{trial_eligible: eligible}}
+      :error -> %{data: data}
+    end
+  end
 
   def invoices(%{invoices: invoices}), do: %{data: Enum.map(invoices, &serialise_invoice/1)}
 

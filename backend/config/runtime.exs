@@ -42,6 +42,26 @@ config :backend,
        :frontend_url,
        System.get_env("FRONTEND_URL", List.first(cors_origins) || "http://localhost:3000")
 
+# ----------------------------------------------------------------------------
+# Subscription billing by card
+#
+# Kaarobar's own Stripe account — what organizations pay us, never a shop's
+# gateway (those are configured per business, in the app). Both unset means
+# no card billing: trials still run and invoices are issued for settling by
+# hand, and clients hide the "pay by card" button.
+#
+# The webhook endpoint to register in the Stripe dashboard is
+# `<API>/api/v1/webhooks/billing/stripe`, with at least:
+#   checkout.session.completed, customer.subscription.created,
+#   customer.subscription.updated, customer.subscription.deleted,
+#   invoice.paid, invoice.payment_failed
+# ----------------------------------------------------------------------------
+if config_env() != :test do
+  config :backend, Kaarobar.Billing.Stripe,
+    secret_key: System.get_env("STRIPE_BILLING_SECRET_KEY"),
+    webhook_secret: System.get_env("STRIPE_BILLING_WEBHOOK_SECRET")
+end
+
 config :backend, :mail_from_name, System.get_env("MAIL_FROM_NAME", "Kaarobar")
 config :backend, :mail_from_address, System.get_env("MAIL_FROM_ADDRESS", "no-reply@kaarobar.app")
 

@@ -23,6 +23,22 @@ defmodule KaarobarWeb.ClientLinks do
   @spec accept_invitation(String.t()) :: String.t()
   def accept_invitation(token), do: build(["invitations", token])
 
+  @doc """
+  The web app's billing screen, where Stripe sends a customer back.
+
+  `{CHECKOUT_SESSION_ID}` is left unencoded on purpose: it is Stripe's
+  placeholder, replaced with the session id on the way back.
+  """
+  @spec billing(String.t() | nil) :: String.t()
+  def billing(outcome \\ nil)
+  def billing(nil), do: base_url() <> "/settings/billing"
+
+  def billing("success"),
+    do: base_url() <> "/settings/billing?checkout=success&session_id={CHECKOUT_SESSION_ID}"
+
+  def billing(outcome) when is_binary(outcome),
+    do: base_url() <> "/settings/billing?" <> URI.encode_query(%{"checkout" => outcome})
+
   defp build(segments) do
     base = base_url()
 

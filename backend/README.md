@@ -96,6 +96,7 @@ below is implemented, migrated and tested.
 | Customers, credit, loyalty | done |
 | Vertical modules (tables, KDS, appointments, service jobs, rentals) | done |
 | Payments, fiscal, subscription billing | done |
+| Subscription purchase: public plan catalogue (`GET /plans`), Stripe Checkout and customer portal, billing webhooks, trial conversion, one trial per organization | done |
 | Reporting, documents | done |
 | Postgres RLS as the second isolation layer | done — see the caveat below |
 | Realtime: Phoenix Channels + Presence for the sales feed, KDS, registers, stock | done |
