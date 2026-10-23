@@ -1,9 +1,10 @@
 /**
  * Typed, validated access to the environment variables this app needs.
  *
- * Fails loudly at import time rather than letting a missing
+ * Fails loudly when the API URL is first needed rather than letting a missing
  * `NEXT_PUBLIC_API_URL` surface later as a confusing "Network Error" from
- * axios on the first request.
+ * axios. The lazy getter also keeps static prerendering independent of API
+ * configuration when no request is made.
  */
 
 function required(name: string, value: string | undefined): string {
@@ -21,7 +22,9 @@ function optional(value: string | undefined): string | null {
 }
 
 export const env = {
-  apiUrl: required("NEXT_PUBLIC_API_URL", process.env.NEXT_PUBLIC_API_URL),
+  get apiUrl() {
+    return required("NEXT_PUBLIC_API_URL", process.env.NEXT_PUBLIC_API_URL);
+  },
   /** The marketing site (`web/landing`), for its download and help pages. */
   siteUrl: optional(process.env.NEXT_PUBLIC_SITE_URL),
   /** Where the Kaarobar desktop app is downloaded from. */

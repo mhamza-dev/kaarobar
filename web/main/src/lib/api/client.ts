@@ -18,11 +18,11 @@ const WRITE_METHODS = new Set(["post", "put", "patch", "delete"]);
  * `r.data` — kept whole — for a page). See `src/services/staff.ts` for the
  * pattern.
  */
-export const apiClient = axios.create({
-  baseURL: env.apiUrl,
-});
+export const apiClient = axios.create();
 
 apiClient.interceptors.request.use((config) => {
+  config.baseURL = env.apiUrl;
+
   const { token } = useSessionStore.getState();
 
   if (token) {
