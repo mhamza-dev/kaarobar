@@ -7,6 +7,7 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageActions } from "@/components/shared/PageActions";
 import { useDeleteRole, useRolesList } from "@/hooks/queries/useRoles";
 import { usePermission } from "@/hooks/usePermission";
 import { toast } from "@/hooks/useToast";
@@ -82,12 +83,12 @@ export function RolesTable() {
   return (
     <>
       {canCreate && (
-        <div className="mb-3 flex justify-end">
+        <PageActions>
           <Button onClick={() => openEditor(null)}>
             <Plus className="size-4" />
             New role
           </Button>
-        </div>
+        </PageActions>
       )}
 
       <DataTable

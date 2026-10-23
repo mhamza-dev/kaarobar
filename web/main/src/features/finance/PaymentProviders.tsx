@@ -12,6 +12,7 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageActions } from "@/components/shared/PageActions";
 import {
   Dialog,
   DialogContent,
@@ -135,7 +136,7 @@ export function PaymentProviders() {
   return (
     <>
       {canConfigure && (
-        <div className="mb-3 flex justify-end">
+        <PageActions>
           <Button
             onClick={() => {
               setEditing(null);
@@ -145,7 +146,7 @@ export function PaymentProviders() {
             <Plus className="size-4" />
             Add provider
           </Button>
-        </div>
+        </PageActions>
       )}
       <DataTable
         columns={columns}

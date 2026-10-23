@@ -111,7 +111,9 @@ export function StatusBadge({
   const resolved = tone ?? STATUS_TONES[status.toLowerCase()] ?? "neutral";
 
   return (
-    <Badge variant="secondary" className={cn(TONE_CLASSES[resolved], className)}>
+    <Badge variant="secondary" className={cn("gap-1.5 pl-1.5", TONE_CLASSES[resolved], className)}>
+      {/* The dot carries the tone too, so it reads at a glance in a long list. */}
+      <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-current opacity-80" />
       {label ?? humanize(status)}
     </Badge>
   );

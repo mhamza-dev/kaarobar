@@ -7,6 +7,7 @@ import { useState } from "react";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
+import { PageActions } from "@/components/shared/PageActions";
 import { useBranchesList } from "@/hooks/queries/useBranches";
 import { useCounts, useCreateCount } from "@/hooks/queries/useStockOperations";
 import { usePermission } from "@/hooks/usePermission";
@@ -56,7 +57,7 @@ export function CountsTable() {
   return (
     <>
       {can("stock:count") && (
-        <div className="mb-3 flex justify-end">
+        <PageActions>
           <Button
             disabled={creating}
             onClick={async () => {
@@ -83,7 +84,7 @@ export function CountsTable() {
             <Plus className="size-4" />
             Start a count
           </Button>
-        </div>
+        </PageActions>
       )}
 
       <DataTable

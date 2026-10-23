@@ -7,6 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  /* The tinted ground the app sits on — cards and the sidebar are the
+     white (or, in dark mode, raised) surfaces on top of it. */
+  --color-canvas: var(--canvas);
 
   /* Kaarobar brand — overridden at runtime per business by useBrandTheme(),
      see src/lib/theme.ts. --primary/--ring/--sidebar-primary below alias
@@ -66,28 +69,33 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* Neutrals lean slightly cool (slate) rather than pure grey. Every text
+   pair below was checked for >= 4.5:1: muted-foreground is 5.9:1 on white,
+   5.4:1 on the canvas and 5.2:1 on muted. */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
+  --canvas: #f4f6fa;
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
 
   /* Kaarobar brand — "Kaarobar blue" default, replaced at runtime per
-     business (see src/lib/theme.ts, ported from desktop/local). */
-  --brand-primary: #2d6df6;
-  --brand-primary-hover: #2560d9;
-  --brand-primary-active: #1f52bd;
-  --brand-tint: #e4edfe;
-  --brand-on-primary: #ffffff;
+     business (see src/lib/theme.ts, ported from desktop/local). The theme
+     writes a light and a dark palette; each mode picks its own here. */
+  --brand-primary: var(--brand-light-primary, #2d6df6);
+  --brand-primary-hover: var(--brand-light-primary-hover, #2560d9);
+  --brand-primary-active: var(--brand-light-primary-active, #1f52bd);
+  --brand-tint: var(--brand-light-tint, #e4edfe);
+  --brand-on-primary: var(--brand-light-on-primary, #ffffff);
 
   --primary: var(--brand-primary);
   --primary-foreground: var(--brand-on-primary);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  --secondary: #eef1f6;
+  --secondary-foreground: #0f172a;
+  --muted: #eef1f6;
+  --muted-foreground: #5a6578;
   --accent: var(--brand-tint);
   --accent-foreground: var(--brand-primary-active);
   --destructive: oklch(0.577 0.245 27.325);
@@ -100,8 +108,8 @@
   /* Text-safe: >= 4.5:1 on white and on --warning-soft. */
   --warning: oklch(0.5 0.152 58.3);
   --warning-soft: oklch(0.936 0.07 75);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
+  --border: #e3e8ef;
+  --input: #d9dfe8;
   --ring: var(--brand-primary);
   /* The single data series. Validated (dataviz validate_palette.js) against
      the card surface in each mode: lightness band, chroma, >= 3:1 contrast. */
@@ -111,36 +119,39 @@
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0f172a;
   --sidebar-primary: var(--brand-primary);
   --sidebar-primary-foreground: var(--brand-on-primary);
   --sidebar-accent: var(--brand-tint);
   --sidebar-accent-foreground: var(--brand-primary-active);
-  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-border: #e3e8ef;
   --sidebar-ring: var(--brand-primary);
 }
 
+/* Deep navy rather than neutral black. muted-foreground is 6.8:1 on the
+   card, 7.4:1 on the canvas and 5.9:1 on muted. */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
+  --canvas: #0b0f1a;
+  --background: #0f1524;
+  --foreground: #e8ecf4;
+  --card: #141a2a;
+  --card-foreground: #e8ecf4;
+  --popover: #171e30;
+  --popover-foreground: #e8ecf4;
 
-  --brand-primary: #5088f8;
-  --brand-primary-hover: #6c9cfa;
-  --brand-primary-active: #8bb1fb;
-  --brand-tint: oklch(0.269 0.04 264);
-  --brand-on-primary: #0a1020;
+  --brand-primary: var(--brand-dark-primary, #5088f8);
+  --brand-primary-hover: var(--brand-dark-primary-hover, #6c9cfa);
+  --brand-primary-active: var(--brand-dark-primary-active, #8bb1fb);
+  --brand-tint: var(--brand-dark-tint, #1d2a4a);
+  --brand-on-primary: var(--brand-dark-on-primary, #0a1020);
 
   --primary: var(--brand-primary);
   --primary-foreground: var(--brand-on-primary);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
+  --secondary: #1e2638;
+  --secondary-foreground: #e8ecf4;
+  --muted: #1e2638;
+  --muted-foreground: #98a2b8;
   --accent: var(--brand-tint);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
@@ -150,29 +161,38 @@
   --success-soft: oklch(0.3 0.06 163);
   --warning: oklch(0.77 0.14 75);
   --warning-soft: oklch(0.32 0.07 75);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
+  --border: rgb(255 255 255 / 0.08);
+  --input: rgb(255 255 255 / 0.13);
   --ring: var(--brand-primary);
   --chart-1: #3987e5;
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar: #0f1524;
+  --sidebar-foreground: #e8ecf4;
   --sidebar-primary: var(--brand-primary);
   --sidebar-primary-foreground: var(--brand-on-primary);
   --sidebar-accent: var(--brand-tint);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgb(255 255 255 / 0.08);
   --sidebar-ring: var(--brand-primary);
 }
 
 @theme {
+  --shadow-xs: 0 1px 2px rgb(15 23 42 / 0.05);
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 2px 6px rgb(15 23 42 / 0.04);
   --shadow-soft: 0 2px 12px rgb(15 23 42 / 0.07);
   --shadow-lift: 0 16px 36px rgb(15 23 42 / 0.14);
   --shadow-glow: 0 0 0 1px rgb(45 109 246 / 0.12), 0 8px 24px rgb(45 109 246 / 0.12);
   --default-transition-duration: 180ms;
+}
+
+/* A thin, quiet scrollbar for panes that scroll inside the page (the
+   sidebar's nav) — the browser's default is heavy next to a 1px border. */
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--muted-foreground) 30%, transparent) transparent;
 }
 
 @layer base {
@@ -184,5 +204,10 @@
   }
   html {
     @apply font-sans;
+  }
+  /* Figures line up in table columns without each screen asking. Big
+     standalone figures keep proportional digits. */
+  table {
+    font-variant-numeric: tabular-nums;
   }
 }

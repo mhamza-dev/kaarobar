@@ -243,15 +243,15 @@ export function DataTable<T>({
     <div
       className={cn(
         "flex flex-col",
-        !embedded && "rounded-xl border border-border bg-card",
+        !embedded && "overflow-hidden rounded-xl border border-border bg-card shadow-card",
         className,
       )}
     >
       {showToolbar && (
-        <div className="flex flex-wrap items-center gap-2 border-b border-border p-2">
+        <div className="flex flex-wrap items-center gap-2 border-b border-border p-3">
           {(search || serverSearch) && (
             <div className="relative min-w-48 flex-1">
-              <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={searchValue}
                 onChange={(event) =>
@@ -262,7 +262,7 @@ export function DataTable<T>({
                 placeholder={
                   serverSearch?.placeholder ?? search?.placeholder ?? "Search loaded rows…"
                 }
-                className="pl-8"
+                className="pl-9"
                 aria-label="Search"
               />
             </div>
@@ -308,7 +308,7 @@ export function DataTable<T>({
       )}
 
       {selectable && selectedKeys.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 border-b border-border bg-muted/50 p-2">
+        <div className="flex flex-wrap items-center gap-2 border-b border-border bg-accent/60 px-3 py-2">
           <span className="text-sm font-medium">{selectedKeys.length} selected</span>
           <div className="ml-auto flex items-center gap-2">
             {bulkActions?.({ rows: selectedRows, keys: selectedKeys, clear: clearSelection })}
@@ -332,10 +332,14 @@ export function DataTable<T>({
           }
         />
       ) : loading ? (
-        <div className="flex flex-col gap-2 p-3" aria-busy="true" aria-live="polite">
+        <div className="flex flex-col gap-3 p-4" aria-busy="true" aria-live="polite">
           <span className="sr-only">Loading…</span>
-          {Array.from({ length: 5 }).map((_, index) => (
-            <Skeleton key={index} className="h-8 w-full" />
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div key={index} className="flex items-center gap-4">
+              <Skeleton className="h-4 flex-[3]" />
+              <Skeleton className="h-4 flex-[2]" />
+              <Skeleton className="h-4 flex-1" />
+            </div>
           ))}
         </div>
       ) : visibleRows.length === 0 ? (
@@ -424,8 +428,8 @@ export function DataTable<T>({
                     key={key}
                     {...rowActivation(onRowClick, row)}
                     className={cn(
-                      "rounded-lg border border-border p-3",
-                      onRowClick && ROW_INTERACTIVE_CLASSES,
+                      "rounded-lg border border-border bg-card p-3",
+                      onRowClick && cn(ROW_INTERACTIVE_CLASSES, "active:bg-muted/60"),
                     )}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -473,7 +477,7 @@ export function DataTable<T>({
       )}
 
       {(hasMore || onPageSizeChange || showingSubset) && !loading && !error && (
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border p-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-3 py-2.5">
           <p className="text-xs text-muted-foreground">
             {showingSubset
               ? `Showing ${visibleRows.length} of ${rows.length} loaded`

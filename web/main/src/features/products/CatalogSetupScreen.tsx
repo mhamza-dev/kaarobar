@@ -26,6 +26,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PageActions } from "@/components/shared/PageActions";
 import {
   useAddModifier,
   useBrands,
@@ -134,12 +135,12 @@ function BrandsTable() {
   return (
     <>
       {canManage && (
-        <div className="mb-3 flex justify-end">
+        <PageActions>
           <Button onClick={() => setCreating(true)}>
             <Plus className="size-4" />
             New brand
           </Button>
-        </div>
+        </PageActions>
       )}
       <DataTable
         columns={columns}
@@ -273,12 +274,12 @@ function UnitsTable() {
   return (
     <>
       {can("unit:manage") && (
-        <div className="mb-3 flex justify-end">
+        <PageActions>
           <Button onClick={() => setCreating(true)}>
             <Plus className="size-4" />
             New unit
           </Button>
-        </div>
+        </PageActions>
       )}
       <DataTable
         columns={columns}

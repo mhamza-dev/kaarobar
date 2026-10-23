@@ -13,6 +13,7 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageActions } from "@/components/shared/PageActions";
 import {
   Dialog,
   DialogContent,
@@ -116,7 +117,7 @@ export function CustomerGroupsTable() {
   return (
     <>
       {canManage && (
-        <div className="mb-3 flex justify-end">
+        <PageActions>
           <Button
             onClick={() => {
               setEditing(null);
@@ -126,7 +127,7 @@ export function CustomerGroupsTable() {
             <Plus className="size-4" />
             New group
           </Button>
-        </div>
+        </PageActions>
       )}
 
       <DataTable

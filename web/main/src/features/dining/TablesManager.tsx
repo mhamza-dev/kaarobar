@@ -21,6 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { PageActions } from "@/components/shared/PageActions";
 import {
   useCreateFloor,
   useCreateTable,
@@ -138,7 +139,7 @@ export function TablesManager() {
 
       <div>
         {canManage && (
-          <div className="mb-3 flex justify-end">
+          <PageActions>
             <Button
               onClick={() => {
                 setEditing(null);
@@ -148,7 +149,7 @@ export function TablesManager() {
               <Plus className="size-4" />
               New table
             </Button>
-          </div>
+          </PageActions>
         )}
         <DataTable
           columns={columns}

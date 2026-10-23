@@ -1,7 +1,7 @@
 "use client";
 
 import { format, parseISO, subDays } from "date-fns";
-import { AlertTriangle, ArrowRight } from "lucide-react";
+import { AlertTriangle, ArrowRight, Banknote, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
 
@@ -21,6 +21,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { formatMoney, formatQuantity } from "@/lib/format";
 import { getVisibleNavGroups } from "@/lib/nav";
 import { compactNumber, presetRange, shopToday } from "@/lib/reportPeriod";
+import { cn } from "@/lib/utils";
 import { useSessionStore } from "@/stores/sessionStore";
 
 /**
@@ -64,11 +65,16 @@ export function Dashboard() {
   return (
     <div className="flex flex-col gap-6">
       {canSeeFiscal && fiscal.data?.selling_blocked && (
-        <div className="flex items-start gap-3 rounded-xl border border-destructive bg-danger-soft p-4 text-sm">
-          <AlertTriangle className="size-5 shrink-0 text-destructive" />
-          <div className="flex-1">
-            <p className="font-medium">The till is blocked by fiscal reporting</p>
-            <p className="text-muted-foreground">
+        <div
+          role="alert"
+          className="flex flex-wrap items-start gap-3 rounded-xl border border-destructive/30 bg-danger-soft p-4 text-sm"
+        >
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-card text-danger shadow-xs">
+            <AlertTriangle className="size-[1.125rem]" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-danger">The till is blocked by fiscal reporting</p>
+            <p className="text-foreground/80">
               {fiscal.data.backlog} sale{fiscal.data.backlog === 1 ? "" : "s"} couldn&apos;t be
               reported to the tax authority.
             </p>
@@ -86,33 +92,49 @@ export function Dashboard() {
 
       {canReport ? (
         <>
-          <section className="grid gap-4 lg:grid-cols-[2fr_3fr]">
-            <div className="flex flex-col justify-between gap-4 rounded-xl border border-border bg-card p-5">
-              <div>
-                <p className="text-sm text-muted-foreground">Net sales today</p>
-                {summary.isLoading ? (
-                  <Skeleton className="mt-2 h-12 w-48" />
-                ) : (
-                  <p className="mt-1 text-5xl font-semibold tracking-tight">
-                    {formatMoney(summary.data?.net_sales, currency)}
-                  </p>
-                )}
+          <section className="grid gap-4 lg:grid-cols-5">
+            <div
+              className={cn(
+                PANEL,
+                "relative flex flex-col gap-5 overflow-hidden p-5 md:p-6 lg:col-span-2",
+              )}
+            >
+              <div
+                aria-hidden
+                className="pointer-events-none absolute -top-20 -right-20 size-56 rounded-full bg-primary/10 blur-3xl"
+              />
+              <div className="flex items-center gap-3">
+                <span className="flex size-9 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+                  <Banknote className="size-[1.125rem]" aria-hidden />
+                </span>
+                <p className="text-sm font-medium text-muted-foreground">Net sales today</p>
               </div>
-              <dl className="grid grid-cols-3 gap-3 text-sm">
-                <div>
-                  <dt className="text-muted-foreground">Sales</dt>
-                  <dd className="text-lg font-semibold">{summary.data?.sale_count ?? "—"}</dd>
+              {summary.isLoading ? (
+                <Skeleton className="h-12 w-48" />
+              ) : (
+                <p className="text-4xl font-semibold tracking-tight break-words xl:text-5xl">
+                  {formatMoney(summary.data?.net_sales, currency)}
+                </p>
+              )}
+              {/* Side by side from sm up; label/value rows on a phone, where three
+                  money figures abreast would break mid-number. */}
+              <dl className="mt-auto grid divide-y divide-border rounded-lg border border-border bg-muted/40 sm:auto-cols-fr sm:grid-flow-col sm:divide-x sm:divide-y-0">
+                <div className="flex min-w-0 items-baseline justify-between gap-3 px-3 py-2.5 sm:block">
+                  <dt className="text-xs text-muted-foreground">Sales</dt>
+                  <dd className="font-semibold break-words sm:mt-0.5">
+                    {summary.data?.sale_count ?? "—"}
+                  </dd>
                 </div>
-                <div>
-                  <dt className="text-muted-foreground">Average</dt>
-                  <dd className="text-lg font-semibold">
+                <div className="flex min-w-0 items-baseline justify-between gap-3 px-3 py-2.5 sm:block">
+                  <dt className="text-xs text-muted-foreground">Average</dt>
+                  <dd className="font-semibold break-words sm:mt-0.5">
                     {formatMoney(summary.data?.average_sale, currency)}
                   </dd>
                 </div>
                 {can("report:financial") && (
-                  <div>
-                    <dt className="text-muted-foreground">Gross profit</dt>
-                    <dd className="text-lg font-semibold">
+                  <div className="flex min-w-0 items-baseline justify-between gap-3 px-3 py-2.5 sm:block">
+                    <dt className="text-xs text-muted-foreground">Gross profit</dt>
+                    <dd className="font-semibold break-words sm:mt-0.5">
                       {formatMoney(summary.data?.gross_profit, currency)}
                     </dd>
                   </div>
@@ -120,21 +142,27 @@ export function Dashboard() {
               </dl>
             </div>
 
-            <div className="flex flex-col gap-2 rounded-xl border border-border bg-card p-5">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold">Last 14 days</h2>
-                <Link
-                  href="/reports"
-                  className="flex items-center gap-1 text-sm text-brand-primary hover:underline"
+            <div className={cn(PANEL, "flex flex-col gap-4 p-5 md:p-6 lg:col-span-3")}>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-semibold">Net sales</h2>
+                  <p className="text-xs text-muted-foreground">Last 14 days</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  nativeButton={false}
+                  render={<Link href="/reports" />}
+                  className="-mt-1 -mr-2"
                 >
                   Reports <ArrowRight className="size-3.5" />
-                </Link>
+                </Button>
               </div>
               {trend.isLoading ? (
-                <Skeleton className="h-44 w-full" />
+                <Skeleton className="h-52 w-full" />
               ) : (
                 <TrendChart
-                  height={180}
+                  height={210}
                   points={(trend.data ?? []).map((row) => ({
                     label: format(parseISO(row.day), "EEE d MMM"),
                     tick: format(parseISO(row.day), "d MMM"),
@@ -149,25 +177,29 @@ export function Dashboard() {
             </div>
           </section>
 
-          <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5 lg:max-w-xl">
-            <div>
-              <h2 className="text-sm font-semibold">Best sellers this week</h2>
-              <p className="text-xs text-muted-foreground">Updated as each day closes.</p>
+          <section className="grid gap-4 lg:grid-cols-5">
+            <div className={cn(PANEL, "flex flex-col gap-4 p-5 md:p-6 lg:col-span-3")}>
+              <div>
+                <h2 className="text-sm font-semibold">Best sellers this week</h2>
+                <p className="text-xs text-muted-foreground">Updated as each day closes.</p>
+              </div>
+              {top.isLoading ? (
+                <Skeleton className="h-32 w-full" />
+              ) : (
+                <BarList
+                  emptyMessage="No closed days with sales this week yet."
+                  items={(top.data ?? []).slice(0, 5).map((row) => ({
+                    key: row.variant_id,
+                    label: names[row.product_id] ?? "…",
+                    value: Number(row.net_sales),
+                    display: formatMoney(row.net_sales, currency),
+                    detail: `${formatQuantity(row.quantity)} sold`,
+                  }))}
+                />
+              )}
             </div>
-            {top.isLoading ? (
-              <Skeleton className="h-32 w-full" />
-            ) : (
-              <BarList
-                emptyMessage="No closed days with sales this week yet."
-                items={(top.data ?? []).slice(0, 5).map((row) => ({
-                  key: row.variant_id,
-                  label: names[row.product_id] ?? "…",
-                  value: Number(row.net_sales),
-                  display: formatMoney(row.net_sales, currency),
-                  detail: `${formatQuantity(row.quantity)} sold`,
-                }))}
-              />
-            )}
+
+            <QuickLinks items={quickLinks(scope)} />
           </section>
         </>
       ) : shortcuts.length > 0 ? (
@@ -176,10 +208,19 @@ export function Dashboard() {
             <Link
               key={item.href}
               href={item.href}
-              className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 hover:bg-muted"
+              className={cn(
+                PANEL,
+                "group flex items-center gap-3 p-4 transition-colors hover:border-primary/40 hover:bg-accent/30",
+              )}
             >
-              <item.icon className="size-5 text-brand-primary" />
-              <span className="font-medium">{item.label}</span>
+              <span className="flex size-10 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+                <item.icon className="size-5" aria-hidden />
+              </span>
+              <span className="flex-1 font-medium">{item.label}</span>
+              <ChevronRight
+                className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+                aria-hidden
+              />
             </Link>
           ))}
         </section>
@@ -189,6 +230,63 @@ export function Dashboard() {
           description="Ask an owner to give your role access to the screens you need."
         />
       )}
+    </div>
+  );
+}
+
+const PANEL = "rounded-xl border border-border bg-card shadow-card";
+
+/**
+ * The everyday jobs, phrased as jobs, in the order a shop reaches for them.
+ * Only screens the sidebar would show this person make the list.
+ */
+const QUICK_LINKS: Array<{ href: string; label: string }> = [
+  { href: "/pos", label: "Ring up a sale" },
+  { href: "/products", label: "Manage products" },
+  { href: "/customers", label: "Find a customer" },
+  { href: "/stock", label: "Check stock levels" },
+  { href: "/purchase-orders", label: "Order from suppliers" },
+  { href: "/expenses", label: "Record an expense" },
+  { href: "/sales", label: "Look up a sale" },
+];
+
+function quickLinks(scope: Parameters<typeof getVisibleNavGroups>[0]) {
+  const visible = new Map(
+    getVisibleNavGroups(scope)
+      .flatMap((group) => group.items)
+      .map((item) => [item.href, item]),
+  );
+  return QUICK_LINKS.flatMap((link) => {
+    const item = visible.get(link.href);
+    return item ? [{ ...link, icon: item.icon }] : [];
+  }).slice(0, 5);
+}
+
+function QuickLinks({ items }: { items: ReturnType<typeof quickLinks> }) {
+  if (items.length === 0) return null;
+
+  return (
+    <div className={cn(PANEL, "flex flex-col gap-3 p-5 md:p-6 lg:col-span-2")}>
+      <h2 className="text-sm font-semibold">Shortcuts</h2>
+      <ul className="-mx-2 flex flex-col">
+        {items.map((item) => (
+          <li key={item.href}>
+            <Link
+              href={item.href}
+              className="group flex items-center gap-3 rounded-lg px-2 py-2 text-sm font-medium transition-colors hover:bg-muted"
+            >
+              <span className="flex size-8 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-colors group-hover:border-primary/30 group-hover:text-primary">
+                <item.icon className="size-4" aria-hidden />
+              </span>
+              <span className="flex-1">{item.label}</span>
+              <ChevronRight
+                className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+                aria-hidden
+              />
+            </Link>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

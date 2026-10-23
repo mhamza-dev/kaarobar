@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, Settings, User } from "lucide-react";
+import { ChevronsUpDown, LogOut, Settings, User } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useLogout } from "@/hooks/queries/useAuth";
+import { cn } from "@/lib/utils";
 import { useSessionStore } from "@/stores/sessionStore";
 
 function initials(name: string) {
@@ -40,18 +41,27 @@ export function UserMenu({ collapsed }: { collapsed: boolean }) {
         render={
           <button
             type="button"
-            className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left hover:bg-sidebar-accent/60"
+            title={collapsed ? user.name : undefined}
+            className={cn(
+              "flex w-full items-center gap-2.5 rounded-lg p-1.5 text-left transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50",
+              collapsed && "justify-center",
+            )}
           />
         }
       >
-        <Avatar size="sm">
-          <AvatarFallback className="text-foreground">{initials(user.name)}</AvatarFallback>
+        <Avatar>
+          <AvatarFallback className="bg-accent text-xs font-semibold text-accent-foreground">
+            {initials(user.name)}
+          </AvatarFallback>
         </Avatar>
         {!collapsed && (
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-sidebar-foreground">{user.name}</p>
-            <p className="truncate text-xs text-muted-foreground">{user.email}</p>
-          </div>
+          <>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-sidebar-foreground">{user.name}</p>
+              <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+            </div>
+            <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+          </>
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56">

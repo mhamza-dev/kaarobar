@@ -8,6 +8,7 @@ import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/D
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageActions } from "@/components/shared/PageActions";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -115,7 +116,7 @@ export function BranchesTable() {
   return (
     <>
       {canCreate && (
-        <div className="mb-3 flex justify-end">
+        <PageActions>
           <Button
             onClick={() => {
               setEditing(null);
@@ -125,7 +126,7 @@ export function BranchesTable() {
             <Plus className="size-4" />
             New branch
           </Button>
-        </div>
+        </PageActions>
       )}
 
       <DataTable

@@ -29,10 +29,10 @@ function Banner({
     <div
       role={tone === "danger" ? "alert" : "status"}
       className={cn(
-        "flex flex-wrap items-center gap-x-3 gap-y-1 border-b px-4 py-2 text-sm md:px-8",
+        "flex flex-wrap items-center gap-x-3 gap-y-1 border-b px-4 py-2.5 text-sm md:px-6",
         tone === "danger" && "border-danger/20 bg-danger-soft text-danger",
         tone === "warning" && "border-warning/20 bg-warning-soft text-warning",
-        tone === "info" && "border-border bg-muted/60 text-foreground",
+        tone === "info" && "border-border bg-accent/50 text-foreground",
       )}
     >
       <Icon className="size-4 shrink-0" aria-hidden />
@@ -85,8 +85,8 @@ export function AccountBanners() {
     billing = (
       <Banner tone="warning" icon={AlertTriangle}>
         <span>
-          Your last payment failed. Everything keeps working for{" "}
-          {subscription.days_remaining ?? 0} more days.
+          Your last payment failed. Everything keeps working for {subscription.days_remaining ?? 0}{" "}
+          more days.
         </span>
         <Link href="/settings/billing" className={linkClass}>
           Update payment

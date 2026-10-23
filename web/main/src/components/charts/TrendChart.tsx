@@ -1,9 +1,10 @@
 "use client";
 
+import { useId } from "react";
 import {
+  Area,
+  AreaChart,
   CartesianGrid,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -23,10 +24,10 @@ export type TrendPoint = {
 };
 
 /**
- * One series over time: a 2px line, a crosshair that snaps to the nearest
- * day, and a tooltip with the exact figure. Gridlines are solid hairlines
- * in the border token; the y-axis is abbreviated because the exact value is
- * one hover away.
+ * One series over time: a 2px line over a faint wash of the same hue, a
+ * crosshair that snaps to the nearest day, and a tooltip with the exact
+ * figure. Gridlines are solid hairlines in the border token; the y-axis is
+ * abbreviated because the exact value is one hover away.
  *
  * `value` is a number for plotting only — the tooltip shows `display`,
  * which the caller builds from the backend's decimal string.
@@ -42,10 +43,19 @@ export function TrendChart({
   height?: number;
   ariaLabel: string;
 }) {
+  // useId's colons/guillemets aren't safe inside url(#…).
+  const washId = `wash-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
+
   return (
     <div role="img" aria-label={ariaLabel} style={{ height }} className="w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={points} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
+        <AreaChart data={points} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
+          <defs>
+            <linearGradient id={washId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.14} />
+              <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
           <CartesianGrid vertical={false} stroke="var(--border)" strokeWidth={1} />
           <XAxis
             dataKey="tick"
@@ -72,7 +82,7 @@ export function TrendChart({
               );
             }}
           />
-          <Line
+          <Area
             // Straight segments: daily totals are points, and a smoothed curve
             // would draw sales between days that never happened.
             type="linear"
@@ -81,11 +91,12 @@ export function TrendChart({
             strokeWidth={2}
             strokeLinecap="round"
             strokeLinejoin="round"
+            fill={`url(#${washId})`}
             dot={false}
             activeDot={{ r: 4, fill: "var(--chart-1)", stroke: "var(--card)", strokeWidth: 2 }}
             isAnimationActive={false}
           />
-        </LineChart>
+        </AreaChart>
       </ResponsiveContainer>
     </div>
   );

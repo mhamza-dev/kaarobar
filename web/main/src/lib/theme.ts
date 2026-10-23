@@ -1,4 +1,4 @@
-import { darken, getLuminance, mix, toHex } from "color2k";
+import { darken, getContrast, getLuminance, mix, toHex } from "color2k";
 
 /**
  * Per-business brand color, derived and applied at runtime.
@@ -53,24 +53,59 @@ export function deriveBrandPalette(brandHex: string): BrandPalette {
   return { primary, primaryHover, primaryActive, tint, onPrimary };
 }
 
-const BRAND_VAR_NAMES: Record<keyof BrandPalette, string> = {
-  primary: "--brand-primary",
-  primaryHover: "--brand-primary-hover",
-  primaryActive: "--brand-primary-active",
-  tint: "--brand-tint",
-  onPrimary: "--brand-on-primary",
+/** The dark-mode card surface (`.dark --card` in globals.css). */
+export const DARK_SURFACE = "#141a2a";
+/** Dark ink for text on a light primary in dark mode. */
+const DARK_INK = "#0a1020";
+
+/**
+ * The same brand for dark mode. A navy or forest brand all but vanishes on
+ * a dark surface, so the primary is lifted toward white until it reads as
+ * text there (>= 4.5:1), and the tint is the brand mixed into that surface
+ * rather than into white — a light tint behind white text is unreadable.
+ */
+export function deriveDarkBrandPalette(brandHex: string): BrandPalette {
+  const base = toHex(brandHex);
+  let primary = base;
+  for (let step = 1; step <= 20 && getContrast(primary, DARK_SURFACE) < 4.5; step += 1) {
+    primary = toHex(mix(base, "#ffffff", step * 0.05));
+  }
+  const primaryHover = toHex(mix(primary, "#ffffff", 0.12));
+  const primaryActive = toHex(mix(primary, "#ffffff", 0.25));
+  const tint = toHex(mix(DARK_SURFACE, primary, 0.22));
+  // Whichever ink reads better on the lifted primary.
+  const onPrimary =
+    getContrast(primary, "#ffffff") >= getContrast(primary, DARK_INK) ? "#ffffff" : DARK_INK;
+
+  return { primary, primaryHover, primaryActive, tint, onPrimary };
+}
+
+const BRAND_VAR_SUFFIXES: Record<keyof BrandPalette, string> = {
+  primary: "primary",
+  primaryHover: "primary-hover",
+  primaryActive: "primary-active",
+  tint: "tint",
+  onPrimary: "on-primary",
 };
 
-/** Applies a business's brand color to `:root` so every `brand-*`/`primary` utility updates live. */
+/**
+ * Applies a business's brand color to `:root` so every `brand-*`/`primary`
+ * utility updates live. Both palettes are written — `--brand-light-*` and
+ * `--brand-dark-*` — and globals.css maps `--brand-*` to the one for the
+ * current mode, so switching light/dark needs nothing from here.
+ */
 export function applyBrandTheme(brandHex: string | null | undefined): BrandPalette {
-  const palette = deriveBrandPalette(brandHex || DEFAULT_BRAND_COLOR);
+  const hex = brandHex || DEFAULT_BRAND_COLOR;
+  const palettes = { light: deriveBrandPalette(hex), dark: deriveDarkBrandPalette(hex) };
   const root = document.documentElement;
 
-  for (const key of Object.keys(BRAND_VAR_NAMES) as (keyof BrandPalette)[]) {
-    root.style.setProperty(BRAND_VAR_NAMES[key], palette[key]);
+  for (const [mode, palette] of Object.entries(palettes)) {
+    for (const key of Object.keys(BRAND_VAR_SUFFIXES) as (keyof BrandPalette)[]) {
+      root.style.setProperty(`--brand-${mode}-${BRAND_VAR_SUFFIXES[key]}`, palette[key]);
+    }
   }
 
-  return palette;
+  return palettes.light;
 }
 
 /** Resets `:root` back to the default Kaarobar brand (e.g. on logout). */

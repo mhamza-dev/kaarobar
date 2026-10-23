@@ -13,14 +13,23 @@ export function SidebarNav({ collapsed }: { collapsed: boolean }) {
   const groups = getVisibleNavGroups(scope);
 
   return (
-    <nav className="flex flex-1 flex-col gap-5 overflow-y-auto px-3 py-4">
+    <nav
+      aria-label="Main"
+      className={cn(
+        "scrollbar-thin flex flex-1 flex-col gap-4 overflow-y-auto px-3 py-3",
+        collapsed && "px-2",
+      )}
+    >
       {groups.map((group, index) => (
-        <div key={group.label || index} className="flex flex-col gap-1">
-          {group.label && !collapsed && (
-            <p className="px-2.5 pb-1 text-[0.7rem] font-semibold tracking-wide text-muted-foreground uppercase">
-              {group.label}
-            </p>
-          )}
+        <div key={group.label || index} className="flex flex-col gap-0.5">
+          {group.label &&
+            (collapsed ? (
+              <div aria-hidden className="mx-auto mb-1 h-px w-6 bg-sidebar-border" />
+            ) : (
+              <p className="px-3 pb-1.5 text-[0.688rem] font-semibold tracking-wider text-muted-foreground uppercase">
+                {group.label}
+              </p>
+            ))}
           {group.items.map((item) => {
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
             const Icon = item.icon;
@@ -30,14 +39,30 @@ export function SidebarNav({ collapsed }: { collapsed: boolean }) {
                 key={item.href}
                 href={item.href}
                 title={collapsed ? item.label : undefined}
+                aria-label={collapsed ? item.label : undefined}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors",
+                  "group relative flex h-9 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors",
+                  collapsed && "justify-center px-0",
                   active
                     ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
+                    : "text-sidebar-foreground/75 hover:bg-muted hover:text-sidebar-foreground",
                 )}
               >
-                <Icon className="size-4 shrink-0" />
+                {active && !collapsed && (
+                  <span
+                    aria-hidden
+                    className="absolute inset-y-2 -left-3 w-1 rounded-r-full bg-sidebar-primary"
+                  />
+                )}
+                <Icon
+                  className={cn(
+                    "size-[1.125rem] shrink-0 transition-colors",
+                    active
+                      ? "text-sidebar-primary"
+                      : "text-muted-foreground group-hover:text-sidebar-foreground",
+                  )}
+                />
                 {!collapsed && <span className="truncate">{item.label}</span>}
               </Link>
             );

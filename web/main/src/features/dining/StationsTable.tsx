@@ -11,6 +11,7 @@ import { FormTextField } from "@/components/forms/FormTextField";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageActions } from "@/components/shared/PageActions";
 import {
   Dialog,
   DialogContent,
@@ -78,7 +79,7 @@ export function StationsTable() {
   return (
     <>
       {canManage && (
-        <div className="mb-3 flex justify-end">
+        <PageActions>
           <Button
             onClick={() => {
               setEditing(null);
@@ -88,7 +89,7 @@ export function StationsTable() {
             <Plus className="size-4" />
             New station
           </Button>
-        </div>
+        </PageActions>
       )}
       <DataTable
         columns={columns}

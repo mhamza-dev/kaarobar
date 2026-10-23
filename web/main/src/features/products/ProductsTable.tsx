@@ -8,6 +8,7 @@ import { useState } from "react";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageActions } from "@/components/shared/PageActions";
 import { useCategoriesList } from "@/hooks/queries/useCategories";
 import { useProductsList } from "@/hooks/queries/useProducts";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -91,12 +92,12 @@ export function ProductsTable() {
   return (
     <>
       {canCreate && (
-        <div className="mb-3 flex justify-end">
+        <PageActions>
           <Button nativeButton={false} render={<Link href="/products/new" />}>
             <Plus className="size-4" />
             New product
           </Button>
-        </div>
+        </PageActions>
       )}
 
       <div className="mb-3 flex flex-wrap gap-2">

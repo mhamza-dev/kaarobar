@@ -23,6 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PageActions } from "@/components/shared/PageActions";
 import {
   useCreateTax,
   useCreateTaxGroup,
@@ -123,12 +124,12 @@ function TaxesTable() {
   return (
     <>
       {canManage && (
-        <div className="mb-3 flex justify-end">
+        <PageActions>
           <Button onClick={() => setCreating(true)}>
             <Plus className="size-4" />
             New tax
           </Button>
-        </div>
+        </PageActions>
       )}
       <DataTable
         columns={columns}

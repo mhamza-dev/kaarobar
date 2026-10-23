@@ -7,6 +7,7 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageActions } from "@/components/shared/PageActions";
 import { useCategoriesList, useDeleteCategory } from "@/hooks/queries/useCategories";
 import { usePermission } from "@/hooks/usePermission";
 import { toast } from "@/hooks/useToast";
@@ -81,7 +82,7 @@ export function CategoriesTable() {
   return (
     <>
       {manage && (
-        <div className="mb-3 flex justify-end">
+        <PageActions>
           <Button
             onClick={() => {
               setEditing(null);
@@ -91,7 +92,7 @@ export function CategoriesTable() {
             <Plus className="size-4" />
             New category
           </Button>
-        </div>
+        </PageActions>
       )}
 
       <DataTable

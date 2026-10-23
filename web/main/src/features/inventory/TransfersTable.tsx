@@ -8,6 +8,7 @@ import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/D
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageActions } from "@/components/shared/PageActions";
 import { useTransfers } from "@/hooks/queries/useStockOperations";
 import { usePermission } from "@/hooks/usePermission";
 import { formatDate } from "@/lib/format";
@@ -55,12 +56,12 @@ export function TransfersTable() {
   return (
     <>
       {can("stock:transfer") && (
-        <div className="mb-3 flex justify-end">
+        <PageActions>
           <Button onClick={() => setCreating(true)}>
             <Plus className="size-4" />
             New transfer
           </Button>
-        </div>
+        </PageActions>
       )}
 
       <DataTable

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageActions } from "@/components/shared/PageActions";
 import { useSuppliers } from "@/hooks/queries/usePurchasing";
 import { useSheetParam } from "@/hooks/useSheetParam";
 import { usePermission } from "@/hooks/usePermission";
@@ -58,12 +59,12 @@ export function SuppliersTable() {
   return (
     <>
       {canCreate && (
-        <div className="mb-3 flex justify-end">
+        <PageActions>
           <Button onClick={() => setCreating(true)}>
             <Plus className="size-4" />
             New supplier
           </Button>
-        </div>
+        </PageActions>
       )}
 
       <DataTable

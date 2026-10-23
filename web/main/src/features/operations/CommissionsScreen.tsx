@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PageActions } from "@/components/shared/PageActions";
 import { useCategoriesList } from "@/hooks/queries/useCategories";
 import {
   useApproveCommissions,
@@ -343,12 +344,12 @@ function Rules() {
   return (
     <>
       {canManage && (
-        <div className="mb-3 flex justify-end">
+        <PageActions>
           <Button onClick={() => setCreating(true)}>
             <Plus className="size-4" />
             New rule
           </Button>
-        </div>
+        </PageActions>
       )}
       <DataTable
         columns={columns}

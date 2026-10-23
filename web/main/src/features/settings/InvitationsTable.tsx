@@ -8,6 +8,7 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
+import { PageActions } from "@/components/shared/PageActions";
 import { useInvitationsList, useRevokeInvitation } from "@/hooks/queries/useInvitations";
 import { usePermission } from "@/hooks/usePermission";
 import { toast } from "@/hooks/useToast";
@@ -65,12 +66,12 @@ export function InvitationsTable() {
   return (
     <>
       {canInvite && (
-        <div className="mb-3 flex justify-end">
+        <PageActions>
           <Button onClick={() => setInviteOpen(true)}>
             <Plus className="size-4" />
             Invite staff
           </Button>
-        </div>
+        </PageActions>
       )}
 
       <DataTable

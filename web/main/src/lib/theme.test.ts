@@ -1,6 +1,13 @@
+import { getContrast } from "color2k";
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_BRAND_COLOR, deriveBrandPalette } from "./theme";
+import {
+  BRAND_COLOR_PRESETS,
+  DARK_SURFACE,
+  DEFAULT_BRAND_COLOR,
+  deriveBrandPalette,
+  deriveDarkBrandPalette,
+} from "./theme";
 
 describe("deriveBrandPalette", () => {
   it("derives a distinct hover and active shade from the brand color", () => {
@@ -33,5 +40,29 @@ describe("deriveBrandPalette", () => {
     for (const value of Object.values(palette)) {
       expect(value).toMatch(/^#[0-9a-f]{6}$/i);
     }
+  });
+});
+
+describe("deriveDarkBrandPalette", () => {
+  // Every preset, plus the extremes a custom brand color could be.
+  const brands = [...BRAND_COLOR_PRESETS.map((preset) => preset.hex), "#000000", "#fde047"];
+
+  it.each(brands)("keeps %s readable as text on the dark surface", (hex) => {
+    const { primary } = deriveDarkBrandPalette(hex);
+    expect(getContrast(primary, DARK_SURFACE)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it.each(brands)("picks readable text for buttons in %s", (hex) => {
+    const { primary, onPrimary } = deriveDarkBrandPalette(hex);
+    expect(getContrast(primary, onPrimary)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("makes a dark tint, so white text on it stays readable", () => {
+    const { tint } = deriveDarkBrandPalette(DEFAULT_BRAND_COLOR);
+    expect(getContrast("#ffffff", tint)).toBeGreaterThanOrEqual(7);
+  });
+
+  it("leaves a brand that already reads on the dark surface alone", () => {
+    expect(deriveDarkBrandPalette("#fde047").primary).toBe("#fde047");
   });
 });

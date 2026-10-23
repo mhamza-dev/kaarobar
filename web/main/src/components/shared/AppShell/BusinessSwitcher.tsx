@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useBusinessesList } from "@/hooks/queries/useBusinesses";
+import { cn } from "@/lib/utils";
 import { rememberBusiness, useSessionStore } from "@/stores/sessionStore";
 
 /**
@@ -70,19 +71,28 @@ export function BusinessSwitcher({ collapsed }: { collapsed: boolean }) {
         render={
           <button
             type="button"
-            className="flex w-full items-center gap-2 rounded-lg border border-sidebar-border bg-sidebar px-2.5 py-2 text-left text-sm hover:bg-sidebar-accent/60"
+            title={collapsed ? (scope.business?.name ?? current.name) : undefined}
+            className={cn(
+              "flex w-full items-center gap-2.5 rounded-xl border border-sidebar-border bg-background p-2 text-left text-sm shadow-xs transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50",
+              collapsed && "justify-center p-1.5",
+            )}
           />
         }
       >
-        <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-semibold text-primary-foreground">
-          {current.name.slice(0, 1).toUpperCase()}
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground">
+          {(scope.business?.name ?? current.name).slice(0, 1).toUpperCase()}
         </span>
         {!collapsed && (
           <>
-            <span className="flex-1 truncate font-medium text-sidebar-foreground">
-              {scope.business?.name ?? current.name}
+            <span className="min-w-0 flex-1">
+              <span className="block truncate leading-tight font-semibold text-sidebar-foreground">
+                {scope.business?.name ?? current.name}
+              </span>
+              <span className="block truncate text-xs leading-tight text-muted-foreground">
+                {scope.branch?.name ?? current.name}
+              </span>
             </span>
-            {switchable && <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" />}
+            {switchable && <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" />}
           </>
         )}
       </DropdownMenuTrigger>
