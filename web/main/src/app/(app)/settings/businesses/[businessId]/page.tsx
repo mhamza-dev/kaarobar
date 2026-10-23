@@ -1,11 +1,8 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
 import { use } from "react";
 
 import { PageHeader } from "@/components/shared/PageHeader";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BusinessForm } from "@/features/settings/BusinessForm";
 import { useBusiness } from "@/hooks/queries/useBusinesses";
@@ -22,16 +19,7 @@ export default function BusinessDetailPage({
         eyebrow="Settings"
         title={business?.name ?? "Business"}
         description={business?.business_type_label}
-        actions={
-          <Button
-            variant="outline"
-            nativeButton={false}
-            render={<Link href="/settings/businesses" />}
-          >
-            <ArrowLeft className="size-4" />
-            All businesses
-          </Button>
-        }
+        back={{ href: "/settings/businesses", label: "All businesses" }}
       />
 
       {isLoading ? (

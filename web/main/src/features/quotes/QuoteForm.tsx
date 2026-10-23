@@ -114,7 +114,7 @@ export function QuoteForm({ quote }: { quote?: Quote }) {
       }}
     >
       {({ isSubmitting, values, errors }) => (
-        <Form className="flex max-w-3xl flex-col gap-6">
+        <Form className="form-surface flex max-w-3xl flex-col gap-6">
           {!editing && (
             <section className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4">
               <div className="grid gap-4 sm:grid-cols-2">
@@ -208,7 +208,7 @@ export function QuoteForm({ quote }: { quote?: Quote }) {
             </div>
           )}
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center gap-2 border-t border-border pt-5">
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="size-4 animate-spin" />}
               {editing ? "Save lines" : "Save draft"}

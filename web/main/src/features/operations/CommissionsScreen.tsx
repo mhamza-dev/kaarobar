@@ -11,6 +11,7 @@ import { FormTextField } from "@/components/forms/FormTextField";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { DescriptionList } from "@/components/shared/DescriptionList";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { LoadError } from "@/components/shared/LoadError";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Badge } from "@/components/ui/badge";
@@ -146,11 +147,7 @@ function Earned() {
           rows={data ?? []}
           rowKey={(row) => row.user_id}
           onRowClick={(row) => setPerson(row.user_id)}
-          empty={
-            <p className="p-6 text-center text-sm text-muted-foreground">
-              No commission earned in this period.
-            </p>
-          }
+          empty={<EmptyState size="sm" title={<>No commission earned in this period.</>} />}
           mobileCardTitle={(row) => names.get(row.user_id) ?? "Someone"}
           mobileCardFields={[
             { key: "amount", label: "Owed", render: (row) => formatMoney(row.amount, currency) },
@@ -277,11 +274,7 @@ function Statement({
                 </Button>
               </>
             )}
-            empty={
-              <p className="p-6 text-center text-sm text-muted-foreground">
-                Nothing earned in this period.
-              </p>
-            }
+            empty={<EmptyState size="sm" title={<>Nothing earned in this period.</>} />}
             mobileCardTitle={(entry) => money(entry.amount)}
             mobileCardSubtitle={(entry) => formatDate(entry.earned_on)}
           />
@@ -359,9 +352,7 @@ function Rules() {
         error={error ? { message: error.message } : null}
         onRetry={() => refetch()}
         empty={
-          <p className="p-6 text-center text-sm text-muted-foreground">
-            No commission rules — nobody earns commission yet.
-          </p>
+          <EmptyState size="sm" title={<>No commission rules — nobody earns commission yet.</>} />
         }
         mobileCardTitle={(rule) => rule.name}
       />

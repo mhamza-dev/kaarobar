@@ -112,7 +112,7 @@ export function ServiceJobForm() {
       }}
     >
       {({ isSubmitting, values, errors }) => (
-        <Form className="flex max-w-3xl flex-col gap-6">
+        <Form className="form-surface flex max-w-3xl flex-col gap-6">
           <section className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4">
             <FormSearchSelectField
               name="customer_id"
@@ -213,7 +213,7 @@ export function ServiceJobForm() {
 
           <FormTextareaField name="notes" label="Job notes" rows={2} />
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center gap-2 border-t border-border pt-5">
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="size-4 animate-spin" />}
               Take in

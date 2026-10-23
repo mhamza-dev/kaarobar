@@ -4,7 +4,7 @@ import { LifeBuoy, Mail, MessageCircle, Store } from "lucide-react";
 import { ButtonLink } from "@/components/button-link";
 import { Container } from "@/components/container";
 import { FaqList } from "@/components/faq-list";
-import { PageIntro, SectionHeading } from "@/components/section-heading";
+import { IntroBackdrop, PageIntro, SectionHeading } from "@/components/section-heading";
 import { generalFaqs } from "@/lib/content";
 import { site, whatsappUrl } from "@/lib/site";
 
@@ -44,7 +44,8 @@ export default function ContactPage() {
 
   return (
     <>
-      <section className="py-16 sm:py-24">
+      <section className="relative isolate overflow-hidden py-16 sm:py-24">
+        <IntroBackdrop />
         <Container>
           <PageIntro eyebrow="Contact" title="We'd love to hear from you">
             Tell us what you need and a person will get back to you.

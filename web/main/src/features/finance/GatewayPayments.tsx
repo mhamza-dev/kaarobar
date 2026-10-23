@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -142,9 +143,12 @@ function PaymentsTable() {
         error={error ? { message: error.message } : null}
         onRetry={() => refetch()}
         empty={
-          <p className="p-6 text-center text-sm text-muted-foreground">
-            No gateway payments yet. Card and wallet payments taken at the till appear here.
-          </p>
+          <EmptyState
+            size="sm"
+            title={
+              <>No gateway payments yet. Card and wallet payments taken at the till appear here.</>
+            }
+          />
         }
         mobileCardTitle={(intent) => intent.reference ?? "Payment"}
         mobileCardSubtitle={(intent) => humanize(intent.status)}
@@ -245,11 +249,7 @@ function SettlementsTable({ canReconcile }: { canReconcile: boolean }) {
         loading={isLoading}
         error={error ? { message: error.message } : null}
         onRetry={() => refetch()}
-        empty={
-          <p className="p-6 text-center text-sm text-muted-foreground">
-            No payouts from a gateway yet.
-          </p>
-        }
+        empty={<EmptyState size="sm" title={<>No payouts from a gateway yet.</>} />}
         mobileCardTitle={(settlement) => formatDate(settlement.period_end)}
         mobileCardFields={[
           {

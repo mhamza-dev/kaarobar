@@ -107,7 +107,7 @@ export function LoyaltyProgramForm() {
         const cost = Number(values.earn_rate) * Number(values.redeem_rate) * 100;
 
         return (
-          <Form className="flex max-w-2xl flex-col gap-4">
+          <Form className="form-surface flex max-w-3xl flex-col gap-4">
             {!exists && (
               <p className="rounded-lg border border-border bg-muted/40 p-3 text-sm">
                 No programme is running yet. Saving this starts one.
@@ -192,7 +192,7 @@ export function LoyaltyProgramForm() {
             />
 
             {canManage && (
-              <div>
+              <div className="border-t border-border pt-5">
                 <Button type="submit" disabled={isSubmitting}>
                   {isSubmitting && <Loader2 className="size-4 animate-spin" />}
                   {exists ? "Save programme" : "Start programme"}

@@ -1,11 +1,8 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
 import { use } from "react";
 
 import { PageHeader } from "@/components/shared/PageHeader";
-import { Button } from "@/components/ui/button";
 import { GoodsReceiptDetail } from "@/features/purchasing/GoodsReceiptDetail";
 
 export default function GoodsReceiptDetailPage({
@@ -18,12 +15,7 @@ export default function GoodsReceiptDetailPage({
       <PageHeader
         eyebrow="Goods receipts"
         title="Goods receipt"
-        actions={
-          <Button variant="outline" nativeButton={false} render={<Link href="/goods-receipts" />}>
-            <ArrowLeft className="size-4" />
-            All receipts
-          </Button>
-        }
+        back={{ href: "/goods-receipts", label: "All receipts" }}
       />
       <GoodsReceiptDetail receiptId={receiptId} />
     </>

@@ -10,6 +10,7 @@ import { FormTextField } from "@/components/forms/FormTextField";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { DescriptionList } from "@/components/shared/DescriptionList";
 import { DetailSheet } from "@/components/shared/DetailSheet";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -183,7 +184,7 @@ function StockLedger({ branchId, variantId }: { branchId: string; variantId: str
       loading={isLoading}
       error={error ? { message: error.message } : null}
       onRetry={() => refetch()}
-      empty={<p className="p-6 text-center text-sm text-muted-foreground">No movements yet.</p>}
+      empty={<EmptyState size="sm" title={<>No movements yet.</>} />}
       mobileCardTitle={(move) => humanize(move.kind)}
       mobileCardSubtitle={(move) => formatDateTime(move.occurred_at)}
       mobileCardFields={[

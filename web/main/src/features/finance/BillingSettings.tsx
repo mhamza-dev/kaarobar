@@ -8,6 +8,7 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { DescriptionList } from "@/components/shared/DescriptionList";
 import { DetailSheet } from "@/components/shared/DetailSheet";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { LoadError } from "@/components/shared/LoadError";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Badge } from "@/components/ui/badge";
@@ -359,7 +360,7 @@ export function BillingSettings() {
           loading={invoices.isLoading}
           error={invoices.error}
           onRetry={() => invoices.refetch()}
-          empty={<p className="p-6 text-center text-sm text-muted-foreground">No invoices yet.</p>}
+          empty={<EmptyState size="sm" title={<>No invoices yet.</>} />}
           mobileCardTitle={(invoice) => invoice.number ?? "Invoice"}
           mobileCardFields={[
             {
@@ -425,7 +426,9 @@ export function BillingSettings() {
             if (live) await changePlan.mutateAsync([dialogPlan.code]);
             else await subscribe.mutateAsync([dialogPlan.code]);
             toast.success(
-              choosingTrial ? `Your ${dialogPlan.name} trial has started` : `You're on ${dialogPlan.name}`,
+              choosingTrial
+                ? `Your ${dialogPlan.name} trial has started`
+                : `You're on ${dialogPlan.name}`,
             );
             closeChoice();
           } catch {

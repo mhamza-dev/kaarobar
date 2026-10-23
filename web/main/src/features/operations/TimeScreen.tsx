@@ -10,6 +10,7 @@ import { FormDatePicker } from "@/components/forms/FormDatePicker";
 import { FormNumberField } from "@/components/forms/FormNumberField";
 import { FormTextField } from "@/components/forms/FormTextField";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -160,7 +161,7 @@ function Entries() {
         loading={isLoading}
         error={error ? { message: error.message } : null}
         onRetry={() => refetch()}
-        empty={<p className="p-6 text-center text-sm text-muted-foreground">No time logged yet.</p>}
+        empty={<EmptyState size="sm" title={<>No time logged yet.</>} />}
         mobileCardTitle={(entry) => entry.description}
         mobileCardFields={[{ key: "time", label: "Time", render: (entry) => hours(entry.minutes) }]}
       />
@@ -235,11 +236,7 @@ function Utilisation() {
         loading={isLoading}
         error={error ? { message: error.message } : null}
         onRetry={() => refetch()}
-        empty={
-          <p className="p-6 text-center text-sm text-muted-foreground">
-            No time logged in this period.
-          </p>
-        }
+        empty={<EmptyState size="sm" title={<>No time logged in this period.</>} />}
         mobileCardTitle={(row) => names.get(row.user_id) ?? "Someone"}
         mobileCardFields={[
           { key: "billable", label: "Billable", render: (row) => hours(row.billable_minutes) },

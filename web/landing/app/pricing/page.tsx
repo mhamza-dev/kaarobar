@@ -5,7 +5,7 @@ import { Container } from "@/components/container";
 import { CtaBand } from "@/components/cta-band";
 import { FaqList } from "@/components/faq-list";
 import { PlanCards, PlansUnavailable } from "@/components/plan-cards";
-import { PageIntro, SectionHeading } from "@/components/section-heading";
+import { IntroBackdrop, PageIntro, SectionHeading } from "@/components/section-heading";
 import { limitLabels, moduleGroups, pricingFaqs } from "@/lib/content";
 import { getCatalogue, longestTrial, type Plan } from "@/lib/plans";
 
@@ -131,7 +131,8 @@ export default async function PricingPage() {
 
   return (
     <>
-      <section className="py-16 sm:py-24">
+      <section className="relative isolate overflow-hidden py-16 sm:py-24">
+        <IntroBackdrop />
         <Container>
           <PageIntro eyebrow="Pricing" title="Pick the plan that fits today">
             {trialDays > 0

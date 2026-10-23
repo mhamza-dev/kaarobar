@@ -142,9 +142,7 @@ function LiveDeliveries({ onOpen }: { onOpen: (id: string) => void }) {
       loading={isLoading}
       error={error ? { message: error.message } : null}
       onRetry={() => refetch()}
-      empty={
-        <p className="p-6 text-center text-sm text-muted-foreground">Nothing out for delivery.</p>
-      }
+      empty={<EmptyState size="sm" title={<>Nothing out for delivery.</>} />}
       mobileCardTitle={(delivery) => delivery.number}
       mobileCardSubtitle={(delivery) => delivery.address}
       mobileCardFields={[

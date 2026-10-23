@@ -8,7 +8,7 @@ export function CtaBand({ trialDays }: { trialDays: number }) {
   return (
     <section className="py-20 sm:py-24">
       <Container>
-        <div className="relative overflow-hidden rounded-3xl bg-[#1f52bd] px-6 py-14 text-center sm:px-12">
+        <div className="relative overflow-hidden rounded-3xl bg-deep px-6 py-16 text-center sm:px-12">
           <div
             aria-hidden="true"
             className="absolute -top-24 -right-24 size-72 rounded-full bg-white/10 blur-2xl"

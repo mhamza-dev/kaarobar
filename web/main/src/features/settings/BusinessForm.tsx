@@ -73,7 +73,7 @@ export function BusinessForm({ business }: { business: Business }) {
       }}
     >
       {({ isSubmitting, dirty }) => (
-        <Form className="flex max-w-2xl flex-col gap-6">
+        <Form className="form-surface flex max-w-3xl flex-col gap-6">
           <div className="flex flex-col gap-4">
             <FormTextField name="name" label="Business name" />
             <div className="grid gap-4 sm:grid-cols-2">
@@ -113,7 +113,7 @@ export function BusinessForm({ business }: { business: Business }) {
             />
           </div>
 
-          <div>
+          <div className="border-t border-border pt-5">
             <Button type="submit" disabled={isSubmitting || !dirty}>
               {isSubmitting && <Loader2 className="size-4 animate-spin" />}
               Save changes

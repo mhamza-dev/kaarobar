@@ -5,6 +5,7 @@ import { useState } from "react";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { DescriptionList } from "@/components/shared/DescriptionList";
 import { DetailSheet } from "@/components/shared/DetailSheet";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuditLog } from "@/hooks/queries/useAudit";
@@ -117,11 +118,7 @@ export function AuditLog() {
         hasMore={hasNextPage}
         loadingMore={isFetchingNextPage}
         onLoadMore={() => fetchNextPage()}
-        empty={
-          <p className="p-6 text-center text-sm text-muted-foreground">
-            Nothing recorded for these filters.
-          </p>
-        }
+        empty={<EmptyState size="sm" title={<>Nothing recorded for these filters.</>} />}
         mobileCardTitle={(entry) => describeAction(entry.action)}
         mobileCardSubtitle={(entry) => formatDateTime(entry.occurred_at)}
         mobileCardFields={[

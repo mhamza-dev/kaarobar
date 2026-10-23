@@ -1,11 +1,8 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
 import { use } from "react";
 
 import { PageHeader } from "@/components/shared/PageHeader";
-import { Button } from "@/components/ui/button";
 import { CustomerDetail } from "@/features/customers/CustomerDetail";
 
 export default function CustomerDetailPage({ params }: PageProps<"/customers/[customerId]">) {
@@ -16,12 +13,8 @@ export default function CustomerDetailPage({ params }: PageProps<"/customers/[cu
       <PageHeader
         eyebrow="Customers"
         title="Customer"
-        actions={
-          <Button variant="outline" nativeButton={false} render={<Link href="/customers" />}>
-            <ArrowLeft className="size-4" />
-            All customers
-          </Button>
-        }
+        back={{ href: "/customers", label: "All customers" }}
+        compact
       />
       <CustomerDetail customerId={customerId} />
     </>

@@ -11,6 +11,7 @@ import { FormSelectField } from "@/components/forms/FormSelectField";
 import { FormTextField } from "@/components/forms/FormTextField";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -139,7 +140,7 @@ function TaxesTable() {
         loading={isLoading}
         error={error ? { message: error.message } : null}
         onRetry={() => refetch()}
-        empty={<p className="p-6 text-center text-sm text-muted-foreground">No taxes yet.</p>}
+        empty={<EmptyState size="sm" title={<>No taxes yet.</>} />}
         mobileCardTitle={(tax) => tax.name}
         mobileCardFields={[
           { key: "rate", label: "Rate", render: (tax) => rateLabel(tax, currency) },
@@ -385,7 +386,7 @@ function TaxGroupsTable() {
         loading={isLoading}
         error={error ? { message: error.message } : null}
         onRetry={() => refetch()}
-        empty={<p className="p-6 text-center text-sm text-muted-foreground">No tax groups yet.</p>}
+        empty={<EmptyState size="sm" title={<>No tax groups yet.</>} />}
         mobileCardTitle={(group) => group.name}
         mobileCardFields={[
           {

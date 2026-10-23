@@ -8,6 +8,7 @@ import * as Yup from "yup";
 import { FormNumberField } from "@/components/forms/FormNumberField";
 import { FormTextField } from "@/components/forms/FormTextField";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { LoadError } from "@/components/shared/LoadError";
 import { Button } from "@/components/ui/button";
 import {
@@ -56,9 +57,7 @@ export function LoyaltyTab({ customerId }: { customerId: string }) {
 
   if (!program.data) {
     return (
-      <p className="py-6 text-center text-sm text-muted-foreground">
-        This business isn&apos;t running a loyalty programme.
-      </p>
+      <EmptyState size="sm" title={<>This business isn&apos;t running a loyalty programme.</>} />
     );
   }
 
@@ -113,9 +112,10 @@ export function LoyaltyTab({ customerId }: { customerId: string }) {
         rows={history.data?.transactions ?? []}
         rowKey={(entry) => entry.id}
         empty={
-          <p className="p-6 text-center text-sm text-muted-foreground">
-            No {label} earned yet — they start with the next sale.
-          </p>
+          <EmptyState
+            size="sm"
+            title={<>No {label} earned yet — they start with the next sale.</>}
+          />
         }
         mobileCardTitle={(entry) => humanize(entry.kind)}
         mobileCardSubtitle={(entry) => formatDateTime(entry.occurred_at)}

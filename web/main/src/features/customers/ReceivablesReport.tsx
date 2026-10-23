@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -135,11 +136,7 @@ export function ReceivablesReport() {
         onRetry={() => byCustomer.refetch()}
         search={{ getText: (row) => row.customer_name ?? "" }}
         onRowClick={(row) => router.push(`/customers/${row.customer_id}`)}
-        empty={
-          <p className="p-6 text-center text-sm text-muted-foreground">
-            Nobody owes anything. Enjoy it.
-          </p>
-        }
+        empty={<EmptyState size="sm" title={<>Nobody owes anything. Enjoy it.</>} />}
         mobileCardTitle={(row) => row.customer_name ?? "—"}
         mobileCardSubtitle={(row) =>
           row.oldest_days_overdue ? `Oldest ${row.oldest_days_overdue} days late` : "Not yet due"

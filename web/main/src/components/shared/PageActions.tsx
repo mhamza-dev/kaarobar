@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 type PageActionsState = {
@@ -31,10 +26,7 @@ export function PageActionsProvider({ children }: { children: ReactNode }) {
 export function PageActionsSlot({ children }: { children?: ReactNode }) {
   const context = useContext(PageActionsContext);
   return (
-    <div
-      ref={context?.setSlot}
-      className="flex shrink-0 flex-wrap items-center gap-2 empty:hidden"
-    >
+    <div ref={context?.setSlot} className="flex shrink-0 flex-wrap items-center gap-2 empty:hidden">
       {children}
     </div>
   );

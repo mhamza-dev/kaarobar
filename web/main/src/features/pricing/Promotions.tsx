@@ -13,6 +13,7 @@ import { FormSelectField } from "@/components/forms/FormSelectField";
 import { FormTextField } from "@/components/forms/FormTextField";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -147,9 +148,7 @@ export function PromotionsTable({ onEdit }: { onEdit: (rule: PriceRule) => void 
         loading={isLoading}
         error={error ? { message: error.message } : null}
         onRetry={() => refetch()}
-        empty={
-          <p className="p-6 text-center text-sm text-muted-foreground">No promotions running.</p>
-        }
+        empty={<EmptyState size="sm" title={<>No promotions running.</>} />}
         mobileCardTitle={(rule) => rule.name}
         mobileCardSubtitle={(rule) => describe(rule, currency)}
       />

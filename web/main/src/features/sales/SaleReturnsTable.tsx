@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { useSaleReturns } from "@/hooks/queries/useSales";
 import { formatDateTime, formatMoney } from "@/lib/format";
 import { useSessionStore } from "@/stores/sessionStore";
@@ -72,9 +73,10 @@ export function SaleReturnsTable({ saleId, embedded }: { saleId?: string; embedd
       error={error ? { message: error.message } : null}
       onRetry={() => refetch()}
       empty={
-        <p className="p-6 text-center text-sm text-muted-foreground">
-          {saleId ? "Nothing has been returned from this sale." : "No returns yet."}
-        </p>
+        <EmptyState
+          size="sm"
+          title={<>{saleId ? "Nothing has been returned from this sale." : "No returns yet."}</>}
+        />
       }
       mobileCardTitle={(record) => record.number}
       mobileCardSubtitle={(record) => record.reason ?? ""}

@@ -119,7 +119,7 @@ export function QuoteDetail({ quoteId }: { quoteId: string }) {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-semibold">{quote.number}</h2>
+            <h2 className="text-2xl font-semibold tracking-tight">{quote.number}</h2>
             <StatusBadge
               status={quote.lapsed && quote.status === "sent" ? "expired" : quote.status}
             />

@@ -25,6 +25,7 @@
   --color-line: var(--line);
   --color-success: var(--success);
   --color-success-tint: var(--success-tint);
+  --color-deep: var(--deep);
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -46,6 +47,9 @@
   --line: #e2e8f0;
   --success: #047857;
   --success-tint: #d1fae5;
+  /* The deep brand band (platforms, CTA) — the same blue as the web app's
+     sign-in panel. White is 9.6:1 on it, white/80 7.4:1. */
+  --deep: #173c9f;
 
   color-scheme: light;
 }
@@ -68,6 +72,7 @@
     --line: #1e293b;
     --success: #34d399;
     --success-tint: #064e3b;
+    --deep: #122f7d;
 
     color-scheme: dark;
   }
@@ -76,6 +81,15 @@
 body {
   background: var(--canvas);
   color: var(--ink);
+}
+
+/* A faint square grid for hero and band backgrounds, fading out downward. */
+@utility bg-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, var(--ink) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--ink) 6%, transparent) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse at top, black 30%, transparent 75%);
 }
 
 /* Anchored sections land below the sticky header, not under it. */

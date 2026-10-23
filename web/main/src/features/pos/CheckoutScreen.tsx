@@ -163,7 +163,7 @@ export function CheckoutScreen({ orderId }: { orderId?: string } = {}) {
           )}
 
           {settlingOrder ? (
-            <div className="rounded-xl border border-border bg-card p-3">
+            <div className="rounded-xl border border-border bg-card p-4 shadow-card">
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-sm font-medium">
                   {order?.label ?? "Order"} {order?.number && `· ${order.number}`}
@@ -178,9 +178,7 @@ export function CheckoutScreen({ orderId }: { orderId?: string } = {}) {
                 </Button>
               </div>
               {unbilledItems.length === 0 ? (
-                <p className="py-6 text-center text-sm text-muted-foreground">
-                  Everything on this order has been paid for.
-                </p>
+                <EmptyState size="sm" title={<>Everything on this order has been paid for.</>} />
               ) : (
                 <ul className="divide-y divide-border text-sm">
                   {unbilledItems.map((item) => (
@@ -198,12 +196,14 @@ export function CheckoutScreen({ orderId }: { orderId?: string } = {}) {
             <>
               <ProductSearch onPick={handlePick} />
 
-              <div className="rounded-xl border border-border bg-card p-3">
+              <div className="rounded-xl border border-border bg-card p-4 shadow-card">
                 <div className="mb-2 flex items-center justify-between">
                   <p className="text-sm font-medium">
                     Basket{" "}
                     {lines.length > 0 && (
-                      <Badge variant="secondary">{itemCount(lines)} items</Badge>
+                      <Badge variant="secondary">
+                        {itemCount(lines)} item{itemCount(lines) === 1 ? "" : "s"}
+                      </Badge>
                     )}
                   </p>
                   <div className="flex items-center gap-1">
@@ -239,13 +239,14 @@ export function CheckoutScreen({ orderId }: { orderId?: string } = {}) {
           )}
         </div>
 
-        <div className="flex flex-col gap-4">
+        {/* The total and the payment stay in view while a long basket scrolls. */}
+        <div className="flex flex-col gap-4 lg:sticky lg:top-0 lg:self-start">
           {can("customer:view") && (
             <CustomerPicker value={customer} onChange={setCustomer} currency={currency} />
           )}
 
           {settlingOrder && order ? (
-            <div className="rounded-xl border border-border bg-card p-3 text-sm">
+            <div className="rounded-xl border border-border bg-card p-4 text-sm shadow-card">
               <Row label="Subtotal" value={formatMoney(order.subtotal, currency)} />
               {order.discount_total && Number(order.discount_total) > 0 && (
                 <Row label="Discounts" value={`-${formatMoney(order.discount_total, currency)}`} />
@@ -258,7 +259,7 @@ export function CheckoutScreen({ orderId }: { orderId?: string } = {}) {
             </p>
           ) : (
             lines.length > 0 && (
-              <div className="rounded-xl border border-border bg-card p-3 text-sm">
+              <div className="rounded-xl border border-border bg-card p-4 text-sm shadow-card">
                 <Row label="Subtotal" value={formatMoney(quote?.totals.subtotal, currency)} />
                 {quote?.totals.discount_total && Number(quote.totals.discount_total) > 0 && (
                   <Row

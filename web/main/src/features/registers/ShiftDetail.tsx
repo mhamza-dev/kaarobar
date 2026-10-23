@@ -6,6 +6,7 @@ import { useState } from "react";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { DescriptionList } from "@/components/shared/DescriptionList";
 import { DetailSkeleton } from "@/components/shared/DetailSkeleton";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { LoadError } from "@/components/shared/LoadError";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Badge } from "@/components/ui/badge";
@@ -208,11 +209,7 @@ function CashMovements({ shiftId, currency }: { shiftId: string; currency: strin
       loading={isLoading}
       error={error ? { message: error.message } : null}
       onRetry={() => refetch()}
-      empty={
-        <p className="p-6 text-center text-sm text-muted-foreground">
-          No cash has gone in or out outside sales.
-        </p>
-      }
+      empty={<EmptyState size="sm" title={<>No cash has gone in or out outside sales.</>} />}
       mobileCardTitle={(movement) => humanize(movement.kind)}
       mobileCardSubtitle={(movement) => movement.reason ?? ""}
       mobileCardFields={[

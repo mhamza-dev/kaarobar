@@ -204,7 +204,7 @@ function GiftCardPanel({ code }: { code: string }) {
         columns={columns}
         rows={[...transactions].reverse()}
         rowKey={(entry) => entry.id}
-        empty={<p className="p-6 text-center text-sm text-muted-foreground">No activity yet.</p>}
+        empty={<EmptyState size="sm" title={<>No activity yet.</>} />}
         mobileCardTitle={(entry) => humanize(entry.kind)}
         mobileCardFields={[
           { key: "amount", label: "Amount", render: (entry) => formatSigned(entry.amount) },

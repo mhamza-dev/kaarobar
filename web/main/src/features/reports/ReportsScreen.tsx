@@ -8,6 +8,7 @@ import { BarList } from "@/components/charts/BarList";
 import { ColumnChart } from "@/components/charts/ColumnChart";
 import { TrendChart } from "@/components/charts/TrendChart";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { LoadError } from "@/components/shared/LoadError";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -327,7 +328,7 @@ function Overview({ period, money }: { period: ReportPeriod; money: Money }) {
         {byHour.isError || byHour.isLoading ? (
           <Loaded query={byHour} skeleton="h-52" />
         ) : (byHour.data ?? []).length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">No sales in this period.</p>
+          <EmptyState size="sm" title={<>No sales in this period.</>} />
         ) : (
           <ColumnChart
             columns={fillHours(byHour.data ?? []).map((row) => ({

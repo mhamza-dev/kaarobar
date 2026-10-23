@@ -1,11 +1,8 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
 import { use } from "react";
 
 import { PageHeader } from "@/components/shared/PageHeader";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProductForm } from "@/features/products/ProductForm";
 import { ProductModifiersSection } from "@/features/products/VariantExtras";
@@ -25,12 +22,7 @@ export default function ProductDetailPage({ params }: PageProps<"/products/[prod
         eyebrow="Products"
         title={product?.name ?? "Product"}
         description={product ? productKindLabel(product.kind) : undefined}
-        actions={
-          <Button variant="outline" nativeButton={false} render={<Link href="/products" />}>
-            <ArrowLeft className="size-4" />
-            All products
-          </Button>
-        }
+        back={{ href: "/products", label: "All products" }}
       />
 
       {isLoading ? (

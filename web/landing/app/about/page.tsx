@@ -3,7 +3,7 @@ import { Compass, HeartHandshake, Lock, Scale } from "lucide-react";
 
 import { Container } from "@/components/container";
 import { CtaBand } from "@/components/cta-band";
-import { PageIntro, SectionHeading } from "@/components/section-heading";
+import { IntroBackdrop, PageIntro, SectionHeading } from "@/components/section-heading";
 import { getCatalogue, longestTrial } from "@/lib/plans";
 
 export const metadata: Metadata = {
@@ -44,7 +44,8 @@ export default async function AboutPage() {
 
   return (
     <>
-      <section className="py-16 sm:py-24">
+      <section className="relative isolate overflow-hidden py-16 sm:py-24">
+        <IntroBackdrop />
         <Container>
           <PageIntro eyebrow="About us" title="Kaarobar means business">
             <span lang="ur">کاروبار</span> — kaarobar — is the Urdu word for business. We&apos;re building the

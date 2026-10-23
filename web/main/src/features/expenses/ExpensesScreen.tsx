@@ -14,6 +14,7 @@ import { FormTextareaField } from "@/components/forms/FormTextareaField";
 import { FormTextField } from "@/components/forms/FormTextField";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { LoadError } from "@/components/shared/LoadError";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Badge } from "@/components/ui/badge";
@@ -135,7 +136,7 @@ function ExpensesTable() {
           getValue: (expense) => expense.status,
         },
       ]}
-      empty={<p className="p-6 text-center text-sm text-muted-foreground">No expenses recorded.</p>}
+      empty={<EmptyState size="sm" title={<>No expenses recorded.</>} />}
       mobileCardTitle={(expense) => expense.description}
       mobileCardSubtitle={(expense) => formatDate(expense.spent_on)}
       mobileCardFields={[
@@ -326,9 +327,7 @@ function CategoriesPanel() {
         error={error ? { message: error.message } : null}
         onRetry={() => refetch()}
         empty={
-          <p className="p-6 text-center text-sm text-muted-foreground">
-            No categories yet — add Rent, say, or Utilities.
-          </p>
+          <EmptyState size="sm" title={<>No categories yet — add Rent, say, or Utilities.</>} />
         }
         mobileCardTitle={(category) => category.name}
         mobileCardSubtitle={(category) => humanize(category.kind)}

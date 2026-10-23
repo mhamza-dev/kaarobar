@@ -1,6 +1,7 @@
 "use client";
 
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { useReorderSuggestions } from "@/hooks/queries/useInventory";
 import { formatQuantity } from "@/lib/format";
 import type { ReorderSuggestion } from "@/types/api/inventory";
@@ -70,9 +71,14 @@ export function ReorderTable({
       error={error ? { message: error.message } : null}
       onRetry={() => refetch()}
       empty={
-        <p className="p-6 text-center text-sm text-muted-foreground">
-          Nothing needs reordering. Set a reorder point on a stock line to have it flagged here.
-        </p>
+        <EmptyState
+          size="sm"
+          title={
+            <>
+              Nothing needs reordering. Set a reorder point on a stock line to have it flagged here.
+            </>
+          }
+        />
       }
       mobileCardTitle={(row) => row.variant?.product?.name ?? "—"}
       mobileCardFields={[

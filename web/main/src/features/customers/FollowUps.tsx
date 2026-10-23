@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { DescriptionList } from "@/components/shared/DescriptionList";
 import { DetailSheet } from "@/components/shared/DetailSheet";
+import { EmptyState } from "@/components/shared/EmptyState";
 import {
   useCancelFollowUp,
   useCompleteFollowUp,
@@ -169,9 +170,7 @@ export function FollowUpsList({
         loading={isLoading}
         error={error ? { message: error.message } : null}
         onRetry={() => refetch()}
-        empty={
-          <p className="p-6 text-center text-sm text-muted-foreground">Nothing to follow up on.</p>
-        }
+        empty={<EmptyState size="sm" title={<>Nothing to follow up on.</>} />}
         mobileCardTitle={(task) => task.title}
         mobileCardSubtitle={(task) => task.customer?.name ?? humanize(task.kind)}
         mobileCardFields={[{ key: "due", label: "Due", render: (task) => formatDate(task.due_on) }]}

@@ -12,6 +12,7 @@ import { FormTextField } from "@/components/forms/FormTextField";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { DescriptionList } from "@/components/shared/DescriptionList";
 import { DetailSheet } from "@/components/shared/DetailSheet";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -147,7 +148,7 @@ function ConnectionForm() {
       }}
     >
       {({ isSubmitting, values }) => (
-        <Form className="flex max-w-2xl flex-col gap-4">
+        <Form className="form-surface flex max-w-3xl flex-col gap-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <FormSelectField
               name="adapter"
@@ -195,7 +196,7 @@ function ConnectionForm() {
               />
             </>
           )}
-          <div>
+          <div className="border-t border-border pt-5">
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="size-4 animate-spin" />}
               Save
@@ -303,9 +304,7 @@ function SubmissionsTable({ canRetry }: { canRetry: boolean }) {
         loading={isLoading}
         error={error ? { message: error.message } : null}
         onRetry={() => refetch()}
-        empty={
-          <p className="p-6 text-center text-sm text-muted-foreground">Nothing reported yet.</p>
-        }
+        empty={<EmptyState size="sm" title={<>Nothing reported yet.</>} />}
         mobileCardTitle={(row) => row.fiscal_number ?? humanize(row.kind)}
         mobileCardSubtitle={(row) => humanize(row.status)}
       />

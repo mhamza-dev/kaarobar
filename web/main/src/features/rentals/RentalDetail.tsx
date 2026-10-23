@@ -102,7 +102,7 @@ export function RentalDetail({ rentalId }: { rentalId: string }) {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-semibold">{hire.number}</h2>
+            <h2 className="text-2xl font-semibold tracking-tight">{hire.number}</h2>
             <StatusBadge status={hire.status} />
           </div>
           <p className="text-sm text-muted-foreground">

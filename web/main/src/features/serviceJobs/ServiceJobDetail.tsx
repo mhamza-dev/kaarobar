@@ -213,7 +213,7 @@ export function ServiceJobDetail({ jobId }: { jobId: string }) {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-semibold">{job.number}</h2>
+            <h2 className="text-2xl font-semibold tracking-tight">{job.number}</h2>
             <StatusBadge
               status={job.overdue && job.status !== "delivered" ? "overdue" : job.status}
             />

@@ -150,7 +150,7 @@ function BrandsTable() {
         loading={isLoading}
         error={error ? { message: error.message } : null}
         onRetry={() => refetch()}
-        empty={<p className="p-6 text-center text-sm text-muted-foreground">No brands yet.</p>}
+        empty={<EmptyState size="sm" title={<>No brands yet.</>} />}
         mobileCardTitle={(brand) => brand.name}
       />
       <BrandDialog
@@ -288,7 +288,7 @@ function UnitsTable() {
         loading={isLoading}
         error={error ? { message: error.message } : null}
         onRetry={() => refetch()}
-        empty={<p className="p-6 text-center text-sm text-muted-foreground">No units yet.</p>}
+        empty={<EmptyState size="sm" title={<>No units yet.</>} />}
         mobileCardTitle={(unit) => `${unit.name} (${unit.code})`}
         mobileCardSubtitle={(unit) => humanize(unit.dimension)}
       />

@@ -6,6 +6,7 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { DescriptionList } from "@/components/shared/DescriptionList";
 import { DetailSheet } from "@/components/shared/DetailSheet";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -207,7 +208,7 @@ function BatchMoves({ batchId }: { batchId: string }) {
       hasMore={hasNextPage}
       loadingMore={isFetchingNextPage}
       onLoadMore={() => fetchNextPage()}
-      empty={<p className="p-6 text-center text-sm text-muted-foreground">No movements yet.</p>}
+      empty={<EmptyState size="sm" title={<>No movements yet.</>} />}
       mobileCardTitle={(move) => humanize(move.kind)}
       mobileCardFields={[
         { key: "qty", label: "Change", render: (move) => formatSigned(move.quantity) },

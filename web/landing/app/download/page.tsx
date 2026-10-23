@@ -4,7 +4,7 @@ import { ArrowRight, KeyRound, RefreshCw, Users } from "lucide-react";
 import { ButtonLink } from "@/components/button-link";
 import { Container } from "@/components/container";
 import { PlatformCards } from "@/components/platform-cards";
-import { PageIntro } from "@/components/section-heading";
+import { IntroBackdrop, PageIntro } from "@/components/section-heading";
 import { signInUrl, signUpUrl } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -34,7 +34,8 @@ const notes = [
 export default function DownloadPage() {
   return (
     <>
-      <section className="py-16 sm:py-24">
+      <section className="relative isolate overflow-hidden py-16 sm:py-24">
+        <IntroBackdrop />
         <Container>
           <PageIntro eyebrow="Download" title="Kaarobar, on every device you use">
             Your subscription includes every app. Start on the web today — there&apos;s nothing to install —

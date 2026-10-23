@@ -80,7 +80,7 @@ export function OrganizationForm() {
       }}
     >
       {({ isSubmitting, dirty }) => (
-        <Form className="flex max-w-xl flex-col gap-4">
+        <Form className="form-surface flex max-w-3xl flex-col gap-4">
           <FormTextField name="name" label="Organization name" />
           <FormTextField
             name="country_code"
@@ -96,7 +96,7 @@ export function OrganizationForm() {
           <FormTextField name="timezone" label="Timezone" hint="An IANA name, e.g. Asia/Karachi." />
           <FormSelectField name="default_locale" label="Default language" options={LOCALES} />
 
-          <div>
+          <div className="border-t border-border pt-5">
             <Button type="submit" disabled={isSubmitting || !dirty}>
               {isSubmitting && <Loader2 className="size-4 animate-spin" />}
               Save changes

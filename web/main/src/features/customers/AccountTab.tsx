@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { DocumentPreview } from "@/components/shared/DocumentPreview";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { Button } from "@/components/ui/button";
 import {
   useCustomerLedger,
@@ -152,7 +153,7 @@ export function AccountTab({ customerId, currency }: { customerId: string; curre
           loading={invoices.isLoading}
           error={invoices.error ? { message: invoices.error.message } : null}
           onRetry={() => invoices.refetch()}
-          empty={<p className="p-6 text-center text-sm text-muted-foreground">Nothing unpaid.</p>}
+          empty={<EmptyState size="sm" title={<>Nothing unpaid.</>} />}
           mobileCardTitle={(invoice) => invoice.number}
           mobileCardFields={[
             {
@@ -172,11 +173,7 @@ export function AccountTab({ customerId, currency }: { customerId: string; curre
           loading={ledger.isLoading}
           error={ledger.error ? { message: ledger.error.message } : null}
           onRetry={() => ledger.refetch()}
-          empty={
-            <p className="p-6 text-center text-sm text-muted-foreground">
-              Nothing has been put on this account yet.
-            </p>
-          }
+          empty={<EmptyState size="sm" title={<>Nothing has been put on this account yet.</>} />}
           mobileCardTitle={(entry) => humanize(entry.kind)}
           mobileCardSubtitle={(entry) => formatDateTime(entry.occurred_at)}
           mobileCardFields={[
@@ -203,7 +200,7 @@ export function AccountTab({ customerId, currency }: { customerId: string; curre
           loading={payments.isLoading}
           error={payments.error ? { message: payments.error.message } : null}
           onRetry={() => payments.refetch()}
-          empty={<p className="p-6 text-center text-sm text-muted-foreground">No payments yet.</p>}
+          empty={<EmptyState size="sm" title={<>No payments yet.</>} />}
           mobileCardTitle={(payment) => payment.number}
           mobileCardFields={[
             {
@@ -233,11 +230,7 @@ export function AccountTab({ customerId, currency }: { customerId: string; curre
             loading={storeCredit.isLoading}
             error={storeCredit.error ? { message: storeCredit.error.message } : null}
             onRetry={() => storeCredit.refetch()}
-            empty={
-              <p className="p-6 text-center text-sm text-muted-foreground">
-                No store credit to spend.
-              </p>
-            }
+            empty={<EmptyState size="sm" title={<>No store credit to spend.</>} />}
             mobileCardTitle={(credit) => credit.number}
             mobileCardFields={[
               {

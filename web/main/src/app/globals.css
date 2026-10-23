@@ -195,6 +195,19 @@
   scrollbar-color: color-mix(in oklab, var(--muted-foreground) 30%, transparent) transparent;
 }
 
+/* The card a page-level form sits on (new product, organization, a quote),
+   so a long form reads as one object rather than fields on the canvas. */
+@utility form-surface {
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  background-color: var(--card);
+  box-shadow: var(--shadow-card);
+  padding: --spacing(5);
+  @media (width >= 48rem) {
+    padding: --spacing(7);
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

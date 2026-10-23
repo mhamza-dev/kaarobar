@@ -4,7 +4,7 @@ import Link from "next/link";
 
 import { Container } from "@/components/container";
 import { CtaBand } from "@/components/cta-band";
-import { PageIntro } from "@/components/section-heading";
+import { IntroBackdrop, PageIntro } from "@/components/section-heading";
 import { featureAreas } from "@/lib/content";
 import { getCatalogue, longestTrial } from "@/lib/plans";
 
@@ -20,7 +20,8 @@ export default async function FeaturesPage() {
 
   return (
     <>
-      <section className="py-16 sm:py-24">
+      <section className="relative isolate overflow-hidden py-16 sm:py-24">
+        <IntroBackdrop />
         <Container>
           <PageIntro eyebrow="Features" title="Everything you need to run the business">
             From the first scan at the counter to the profit and loss at the end of the month. Each

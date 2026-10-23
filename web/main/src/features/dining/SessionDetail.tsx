@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { EmptyState } from "@/components/shared/EmptyState";
 import {
   WorkflowActions,
   type WorkflowAction,
@@ -161,7 +162,9 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-semibold">{session.dining_table?.name ?? "Table"}</h2>
+            <h2 className="text-2xl font-semibold tracking-tight">
+              {session.dining_table?.name ?? "Table"}
+            </h2>
             <StatusBadge status={session.status} />
           </div>
           <p className="text-sm text-muted-foreground">
@@ -192,9 +195,10 @@ export function SessionDetail({ sessionId }: { sessionId: string }) {
 
           <div className="rounded-xl border border-border bg-card">
             {items.length === 0 ? (
-              <p className="p-6 text-center text-sm text-muted-foreground">
-                Nothing ordered yet — search above to add dishes.
-              </p>
+              <EmptyState
+                size="sm"
+                title={<>Nothing ordered yet — search above to add dishes.</>}
+              />
             ) : (
               <ul className="divide-y divide-border">
                 {items.map((item) => {

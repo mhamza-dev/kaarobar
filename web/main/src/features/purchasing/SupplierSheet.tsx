@@ -7,6 +7,7 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { DescriptionList } from "@/components/shared/DescriptionList";
 import { DetailSheet } from "@/components/shared/DetailSheet";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -241,11 +242,7 @@ function SupplierProducts({ supplierId, currency }: { supplierId: string; curren
               }
             : undefined
         }
-        empty={
-          <p className="p-6 text-center text-sm text-muted-foreground">
-            No prices recorded for this supplier yet.
-          </p>
-        }
+        empty={<EmptyState size="sm" title={<>No prices recorded for this supplier yet.</>} />}
         mobileCardTitle={(row) => row.variant?.product?.name ?? "—"}
         mobileCardFields={[
           { key: "cost", label: "Price", render: (row) => formatMoney(row.unit_cost, currency) },
@@ -307,9 +304,7 @@ function SupplierAccount({ supplierId, currency }: { supplierId: string; currenc
       loading={isLoading}
       error={error ? { message: error.message } : null}
       onRetry={() => refetch()}
-      empty={
-        <p className="p-6 text-center text-sm text-muted-foreground">Nothing billed or paid yet.</p>
-      }
+      empty={<EmptyState size="sm" title={<>Nothing billed or paid yet.</>} />}
       mobileCardTitle={(entry) => humanize(entry.kind)}
       mobileCardSubtitle={(entry) => formatDate(entry.occurred_at)}
       mobileCardFields={[

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { DescriptionList } from "@/components/shared/DescriptionList";
 import { DetailSheet } from "@/components/shared/DetailSheet";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { ReasonDialog } from "@/components/shared/ReasonDialog";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import {
@@ -84,9 +85,10 @@ export function RefundRequestsScreen() {
           },
         ]}
         empty={
-          <p className="p-6 text-center text-sm text-muted-foreground">
-            No refund requests. They appear here when a cashier asks to refund a sale.
-          </p>
+          <EmptyState
+            size="sm"
+            title={<>No refund requests. They appear here when a cashier asks to refund a sale.</>}
+          />
         }
         mobileCardTitle={(request) => request.number}
         mobileCardSubtitle={(request) => request.sale?.number ?? ""}

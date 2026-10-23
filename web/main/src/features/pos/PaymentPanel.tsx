@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Trash2 } from "lucide-react";
+import { Banknote, CreditCard, Loader2, Smartphone, Trash2, type LucideIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +40,13 @@ const METHOD_LABELS: Record<string, string> = {
   other: "Other",
 };
 
+/** What most sales are paid with — one tap each; the rest sit under "More". */
+const QUICK_METHODS: Array<{ method: string; icon: LucideIcon }> = [
+  { method: "cash", icon: Banknote },
+  { method: "card", icon: CreditCard },
+  { method: "wallet", icon: Smartphone },
+].filter((quick) => (PAYMENT_METHODS as readonly string[]).includes(quick.method));
+
 /**
  * Taking payment, including a split across several methods.
  *
@@ -74,6 +81,7 @@ export function PaymentPanel({
   const change = changeDue(payments);
   const settled = isSettled(total, payments);
   const isCash = CASH_METHODS.includes(method as (typeof CASH_METHODS)[number]);
+  const quickPicked = QUICK_METHODS.some((quick) => quick.method === method);
 
   // Selling on account posts to a customer's ledger, so there has to be a
   // customer to post it to.
@@ -100,19 +108,19 @@ export function PaymentPanel({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="rounded-lg border border-border p-3">
-        <div className="flex items-baseline justify-between">
-          <span className="text-sm text-muted-foreground">Total</span>
-          <span className="text-2xl font-semibold tabular-nums">
+      <div className="rounded-xl border border-border bg-card p-4 shadow-card">
+        <div className="flex items-baseline justify-between gap-3">
+          <span className="text-sm font-medium text-muted-foreground">Total</span>
+          <span className="text-3xl font-semibold tracking-tight tabular-nums">
             {formatMoney(total, currency)}
           </span>
         </div>
-        <div className="mt-1 flex items-baseline justify-between">
+        <div className="mt-3 flex items-baseline justify-between gap-3 border-t border-border pt-3">
           <span className="text-sm text-muted-foreground">{due > 0 ? "Still due" : "Change"}</span>
           <span
             className={cn(
-              "text-lg font-medium tabular-nums",
-              due > 0 ? "text-destructive" : change > 0 ? "text-success" : undefined,
+              "text-lg font-semibold tabular-nums",
+              due > 0 ? "text-danger" : change > 0 ? "text-success" : undefined,
             )}
           >
             {due > 0
@@ -152,22 +160,52 @@ export function PaymentPanel({
       )}
 
       {!settled && (
-        <div className="flex flex-col gap-2 rounded-lg border border-border p-3">
+        <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-card">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="tender-method">Method</Label>
+            <Label id="tender-method-label">Method</Label>
+            <div
+              role="group"
+              aria-labelledby="tender-method-label"
+              className="grid grid-cols-3 gap-2"
+            >
+              {QUICK_METHODS.map(({ method: option, icon: Icon }) => (
+                <button
+                  key={option}
+                  type="button"
+                  aria-pressed={method === option}
+                  onClick={() => setMethod(option)}
+                  className={cn(
+                    "flex h-11 items-center justify-center gap-2 rounded-lg border text-sm font-medium transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+                    method === option
+                      ? "border-primary bg-accent text-accent-foreground"
+                      : "border-border bg-background hover:bg-muted",
+                  )}
+                >
+                  <Icon className="size-4" aria-hidden />
+                  {METHOD_LABELS[option]}
+                </button>
+              ))}
+            </div>
             <Select
-              items={PAYMENT_METHODS.map((option) => ({
-                value: option,
-                label: METHOD_LABELS[option],
-              }))}
-              value={method}
+              items={PAYMENT_METHODS.filter(
+                (option) => !QUICK_METHODS.some((quick) => quick.method === option),
+              ).map((option) => ({ value: option, label: METHOD_LABELS[option] }))}
+              value={quickPicked ? null : method}
               onValueChange={(value: string | null) => setMethod(value ?? "cash")}
             >
-              <SelectTrigger id="tender-method">
-                <SelectValue />
+              <SelectTrigger
+                aria-label="More payment methods"
+                className={cn(
+                  "w-full",
+                  !quickPicked && "border-primary bg-accent text-accent-foreground",
+                )}
+              >
+                <SelectValue placeholder="More methods…" />
               </SelectTrigger>
               <SelectContent>
-                {PAYMENT_METHODS.map((option) => (
+                {PAYMENT_METHODS.filter(
+                  (option) => !QUICK_METHODS.some((quick) => quick.method === option),
+                ).map((option) => (
                   <SelectItem key={option} value={option}>
                     {METHOD_LABELS[option]}
                   </SelectItem>
@@ -218,7 +256,12 @@ export function PaymentPanel({
         </div>
       )}
 
-      <Button size="lg" disabled={!settled || completing} onClick={onComplete} className="w-full">
+      <Button
+        size="lg"
+        disabled={!settled || completing}
+        onClick={onComplete}
+        className="h-12 w-full text-base"
+      >
         {completing && <Loader2 className="size-4 animate-spin" />}
         Complete sale
       </Button>

@@ -1,5 +1,6 @@
 "use client";
 
+import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/lib/utils";
 
 export type BarListItem = {
@@ -28,7 +29,7 @@ export function BarList({
   className?: string;
 }) {
   if (items.length === 0) {
-    return <p className="py-6 text-center text-sm text-muted-foreground">{emptyMessage}</p>;
+    return <EmptyState size="sm" title={<>{emptyMessage}</>} />;
   }
 
   const max = Math.max(...items.map((item) => item.value), 0);

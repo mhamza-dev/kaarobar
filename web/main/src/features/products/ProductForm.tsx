@@ -214,7 +214,7 @@ export function ProductForm({ product }: { product?: Product }) {
       }}
     >
       {({ isSubmitting }) => (
-        <Form className="flex max-w-2xl flex-col gap-6">
+        <Form className="form-surface flex max-w-3xl flex-col gap-6">
           <div className="flex flex-col gap-4">
             <FormTextField name="name" label="Product name" autoFocus />
             <div className="grid gap-4 sm:grid-cols-2">
@@ -279,7 +279,7 @@ export function ProductForm({ product }: { product?: Product }) {
             />
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center gap-2 border-t border-border pt-5">
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="size-4 animate-spin" />}
               {editing ? "Save changes" : "Create product"}

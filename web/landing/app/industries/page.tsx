@@ -4,7 +4,7 @@ import Link from "next/link";
 
 import { Container } from "@/components/container";
 import { CtaBand } from "@/components/cta-band";
-import { PageIntro } from "@/components/section-heading";
+import { IntroBackdrop, PageIntro } from "@/components/section-heading";
 import { industries } from "@/lib/content";
 import { getCatalogue, longestTrial } from "@/lib/plans";
 
@@ -20,7 +20,8 @@ export default async function IndustriesPage() {
 
   return (
     <>
-      <section className="py-16 sm:py-24">
+      <section className="relative isolate overflow-hidden py-16 sm:py-24">
+        <IntroBackdrop />
         <Container>
           <PageIntro eyebrow="Industries" title="Made for your kind of business">
             Tell Kaarobar what you run when you sign up, and it switches on the tools that business

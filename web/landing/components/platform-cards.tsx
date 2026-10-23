@@ -41,18 +41,38 @@ const platforms: Platform[] = [
  * Web, desktop and mobile — one account, one subscription. A store link
  * that isn't published yet reads "coming soon" instead of linking nowhere.
  */
-export function PlatformCards({ detailed = false }: { detailed?: boolean }) {
+export function PlatformCards({
+  detailed = false,
+  inverse = false,
+}: {
+  detailed?: boolean;
+  /** White-on-blue, for the deep brand band. */
+  inverse?: boolean;
+}) {
   return (
     <div className="grid gap-6 md:grid-cols-3">
       {platforms.map((platform) => {
         const live = platform.actions.filter((action) => action.href);
         return (
-          <div key={platform.title} className="flex flex-col rounded-2xl border border-line bg-surface p-6">
-            <span className="flex size-11 items-center justify-center rounded-xl bg-brand-tint text-brand-ink">
+          <div
+            key={platform.title}
+            className={
+              inverse
+                ? "flex flex-col rounded-2xl border border-white/15 bg-white/[0.07] p-6 backdrop-blur-sm"
+                : "flex flex-col rounded-2xl border border-line bg-surface p-6"
+            }
+          >
+            <span
+              className={`flex size-11 items-center justify-center rounded-xl ${
+                inverse ? "bg-white/15 text-white ring-1 ring-white/20" : "bg-brand-tint text-brand-ink"
+              }`}
+            >
               <platform.icon className="size-5" aria-hidden />
             </span>
-            <h3 className="mt-5 text-lg font-semibold text-ink">{platform.title}</h3>
-            <p className="mt-2 text-ink-muted">{platform.detail}</p>
+            <h3 className={`mt-5 text-lg font-semibold ${inverse ? "text-white" : "text-ink"}`}>
+              {platform.title}
+            </h3>
+            <p className={`mt-2 ${inverse ? "text-white/80" : "text-ink-muted"}`}>{platform.detail}</p>
             {detailed && (
               <div className="mt-6 flex flex-wrap items-center gap-2">
                 {live.map((action) => (

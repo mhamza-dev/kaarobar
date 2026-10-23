@@ -10,6 +10,7 @@ import { FormNumberField } from "@/components/forms/FormNumberField";
 import { FormTextField } from "@/components/forms/FormTextField";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageActions } from "@/components/shared/PageActions";
@@ -96,9 +97,7 @@ export function BankAccountsTable() {
         loading={isLoading}
         error={error ? { message: error.message } : null}
         onRetry={() => refetch()}
-        empty={
-          <p className="p-6 text-center text-sm text-muted-foreground">No bank accounts yet.</p>
-        }
+        empty={<EmptyState size="sm" title={<>No bank accounts yet.</>} />}
         mobileCardTitle={(account) => account.name}
         mobileCardFields={[
           {

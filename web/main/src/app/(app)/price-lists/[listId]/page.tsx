@@ -1,11 +1,8 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
 import { use } from "react";
 
 import { PageHeader } from "@/components/shared/PageHeader";
-import { Button } from "@/components/ui/button";
 import { PriceListDetail } from "@/features/pricing/PriceLists";
 
 export default function PriceListPage({ params }: PageProps<"/price-lists/[listId]">) {
@@ -16,12 +13,7 @@ export default function PriceListPage({ params }: PageProps<"/price-lists/[listI
       <PageHeader
         eyebrow="Price lists"
         title="Price list"
-        actions={
-          <Button variant="outline" nativeButton={false} render={<Link href="/price-lists" />}>
-            <ArrowLeft className="size-4" />
-            All price lists
-          </Button>
-        }
+        back={{ href: "/price-lists", label: "All price lists" }}
       />
       <PriceListDetail listId={listId} />
     </>

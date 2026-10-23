@@ -15,6 +15,7 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { DescriptionList } from "@/components/shared/DescriptionList";
 import { DetailSkeleton } from "@/components/shared/DetailSkeleton";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { LoadError } from "@/components/shared/LoadError";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -84,9 +85,7 @@ export function PriceListsTable() {
       error={error ? { message: error.message } : null}
       onRetry={() => refetch()}
       empty={
-        <p className="p-6 text-center text-sm text-muted-foreground">
-          No price lists. Products sell at their catalog price.
-        </p>
+        <EmptyState size="sm" title={<>No price lists. Products sell at their catalog price.</>} />
       }
       mobileCardTitle={(list) => list.name}
       mobileCardSubtitle={(list) => describeScope(list)}
@@ -323,11 +322,7 @@ export function PriceListDetail({ listId }: { listId: string }) {
         columns={columns}
         rows={list.items ?? []}
         rowKey={(item) => item.id}
-        empty={
-          <p className="p-6 text-center text-sm text-muted-foreground">
-            No prices on this list yet.
-          </p>
-        }
+        empty={<EmptyState size="sm" title={<>No prices on this list yet.</>} />}
         mobileCardTitle={(item) => item.variant?.product?.name ?? "—"}
         mobileCardFields={[{ key: "price", label: "Price", render: (item) => money(item.price) }]}
       />

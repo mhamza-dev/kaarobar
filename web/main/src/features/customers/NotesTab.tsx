@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { EmptyState } from "@/components/shared/EmptyState";
 import {
   useAddCustomerNote,
   useCustomerNotes,
@@ -81,7 +82,7 @@ export function NotesTab({ customerId, canEdit }: { customerId: string; canEdit:
       {isLoading ? (
         <Skeleton className="h-16 w-full" />
       ) : sorted.length === 0 ? (
-        <p className="py-6 text-center text-sm text-muted-foreground">No notes yet.</p>
+        <EmptyState size="sm" title={<>No notes yet.</>} />
       ) : (
         <ul className="flex flex-col gap-2">
           {sorted.map((note) => (

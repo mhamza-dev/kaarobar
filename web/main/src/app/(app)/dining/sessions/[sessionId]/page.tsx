@@ -1,12 +1,9 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
 import { use } from "react";
 
 import { PageHeader } from "@/components/shared/PageHeader";
 import { RequireModule } from "@/components/shared/RequireModule";
-import { Button } from "@/components/ui/button";
 import { SessionDetail } from "@/features/dining/SessionDetail";
 
 export default function TableSessionPage({ params }: PageProps<"/dining/sessions/[sessionId]">) {
@@ -16,12 +13,8 @@ export default function TableSessionPage({ params }: PageProps<"/dining/sessions
       <PageHeader
         eyebrow="Dining"
         title="Table"
-        actions={
-          <Button variant="outline" nativeButton={false} render={<Link href="/dining" />}>
-            <ArrowLeft className="size-4" />
-            Floor
-          </Button>
-        }
+        back={{ href: "/dining", label: "Floor" }}
+        compact
       />
       <SessionDetail sessionId={sessionId} />
     </RequireModule>
