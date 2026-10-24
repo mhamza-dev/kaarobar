@@ -110,6 +110,37 @@ Two differences bite when porting older snippets: composition uses a `render`
 prop, not `asChild`, and a `DropdownMenuLabel` must sit inside a
 `DropdownMenuGroup` or it throws at runtime.
 
+## The interface
+
+**The frame.** From `md` up the sidebar and a thin margin make a frame, and
+each screen is a raised panel inside it (`AppShell`); on a phone the panel is
+the whole screen and the sidebar is a drawer. Colours, radii and shadows are
+tokens in `globals.css` — the frame is `--sidebar`, the panel `--canvas`,
+cards `--card` — and every text pair is checked for 4.5:1 in both themes.
+A business's brand colour replaces `--primary` at runtime.
+
+**Every screen names its tab.** `PageHeader` renders a `<title>` ("Products ·
+Kaarobar"), and a record's page passes `documentTitle` so the tab says which
+one ("FC-2026-0011 · Kaarobar"). The root layout deliberately sets no
+`metadata.title`: Next re-inserts it ahead of the page's own on every
+client-side navigation, and the browser shows the first.
+
+**The till** (`features/pos`) is a product grid with category chips beside a
+basket that never scrolls its pay button out of view. The scan box is also
+the search: Enter looks the text up as a barcode, then falls back to the
+first product shown. One tender for the whole sale is a single "Charge"
+tap; "Add payment" splits it. Prices still only ever come from
+`POST /sales/quote` — the pay buttons wait while a basket is being re-priced.
+
+**The keyboard.** <kbd>⌘K</kbd>/<kbd>Ctrl K</kbd> searches screens,
+<kbd>?</kbd> lists every shortcut, <kbd>G</kbd> then a letter jumps to a
+screen (only ones the person can open — `lib/shortcuts.ts`), and at the till
+<kbd>/</kbd> focuses the scan box and <kbd>⌘/Ctrl Enter</kbd> charges.
+
+**Installable.** `app/manifest.ts` and the icons in `app/` and `public/` let a
+shop add Kaarobar to a counter PC's taskbar or a phone's home screen. The
+icons are drawn from the same mark as `LogoMark`.
+
 ## Signing up and paying
 
 The marketing site ([`web/landing`](../landing)) sends every "Start free

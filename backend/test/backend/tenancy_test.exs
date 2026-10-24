@@ -47,6 +47,29 @@ defmodule Kaarobar.TenancyTest do
       assert result.branch.code == "MAIN"
     end
 
+    test "a first business can sell straight away: it has a till at its main branch" do
+      assert {:ok, result} =
+               Tenancy.register_owner(%{
+                 "user" => %{
+                   "email" => "owner@shop.pk",
+                   "password" => "a-good-long-password",
+                   "name" => "Ali"
+                 },
+                 "organization" => %{"name" => "Ali Traders"},
+                 "business" => %{"name" => "Ali Kiryana", "business_type" => "grocery"}
+               })
+
+      register = result.provision.register
+      assert register.name == "Front counter"
+      assert register.branch_id == result.branch.id
+      assert register.business_id == result.business.id
+
+      Kaarobar.Repo.set_tenant_context(result.organization.id, local: true)
+      {:ok, scope} = Scopes.build(result.user, %{business_id: result.business.id})
+      assert [%{id: id}] = Kaarobar.Registers.list_registers(scope)
+      assert id == register.id
+    end
+
     test "rolls everything back when the user is invalid" do
       assert {:error, :user, changeset} =
                Tenancy.register_owner(%{
@@ -106,6 +129,19 @@ defmodule Kaarobar.TenancyTest do
       assert business.business_type == "restaurant"
       assert branch.business_id == business.id
       assert branch.is_main
+    end
+
+    test "a new business comes with a till at its main branch", %{owner: owner} do
+      assert {:ok, %{business: business, branch: branch, provision: %{register: register}}} =
+               Tenancy.create_business(owner, %{
+                 "name" => "Karahi Corner",
+                 "business_type" => "restaurant"
+               })
+
+      assert register.name == "Front counter"
+      assert register.branch_id == branch.id
+      assert register.business_id == business.id
+      assert register.is_active
     end
 
     test "an unsupported business type is refused", %{owner: owner} do

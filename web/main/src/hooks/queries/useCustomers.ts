@@ -266,12 +266,13 @@ export function useDeleteCustomerGroup() {
 
 // --- Receivables ------------------------------------------------------------
 
-export function useCreditAgeing(asOf?: string) {
+export function useCreditAgeing(asOf?: string, enabled = true) {
   const tenant = useTenantKey();
 
   return useQuery({
     queryKey: ["credit", tenant, "ageing", asOf],
     queryFn: () => getCreditAgeing({ as_of: asOf }),
+    enabled,
   });
 }
 

@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { formatDateTime, formatMoney, formatQuantity } from "@/lib/format";
+import { paymentMethodLabel } from "@/lib/paymentMethods";
 import { getReceiptHtml } from "@/services/reports";
 import type { Sale } from "@/types/api/sales";
 
@@ -41,31 +42,34 @@ export function ReceiptDialog({
     <>
       <Dialog open={!!sale} onOpenChange={onOpenChange}>
         {sale && (
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <span className="flex size-6 items-center justify-center rounded-full bg-success-soft text-success">
-                  <Check className="size-4" />
-                </span>
-                Sale {sale.number}
-              </DialogTitle>
-              <DialogDescription>{formatDateTime(sale.sold_at)}</DialogDescription>
+          <DialogContent className="gap-5 sm:max-w-md">
+            <DialogHeader className="items-center text-center">
+              <span className="mb-1 flex size-12 animate-pop items-center justify-center rounded-full bg-success-soft text-success ring-8 ring-success-soft/40">
+                <Check className="size-6" strokeWidth={2.5} />
+              </span>
+              <DialogTitle className="text-lg">Sale {sale.number}</DialogTitle>
+              <DialogDescription>
+                {formatDateTime(sale.sold_at)} · {formatMoney(sale.total, sale.currency)}
+              </DialogDescription>
             </DialogHeader>
 
             {Number(sale.change_due ?? 0) > 0 && (
-              <div className="rounded-lg border border-border bg-muted/40 p-3 text-center">
-                <p className="text-xs text-muted-foreground">Change due</p>
-                <p className="text-2xl font-semibold tabular-nums">
+              <div className="rounded-xl border border-success/20 bg-success-soft/60 p-4 text-center">
+                <p className="text-xs font-medium text-success">Change due</p>
+                <p className="text-3xl font-semibold tracking-tight tabular-nums">
                   {formatMoney(sale.change_due, sale.currency)}
                 </p>
               </div>
             )}
 
-            <div className="flex max-h-64 flex-col gap-1 overflow-y-auto text-sm">
+            <div className="flex max-h-56 flex-col gap-1.5 overflow-y-auto text-sm">
               {(sale.items ?? []).map((item) => (
-                <div key={item.id} className="flex justify-between gap-2">
+                <div key={item.id} className="flex justify-between gap-3">
                   <span className="truncate">
-                    {formatQuantity(item.quantity)} × {item.name}
+                    <span className="text-muted-foreground tabular-nums">
+                      {formatQuantity(item.quantity)} ×
+                    </span>{" "}
+                    {item.name}
                   </span>
                   <span className="tabular-nums">
                     {formatMoney(item.line_total, sale.currency)}
@@ -74,12 +78,12 @@ export function ReceiptDialog({
               ))}
             </div>
 
-            <div className="border-t border-border pt-2 text-sm">
+            <div className="flex flex-col gap-1 border-t border-dashed border-border pt-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Tax</span>
                 <span className="tabular-nums">{formatMoney(sale.tax_total, sale.currency)}</span>
               </div>
-              <div className="flex justify-between font-medium">
+              <div className="flex justify-between font-semibold">
                 <span>Total</span>
                 <span className="tabular-nums">{formatMoney(sale.total, sale.currency)}</span>
               </div>
@@ -88,7 +92,7 @@ export function ReceiptDialog({
                   key={payment.id}
                   className="flex justify-between text-xs text-muted-foreground"
                 >
-                  <span>{payment.method}</span>
+                  <span>Paid by {paymentMethodLabel(payment.method).toLowerCase()}</span>
                   <span className="tabular-nums">{formatMoney(payment.amount, sale.currency)}</span>
                 </div>
               ))}
@@ -98,12 +102,14 @@ export function ReceiptDialog({
               <p className="text-xs text-muted-foreground">Fiscal number: {sale.fiscal_number}</p>
             )}
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setPrinting(true)}>
+            <DialogFooter className="sm:justify-stretch">
+              <Button variant="outline" onClick={() => setPrinting(true)} className="sm:flex-1">
                 <Printer className="size-4" />
-                Print
+                Print receipt
               </Button>
-              <Button onClick={() => onOpenChange(false)}>Next sale</Button>
+              <Button autoFocus onClick={() => onOpenChange(false)} className="sm:flex-1">
+                Next sale
+              </Button>
             </DialogFooter>
           </DialogContent>
         )}

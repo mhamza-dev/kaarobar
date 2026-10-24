@@ -70,6 +70,30 @@ docker compose up app
 `/dev/dashboard` (LiveDashboard) and `/dev/mailbox` are available in
 development only.
 
+## Deploying to Gigalixir
+
+`.github/workflows/deploy-backend.yml` runs formatting, compilation and the
+backend test suite on pushes to `main`. It deploys the `backend/` subdirectory
+to Gigalixir only when those checks pass.
+
+Configure these in the GitHub repository's **Settings → Secrets and variables
+→ Actions**:
+
+| Kind | Name | Value |
+|---|---|---|
+| Secret | `GIGALIXIR_EMAIL` | Email address for the Gigalixir account |
+| Secret | `GIGALIXIR_API_KEY` | Gigalixir API key |
+| Variable | `GIGALIXIR_APP_NAME` | Name of the existing Gigalixir app |
+
+Configure the app's production environment in Gigalixir as well. At minimum,
+set `CLOAK_KEY` (a base64-encoded 32-byte key) and `SECRET_KEY_BASE`; attach a
+PostgreSQL database so Gigalixir provides `DATABASE_URL`. Set `PHX_HOST` to
+the app's hostname for generated URLs.
+
+The workflow deploys the release but does not run database migrations. Run
+the release migration task (`bin/migrate`) when a deployment includes schema
+changes.
+
 ## What is built
 
 Phases 0 through 8 of the plan, and most of phase 9. Everything marked done

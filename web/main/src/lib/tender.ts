@@ -91,3 +91,21 @@ export function isValidPayment(payment: CheckoutPayment): boolean {
   const tendered = toMinor(payment.tendered_amount);
   return tendered === 0 || tendered >= amount;
 }
+
+/** The notes a customer is likely to hand over, in minor units. */
+const ROUND_UPS = [10_000, 50_000, 100_000, 500_000];
+
+/**
+ * One-tap "cash given" amounts for a sum still due: the exact amount, then
+ * the next round figures above it a customer is likely to hand over — Rs 620
+ * offers 620, 700, 1,000 and 5,000. In minor units; never more than four.
+ */
+export function quickCashAmounts(due: number): number[] {
+  if (due <= 0) return [];
+  const amounts = [due];
+  for (const step of ROUND_UPS) {
+    const rounded = Math.ceil(due / step) * step;
+    if (rounded > due && !amounts.includes(rounded)) amounts.push(rounded);
+  }
+  return amounts.slice(0, 4);
+}

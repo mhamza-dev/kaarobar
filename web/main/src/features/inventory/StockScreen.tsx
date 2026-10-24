@@ -1,6 +1,9 @@
 "use client";
 
-import { Skeleton } from "@/components/ui/skeleton";
+import { Boxes, Coins } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+
+import { StatCard } from "@/components/shared/StatCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useStockValuation } from "@/hooks/queries/useInventory";
 import { usePermission } from "@/hooks/usePermission";
@@ -16,12 +19,15 @@ import { StockTable } from "./StockTable";
 export function StockScreen() {
   const { can } = usePermission();
   const sheet = useSheetParam();
+  // `?tab=reorder` opens straight onto what's running low — the dashboard
+  // links here.
+  const searchParams = useSearchParams();
 
   return (
     <div className="flex flex-col gap-4">
       {can("valuation:view") && <ValuationStrip />}
 
-      <Tabs defaultValue="levels">
+      <Tabs defaultValue={searchParams.get("tab") === "reorder" ? "reorder" : "levels"}>
         <TabsList variant="line">
           <TabsTrigger value="levels">Levels</TabsTrigger>
           <TabsTrigger value="reorder">To reorder</TabsTrigger>
@@ -43,19 +49,24 @@ function ValuationStrip() {
   const currency = useSessionStore((state) => state.scope?.business?.currency) ?? "PKR";
   const { data, isLoading } = useStockValuation();
 
-  if (isLoading) return <Skeleton className="h-16 w-full max-w-md" />;
-  if (!data) return null;
+  if (!isLoading && !data) return null;
 
   return (
-    <div className="grid max-w-md grid-cols-2 gap-3">
-      <div className="rounded-xl border border-border bg-card p-3">
-        <p className="text-xs text-muted-foreground">Stock value, at cost</p>
-        <p className="text-lg font-semibold tabular-nums">{formatMoney(data.value, currency)}</p>
-      </div>
-      <div className="rounded-xl border border-border bg-card p-3">
-        <p className="text-xs text-muted-foreground">Units on hand</p>
-        <p className="text-lg font-semibold tabular-nums">{formatQuantity(data.quantity)}</p>
-      </div>
+    <div className="grid gap-4 sm:grid-cols-2 lg:max-w-2xl">
+      <StatCard
+        label="Stock value, at cost"
+        icon={Coins}
+        loading={isLoading}
+        value={formatMoney(data?.value, currency)}
+        hint="Across every branch"
+      />
+      <StatCard
+        label="Units on hand"
+        icon={Boxes}
+        loading={isLoading}
+        value={formatQuantity(data?.quantity)}
+        hint="Counted, not yet sold"
+      />
     </div>
   );
 }

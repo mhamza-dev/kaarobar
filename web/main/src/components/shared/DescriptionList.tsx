@@ -30,11 +30,11 @@ export function DescriptionList({
 
   if (layout === "inline") {
     return (
-      <dl className={cn("flex flex-wrap gap-x-6 gap-y-1 text-sm", className)}>
+      <dl className={cn("flex flex-wrap gap-x-8 gap-y-3 text-sm", className)}>
         {shown.map((item) => (
-          <div key={item.label}>
-            <dt className="text-xs text-muted-foreground">{item.label}</dt>
-            <dd>{item.value ?? "—"}</dd>
+          <div key={item.label} className="min-w-0">
+            <dt className="text-xs font-medium text-muted-foreground">{item.label}</dt>
+            <dd className="mt-0.5 font-medium text-foreground">{item.value ?? "—"}</dd>
           </div>
         ))}
       </dl>
@@ -44,7 +44,7 @@ export function DescriptionList({
   return (
     <dl className={cn("divide-y divide-border text-sm", className)}>
       {shown.map((item) => (
-        <div key={item.label} className="flex items-start justify-between gap-4 py-2">
+        <div key={item.label} className="flex items-start justify-between gap-4 py-2.5">
           <dt className="shrink-0 text-muted-foreground">{item.label}</dt>
           <dd className="min-w-0 text-right break-words">{item.value ?? "—"}</dd>
         </div>

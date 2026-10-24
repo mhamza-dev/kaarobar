@@ -71,5 +71,7 @@ test("a TOTP-enabled account must pass the challenge to sign in", async ({ page 
   await page.getByRole("button", { name: "Verify" }).click();
 
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
-  await expect(page.getByRole("heading", { name: /Welcome back, Bilal/ })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: /Good (morning|afternoon|evening), Bilal/ }),
+  ).toBeVisible();
 });

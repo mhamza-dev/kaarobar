@@ -33,8 +33,11 @@ export const getSpendByCategory = (params: { from?: string; to?: string } = {}) 
   get<SpendByCategory>("/expenses/by-category", params);
 
 export const listExpenseCategories = () => get<ExpenseCategory[]>("/expenses/categories");
-export const createExpenseCategory = (payload: { name: string; kind: string; code?: string | null }) =>
-  post<ExpenseCategory>("/expenses/categories", payload);
+export const createExpenseCategory = (payload: {
+  name: string;
+  kind: string;
+  code?: string | null;
+}) => post<ExpenseCategory>("/expenses/categories", payload);
 export const updateExpenseCategory = (id: string, payload: Partial<ExpenseCategory>) =>
   patch<ExpenseCategory>(`/expenses/categories/${id}`, payload);
 export const deleteExpenseCategory = (id: string) => del(`/expenses/categories/${id}`);

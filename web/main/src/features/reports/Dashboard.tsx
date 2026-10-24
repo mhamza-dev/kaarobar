@@ -1,13 +1,22 @@
 "use client";
 
 import { format, parseISO, subDays } from "date-fns";
-import { AlertTriangle, ArrowRight, Banknote, ChevronRight } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  Banknote,
+  ChevronRight,
+  Receipt,
+  ShoppingBag,
+  TrendingUp,
+} from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
 
 import { BarList } from "@/components/charts/BarList";
 import { TrendChart } from "@/components/charts/TrendChart";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { StatCard } from "@/components/shared/StatCard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFiscalStatus } from "@/hooks/queries/useFinance";
@@ -21,8 +30,12 @@ import { usePermission } from "@/hooks/usePermission";
 import { formatMoney, formatQuantity } from "@/lib/format";
 import { getVisibleNavGroups } from "@/lib/nav";
 import { compactNumber, presetRange, shopToday } from "@/lib/reportPeriod";
+import { changeBetween, formatChange } from "@/lib/trend";
 import { cn } from "@/lib/utils";
 import { useSessionStore } from "@/stores/sessionStore";
+
+import { NeedsAttention } from "./NeedsAttention";
+import { RecentSales } from "./RecentSales";
 
 /**
  * The first screen after sign-in. Leads with one number — today's net
@@ -56,6 +69,35 @@ export function Dashboard() {
   const top = useTopProducts(week, canReport);
   const names = useProductNames((top.data ?? []).slice(0, 5).map((row) => row.product_id));
   const fiscal = useFiscalStatus();
+  const canSeeSales = can("sale:view") || can("sale:view_all");
+
+  // Yesterday and the weeks come off the fortnight's series rather than
+  // extra requests: its last point is today, live, and the rest are
+  // closed days.
+  const days = trend.data ?? [];
+  const yesterday = days.at(-2);
+  // Until the first sale lands, "−100% on yesterday" is true and useless.
+  const tradedToday = (summary.data?.sale_count ?? 0) > 0;
+  const vsYesterday = {
+    net:
+      yesterday && tradedToday
+        ? changeBetween(Number(summary.data?.net_sales ?? 0), Number(yesterday.net_sales))
+        : null,
+    count:
+      yesterday && tradedToday
+        ? changeBetween(summary.data?.sale_count ?? 0, yesterday.sale_count)
+        : null,
+  };
+  const sumNet = (rows: typeof days) =>
+    rows.reduce((total, row) => total + Number(row.net_sales), 0);
+  const thisWeek = sumNet(days.slice(-7));
+  const weekTotals = {
+    current: thisWeek.toFixed(2),
+    change: days.length >= 14 ? changeBetween(thisWeek, sumNet(days.slice(-14, -7))) : null,
+  };
+  const netToday = Number(summary.data?.net_sales ?? 0);
+  const margin =
+    netToday > 0 ? Math.round((Number(summary.data?.gross_profit ?? 0) / netToday) * 100) : null;
 
   const shortcuts = getVisibleNavGroups(scope)
     .flatMap((group) => group.items)
@@ -92,61 +134,68 @@ export function Dashboard() {
 
       {canReport ? (
         <>
-          <section className="grid gap-4 lg:grid-cols-5">
-            <div
-              className={cn(
-                PANEL,
-                "relative flex flex-col gap-5 overflow-hidden p-5 md:p-6 lg:col-span-2",
-              )}
-            >
-              <div
-                aria-hidden
-                className="pointer-events-none absolute -top-20 -right-20 size-56 rounded-full bg-primary/10 blur-3xl"
+          <section
+            aria-label="Today at a glance"
+            className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
+          >
+            <StatCard
+              label="Net sales today"
+              icon={Banknote}
+              loading={summary.isLoading}
+              value={formatMoney(summary.data?.net_sales, currency)}
+              change={vsYesterday.net}
+              changeLabel="vs yesterday"
+              hint={!tradedToday && !summary.isLoading ? "No sales yet today" : undefined}
+            />
+            <StatCard
+              label="Sales today"
+              icon={ShoppingBag}
+              loading={summary.isLoading}
+              value={summary.data?.sale_count ?? "—"}
+              change={vsYesterday.count}
+              changeLabel="vs yesterday"
+            />
+            <StatCard
+              label="Average sale"
+              icon={Receipt}
+              loading={summary.isLoading}
+              value={formatMoney(summary.data?.average_sale, currency)}
+              hint={
+                summary.data?.voided_count
+                  ? `${summary.data.voided_count} voided today`
+                  : "Per completed sale"
+              }
+            />
+            {can("report:financial") ? (
+              <StatCard
+                label="Gross profit today"
+                icon={TrendingUp}
+                loading={summary.isLoading}
+                value={formatMoney(summary.data?.gross_profit, currency)}
+                hint={margin !== null ? `${margin}% margin` : "After cost of goods"}
               />
-              <div className="flex items-center gap-3">
-                <span className="flex size-9 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-                  <Banknote className="size-[1.125rem]" aria-hidden />
-                </span>
-                <p className="text-sm font-medium text-muted-foreground">Net sales today</p>
-              </div>
-              {summary.isLoading ? (
-                <Skeleton className="h-12 w-48" />
-              ) : (
-                <p className="text-4xl font-semibold tracking-tight break-words xl:text-5xl">
-                  {formatMoney(summary.data?.net_sales, currency)}
-                </p>
-              )}
-              {/* Side by side from sm up; label/value rows on a phone, where three
-                  money figures abreast would break mid-number. */}
-              <dl className="mt-auto grid divide-y divide-border rounded-lg border border-border bg-muted/40 sm:auto-cols-fr sm:grid-flow-col sm:divide-x sm:divide-y-0">
-                <div className="flex min-w-0 items-baseline justify-between gap-3 px-3 py-2.5 sm:block">
-                  <dt className="text-xs text-muted-foreground">Sales</dt>
-                  <dd className="font-semibold break-words sm:mt-0.5">
-                    {summary.data?.sale_count ?? "—"}
-                  </dd>
-                </div>
-                <div className="flex min-w-0 items-baseline justify-between gap-3 px-3 py-2.5 sm:block">
-                  <dt className="text-xs text-muted-foreground">Average</dt>
-                  <dd className="font-semibold break-words sm:mt-0.5">
-                    {formatMoney(summary.data?.average_sale, currency)}
-                  </dd>
-                </div>
-                {can("report:financial") && (
-                  <div className="flex min-w-0 items-baseline justify-between gap-3 px-3 py-2.5 sm:block">
-                    <dt className="text-xs text-muted-foreground">Gross profit</dt>
-                    <dd className="font-semibold break-words sm:mt-0.5">
-                      {formatMoney(summary.data?.gross_profit, currency)}
-                    </dd>
-                  </div>
-                )}
-              </dl>
-            </div>
+            ) : (
+              <StatCard
+                label="Last 7 days"
+                icon={TrendingUp}
+                loading={trend.isLoading}
+                value={formatMoney(String(weekTotals.current), currency)}
+                change={weekTotals.change}
+                changeLabel="vs the week before"
+              />
+            )}
+          </section>
 
+          <section className="grid gap-4 lg:grid-cols-5">
             <div className={cn(PANEL, "flex flex-col gap-4 p-5 md:p-6 lg:col-span-3")}>
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h2 className="text-sm font-semibold">Net sales</h2>
-                  <p className="text-xs text-muted-foreground">Last 14 days</p>
+                  <p className="text-xs text-muted-foreground">
+                    Last 14 days
+                    {weekTotals.change !== null &&
+                      ` · this week ${formatChange(weekTotals.change)} on the one before`}
+                  </p>
                 </div>
                 <Button
                   variant="ghost"
@@ -159,10 +208,10 @@ export function Dashboard() {
                 </Button>
               </div>
               {trend.isLoading ? (
-                <Skeleton className="h-52 w-full" />
+                <Skeleton className="h-56 w-full" />
               ) : (
                 <TrendChart
-                  height={210}
+                  height={230}
                   points={(trend.data ?? []).map((row) => ({
                     label: format(parseISO(row.day), "EEE d MMM"),
                     tick: format(parseISO(row.day), "d MMM"),
@@ -175,10 +224,14 @@ export function Dashboard() {
                 />
               )}
             </div>
+
+            <div className="flex flex-col lg:col-span-2 [&>section]:flex-1">
+              <NeedsAttention />
+            </div>
           </section>
 
-          <section className="grid gap-4 lg:grid-cols-5">
-            <div className={cn(PANEL, "flex flex-col gap-4 p-5 md:p-6 lg:col-span-3")}>
+          <section className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+            <div className={cn(PANEL, "flex flex-col gap-4 p-5 md:p-6")}>
               <div>
                 <h2 className="text-sm font-semibold">Best sellers this week</h2>
                 <p className="text-xs text-muted-foreground">Updated as each day closes.</p>
@@ -199,36 +252,43 @@ export function Dashboard() {
               )}
             </div>
 
+            {canSeeSales && <RecentSales currency={currency} />}
             <QuickLinks items={quickLinks(scope)} />
           </section>
         </>
-      ) : shortcuts.length > 0 ? (
-        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {shortcuts.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                PANEL,
-                "group flex items-center gap-3 p-4 transition-colors hover:border-primary/40 hover:bg-accent/30",
-              )}
-            >
-              <span className="flex size-10 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-                <item.icon className="size-5" aria-hidden />
-              </span>
-              <span className="flex-1 font-medium">{item.label}</span>
-              <ChevronRight
-                className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5"
-                aria-hidden
-              />
-            </Link>
-          ))}
-        </section>
       ) : (
-        <EmptyState
-          title="Nothing to show yet"
-          description="Ask an owner to give your role access to the screens you need."
-        />
+        <>
+          <NeedsAttention />
+          {shortcuts.length > 0 ? (
+            <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {shortcuts.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    PANEL,
+                    "group flex items-center gap-3 p-4 transition-colors hover:border-primary/40 hover:bg-accent/30",
+                  )}
+                >
+                  <span className="flex size-10 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+                    <item.icon className="size-5" aria-hidden />
+                  </span>
+                  <span className="flex-1 font-medium">{item.label}</span>
+                  <ChevronRight
+                    className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+                    aria-hidden
+                  />
+                </Link>
+              ))}
+            </section>
+          ) : (
+            <EmptyState
+              title="Nothing to show yet"
+              description="Ask an owner to give your role access to the screens you need."
+            />
+          )}
+          {canSeeSales && <RecentSales currency={currency} />}
+        </>
       )}
     </div>
   );
@@ -266,8 +326,11 @@ function QuickLinks({ items }: { items: ReturnType<typeof quickLinks> }) {
   if (items.length === 0) return null;
 
   return (
-    <div className={cn(PANEL, "flex flex-col gap-3 p-5 md:p-6 lg:col-span-2")}>
-      <h2 className="text-sm font-semibold">Shortcuts</h2>
+    <div className={cn(PANEL, "flex flex-col gap-3 p-5 md:p-6")}>
+      <div>
+        <h2 className="text-sm font-semibold">Shortcuts</h2>
+        <p className="text-xs text-muted-foreground">The everyday jobs, one click away.</p>
+      </div>
       <ul className="-mx-2 flex flex-col">
         {items.map((item) => (
           <li key={item.href}>

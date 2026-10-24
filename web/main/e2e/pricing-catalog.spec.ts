@@ -43,7 +43,11 @@ test("a tax goes into a new tax group", async ({ page }) => {
   await page.getByRole("alertdialog").getByRole("button", { name: "Delete group" }).click();
   await expect(row).toHaveCount(0);
   await page.getByRole("tab", { name: "Taxes" }).click();
-  await page.getByRole("row").filter({ hasText: tax }).getByRole("button", { name: "Delete" }).click();
+  await page
+    .getByRole("row")
+    .filter({ hasText: tax })
+    .getByRole("button", { name: "Delete" })
+    .click();
   await page.getByRole("alertdialog").getByRole("button", { name: "Delete tax" }).click();
   await expect(page.getByRole("row").filter({ hasText: tax })).toHaveCount(0);
 });
@@ -60,17 +64,24 @@ test("options build a variant matrix, and a variant takes an extra barcode", asy
   for (const value of ["S", "M", "L"]) {
     await page.getByLabel(`New ${option} value`).fill(value);
     await page.getByLabel(`New ${option} value`).press("Enter");
-    await expect(page.locator("section").filter({ hasText: option }).getByText(value, { exact: true })).toBeVisible();
+    await expect(
+      page.locator("section").filter({ hasText: option }).getByText(value, { exact: true }),
+    ).toBeVisible();
   }
 
   const api = await apiAs(page);
-  const product = await api.post("/products", { name: `E2E Tee ${suffix()}`, kind: "item", price: "1500.00" });
+  const product = await api.post("/products", {
+    name: `E2E Tee ${suffix()}`,
+    kind: "item",
+    price: "1500.00",
+  });
   await page.goto(`/products/${product.id}`);
 
   await page.getByRole("button", { name: "From options" }).click();
   const matrix = page.getByRole("dialog", { name: "Build variants from options" });
   const values = matrix.locator("fieldset").filter({ hasText: option });
-  for (const value of ["S", "M", "L"]) await values.getByRole("button", { name: value, exact: true }).click();
+  for (const value of ["S", "M", "L"])
+    await values.getByRole("button", { name: value, exact: true }).click();
   await matrix.getByRole("button", { name: "Build 3 variants" }).click();
   await expect(page.getByText("3 variants added")).toBeVisible();
 
@@ -135,7 +146,9 @@ test("an add-on group is attached to a dish", async ({ page }) => {
   await page.getByLabel(`New choice in ${group}`, { exact: true }).fill("Extra hot");
   await page.getByLabel(`Extra cost for the new choice in ${group}`).fill("50");
   await page.getByLabel(`New choice in ${group}`, { exact: true }).press("Enter");
-  await expect(page.locator("section").filter({ hasText: group }).getByText("Extra hot")).toBeVisible();
+  await expect(
+    page.locator("section").filter({ hasText: group }).getByText("Extra hot"),
+  ).toBeVisible();
 
   await page.goto("/products");
   await page.getByRole("textbox", { name: "Search" }).fill("Chicken tikka");
@@ -146,9 +159,17 @@ test("an add-on group is attached to a dish", async ({ page }) => {
   await expect(page.getByText(/Extra hot \+Rs\s50/)).toBeVisible();
 
   // Clean up: off the dish, then the group itself.
-  await page.locator("li").filter({ hasText: group }).getByRole("button", { name: "Remove" }).click();
+  await page
+    .locator("li")
+    .filter({ hasText: group })
+    .getByRole("button", { name: "Remove" })
+    .click();
   await page.goto("/products/setup");
   await page.getByRole("tab", { name: "Add-ons" }).click();
-  await page.locator("section").filter({ hasText: group }).getByRole("button", { name: "Delete" }).click();
+  await page
+    .locator("section")
+    .filter({ hasText: group })
+    .getByRole("button", { name: "Delete" })
+    .click();
   await page.getByRole("alertdialog").getByRole("button", { name: "Delete group" }).click();
 });

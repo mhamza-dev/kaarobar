@@ -14,7 +14,10 @@ test("a parked basket is picked back up and paid for", async ({ page }) => {
   await page.goto("/pos");
 
   await page.getByLabel("Scan or search").fill("Cooking oil 1L");
-  await page.getByRole("button", { name: /Cooking oil 1L/i }).first().click();
+  await page
+    .getByRole("button", { name: /Cooking oil 1L/i })
+    .first()
+    .click();
   await expect(page.getByRole("button", { name: "Add payment" })).toBeEnabled();
 
   await page.getByRole("button", { name: "Park" }).click();
@@ -50,7 +53,10 @@ test("the audit log finds a family of actions", async ({ page }) => {
   await expect(page.getByRole("cell", { name: /^Order / }).first()).toBeVisible();
   await expect(page.getByRole("cell", { name: /^Sale / })).toHaveCount(0);
 
-  await page.getByRole("cell", { name: /^Order / }).first().click();
+  await page
+    .getByRole("cell", { name: /^Order / })
+    .first()
+    .click();
   const sheet = page.getByRole("dialog", { name: /^Order / });
   await expect(sheet.getByText("Demo Owner")).toBeVisible();
 });

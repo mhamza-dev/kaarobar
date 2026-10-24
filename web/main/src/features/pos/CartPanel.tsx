@@ -1,6 +1,6 @@
 "use client";
 
-import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
+import { Minus, Plus, ShoppingBasket, Tag, X } from "lucide-react";
 
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Button } from "@/components/ui/button";
@@ -33,62 +33,77 @@ export function CartPanel({
   if (lines.length === 0) {
     return (
       <EmptyState
-        icon={ShoppingCart}
+        icon={ShoppingBasket}
         title="Nothing scanned yet"
-        description="Scan a barcode or search for a product to start a sale."
+        description="Scan a barcode, or tap a product to start a sale."
+        className="h-full"
       />
     );
   }
 
   return (
-    <div className="flex flex-col divide-y divide-border">
+    <ul className="flex flex-col divide-y divide-border/70">
       {lines.map((line) => {
         const quoted = quote?.lines.find((candidate) => candidate.variant_id === line.variantId);
+        const discounted = quoted?.discounts.some((discount) => Number(discount.amount ?? 0) > 0);
 
         return (
-          <div key={line.variantId} className="flex items-center gap-2 py-2">
+          <li key={line.variantId} className="flex items-center gap-3 py-2.5">
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{line.name}</p>
-              <p className="text-xs text-muted-foreground">
-                {formatMoney(quoted?.unit_price ?? line.unitPrice, currency)} each
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="tabular-nums">
+                  {formatMoney(quoted?.unit_price ?? line.unitPrice, currency)} each
+                </span>
+                {discounted && (
+                  <span className="inline-flex items-center gap-0.5 font-medium text-success">
+                    <Tag className="size-3" aria-hidden />
+                    {quoted!.discounts[0]?.name ?? "Discount"}
+                  </span>
+                )}
               </p>
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center rounded-lg border border-border bg-background">
               <Button
-                variant="outline"
+                variant="ghost"
                 size="icon-sm"
                 aria-label={`Decrease quantity of ${line.name}`}
                 onClick={() => onSetQuantity(line.variantId, line.quantity - 1)}
+                className="rounded-r-none"
               >
                 <Minus className="size-3.5" />
               </Button>
-              <span className="w-8 text-center text-sm tabular-nums">{line.quantity}</span>
+              <span className="w-8 text-center text-sm font-medium tabular-nums">
+                {line.quantity}
+              </span>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="icon-sm"
                 aria-label={`Increase quantity of ${line.name}`}
                 onClick={() => onSetQuantity(line.variantId, line.quantity + 1)}
+                className="rounded-l-none"
               >
                 <Plus className="size-3.5" />
               </Button>
             </div>
 
-            <span className="w-24 text-right text-sm font-medium tabular-nums">
+            <span className="w-20 text-right text-sm font-semibold tabular-nums">
               {quoted ? formatMoney(quoted.total, currency) : "…"}
             </span>
 
             <Button
               variant="ghost"
-              size="icon-sm"
+              size="icon-xs"
               aria-label={`Remove ${line.name}`}
               onClick={() => onRemove(line.variantId)}
+              className="-mr-1 text-muted-foreground hover:text-danger"
             >
-              <Trash2 className="size-4" />
+              <X />
             </Button>
-          </div>
+          </li>
         );
       })}
-    </div>
+    </ul>
   );
 }

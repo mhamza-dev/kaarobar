@@ -32,7 +32,10 @@ const EXPENSE_KEYS = ["expenses", "expense", "expense-spend", "bank-accounts", "
 
 export function useExpenses(filters: ExpenseFilters = {}) {
   const tenant = useTenantKey();
-  return useQuery({ queryKey: ["expenses", tenant, filters], queryFn: () => listExpenses(filters) });
+  return useQuery({
+    queryKey: ["expenses", tenant, filters],
+    queryFn: () => listExpenses(filters),
+  });
 }
 export function useExpense(id: string | undefined) {
   return useQuery({ queryKey: ["expense", id], queryFn: () => getExpense(id!), enabled: !!id });

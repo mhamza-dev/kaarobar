@@ -62,9 +62,7 @@ export function ConfirmEmail({ token }: { token: string }) {
       <AuthShell title="Email confirmed">
         <div className="flex flex-col items-center gap-4 text-center">
           <CheckCircle2 className="size-10 text-success" aria-hidden />
-          <p className="text-sm text-muted-foreground">
-            Thanks — your email address is confirmed.
-          </p>
+          <p className="text-sm text-muted-foreground">Thanks — your email address is confirmed.</p>
           <Link href={next.href} className={buttonVariants({ className: "w-full" })}>
             {next.label}
           </Link>

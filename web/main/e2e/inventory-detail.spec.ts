@@ -14,7 +14,11 @@ test("a stock line's sheet shows its history and drives the reorder list", async
   await signInAsOwner(page);
   await page.goto("/stock");
   await page.getByRole("textbox", { name: "Search" }).fill("desi ghee");
-  await page.getByRole("row").filter({ hasText: "Main shop" }).filter({ hasText: "Desi ghee" }).click();
+  await page
+    .getByRole("row")
+    .filter({ hasText: "Main shop" })
+    .filter({ hasText: "Desi ghee" })
+    .click();
 
   const sheet = page.getByRole("dialog", { name: "Desi ghee 500g" });
   await expect(sheet).toBeVisible();

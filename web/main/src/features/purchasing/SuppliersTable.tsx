@@ -3,6 +3,7 @@
 import { Plus } from "lucide-react";
 import { useState } from "react";
 
+import { InitialsAvatar } from "@/components/shared/InitialsAvatar";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,8 +32,9 @@ export function SuppliersTable() {
       key: "name",
       header: "Supplier",
       render: (s) => (
-        <div className="flex items-center gap-2">
-          <div>
+        <div className="flex items-center gap-3">
+          <InitialsAvatar name={s.name} shape="square" />
+          <div className="min-w-0">
             <p className="font-medium">{s.name}</p>
             {s.contact_name && <p className="text-xs text-muted-foreground">{s.contact_name}</p>}
           </div>

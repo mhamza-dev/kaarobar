@@ -9,6 +9,7 @@ import { useState } from "react";
 import { LogoMark } from "@/components/shared/LogoMark";
 import { PageActionsProvider } from "@/components/shared/PageActions";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { usePermission } from "@/hooks/usePermission";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/uiStore";
@@ -16,6 +17,7 @@ import { useUiStore } from "@/stores/uiStore";
 import { AccountBanners } from "./AccountBanners";
 import { BusinessSwitcher } from "./BusinessSwitcher";
 import { CommandMenu } from "./CommandMenu";
+import { ShortcutsDialog } from "./ShortcutsDialog";
 import { SidebarNav } from "./SidebarNav";
 import { ThemeToggle } from "./ThemeToggle";
 import { UserMenu } from "./UserMenu";
@@ -32,7 +34,7 @@ function SidebarContents({ collapsed }: { collapsed: boolean }) {
     <>
       <div
         className={cn(
-          "flex h-16 shrink-0 items-center gap-2.5 px-5",
+          "flex h-14 shrink-0 items-center gap-2.5 px-4",
           collapsed && "justify-center px-0",
         )}
       >
@@ -41,25 +43,30 @@ function SidebarContents({ collapsed }: { collapsed: boolean }) {
           aria-label="Kaarobar home"
           className="flex items-center gap-2.5 rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         >
-          <LogoMark className="size-8" />
+          <LogoMark className="size-7" />
           {!collapsed && (
-            <span className="text-[1.05rem] font-semibold tracking-tight text-sidebar-foreground">
+            <span className="text-[1.02rem] font-semibold tracking-tight text-sidebar-foreground">
               Kaarobar
             </span>
           )}
         </Link>
       </div>
-      <div className={cn("px-3 pb-2", collapsed && "px-2")}>
+      <div className={cn("px-3 pb-1", collapsed && "px-2")}>
         <BusinessSwitcher collapsed={collapsed} />
       </div>
       <SidebarNav collapsed={collapsed} />
-      <div className={cn("border-t border-sidebar-border p-3", collapsed && "px-2")}>
+      <div className={cn("p-3 pt-2", collapsed && "px-2")}>
         <UserMenu collapsed={collapsed} />
       </div>
     </>
   );
 }
 
+/**
+ * The frame every signed-in screen sits in. From `md` up the sidebar and a
+ * thin margin make a frame, and the screen itself is a raised panel inside
+ * it; on a phone the panel is the whole screen and the sidebar is a drawer.
+ */
 export function AppShell({ children }: { children: React.ReactNode }) {
   const collapsed = useUiStore((state) => state.sidebarCollapsed);
   const toggleSidebar = useUiStore((state) => state.toggleSidebar);
@@ -74,15 +81,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   // The one thing a shop does most, a click away from every screen — except
   // the till itself, where it would only reload what's already open.
-  const showNewSale = can("sales:checkout") && !pathname.startsWith("/pos");
+  const onTill = pathname.startsWith("/pos");
+  const showNewSale = can("sales:checkout") && !onTill;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-canvas">
+    <div className="flex h-dvh overflow-hidden bg-sidebar">
       {/* Desktop sidebar */}
       <aside
         className={cn(
-          "hidden shrink-0 flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-pos md:flex",
-          collapsed ? "w-[4.5rem]" : "w-64",
+          "hidden shrink-0 flex-col bg-sidebar transition-[width] duration-200 md:flex",
+          collapsed ? "w-[4.25rem]" : "w-60",
         )}
       >
         <SidebarContents collapsed={collapsed} />
@@ -101,50 +109,70 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </DialogPrimitive.Portal>
       </DialogPrimitive.Root>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border bg-card/85 px-4 backdrop-blur-md md:gap-3 md:px-6">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setMobileOpen(true)}
-            className="text-muted-foreground md:hidden"
-            aria-label="Open menu"
-            aria-expanded={mobileOpen}
-          >
-            <Menu className="size-5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleSidebar}
-            className="hidden text-muted-foreground md:inline-flex"
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {collapsed ? (
-              <PanelLeftOpen className="size-[1.125rem]" />
-            ) : (
-              <PanelLeftClose className="size-[1.125rem]" />
-            )}
-          </Button>
+      <div className="flex min-w-0 flex-1 flex-col md:py-2 md:pr-2">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-canvas md:rounded-2xl md:shadow-panel dark:md:ring-1 dark:md:ring-white/[0.06]">
+          <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border/70 bg-canvas/80 px-3 backdrop-blur-md md:gap-3 md:px-5">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setMobileOpen(true)}
+              className="text-muted-foreground md:hidden"
+              aria-label="Open menu"
+              aria-expanded={mobileOpen}
+            >
+              <Menu className="size-5" />
+            </Button>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={toggleSidebar}
+                    className="hidden text-muted-foreground md:inline-flex"
+                    aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+                  />
+                }
+              >
+                {collapsed ? (
+                  <PanelLeftOpen className="size-[1.125rem]" />
+                ) : (
+                  <PanelLeftClose className="size-[1.125rem]" />
+                )}
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                {collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              </TooltipContent>
+            </Tooltip>
 
-          <CommandMenu />
+            <CommandMenu />
 
-          <div className="ml-auto flex items-center gap-1.5 md:gap-2">
-            {showNewSale && (
-              <Button nativeButton={false} render={<Link href="/pos" />}>
-                <ScanLine className="size-4" aria-hidden />
-                <span className="max-sm:sr-only">New sale</span>
-              </Button>
+            <div className="ml-auto flex items-center gap-1 md:gap-1.5">
+              {showNewSale && (
+                <Button nativeButton={false} render={<Link href="/pos" />} className="mr-1">
+                  <ScanLine className="size-4" aria-hidden />
+                  <span className="max-sm:sr-only">New sale</span>
+                </Button>
+              )}
+              <ShortcutsDialog />
+              <ThemeToggle />
+            </div>
+          </header>
+          <AccountBanners />
+          <main
+            className={cn(
+              "flex-1 overflow-y-auto",
+              // The till runs edge to edge and scrolls its own columns.
+              onTill ? "px-3 py-4 md:px-5 md:py-5" : "px-4 py-6 md:px-8 md:py-8",
             )}
-            <ThemeToggle />
-          </div>
-        </header>
-        <AccountBanners />
-        <main className="flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-8">
-          <PageActionsProvider>
-            <div className="mx-auto max-w-7xl">{children}</div>
-          </PageActionsProvider>
-        </main>
+          >
+            <PageActionsProvider>
+              <div className={cn("mx-auto", onTill ? "max-w-[96rem] lg:h-full" : "max-w-7xl")}>
+                {children}
+              </div>
+            </PageActionsProvider>
+          </main>
+        </div>
       </div>
     </div>
   );

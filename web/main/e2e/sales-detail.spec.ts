@@ -70,8 +70,14 @@ test("a refund request is rejected with a note, another approved and paid", asyn
   // exact: the reject dialog's title ("Reject RR-…?") contains the number too.
   let sheet = page.getByRole("dialog", { name: turnedDown.number, exact: true });
   await sheet.getByRole("button", { name: "Reject" }).click();
-  await page.getByRole("dialog", { name: /Reject/ }).getByRole("textbox").fill("Opened and used");
-  await page.getByRole("dialog", { name: /Reject/ }).getByRole("button", { name: "Reject" }).click();
+  await page
+    .getByRole("dialog", { name: /Reject/ })
+    .getByRole("textbox")
+    .fill("Opened and used");
+  await page
+    .getByRole("dialog", { name: /Reject/ })
+    .getByRole("button", { name: "Reject" })
+    .click();
   await expect(sheet.getByText("Opened and used")).toBeVisible();
   await sheet.getByRole("button", { name: "Close" }).click();
   await expect(sheet).toBeHidden();

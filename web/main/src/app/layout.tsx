@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import "./globals.css";
@@ -14,9 +14,23 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// No `title` here on purpose: each screen renders its own <title> (see
+// PageHeader and AuthShell), and a default from metadata is re-inserted
+// ahead of it on every client-side navigation, where the browser would
+// show it instead.
 export const metadata: Metadata = {
-  title: "Kaarobar",
   description: "Kaarobar — run your shop, from the counter to the books.",
+  applicationName: "Kaarobar",
+  appleWebApp: { capable: true, title: "Kaarobar", statusBarStyle: "default" },
+  // A shop's own records are nobody's search result.
+  robots: { index: false, follow: false },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ebeef4" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0e18" },
+  ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -25,7 +25,7 @@ import type {
 
 import { useTenantKey } from "./keys";
 
-export function useSalesList(params: { status?: string } = {}) {
+export function useSalesList(params: { status?: string } = {}, enabled = true) {
   const tenant = useTenantKey();
 
   const query = useInfiniteQuery({
@@ -33,6 +33,7 @@ export function useSalesList(params: { status?: string } = {}) {
     queryFn: ({ pageParam }) => listSales({ ...params, cursor: pageParam }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: getNextCursorParam,
+    enabled,
   });
 
   return { ...query, rows: flattenPages(query.data?.pages) };
@@ -182,12 +183,13 @@ export function useSaleReturns(params: { sale_id?: string } = {}) {
   });
 }
 
-export function useRefundRequests(params: { status?: string } = {}) {
+export function useRefundRequests(params: { status?: string } = {}, enabled = true) {
   const tenant = useTenantKey();
 
   return useQuery({
     queryKey: ["refund-requests", tenant, params],
     queryFn: () => listRefundRequests(params),
+    enabled,
   });
 }
 

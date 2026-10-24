@@ -2,7 +2,13 @@
 
 export const EXPENSE_STATUSES = ["pending", "recorded", "approved", "rejected"] as const;
 export const EXPENSE_METHODS = ["cash", "card", "bank", "cheque", "wallet", "other"] as const;
-export const EXPENSE_CATEGORY_KINDS = ["operating", "cost_of_sales", "payroll", "tax", "other"] as const;
+export const EXPENSE_CATEGORY_KINDS = [
+  "operating",
+  "cost_of_sales",
+  "payroll",
+  "tax",
+  "other",
+] as const;
 
 export type ExpenseCategory = {
   id: string;

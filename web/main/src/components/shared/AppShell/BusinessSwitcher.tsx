@@ -73,13 +73,13 @@ export function BusinessSwitcher({ collapsed }: { collapsed: boolean }) {
             type="button"
             title={collapsed ? (scope.business?.name ?? current.name) : undefined}
             className={cn(
-              "flex w-full items-center gap-2.5 rounded-xl border border-sidebar-border bg-background p-2 text-left text-sm shadow-xs transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50",
+              "flex w-full items-center gap-2.5 rounded-xl border border-sidebar-border bg-background p-2 text-left text-sm shadow-xs transition-colors outline-none hover:border-input focus-visible:ring-3 focus-visible:ring-ring/50 aria-expanded:border-input dark:bg-white/[0.04]",
               collapsed && "justify-center p-1.5",
             )}
           />
         }
       >
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-primary to-brand-primary-active text-sm font-semibold text-primary-foreground shadow-xs">
           {(scope.business?.name ?? current.name).slice(0, 1).toUpperCase()}
         </span>
         {!collapsed && (

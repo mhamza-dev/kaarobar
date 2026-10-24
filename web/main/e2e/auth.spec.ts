@@ -50,7 +50,9 @@ test("register, land on the dashboard, sign out, sign back in", async ({ page })
   await expect(page.getByText(/Your free trial runs until/)).toBeVisible();
   await page.getByRole("link", { name: "Go to dashboard" }).click();
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
-  await expect(page.getByRole("heading", { name: /Welcome back, Ayesha/ })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: /Good (morning|afternoon|evening), Ayesha/ }),
+  ).toBeVisible();
   await expect(page.getByRole("link", { name: "Dashboard" })).toBeVisible();
   // The business the bootstrap auto-selected shows in the shell — proving
   // the session settled on a real tenant, not just an organization.
@@ -67,7 +69,9 @@ test("register, land on the dashboard, sign out, sign back in", async ({ page })
   await page.getByRole("button", { name: "Sign in" }).click();
 
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
-  await expect(page.getByRole("heading", { name: /Welcome back, Ayesha/ })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: /Good (morning|afternoon|evening), Ayesha/ }),
+  ).toBeVisible();
 });
 
 test("a wrong password is refused without leaking whether the account exists", async ({ page }) => {

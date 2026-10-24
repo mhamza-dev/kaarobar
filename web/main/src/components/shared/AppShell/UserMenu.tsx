@@ -43,14 +43,14 @@ export function UserMenu({ collapsed }: { collapsed: boolean }) {
             type="button"
             title={collapsed ? user.name : undefined}
             className={cn(
-              "flex w-full items-center gap-2.5 rounded-lg p-1.5 text-left transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50",
+              "flex w-full items-center gap-2.5 rounded-lg p-1.5 text-left transition-colors outline-none hover:bg-sidebar-hover focus-visible:ring-3 focus-visible:ring-ring/50 aria-expanded:bg-sidebar-hover",
               collapsed && "justify-center",
             )}
           />
         }
       >
         <Avatar>
-          <AvatarFallback className="bg-accent text-xs font-semibold text-accent-foreground">
+          <AvatarFallback className="bg-primary text-xs font-semibold text-primary-foreground">
             {initials(user.name)}
           </AvatarFallback>
         </Avatar>

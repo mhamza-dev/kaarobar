@@ -9,7 +9,11 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registe
   const initialPlan = Array.isArray(plan) ? plan[0] : plan;
 
   return (
-    <AuthShell title="Set up your shop" description="One account, your whole business.">
+    <AuthShell
+      title="Set up your shop"
+      documentTitle="Create your account"
+      description="One account, your whole business."
+    >
       <RegisterForm initialPlan={initialPlan} />
       <p className="mt-6 text-center text-sm text-muted-foreground">
         Already have an account?{" "}

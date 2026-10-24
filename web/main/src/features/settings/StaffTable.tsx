@@ -1,5 +1,6 @@
 "use client";
 
+import { InitialsAvatar } from "@/components/shared/InitialsAvatar";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Badge } from "@/components/ui/badge";
@@ -27,9 +28,12 @@ export function StaffTable() {
       key: "name",
       header: "Name",
       render: (staff) => (
-        <div>
-          <p className="font-medium">{staff.user?.name ?? "—"}</p>
-          <p className="text-xs text-muted-foreground">{staff.user?.email}</p>
+        <div className="flex items-center gap-3">
+          <InitialsAvatar name={staff.user?.name ?? staff.user?.email ?? "?"} />
+          <div className="min-w-0">
+            <p className="font-medium">{staff.user?.name ?? "—"}</p>
+            <p className="text-xs text-muted-foreground">{staff.user?.email}</p>
+          </div>
         </div>
       ),
     },

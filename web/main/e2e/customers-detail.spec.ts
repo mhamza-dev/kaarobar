@@ -33,13 +33,25 @@ test("a gift card is issued, topped up and spent", async ({ page }) => {
   if (await activate.isVisible()) await activate.click();
 
   await page.getByRole("button", { name: "Top up" }).click();
-  await page.getByRole("dialog").getByLabel(/Amount/).fill("1000");
-  await page.getByRole("dialog").getByRole("button", { name: /^Top up/ }).click();
+  await page
+    .getByRole("dialog")
+    .getByLabel(/Amount/)
+    .fill("1000");
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: /^Top up/ })
+    .click();
   await expect(page.getByText("Rs 6,000").first()).toBeVisible();
 
   await page.getByRole("main").getByRole("button", { name: "Spend", exact: true }).click();
-  await page.getByRole("dialog").getByLabel(/Amount/).fill("2500");
-  await page.getByRole("dialog").getByRole("button", { name: /^Spend/ }).click();
+  await page
+    .getByRole("dialog")
+    .getByLabel(/Amount/)
+    .fill("2500");
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: /^Spend/ })
+    .click();
   await expect(page.getByText("Rs 3,500").first()).toBeVisible();
 
   // Looked up again later, by the code alone.
@@ -70,7 +82,11 @@ test("a follow-up is rescheduled and closed from its sheet", async ({ page }) =>
 
   await sheet.getByRole("button", { name: "Mark done" }).click();
   await page.getByRole("dialog").last().getByRole("textbox").first().fill("Ordered 20 bags");
-  await page.getByRole("dialog").last().getByRole("button", { name: /Done|Complete|Mark/ }).click();
+  await page
+    .getByRole("dialog")
+    .last()
+    .getByRole("button", { name: /Done|Complete|Mark/ })
+    .click();
   await expect(sheet.getByText("Ordered 20 bags")).toBeVisible();
 });
 

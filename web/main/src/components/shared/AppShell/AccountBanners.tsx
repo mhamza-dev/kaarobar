@@ -1,11 +1,12 @@
 "use client";
 
-import { AlertTriangle, Clock, MailWarning } from "lucide-react";
+import { AlertTriangle, Clock, MailWarning, WifiOff } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
 import { useResendConfirmation } from "@/hooks/queries/useAuth";
 import { useSubscription } from "@/hooks/queries/useFinance";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { usePermission } from "@/hooks/usePermission";
 import { toast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
@@ -29,7 +30,7 @@ function Banner({
     <div
       role={tone === "danger" ? "alert" : "status"}
       className={cn(
-        "flex flex-wrap items-center gap-x-3 gap-y-1 border-b px-4 py-2.5 text-sm md:px-6",
+        "flex flex-wrap items-center gap-x-3 gap-y-1 border-b px-4 py-2.5 text-sm md:px-5",
         tone === "danger" && "border-danger/20 bg-danger-soft text-danger",
         tone === "warning" && "border-warning/20 bg-warning-soft text-warning",
         tone === "info" && "border-border bg-accent/50 text-foreground",
@@ -47,6 +48,8 @@ const linkClass = "font-medium underline underline-offset-2 hover:no-underline";
  * Account-level notices above every screen, most urgent first, at most one
  * about the subscription:
  *
+ * - **Offline** — the browser has lost its connection. Nothing can be saved
+ *   until it's back, and a till that says so beats one that spins.
  * - **Lapsed** — from `/me`, so it shows on every screen without asking. The
  *   API refuses everything but billing at this point; `client.ts` sends
  *   anyone who trips over that to the billing screen.
@@ -61,6 +64,7 @@ export function AccountBanners() {
   const status = useSubscription();
   const resend = useResendConfirmation();
   const [resent, setResent] = useState(false);
+  const online = useOnlineStatus();
 
   const lapsed = scope?.subscription?.serviceable === false;
   const subscription = status.data?.subscription;
@@ -114,10 +118,17 @@ export function AccountBanners() {
 
   const unconfirmed = user && user.confirmed === false;
 
-  if (!billing && !unconfirmed) return null;
+  if (!billing && !unconfirmed && online) return null;
 
   return (
     <div>
+      {!online && (
+        <Banner tone="warning" icon={WifiOff}>
+          <span>
+            You&apos;re offline. Sales and changes can&apos;t be saved until the connection is back.
+          </span>
+        </Banner>
+      )}
       {billing}
       {unconfirmed && (
         <Banner tone="info" icon={MailWarning}>

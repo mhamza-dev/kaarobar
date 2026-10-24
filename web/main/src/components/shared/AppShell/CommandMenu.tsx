@@ -3,7 +3,7 @@
 import { CornerDownLeft, Moon, Search, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 
 import {
   Command,
@@ -15,10 +15,10 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { useIsApple } from "@/hooks/useIsApple";
+import { createActions } from "@/lib/createActions";
 import { getVisibleNavGroups } from "@/lib/nav";
 import { useSessionStore } from "@/stores/sessionStore";
-
-const noSubscription = () => () => {};
 
 /**
  * Every typed word must start a word of the item — its label, its route or
@@ -44,15 +44,6 @@ function matchScore(value: string, search: string, keywords?: string[]) {
   return score / (terms.length * 2);
 }
 
-/** ⌘ on Apple keyboards, Ctrl everywhere else. The server guesses Apple. */
-function useIsApple() {
-  return useSyncExternalStore(
-    noSubscription,
-    () => /Mac|iPhone|iPad/.test(navigator.platform),
-    () => true,
-  );
-}
-
 /**
  * "Search or jump to…" — every screen the sidebar offers, reachable by
  * typing a few letters, from the header or with ⌘K / Ctrl+K anywhere.
@@ -68,6 +59,7 @@ export function CommandMenu() {
   const scope = useSessionStore((state) => state.scope);
   const { resolvedTheme, setTheme } = useTheme();
   const groups = getVisibleNavGroups(scope);
+  const creates = createActions(scope);
   const dark = resolvedTheme === "dark";
   const apple = useIsApple();
 
@@ -114,6 +106,24 @@ export function CommandMenu() {
             </div>
             <CommandList className="max-h-[min(60vh,26rem)] p-1">
               <CommandEmpty>Nothing matches that.</CommandEmpty>
+              {creates.length > 0 && (
+                <CommandGroup heading="Create">
+                  {creates.map((action) => (
+                    <CommandItem
+                      key={action.href}
+                      value={`${action.label} ${action.href}`}
+                      keywords={action.keywords}
+                      onSelect={() => run(() => router.push(action.href))}
+                      className="gap-3 py-2"
+                    >
+                      <span className="flex size-7 items-center justify-center rounded-md bg-accent text-accent-foreground">
+                        <action.icon className="size-4" />
+                      </span>
+                      {action.label}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
               {groups.map((group) => (
                 <CommandGroup key={group.label || "general"} heading={group.label || "General"}>
                   {group.items.map((item) => (

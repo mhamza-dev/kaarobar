@@ -281,8 +281,12 @@ case Accounts.get_user_by_email(owner_email) do
             supplier
           end
 
+        # Every business is provisioned with a "Front counter" till at its
+        # main branch; the demo gives it an invoice series of its own.
+        [provisioned | _] = Kaarobar.Registers.list_registers(shop)
+
         {:ok, register} =
-          Kaarobar.Registers.create_register(shop, %{
+          Kaarobar.Registers.update_register(shop, provisioned, %{
             "name" => "Front counter",
             "invoice_prefix" => "FC"
           })

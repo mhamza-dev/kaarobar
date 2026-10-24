@@ -84,6 +84,7 @@ export function Welcome() {
       <PageHeader
         eyebrow={scope?.business?.name}
         title={`Welcome to Kaarobar, ${firstName}`}
+        documentTitle="Welcome"
         description="Your account is ready. Here's what you have, and where to start."
         actions={
           // A link, not a button: it navigates, and is announced as one.
@@ -189,7 +190,9 @@ function PlanSummary() {
     <section className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-card p-5">
       <div className="flex items-start gap-3">
         <CheckCircle2
-          className={subscription ? "mt-0.5 size-5 text-success" : "mt-0.5 size-5 text-muted-foreground"}
+          className={
+            subscription ? "mt-0.5 size-5 text-success" : "mt-0.5 size-5 text-muted-foreground"
+          }
           aria-hidden
         />
         <div>

@@ -84,8 +84,14 @@ test("a booking is rescheduled and cancelled from its sheet", async ({ page }) =
   await expect(sheet.getByText("Threading")).toBeVisible();
 
   await sheet.getByRole("button", { name: "Cancel booking" }).click();
-  await page.getByRole("dialog", { name: /Cancel/ }).getByRole("textbox").fill("Called to cancel");
-  await page.getByRole("dialog", { name: /Cancel/ }).getByRole("button", { name: "Cancel booking" }).click();
+  await page
+    .getByRole("dialog", { name: /Cancel/ })
+    .getByRole("textbox")
+    .fill("Called to cancel");
+  await page
+    .getByRole("dialog", { name: /Cancel/ })
+    .getByRole("button", { name: "Cancel booking" })
+    .click();
   await expect(sheet.getByText("Called to cancel")).toBeVisible();
 });
 
@@ -97,7 +103,10 @@ test("a walk-in is seated from the queue", async ({ page }) => {
 
   await page.goto("/queue");
   await page.getByPlaceholder(/name/i).first().fill(name);
-  await page.getByRole("button", { name: /Add|Join/ }).first().click();
+  await page
+    .getByRole("button", { name: /Add|Join/ })
+    .first()
+    .click();
   // In main: toasts are list items too, and one will say "<name> seated".
   const entry = page.getByRole("main").getByRole("listitem").filter({ hasText: name });
   await entry.getByRole("button", { name: "Seat" }).click();

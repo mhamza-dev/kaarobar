@@ -6,7 +6,7 @@ import { LoginForm } from "@/features/auth/LoginForm";
 
 export default function LoginPage() {
   return (
-    <AuthShell title="Welcome back" description="Sign in to run your shop.">
+    <AuthShell title="Welcome back" documentTitle="Sign in" description="Sign in to run your shop.">
       {/* LoginForm reads the `next` query param via useSearchParams(), which
           Next requires a Suspense boundary around even in a fully
           client-rendered tree. */}

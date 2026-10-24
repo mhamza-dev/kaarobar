@@ -1,5 +1,7 @@
 "use client";
 
+import { ChevronRight, ReceiptText, WalletCards } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 
 import { DescriptionList } from "@/components/shared/DescriptionList";
@@ -7,6 +9,7 @@ import { RefundDialog } from "@/features/sales/RefundDialog";
 import { SaleReturnsTable } from "@/features/sales/SaleReturnsTable";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { DocumentPreview } from "@/components/shared/DocumentPreview";
+import { PageActions } from "@/components/shared/PageActions";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import {
   WorkflowActions,
@@ -19,6 +22,7 @@ import { useSale, useVoidSale } from "@/hooks/queries/useSales";
 import { usePermission } from "@/hooks/usePermission";
 import { toast } from "@/hooks/useToast";
 import { formatDateTime, formatMoney, formatQuantity } from "@/lib/format";
+import { paymentMethodLabel } from "@/lib/paymentMethods";
 import { getReceiptHtml } from "@/services/reports";
 import type { SaleItem } from "@/types/api/sales";
 
@@ -138,59 +142,191 @@ export function SaleDetail({ saleId }: { saleId: string }) {
     },
   ];
 
+  const money = (value: string | null | undefined) => formatMoney(value, sale.currency);
+  const refunded = Number(sale.refunded_total ?? 0) > 0;
+
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex flex-col gap-2">
-          <StatusBadge status={sale.status} />
-          <DescriptionList
-            layout="inline"
-            items={[
-              { label: "Sold", value: formatDateTime(sale.sold_at) },
-              { label: "Cashier", value: sale.cashier_label },
-              { label: "Total", value: formatMoney(sale.total, sale.currency) },
-              { label: "Refundable", value: formatMoney(sale.refundable_amount, sale.currency) },
-            ]}
-          />
-          {sale.void_reason && (
-            <p className="text-sm text-destructive">Voided: {sale.void_reason}</p>
-          )}
-        </div>
-
+      <PageActions>
         <WorkflowActions actions={actions} />
-      </div>
+      </PageActions>
 
-      <DataTable
-        columns={columns}
-        rows={sale.items ?? []}
-        rowKey={(item) => item.id}
-        mobileCardTitle={(item) => item.name}
-        mobileCardFields={[
-          { key: "qty", label: "Qty", render: (item) => formatQuantity(item.quantity) },
-          {
-            key: "total",
-            label: "Total",
-            render: (item) => formatMoney(item.line_total, sale.currency),
-          },
-        ]}
-      />
-
-      {(sale.payments ?? []).length > 0 && (
-        <div className="rounded-xl border border-border p-3">
-          <p className="mb-2 text-sm font-medium">Payments</p>
-          {(sale.payments ?? []).map((payment) => (
-            <div key={payment.id} className="flex justify-between py-0.5 text-sm">
-              <span className="text-muted-foreground">{payment.method}</span>
-              <span className="tabular-nums">{formatMoney(payment.amount, sale.currency)}</span>
+      <section className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4 rounded-xl border border-border bg-card p-5 shadow-card md:p-6">
+        <div className="flex min-w-0 items-center gap-4">
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+            <ReceiptText className="size-5" aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-xl font-semibold tracking-tight md:text-2xl">{sale.number}</h2>
+              <StatusBadge status={sale.status} />
             </div>
-          ))}
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              {formatDateTime(sale.sold_at)}
+              {sale.cashier_label && ` · rung up by ${sale.cashier_label}`}
+              {sale.register?.name && ` · ${sale.register.name}`}
+            </p>
+          </div>
         </div>
-      )}
-
-      <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-semibold">Returns</h2>
-        <SaleReturnsTable saleId={sale.id} embedded />
+        <div className="text-right">
+          <p className="text-xs font-medium text-muted-foreground">Total</p>
+          <p className="text-3xl font-semibold tracking-tight tabular-nums">{money(sale.total)}</p>
+        </div>
+        {sale.void_reason && (
+          <p className="w-full rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">
+            Voided{sale.voided_at && ` ${formatDateTime(sale.voided_at)}`}: {sale.void_reason}
+          </p>
+        )}
       </section>
+
+      <div className="grid items-start gap-6 lg:grid-cols-3">
+        <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
+          <section className="flex flex-col gap-3">
+            <h2 className="text-sm font-semibold">
+              Items{" "}
+              <span className="font-normal text-muted-foreground">
+                · {(sale.items ?? []).length}
+              </span>
+            </h2>
+            <DataTable
+              columns={columns}
+              rows={sale.items ?? []}
+              rowKey={(item) => item.id}
+              mobileCardTitle={(item) => item.name}
+              mobileCardFields={[
+                { key: "qty", label: "Qty", render: (item) => formatQuantity(item.quantity) },
+                {
+                  key: "total",
+                  label: "Total",
+                  render: (item) => money(item.line_total),
+                },
+              ]}
+            />
+          </section>
+
+          <section className="flex flex-col gap-3">
+            <h2 className="text-sm font-semibold">Returns</h2>
+            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
+              <SaleReturnsTable saleId={sale.id} embedded />
+            </div>
+          </section>
+        </div>
+
+        <aside className="flex flex-col gap-4">
+          <div className="rounded-xl border border-border bg-card p-5 shadow-card">
+            <h2 className="mb-2 text-sm font-semibold">Summary</h2>
+            <DescriptionList
+              items={[
+                { label: "Subtotal", value: money(sale.subtotal) },
+                {
+                  label: "Discounts",
+                  value: `-${money(sale.discount_total)}`,
+                  hidden: !Number(sale.discount_total ?? 0),
+                },
+                { label: "Tax", value: money(sale.tax_total) },
+                {
+                  label: "Rounding",
+                  value: money(sale.rounding),
+                  hidden: !Number(sale.rounding ?? 0),
+                },
+                {
+                  label: "Total",
+                  value: <span className="font-semibold">{money(sale.total)}</span>,
+                },
+                { label: "Paid", value: money(sale.paid_total) },
+                {
+                  label: "Change given",
+                  value: money(sale.change_due),
+                  hidden: !Number(sale.change_due ?? 0),
+                },
+                {
+                  label: "Refunded",
+                  value: <span className="text-danger">{money(sale.refunded_total)}</span>,
+                  hidden: !refunded,
+                },
+                {
+                  label: "Still refundable",
+                  value: money(sale.refundable_amount),
+                  hidden: !refunded && sale.status !== "completed",
+                },
+                {
+                  label: "Profit",
+                  value: money(sale.margin),
+                  hidden: !can("report:financial") || sale.margin === null,
+                },
+              ]}
+            />
+          </div>
+
+          {(sale.payments ?? []).length > 0 && (
+            <div className="rounded-xl border border-border bg-card p-5 shadow-card">
+              <h2 className="mb-3 text-sm font-semibold">Payments</h2>
+              <ul className="flex flex-col gap-2.5">
+                {(sale.payments ?? []).map((payment) => (
+                  <li key={payment.id} className="flex items-center gap-3 text-sm">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                      <WalletCards className="size-4" aria-hidden />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-medium">
+                        {paymentMethodLabel(payment.method)}
+                        {payment.card_last_four && ` ···· ${payment.card_last_four}`}
+                      </span>
+                      {(payment.tendered_amount || payment.reference) && (
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {payment.tendered_amount
+                            ? `${money(payment.tendered_amount)} given`
+                            : payment.reference}
+                        </span>
+                      )}
+                    </span>
+                    <span className="font-medium tabular-nums">{money(payment.amount)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {sale.customer && (
+            <Link
+              href={`/customers/${sale.customer.id}`}
+              className="group flex items-center gap-3 rounded-xl border border-border bg-card p-4 shadow-card transition-colors hover:border-primary/40"
+            >
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+                {sale.customer.name.slice(0, 1).toUpperCase()}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-xs text-muted-foreground">Customer</span>
+                <span className="block truncate text-sm font-medium">{sale.customer.name}</span>
+              </span>
+              <ChevronRight
+                className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+                aria-hidden
+              />
+            </Link>
+          )}
+
+          {(sale.notes || sale.discount_reason || sale.fiscal_number) && (
+            <div className="rounded-xl border border-border bg-card p-5 shadow-card">
+              <DescriptionList
+                items={[
+                  { label: "Note", value: sale.notes, hidden: !sale.notes },
+                  {
+                    label: "Discount reason",
+                    value: sale.discount_reason,
+                    hidden: !sale.discount_reason,
+                  },
+                  {
+                    label: "Fiscal number",
+                    value: sale.fiscal_number,
+                    hidden: !sale.fiscal_number,
+                  },
+                ]}
+              />
+            </div>
+          )}
+        </aside>
+      </div>
 
       <RefundDialog sale={sale} open={refunding} onOpenChange={setRefunding} />
 

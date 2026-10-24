@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { InitialsAvatar } from "@/components/shared/InitialsAvatar";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -50,8 +51,9 @@ export function CustomersTable() {
       key: "name",
       header: "Customer",
       render: (customer) => (
-        <div className="flex items-center gap-2">
-          <div>
+        <div className="flex items-center gap-3">
+          <InitialsAvatar name={customer.name} />
+          <div className="min-w-0">
             <p className="font-medium">{customer.name}</p>
             {customer.code && <p className="text-xs text-muted-foreground">{customer.code}</p>}
           </div>

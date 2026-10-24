@@ -19,6 +19,7 @@ defmodule Kaarobar.Tenancy do
   alias Kaarobar.Catalog
   alias Kaarobar.Ecto.UUIDv7
   alias Kaarobar.Repo
+  alias Kaarobar.Registers
   alias Kaarobar.Repo.Scoped
   alias Kaarobar.Scope
   alias Kaarobar.Taxes
@@ -27,6 +28,8 @@ defmodule Kaarobar.Tenancy do
   alias Kaarobar.Tenancy.Membership
   alias Kaarobar.Tenancy.Organization
   alias Kaarobar.Verticals
+
+  @default_register_name "Front counter"
 
   # ===========================================================================
   # Onboarding
@@ -112,20 +115,27 @@ defmodule Kaarobar.Tenancy do
         |> Scope.put_organization(changes.organization)
         |> Scope.put_business(changes.business)
 
-      provision(scope, changes.business)
+      provision(scope, changes.business, changes.branch)
     end)
   end
 
   # A business that cannot sell anything the moment it exists is a setup wizard,
-  # not a business. Both creation paths seed the standard units of measure and a
-  # default tax group, so the first product can be added without configuring
-  # anything first.
-  defp provision(%Scope{} = scope, %Business{} = business) do
+  # not a business. Both creation paths seed the standard units of measure, a
+  # default tax group and a till at the main branch, so the first product can
+  # be added and sold without configuring anything first. The till is the one
+  # a shop would otherwise only discover it needs when checkout refuses to
+  # open; it can be renamed, or more added, later.
+  defp provision(%Scope{} = scope, %Business{} = business, %Branch{} = branch) do
     scope = Scope.put_business(scope, business)
 
     with {:ok, _units} <- Catalog.seed_units(scope),
-         {:ok, tax_group} <- Taxes.seed_defaults(scope) do
-      {:ok, %{tax_group: tax_group}}
+         {:ok, tax_group} <- Taxes.seed_defaults(scope),
+         {:ok, register} <-
+           Registers.create_register(scope, %{
+             "branch_id" => branch.id,
+             "name" => @default_register_name
+           }) do
+      {:ok, %{tax_group: tax_group, register: register}}
     end
   end
 
@@ -337,8 +347,8 @@ defmodule Kaarobar.Tenancy do
         "is_main" => true
       })
     end)
-    |> Ecto.Multi.run(:provision, fn _repo, %{business: business} ->
-      provision(scope, business)
+    |> Ecto.Multi.run(:provision, fn _repo, %{business: business, branch: branch} ->
+      provision(scope, business, branch)
     end)
     |> Repo.transaction()
     |> case do

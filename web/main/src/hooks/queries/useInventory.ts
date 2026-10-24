@@ -104,11 +104,12 @@ export function useStockValuation(params: { branch_id?: string } = {}, enabled =
   });
 }
 
-export function useReorderSuggestions(params: { branch_id?: string } = {}) {
+export function useReorderSuggestions(params: { branch_id?: string } = {}, enabled = true) {
   const tenant = useTenantKey();
   return useQuery({
     queryKey: ["stock-reorder", tenant, params],
     queryFn: () => listReorderSuggestions(params),
+    enabled,
   });
 }
 
@@ -137,12 +138,13 @@ export function useBatches(params: { variant_id?: string; status?: string } = {}
   });
 }
 
-export function useExpiringBatches(days = 30) {
+export function useExpiringBatches(days = 30, enabled = true) {
   const tenant = useTenantKey();
 
   return useQuery({
     queryKey: ["batches-expiring", tenant, days],
     queryFn: () => listExpiringBatches({ days }),
+    enabled,
   });
 }
 

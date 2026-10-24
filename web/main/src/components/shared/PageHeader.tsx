@@ -16,6 +16,7 @@ import { PageActionsSlot } from "./PageActions";
 export function PageHeader({
   eyebrow,
   title,
+  documentTitle,
   description,
   actions,
   back,
@@ -23,11 +24,19 @@ export function PageHeader({
 }: {
   eyebrow?: string;
   title: string;
+  /**
+   * What the browser tab says, when the heading alone wouldn't tell two
+   * tabs apart — a sale's receipt number rather than "Sale".
+   */
+  documentTitle?: string;
   description?: string;
   actions?: ReactNode;
   back?: { href: string; label: string };
   compact?: boolean;
 }) {
+  // React hoists this into <head>, so every screen names its own tab.
+  const tabTitle = <title>{`${documentTitle ?? title} · Kaarobar`}</title>;
+
   const backLink = back && (
     <Link
       href={back.href}
@@ -41,6 +50,7 @@ export function PageHeader({
   if (back && compact) {
     return (
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 pb-5">
+        {tabTitle}
         <div className="flex min-w-0 items-center gap-2 text-sm">
           {backLink}
           <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/60" aria-hidden />
@@ -53,6 +63,7 @@ export function PageHeader({
 
   return (
     <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 pb-6 md:pb-8">
+      {tabTitle}
       <div className="min-w-0">
         {backLink && <div className="mb-3">{backLink}</div>}
         {!backLink && eyebrow && (

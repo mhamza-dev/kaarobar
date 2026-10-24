@@ -31,7 +31,8 @@ export async function apiAs(page: Page, businessName = "Bilal Kiryana Store") {
 
   const unwrap = async (response: Awaited<ReturnType<APIRequestContext["get"]>>) => {
     const text = await response.text();
-    if (!response.ok()) throw new Error(`${response.status()} ${response.url()}: ${text.slice(0, 300)}`);
+    if (!response.ok())
+      throw new Error(`${response.status()} ${response.url()}: ${text.slice(0, 300)}`);
     return JSON.parse(text).data;
   };
 

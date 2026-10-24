@@ -30,15 +30,19 @@ const HIGHLIGHTS = [
  */
 export function AuthShell({
   title,
+  documentTitle,
   description,
   children,
 }: {
   title: string;
+  /** The browser tab's name, when the heading is a greeting ("Welcome back"). */
+  documentTitle?: string;
   description?: string;
   children: ReactNode;
 }) {
   return (
     <div className="grid min-h-screen bg-background lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+      <title>{`${documentTitle ?? title} · Kaarobar`}</title>
       <aside className="relative hidden overflow-hidden bg-[#173c9f] text-white lg:flex lg:flex-col lg:justify-between lg:p-12 xl:p-16">
         {/* Light from the top corner and a faint grid — depth without an image.
             Text is checked against the lightest point: white/80 is 4.8:1. */}

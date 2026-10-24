@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { EmptyState } from "@/components/shared/EmptyState";
-import { Badge } from "@/components/ui/badge";
+import { PageActions } from "@/components/shared/PageActions";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -21,18 +21,19 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { usePermission } from "@/hooks/usePermission";
 import { toast } from "@/hooks/useToast";
 import { formatMoney, formatQuantity } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { addLine, itemCount, removeLine, setQuantity, toCheckoutLines } from "@/stores/cart";
 import type { CartLine } from "@/stores/cart";
 import { useSessionStore } from "@/stores/sessionStore";
 import type { Customer } from "@/types/api/crm";
-import type { CheckoutPayment, Sale } from "@/types/api/sales";
+import type { CheckoutLine, CheckoutPayment, Sale } from "@/types/api/sales";
 
 import { CartPanel } from "./CartPanel";
 import { HeldOrdersButton, ParkBasketButton } from "./HeldOrders";
 import { CustomerPicker } from "./CustomerPicker";
 import { OpenShiftPrompt } from "./OpenShiftPrompt";
 import { PaymentPanel } from "./PaymentPanel";
-import { ProductSearch, type ScannedProduct } from "./ProductSearch";
+import { ProductPicker, type PickedProduct } from "./ProductPicker";
 import { ReceiptDialog } from "./ReceiptDialog";
 
 /**
@@ -77,7 +78,7 @@ export function CheckoutScreen({ orderId }: { orderId?: string } = {}) {
   const checkoutLines = useMemo(() => toCheckoutLines(lines), [lines]);
   // Settling an order never quotes a basket: an empty list keeps the quote
   // query disabled, and the order's own totals are shown instead.
-  const debouncedLines = useDebounce(settlingOrder ? [] : checkoutLines, 250);
+  const debouncedLines = useDebounce(settlingOrder ? NO_LINES : checkoutLines, 250);
   const {
     data: quote,
     isFetching: quoting,
@@ -89,6 +90,10 @@ export function CheckoutScreen({ orderId }: { orderId?: string } = {}) {
     customerId: customer?.id,
   });
 
+  // Between a basket change and its new quote, the total on screen is the
+  // old basket's — the pay buttons wait it out.
+  const pricing = !settlingOrder && (debouncedLines !== checkoutLines || quoting);
+
   const createSale = useCreateSale();
   const total = (settlingOrder ? order?.total : quote?.totals.total) ?? "0.00";
 
@@ -98,7 +103,12 @@ export function CheckoutScreen({ orderId }: { orderId?: string } = {}) {
     setCustomer(null);
   };
 
-  const handlePick = (product: ScannedProduct) =>
+  const inBasket = useMemo(
+    () => new Map(lines.map((line) => [line.variantId, line.quantity])),
+    [lines],
+  );
+
+  const handlePick = (product: PickedProduct) =>
     setLines((current) =>
       addLine(current, {
         variantId: product.variantId,
@@ -150,172 +160,234 @@ export function CheckoutScreen({ orderId }: { orderId?: string } = {}) {
     );
   }
 
+  const totals = settlingOrder
+    ? order && {
+        subtotal: order.subtotal,
+        discount: order.discount_total,
+        tax: order.tax_total,
+        rounding: null,
+      }
+    : lines.length > 0 && quote
+      ? {
+          subtotal: quote.totals.subtotal,
+          discount: quote.totals.discount_total,
+          tax: quote.totals.tax_total,
+          rounding: quote.totals.rounding,
+        }
+      : null;
+  const count = itemCount(lines);
+
   return (
     <>
-      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
-        <div className="flex flex-col gap-4">
-          {activeRegisters.length > 1 && (
-            <RegisterPicker
-              registers={activeRegisters}
-              value={register?.id ?? ""}
-              onChange={setRegisterId}
-            />
-          )}
+      <PageActions>
+        {activeRegisters.length > 1 && (
+          <RegisterPicker
+            registers={activeRegisters}
+            value={register?.id ?? ""}
+            onChange={setRegisterId}
+          />
+        )}
+        {can("order:view") && <HeldOrdersButton currency={currency} />}
+      </PageActions>
 
-          {settlingOrder ? (
-            <div className="rounded-xl border border-border bg-card p-4 shadow-card">
-              <div className="mb-2 flex items-center justify-between">
-                <p className="text-sm font-medium">
-                  {order?.label ?? "Order"} {order?.number && `· ${order.number}`}
-                </p>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  nativeButton={false}
-                  render={<Link href="/pos" />}
-                >
-                  New sale instead
-                </Button>
-              </div>
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:h-full lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,26rem)]">
+        {settlingOrder ? (
+          <div className="flex min-h-0 flex-col rounded-xl border border-border bg-card shadow-card">
+            <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+              <p className="text-sm font-semibold">
+                {order?.label ?? "Order"} {order?.number && `· ${order.number}`}
+              </p>
+              <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/pos" />}>
+                New sale instead
+              </Button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-4">
               {unbilledItems.length === 0 ? (
                 <EmptyState size="sm" title={<>Everything on this order has been paid for.</>} />
               ) : (
-                <ul className="divide-y divide-border text-sm">
+                <ul className="divide-y divide-border/70 text-sm">
                   {unbilledItems.map((item) => (
-                    <li key={item.id} className="flex justify-between gap-3 py-2">
+                    <li key={item.id} className="flex justify-between gap-3 py-2.5">
                       <span>
                         {formatQuantity(item.unbilled_quantity)} × {item.name}
                       </span>
-                      <span className="tabular-nums">{formatMoney(item.line_total, currency)}</span>
+                      <span className="font-medium tabular-nums">
+                        {formatMoney(item.line_total, currency)}
+                      </span>
                     </li>
                   ))}
                 </ul>
               )}
             </div>
-          ) : (
-            <>
-              <ProductSearch onPick={handlePick} />
+          </div>
+        ) : (
+          <ProductPicker
+            onPick={handlePick}
+            inBasket={inBasket}
+            currency={currency}
+            className="max-lg:max-h-[70vh] lg:h-full"
+          />
+        )}
 
-              <div className="rounded-xl border border-border bg-card p-4 shadow-card">
-                <div className="mb-2 flex items-center justify-between">
-                  <p className="text-sm font-medium">
-                    Basket{" "}
-                    {lines.length > 0 && (
-                      <Badge variant="secondary">
-                        {itemCount(lines)} item{itemCount(lines) === 1 ? "" : "s"}
-                      </Badge>
-                    )}
-                  </p>
-                  <div className="flex items-center gap-1">
-                    {lines.length > 0 && can("order:create") && register && (
-                      <ParkBasketButton
-                        lines={checkoutLines}
-                        branchId={register.branch_id}
-                        registerId={register.id}
-                        customerId={customer?.id}
-                        onParked={reset}
-                      />
-                    )}
-                    {lines.length > 0 && (
-                      <Button variant="ghost" size="sm" onClick={reset}>
-                        Clear
-                      </Button>
-                    )}
-                    {can("order:view") && <HeldOrdersButton currency={currency} />}
-                  </div>
-                </div>
-
-                <CartPanel
-                  lines={lines}
-                  quote={quote}
-                  currency={currency}
-                  onSetQuantity={(variantId, quantity) =>
-                    setLines((current) => setQuantity(current, variantId, quantity))
-                  }
-                  onRemove={(variantId) => setLines((current) => removeLine(current, variantId))}
-                />
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* The total and the payment stay in view while a long basket scrolls. */}
-        <div className="flex flex-col gap-4 lg:sticky lg:top-0 lg:self-start">
-          {can("customer:view") && (
-            <CustomerPicker value={customer} onChange={setCustomer} currency={currency} />
-          )}
-
-          {settlingOrder && order ? (
-            <div className="rounded-xl border border-border bg-card p-4 text-sm shadow-card">
-              <Row label="Subtotal" value={formatMoney(order.subtotal, currency)} />
-              {order.discount_total && Number(order.discount_total) > 0 && (
-                <Row label="Discounts" value={`-${formatMoney(order.discount_total, currency)}`} />
+        {/* The basket and the payment, one column: the lines scroll, the
+            totals and the pay button stay put. */}
+        <section
+          id="basket"
+          aria-label="Current sale"
+          className="flex min-h-0 scroll-mt-4 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-card lg:h-full"
+        >
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-4 py-3">
+            <div className="flex items-baseline gap-2">
+              <h2 className="text-sm font-semibold">{settlingOrder ? "Bill" : "Basket"}</h2>
+              {count > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  {count} item{count === 1 ? "" : "s"}
+                </span>
               )}
-              <Row label="Tax" value={formatMoney(order.tax_total, currency)} />
             </div>
-          ) : quoteError ? (
-            <p className="rounded-lg border border-destructive/40 bg-danger-soft p-3 text-sm text-danger">
-              Couldn&apos;t price this basket: {quoteError.message}
-            </p>
-          ) : (
-            lines.length > 0 && (
-              <div className="rounded-xl border border-border bg-card p-4 text-sm shadow-card">
-                <Row label="Subtotal" value={formatMoney(quote?.totals.subtotal, currency)} />
-                {quote?.totals.discount_total && Number(quote.totals.discount_total) > 0 && (
-                  <Row
-                    label="Discounts"
-                    value={`-${formatMoney(quote.totals.discount_total, currency)}`}
+            {!settlingOrder && lines.length > 0 && (
+              <div className="-mr-2 flex items-center gap-0.5">
+                {can("order:create") && register && (
+                  <ParkBasketButton
+                    lines={checkoutLines}
+                    branchId={register.branch_id}
+                    registerId={register.id}
+                    customerId={customer?.id}
+                    onParked={reset}
                   />
                 )}
-                <Row label="Tax" value={formatMoney(quote?.totals.tax_total, currency)} />
-                {quote?.totals.rounding && Number(quote.totals.rounding) !== 0 && (
-                  <Row label="Rounding" value={formatMoney(quote.totals.rounding, currency)} />
-                )}
-                {quoting && <p className="mt-1 text-xs text-muted-foreground">Repricing…</p>}
+                <Button variant="ghost" size="sm" onClick={reset}>
+                  Clear
+                </Button>
               </div>
-            )
+            )}
+          </div>
+
+          {can("customer:view") && (
+            <div className="shrink-0 border-b border-border px-4 py-3">
+              <CustomerPicker value={customer} onChange={setCustomer} currency={currency} />
+            </div>
           )}
 
-          <PaymentPanel
-            total={total}
-            currency={currency}
-            payments={payments}
-            onChange={setPayments}
-            completing={createSale.isPending}
-            customerSelected={!!customer}
-            onComplete={async () => {
-              try {
-                const sale = await createSale.mutateAsync({
-                  branch_id: register!.branch_id,
-                  register_id: register!.id,
-                  shift_id: shift.id,
-                  customer_id: customer?.id,
-                  ...(settlingOrder ? { order_id: orderId, lines: [] } : { lines: checkoutLines }),
-                  payments,
-                });
+          {!settlingOrder && (
+            <div className="scrollbar-thin min-h-32 flex-1 overflow-y-auto px-4">
+              <CartPanel
+                lines={lines}
+                quote={quote}
+                currency={currency}
+                onSetQuantity={(variantId, quantity) =>
+                  setLines((current) => setQuantity(current, variantId, quantity))
+                }
+                onRemove={(variantId) => setLines((current) => removeLine(current, variantId))}
+              />
+            </div>
+          )}
 
-                setCompleted(sale);
-                reset();
-                toast.success(`Sale ${sale.number} completed`);
-              } catch {
-                // Toasted by the hook; the basket and tenders are left intact
-                // so the cashier can retry rather than re-scan everything.
-              }
-            }}
-          />
-        </div>
+          <div
+            className={cn(
+              "flex shrink-0 flex-col gap-3 border-t border-border bg-muted/30 px-4 py-4",
+              settlingOrder && "mt-auto",
+            )}
+          >
+            {quoteError && !settlingOrder ? (
+              <p className="rounded-lg border border-destructive/40 bg-danger-soft p-3 text-sm text-danger">
+                Couldn&apos;t price this basket: {quoteError.message}
+              </p>
+            ) : (
+              totals && (
+                <div className="text-sm">
+                  <Row label="Subtotal" value={formatMoney(totals.subtotal, currency)} />
+                  {totals.discount && Number(totals.discount) > 0 && (
+                    <Row
+                      label="Discounts"
+                      value={`-${formatMoney(totals.discount, currency)}`}
+                      tone="success"
+                    />
+                  )}
+                  <Row label="Tax" value={formatMoney(totals.tax, currency)} />
+                  {totals.rounding && Number(totals.rounding) !== 0 && (
+                    <Row label="Rounding" value={formatMoney(totals.rounding, currency)} />
+                  )}
+                </div>
+              )
+            )}
+
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-sm font-medium text-muted-foreground">
+                Total
+                {quoting && !settlingOrder && (
+                  <span className="ml-2 text-xs font-normal">Repricing…</span>
+                )}
+              </span>
+              <span className="text-3xl font-semibold tracking-tight tabular-nums">
+                {formatMoney(total, currency)}
+              </span>
+            </div>
+
+            {(settlingOrder || lines.length > 0) && (
+              <PaymentPanel
+                total={total}
+                currency={currency}
+                payments={payments}
+                onChange={setPayments}
+                completing={createSale.isPending}
+                pricing={pricing}
+                locked={!!completed}
+                customerSelected={!!customer}
+                onComplete={async (tenders) => {
+                  try {
+                    const sale = await createSale.mutateAsync({
+                      branch_id: register!.branch_id,
+                      register_id: register!.id,
+                      shift_id: shift.id,
+                      customer_id: customer?.id,
+                      ...(settlingOrder
+                        ? { order_id: orderId, lines: [] }
+                        : { lines: checkoutLines }),
+                      payments: tenders,
+                    });
+
+                    setCompleted(sale);
+                    reset();
+                    toast.success(`Sale ${sale.number} completed`);
+                  } catch {
+                    // Toasted by the hook; the basket and tenders are left intact
+                    // so the cashier can retry rather than re-scan everything.
+                  }
+                }}
+              />
+            )}
+          </div>
+        </section>
       </div>
+
+      {/* On a phone the basket sits below the catalog — this keeps the
+          running total in reach and jumps down to pay. */}
+      {!settlingOrder && lines.length > 0 && (
+        <a
+          href="#basket"
+          className="fixed inset-x-3 bottom-3 z-30 flex items-center justify-between gap-3 rounded-xl bg-primary px-4 py-3 text-primary-foreground shadow-lift lg:hidden"
+        >
+          <span className="text-sm font-medium">
+            {count} item{count === 1 ? "" : "s"} · Pay
+          </span>
+          <span className="text-lg font-semibold tabular-nums">{formatMoney(total, currency)}</span>
+        </a>
+      )}
 
       <ReceiptDialog sale={completed} onOpenChange={() => setCompleted(null)} />
     </>
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+/** One empty basket for every render, so the debounce has nothing to chase. */
+const NO_LINES: CheckoutLine[] = [];
+
+function Row({ label, value, tone }: { label: string; value: string; tone?: "success" }) {
   return (
     <div className="flex items-baseline justify-between py-0.5">
       <span className="text-muted-foreground">{label}</span>
-      <span className="tabular-nums">{value}</span>
+      <span className={cn("tabular-nums", tone === "success" && "text-success")}>{value}</span>
     </div>
   );
 }

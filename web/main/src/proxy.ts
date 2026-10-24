@@ -35,8 +35,9 @@ export const config = {
      * /reset-password (the (auth) group), /invite/* and /invitations/*
      * (public — the invitee has no account yet), /confirm-email/* (opened
      * from an email, on whatever device it was read), /api/*, Next
-     * internals, and static assets.
+     * internals, and static assets — the icons and the web manifest
+     * included, which the sign-in page itself asks for.
      */
-    "/((?!login|register|forgot-password|reset-password|invite|invitations|confirm-email|api|_next/static|_next/image|favicon.ico).*)",
+    "/((?!login|register|forgot-password|reset-password|invite|invitations|confirm-email|api|_next/static|_next/image|favicon.ico|icon|apple-icon|manifest.webmanifest).*)",
   ],
 };

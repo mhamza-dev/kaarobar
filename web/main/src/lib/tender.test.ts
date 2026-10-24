@@ -5,6 +5,7 @@ import {
   fromMinor,
   isSettled,
   isValidPayment,
+  quickCashAmounts,
   remainingDue,
   suggestedAmount,
   toMinor,
@@ -132,5 +133,19 @@ describe("isValidPayment", () => {
 
   it("accepts a card tender with no tendered amount", () => {
     expect(isValidPayment(card("100.00"))).toBe(true);
+  });
+});
+
+describe("quickCashAmounts", () => {
+  it("offers the exact sum and the round notes above it", () => {
+    expect(quickCashAmounts(62_000)).toEqual([62_000, 70_000, 100_000, 500_000]);
+  });
+
+  it("skips round figures equal to the sum itself", () => {
+    expect(quickCashAmounts(100_000)).toEqual([100_000, 500_000]);
+  });
+
+  it("offers nothing once the sale is paid", () => {
+    expect(quickCashAmounts(0)).toEqual([]);
   });
 });

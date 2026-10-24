@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { InitialsAvatar } from "@/components/shared/InitialsAvatar";
 import {
   WorkflowActions,
   type WorkflowAction,
@@ -108,21 +109,21 @@ export function CustomerDetail({ customerId }: { customerId: string }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-2xl font-semibold tracking-tight">{customer.name}</h2>
-            {!customer.is_active && <Badge variant="outline">Archived</Badge>}
-          </div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {[customer.phone, customer.email, customer.city].filter(Boolean).join(" · ") ||
-              "No contact details"}
-          </p>
-          {customer.date_of_birth && (
-            <p className="text-xs text-muted-foreground">
-              Born {formatDate(customer.date_of_birth)}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-4">
+          <InitialsAvatar name={customer.name} size="lg" className="size-14 text-lg" />
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-2xl font-semibold tracking-tight">{customer.name}</h2>
+              {!customer.is_active && <Badge variant="outline">Archived</Badge>}
+              {customer.code && <Badge variant="secondary">{customer.code}</Badge>}
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {[customer.phone, customer.email, customer.city].filter(Boolean).join(" · ") ||
+                "No contact details"}
+              {customer.date_of_birth && ` · born ${formatDate(customer.date_of_birth)}`}
             </p>
-          )}
+          </div>
         </div>
         <WorkflowActions actions={actions} />
       </div>
@@ -197,11 +198,11 @@ export function CustomerDetail({ customerId }: { customerId: string }) {
 
 function Figure({ label, value, tone }: { label: string; value: string; tone?: "danger" }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
-      <p className="text-xs text-muted-foreground">{label}</p>
+    <div className="rounded-xl border border-border bg-card p-4 shadow-card">
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
       <p
         className={`mt-1 text-xl font-semibold tabular-nums ${
-          tone === "danger" ? "text-destructive" : ""
+          tone === "danger" ? "text-danger" : ""
         }`}
       >
         {value}
